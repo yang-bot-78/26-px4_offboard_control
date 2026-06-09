@@ -28,7 +28,7 @@ MID-360
 
 文件：
 
-- [mid360.yaml](/home/robot/livox_mid360_env/ws_fastlio/src/fast_lio/config/mid360.yaml)
+- `~/livox_mid360_env/ws_fastlio/src/fast_lio/config/mid360.yaml`
 
 当前有效值：
 
@@ -42,8 +42,8 @@ extrinsic_R: [ 0., -1., 0.,
 
 文件：
 
-- [fastlio_mavros_vision_bridge.cpp](/home/robot/ws_offboard_control/src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp)
-- [fastlio_mavros_autofix.launch.py](/home/robot/ws_offboard_control/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py)
+- [fastlio_mavros_vision_bridge.cpp](src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp)
+- [fastlio_mavros_autofix.launch.py](src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py)
 
 当前默认值：
 
@@ -96,15 +96,15 @@ param save
 ## 核心文件
 
 - 默认 launch：
-  [fastlio_mavros_autofix.launch.py](/home/robot/ws_offboard_control/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py)
+  [fastlio_mavros_autofix.launch.py](src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py)
 - MAVROS vision bridge：
-  [fastlio_mavros_vision_bridge.cpp](/home/robot/ws_offboard_control/src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp)
+  [fastlio_mavros_vision_bridge.cpp](src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp)
 - 旧的 MAVROS odometry bridge：
-  [fastlio_mavros_odometry_bridge.cpp](/home/robot/ws_offboard_control/src/px4_ros_com/src/bridges/fastlio_mavros_odometry_bridge.cpp)
+  [fastlio_mavros_odometry_bridge.cpp](src/px4_ros_com/src/bridges/fastlio_mavros_odometry_bridge.cpp)
 - 30 cm 起飞脚本：
-  [run_takeoff_30cm_hold.sh](/home/robot/ws_offboard_control/run_takeoff_30cm_hold.sh)
+  [run_takeoff_30cm_hold.sh](run_takeoff_30cm_hold.sh)
 - 一键启动脚本：
-  [start_takeoff_30cm_stack.sh](/home/robot/ws_offboard_control/start_takeoff_30cm_stack.sh)
+  [start_takeoff_30cm_stack.sh](start_takeoff_30cm_stack.sh)
 
 ## 构建
 
@@ -209,7 +209,7 @@ listener estimator_aid_src_ev_yaw 5
 
 文件：
 
-- [run_takeoff_30cm_hold.sh](/home/robot/ws_offboard_control/run_takeoff_30cm_hold.sh)
+- [run_takeoff_30cm_hold.sh](run_takeoff_30cm_hold.sh)
 
 当前参数：
 
