@@ -1,0 +1,20 @@
+/fastlio_mavros_vision_bridge:
+  ros__parameters:
+    force_pose_frame_id: odom
+    force_twist_frame_id: base_link
+    input_topic: /Odometry/guarded
+    pose_topic: /mavros/vision_pose/pose_cov
+    position_yaw_offset_rad: 3.141592653589793
+    publish_speed: false
+    qos_overrides:
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    restamp_message: true
+    speed_topic: /mavros/vision_speed/speed_twist_cov
+    use_sim_time: false
+    yaw_offset_rad: 3.141592653589793
+

@@ -1,0 +1,215 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /Status1
+        - /Cloud Registered1
+        - /Global Map1
+        - /Global Path1
+      Splitter Ratio: 0.5
+    Tree Height: 768
+  - Class: rviz_common/Selection
+    Name: Selection
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz_common/Views
+    Name: Views
+    Splitter Ratio: 0.5
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.6
+      Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 100
+      Reference Frame: camera_init
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Enabled: true
+      Name: Cloud Registered
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 2
+      Size (m): 0.03
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /cloud_registered
+      Use Fixed Frame: true
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Color: 0; 255; 128
+      Color Transformer: FlatColor
+      Enabled: true
+      Name: Global Map
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 2
+      Size (m): 0.05
+      Style: Flat Squares
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fastlio_global/map
+      Use Fixed Frame: true
+      Value: true
+    - Buffer Length: 1
+      Class: rviz_default_plugins/Path
+      Color: 255; 64; 64
+      Enabled: true
+      Head Diameter: 0.10000000149011612
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.05000000074505806
+      Name: Global Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.05000000074505806
+      Shaft Length: 0.10000000149011612
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fastlio_global/path
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Loop Markers
+      Namespaces:
+        loop_edges: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fastlio_global/loop_markers
+      Value: true
+    - Alpha: 1
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.029999999329447746
+      Class: rviz_default_plugins/Pose
+      Color: 255; 255; 0
+      Enabled: true
+      Head Length: 0.10000000149011612
+      Head Radius: 0.05000000074505806
+      Name: Relocalized Pose
+      Shaft Length: 0.20000000298023224
+      Shaft Radius: 0.019999999552965164
+      Shape: Arrow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fastlio_global/relocalized_pose
+      Value: true
+    - Class: rviz_default_plugins/Axes
+      Enabled: true
+      Length: 0.5
+      Name: Origin Axes
+      Radius: 0.05000000074505806
+      Reference Frame: camera_init
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 24; 24; 28
+    Fixed Frame: camera_init
+    Frame Rate: 20
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+    - Class: rviz_default_plugins/SetInitialPose
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /initialpose
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /goal_pose
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /clicked_point
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+Views:
+  Current:
+    Class: rviz_default_plugins/Orbit
+    Distance: 12
+    Enable Stereo Rendering:
+      Stereo Eye Separation: 0.05999999865889549
+      Stereo Focal Distance: 1
+      Swap Stereo Eyes: false
+      Value: false
+    Focal Point:
+      X: 0
+      Y: 0
+      Z: 0
+    Name: Orbit
+    Near Clip Distance: 0.009999999776482582
+    Pitch: 0.7853981852531433
+    Target Frame: camera_init
+    Value: Orbit (rviz)
+    Yaw: 0.7853981852531433
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 1080
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000002f3000003b8fc0200000008fb000000100044006900730070006c0061007900730100000000000001df0000010c00fffffffb0000001200530065006c0065006300740069006f006e00000001e5000000a00000009b00fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000028b000000b6000000b100fffffffb0000000a00560069006500770073010000034700000071000000ad00fffffffb0000001200540069006d00650000000000000003b80000002f00fffffffb0000000c0053007400610074007500730000000000000209000000a7000000a100ffffff00000001000003b80000037dfc0200000001fb0000000a005600690065007700730100000000000003b8000000ad00ffffff00000000000002ec00000004000000040000000800000008fc00000000
+  Selection:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 1920
+  X: 0
+  Y: 0

@@ -1,0 +1,14 @@
+[Unit]
+Description=Gracefully stop ws_offboard rosbag on logout or shutdown
+DefaultDependencies=no
+Before=exit.target shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/bin/bash -lc '"$HOME/ws_offboard_control/stop_takeoff_debug_bag.sh"'
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target

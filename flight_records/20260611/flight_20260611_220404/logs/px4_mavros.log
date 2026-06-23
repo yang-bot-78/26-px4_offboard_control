@@ -1,0 +1,1178 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-06-11-22-04-09-604857-robot-3514
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [3515]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [3517]
+[INFO] [fastlio_mavros_vision_bridge-3]: process started with pid [3519]
+[INFO] [static_transform_publisher-4]: process started with pid [3521]
+[INFO] [static_transform_publisher-5]: process started with pid [3523]
+[INFO] [static_transform_publisher-6]: process started with pid [3525]
+[INFO] [static_transform_publisher-7]: process started with pid [3527]
+[fastlio_odometry_guard-2] [INFO] [1781186649.719968531] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.60m, xy=0.45m, z=0.25m, speed=3.00m/s)
+[static_transform_publisher-6] [INFO] [1781186649.726463422] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] from 'camera_init' to 'camera_init_ned'
+[fastlio_mavros_vision_bridge-3] [INFO] [1781186649.727400137] [fastlio_mavros_vision_bridge]: Bridging /Odometry/guarded -> /mavros/vision_pose/pose_cov for MAVROS vision input
+[static_transform_publisher-5] [INFO] [1781186649.728149459] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-5] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-5] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-5] from 'base_link' to 'body'
+[static_transform_publisher-7] [INFO] [1781186649.731183607] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'body' to 'body_frd'
+[static_transform_publisher-4] [INFO] [1781186649.731183576] [odom_to_camera_init]: Spinning until stopped - publishing transform
+[static_transform_publisher-4] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-4] from 'odom' to 'camera_init'
+[mavros_node-1] [INFO] [1781186649.741912630] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1781186649.741983916] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1781186649.741988937] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1781186649.741991851] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1781186649.741994115] [mavros.mavros_node]: Starting mavros router node
+[mavros_node-1] [INFO] [1781186649.748483028] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1781186649.748511578] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1781186649.748520738] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1781186649.748523589] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1781186649.748591452] [mavros.mavros_node]: Starting mavros uas node
+[mavros_node-1] [INFO] [1781186649.778705172] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1781186649.778745150] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1781186649.779710522] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1781186649.779720392] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1781186649.779728594] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1781186649.782615571] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1781186649.788804756] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1781186649.802479000] [mavros.mavros_router]: link[1000] detected remote address 160.192
+[mavros_node-1] [INFO] [1781186649.803444401] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1781186649.805010953] [mavros.mavros]: Plugin actuator_control created
+[mavros_node-1] [INFO] [1781186649.805048961] [mavros.mavros]: Plugin actuator_control initialized
+[mavros_node-1] [INFO] [1781186649.826656127] [mavros.mavros]: Plugin adsb created
+[mavros_node-1] [INFO] [1781186649.826709409] [mavros.mavros]: Plugin adsb initialized
+[mavros_node-1] [INFO] [1781186649.832236755] [mavros.mavros]: Plugin altitude created
+[mavros_node-1] [INFO] [1781186649.832283752] [mavros.mavros]: Plugin altitude initialized
+[mavros_node-1] [INFO] [1781186649.837831777] [mavros.mavros]: Plugin cam_imu_sync created
+[mavros_node-1] [INFO] [1781186649.837882376] [mavros.mavros]: Plugin cam_imu_sync initialized
+[mavros_node-1] [INFO] [1781186649.841467359] [mavros.mavros]: Plugin camera created
+[mavros_node-1] [INFO] [1781186649.841499779] [mavros.mavros]: Plugin camera initialized
+[mavros_node-1] [INFO] [1781186649.845243200] [mavros.mavros]: Plugin cellular_status created
+[mavros_node-1] [INFO] [1781186649.845290606] [mavros.mavros]: Plugin cellular_status initialized
+[mavros_node-1] [INFO] [1781186649.856897938] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1781186649.856952355] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1781186649.862978164] [mavros.mavros]: Plugin companion_process_status created
+[mavros_node-1] [INFO] [1781186649.863023329] [mavros.mavros]: Plugin companion_process_status initialized
+[mavros_node-1] [INFO] [1781186649.868479203] [mavros.mavros]: Plugin debug_value created
+[mavros_node-1] [INFO] [1781186649.868524998] [mavros.mavros]: Plugin debug_value initialized
+[mavros_node-1] [INFO] [1781186649.868530806] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1781186649.872738478] [mavros.mavros]: Plugin esc_status created
+[mavros_node-1] [INFO] [1781186649.872773961] [mavros.mavros]: Plugin esc_status initialized
+[mavros_node-1] [INFO] [1781186649.876629169] [mavros.mavros]: Plugin esc_telemetry created
+[mavros_node-1] [INFO] [1781186649.876680129] [mavros.mavros]: Plugin esc_telemetry initialized
+[mavros_node-1] [INFO] [1781186649.883235865] [mavros.mavros]: Plugin fake_gps created
+[mavros_node-1] [INFO] [1781186649.883270009] [mavros.mavros]: Plugin fake_gps initialized
+[mavros_node-1] [INFO] [1781186649.893238108] [mavros.mavros]: Plugin ftp created
+[mavros_node-1] [INFO] [1781186649.893275921] [mavros.mavros]: Plugin ftp initialized
+[mavros_node-1] [INFO] [1781186649.899126515] [mavros.mavros]: Plugin geofence created
+[mavros_node-1] [INFO] [1781186649.899169976] [mavros.mavros]: Plugin geofence initialized
+[mavros_node-1] [INFO] [1781186649.907876659] [mavros.mavros]: Plugin gimbal_control created
+[mavros_node-1] [INFO] [1781186649.907924578] [mavros.mavros]: Plugin gimbal_control initialized
+[mavros_node-1] [INFO] [1781186649.917069706] [mavros.mavros]: Plugin global_position created
+[mavros_node-1] [INFO] [1781186649.917128451] [mavros.mavros]: Plugin global_position initialized
+[fastlio_odometry_guard-2] [WARN] [1781186649.917169865] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 1.39991 s (accepted=9 rejected=1)
+[mavros_node-1] [INFO] [1781186649.922689993] [mavros.mavros]: Plugin gps_input created
+[mavros_node-1] [INFO] [1781186649.922726171] [mavros.mavros]: Plugin gps_input initialized
+[mavros_node-1] [INFO] [1781186649.928620813] [mavros.mavros]: Plugin gps_rtk created
+[mavros_node-1] [INFO] [1781186649.928680171] [mavros.mavros]: Plugin gps_rtk initialized
+[mavros_node-1] [INFO] [1781186649.934294581] [mavros.mavros]: Plugin gps_status created
+[mavros_node-1] [INFO] [1781186649.934342875] [mavros.mavros]: Plugin gps_status initialized
+[mavros_node-1] [INFO] [1781186649.939428627] [mavros.mavros]: Plugin guided_target created
+[mavros_node-1] [INFO] [1781186649.939467213] [mavros.mavros]: Plugin guided_target initialized
+[mavros_node-1] [INFO] [1781186649.947241242] [mavros.mavros]: Plugin hil created
+[mavros_node-1] [INFO] [1781186649.947288444] [mavros.mavros]: Plugin hil initialized
+[mavros_node-1] [INFO] [1781186649.953464326] [mavros.mavros]: Plugin home_position created
+[mavros_node-1] [INFO] [1781186649.953504982] [mavros.mavros]: Plugin home_position initialized
+[mavros_node-1] [INFO] [1781186649.961386094] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1781186649.961457235] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1781186649.971678941] [mavros.mavros]: Plugin landing_target created
+[mavros_node-1] [INFO] [1781186649.971735534] [mavros.mavros]: Plugin landing_target initialized
+[mavros_node-1] [INFO] [1781186649.985273997] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1781186649.985312784] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1781186649.993274942] [mavros.mavros]: Plugin log_transfer created
+[mavros_node-1] [INFO] [1781186649.993329412] [mavros.mavros]: Plugin log_transfer initialized
+[mavros_node-1] [INFO] [1781186649.999648998] [mavros.mavros]: Plugin mag_calibration_status created
+[mavros_node-1] [INFO] [1781186649.999737451] [mavros.mavros]: Plugin mag_calibration_status initialized
+[mavros_node-1] [INFO] [1781186650.006512181] [mavros.mavros]: Plugin manual_control created
+[mavros_node-1] [INFO] [1781186650.006562525] [mavros.mavros]: Plugin manual_control initialized
+[mavros_node-1] [INFO] [1781186650.014424139] [mavros.mavros]: Plugin mocap_pose_estimate created
+[mavros_node-1] [INFO] [1781186650.014461730] [mavros.mavros]: Plugin mocap_pose_estimate initialized
+[mavros_node-1] [INFO] [1781186650.023106686] [mavros.mavros]: Plugin mount_control created
+[mavros_node-1] [INFO] [1781186650.023151503] [mavros.mavros]: Plugin mount_control initialized
+[mavros_node-1] [INFO] [1781186650.029876268] [mavros.mavros]: Plugin nav_controller_output created
+[mavros_node-1] [INFO] [1781186650.029932397] [mavros.mavros]: Plugin nav_controller_output initialized
+[mavros_node-1] [INFO] [1781186650.037238293] [mavros.mavros]: Plugin obstacle_distance created
+[mavros_node-1] [INFO] [1781186650.037292427] [mavros.mavros]: Plugin obstacle_distance initialized
+[mavros_node-1] [INFO] [1781186650.045997830] [mavros.mavros]: Plugin obstacle_distance_3d created
+[mavros_node-1] [INFO] [1781186650.046052732] [mavros.mavros]: Plugin obstacle_distance_3d initialized
+[mavros_node-1] [INFO] [1781186650.055280122] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1781186650.055341302] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1781186650.063719435] [mavros.mavros]: Plugin onboard_computer_status created
+[mavros_node-1] [INFO] [1781186650.063766236] [mavros.mavros]: Plugin onboard_computer_status initialized
+[mavros_node-1] [INFO] [1781186650.074777804] [mavros.mavros]: Plugin open_drone_id created
+[mavros_node-1] [INFO] [1781186650.074813693] [mavros.mavros]: Plugin open_drone_id initialized
+[mavros_node-1] [INFO] [1781186650.083785486] [mavros.mavros]: Plugin optical_flow created
+[mavros_node-1] [INFO] [1781186650.083837045] [mavros.mavros]: Plugin optical_flow initialized
+[mavros_node-1] [INFO] [1781186650.092611210] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1781186650.092654501] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1781186650.100060011] [mavros.mavros]: Plugin play_tune created
+[mavros_node-1] [INFO] [1781186650.100127981] [mavros.mavros]: Plugin play_tune initialized
+[mavros_node-1] [INFO] [1781186650.111480444] [mavros.mavros]: Plugin px4flow created
+[mavros_node-1] [INFO] [1781186650.111526379] [mavros.mavros]: Plugin px4flow initialized
+[mavros_node-1] [INFO] [1781186650.123491066] [mavros.mavros]: Plugin rallypoint created
+[mavros_node-1] [INFO] [1781186650.123550917] [mavros.mavros]: Plugin rallypoint initialized
+[mavros_node-1] [INFO] [1781186650.123579292] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1781186650.134241761] [mavros.mavros]: Plugin rc_io created
+[mavros_node-1] [INFO] [1781186650.134308163] [mavros.mavros]: Plugin rc_io initialized
+[mavros_node-1] [INFO] [1781186650.144442309] [mavros.mavros]: Plugin setpoint_accel created
+[mavros_node-1] [INFO] [1781186650.144497449] [mavros.mavros]: Plugin setpoint_accel initialized
+[mavros_node-1] [INFO] [1781186650.155930345] [mavros.mavros]: Plugin setpoint_attitude created
+[mavros_node-1] [INFO] [1781186650.155988696] [mavros.mavros]: Plugin setpoint_attitude initialized
+[mavros_node-1] [INFO] [1781186650.169657767] [mavros.mavros]: Plugin setpoint_position created
+[mavros_node-1] [INFO] [1781186650.169716634] [mavros.mavros]: Plugin setpoint_position initialized
+[mavros_node-1] [INFO] [1781186650.183362898] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1781186650.183418038] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1781186650.196638091] [mavros.mavros]: Plugin setpoint_trajectory created
+[mavros_node-1] [INFO] [1781186650.196688509] [mavros.mavros]: Plugin setpoint_trajectory initialized
+[mavros_node-1] [INFO] [1781186650.208146948] [mavros.mavros]: Plugin setpoint_velocity created
+[mavros_node-1] [INFO] [1781186650.208192205] [mavros.mavros]: Plugin setpoint_velocity initialized
+[mavros_node-1] [INFO] [1781186650.221200086] [mavros.mavros]: Plugin sim_state created
+[mavros_node-1] [INFO] [1781186650.221252943] [mavros.mavros]: Plugin sim_state initialized
+[mavros_node-1] [INFO] [1781186650.242878124] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1781186650.242935550] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1781186650.254330361] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1781186650.258389547] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1781186650.258474664] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1781186650.270691653] [mavros.mavros]: Plugin tdr_radio created
+[mavros_node-1] [INFO] [1781186650.270748741] [mavros.mavros]: Plugin tdr_radio initialized
+[mavros_node-1] [INFO] [1781186650.282647064] [mavros.mavros]: Plugin terrain created
+[mavros_node-1] [INFO] [1781186650.282714571] [mavros.mavros]: Plugin terrain initialized
+[mavros_node-1] [INFO] [1781186650.297221356] [mavros.mavros]: Plugin trajectory created
+[mavros_node-1] [INFO] [1781186650.297273342] [mavros.mavros]: Plugin trajectory initialized
+[mavros_node-1] [INFO] [1781186650.310202488] [mavros.mavros]: Plugin tunnel created
+[mavros_node-1] [INFO] [1781186650.310263995] [mavros.mavros]: Plugin tunnel initialized
+[mavros_node-1] [INFO] [1781186650.323917434] [mavros.mavros]: Plugin vfr_hud created
+[mavros_node-1] [INFO] [1781186650.323989054] [mavros.mavros]: Plugin vfr_hud initialized
+[mavros_node-1] [INFO] [1781186650.323997309] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1781186650.338759563] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1781186650.338814365] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1781186650.354666323] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1781186650.354733687] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1781186650.374455846] [mavros.mavros]: Plugin waypoint created
+[mavros_node-1] [INFO] [1781186650.374523707] [mavros.mavros]: Plugin waypoint initialized
+[mavros_node-1] [INFO] [1781186650.374530115] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1781186650.388658479] [mavros.mavros]: Plugin wind_estimation created
+[mavros_node-1] [INFO] [1781186650.388783411] [mavros.mavros]: Plugin wind_estimation initialized
+[mavros_node-1] [INFO] [1781186650.390710237] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1781186650.390736358] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1781186650.390739701] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1781186650.390742586] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1781186650.402265530] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1781186650.404876167] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1781186650.410958447] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [INFO] [1781186650.464624811] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[fastlio_odometry_guard-2] [WARN] [1781186650.956687121] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 2.60014 s (accepted=9 rejected=13)
+[mavros_node-1] [INFO] [1781186651.063208275] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1781186651.063387979] [mavros.mission]: WP: detected enable_partial_push: 0
+[mavros_node-1] [INFO] [1781186651.063907904] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1781186651.066343049] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1781186651.112380902] [mavros.rc]: RC_CHANNELS message detected!
+[fastlio_odometry_guard-2] [WARN] [1781186652.055433971] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 3.70005 s (accepted=9 rejected=24)
+[mavros_node-1] [WARN] [1781186652.071958751] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[fastlio_odometry_guard-2] [WARN] [1781186653.055694969] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 4.70001 s (accepted=9 rejected=34)
+[mavros_node-1] [WARN] [1781186653.068845059] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1781186654.069489855] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[fastlio_odometry_guard-2] [WARN] [1781186654.155442801] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 5.80021 s (accepted=9 rejected=45)
+[mavros_node-1] [ERROR] [1781186655.094076139] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781186655.094140520] [mavros.sys]: VER: unicast request timeout, retries left 2
+[fastlio_odometry_guard-2] [WARN] [1781186655.155594654] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 6.80011 s (accepted=9 rejected=55)
+[mavros_node-1] [ERROR] [1781186656.083923133] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781186656.083988043] [mavros.sys]: VER: unicast request timeout, retries left 1
+[fastlio_odometry_guard-2] [WARN] [1781186656.155599914] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 7.79996 s (accepted=9 rejected=65)
+[mavros_node-1] [WARN] [1781186656.223404914] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186656.223737653] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186656.224067094] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186656.224410362] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186656.224534149] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186656.224757479] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186656.225087014] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186656.225451478] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186656.225786603] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186656.226145040] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186656.228393831] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186657.077635320] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781186657.077684491] [mavros.sys]: VER: unicast request timeout, retries left 0
+[fastlio_odometry_guard-2] [WARN] [1781186657.156197534] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 8.79987 s (accepted=9 rejected=75)
+[mavros_node-1] [ERROR] [1781186658.078114694] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781186658.078169604] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[fastlio_odometry_guard-2] [WARN] [1781186658.156328422] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 9.80029 s (accepted=9 rejected=85)
+[fastlio_odometry_guard-2] [WARN] [1781186659.255332515] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 10.9001 s (accepted=9 rejected=96)
+[fastlio_odometry_guard-2] [WARN] [1781186660.256453335] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 11.8999 s (accepted=9 rejected=106)
+[mavros_node-1] [INFO] [1781186661.063521200] [mavros.home_position]: HP: requesting home position
+[fastlio_odometry_guard-2] [WARN] [1781186661.356001220] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 13.0002 s (accepted=9 rejected=117)
+[fastlio_odometry_guard-2] [WARN] [1781186662.456478726] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 14.1 s (accepted=9 rejected=128)
+[fastlio_odometry_guard-2] [WARN] [1781186663.555543437] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 15.2001 s (accepted=9 rejected=139)
+[fastlio_odometry_guard-2] [WARN] [1781186664.556146519] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 16.1999 s (accepted=9 rejected=149)
+[fastlio_odometry_guard-2] [WARN] [1781186665.655347318] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 17.3 s (accepted=9 rejected=160)
+[mavros_node-1] [INFO] [1781186666.022826973] [mavros.mission]: WP: mission received
+[fastlio_odometry_guard-2] [WARN] [1781186666.655659738] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 18.2999 s (accepted=9 rejected=170)
+[fastlio_odometry_guard-2] [WARN] [1781186667.656314741] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 19.3003 s (accepted=9 rejected=180)
+[fastlio_odometry_guard-2] [WARN] [1781186668.756303458] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 20.3999 s (accepted=9 rejected=191)
+[fastlio_odometry_guard-2] [WARN] [1781186669.856187269] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 21.4999 s (accepted=9 rejected=202)
+[fastlio_odometry_guard-2] [WARN] [1781186670.955561932] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 22.5998 s (accepted=9 rejected=213)
+[mavros_node-1] [INFO] [1781186670.999021722] [mavros.rallypoint]: RP: mission received
+[fastlio_odometry_guard-2] [WARN] [1781186672.055480263] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 23.7007 s (accepted=9 rejected=224)
+[fastlio_odometry_guard-2] [WARN] [1781186673.055557879] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 24.7 s (accepted=9 rejected=234)
+[fastlio_odometry_guard-2] [WARN] [1781186674.056046690] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 25.7003 s (accepted=9 rejected=244)
+[fastlio_odometry_guard-2] [WARN] [1781186675.154851766] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 26.7995 s (accepted=9 rejected=255)
+[mavros_node-1] [INFO] [1781186675.980799240] [mavros.geofence]: GF: mission received
+[fastlio_odometry_guard-2] [WARN] [1781186676.254975158] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 27.9 s (accepted=9 rejected=266)
+[fastlio_odometry_guard-2] [WARN] [1781186677.354749894] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 28.9975 s (accepted=9 rejected=277)
+[fastlio_odometry_guard-2] [WARN] [1781186678.355127665] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 29.9999 s (accepted=9 rejected=287)
+[fastlio_odometry_guard-2] [WARN] [1781186679.355256456] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 30.9999 s (accepted=9 rejected=297)
+[fastlio_odometry_guard-2] [WARN] [1781186680.355922192] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 32.0006 s (accepted=9 rejected=307)
+[fastlio_odometry_guard-2] [WARN] [1781186681.455416970] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 33.1003 s (accepted=9 rejected=318)
+[fastlio_odometry_guard-2] [WARN] [1781186682.455881909] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 34.1004 s (accepted=9 rejected=328)
+[fastlio_odometry_guard-2] [WARN] [1781186683.555531690] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 35.2004 s (accepted=9 rejected=339)
+[fastlio_odometry_guard-2] [WARN] [1781186684.555560119] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 36.2009 s (accepted=9 rejected=349)
+[fastlio_odometry_guard-2] [WARN] [1781186685.556553950] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 37.2001 s (accepted=9 rejected=359)
+[fastlio_odometry_guard-2] [WARN] [1781186686.655543329] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 38.2999 s (accepted=9 rejected=370)
+[fastlio_odometry_guard-2] [WARN] [1781186687.655661382] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 39.2999 s (accepted=9 rejected=380)
+[fastlio_odometry_guard-2] [WARN] [1781186688.755947963] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 40.4006 s (accepted=9 rejected=391)
+[fastlio_odometry_guard-2] [WARN] [1781186689.756617877] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 41.4001 s (accepted=9 rejected=401)
+[fastlio_odometry_guard-2] [WARN] [1781186690.855999611] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 42.4999 s (accepted=9 rejected=412)
+[fastlio_odometry_guard-2] [WARN] [1781186691.856557371] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 43.5 s (accepted=9 rejected=422)
+[fastlio_odometry_guard-2] [WARN] [1781186692.955660747] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 44.6004 s (accepted=9 rejected=433)
+[fastlio_odometry_guard-2] [WARN] [1781186693.955706618] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 45.6 s (accepted=9 rejected=443)
+[mavros_node-1] [INFO] [1781186694.715178302] [mavros.sys]: FCU: EVENT 16682655 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186694.723584937] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-131-191-1-128-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186694.723928508] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186694.724280919] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186694.724614218] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186694.724973902] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186694.725102053] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186694.725308273] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186694.725689700] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186694.727979639] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186695.056155328] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 46.7 s (accepted=9 rejected=454)
+[fastlio_odometry_guard-2] [WARN] [1781186696.155845130] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 47.8007 s (accepted=9 rejected=465)
+[fastlio_odometry_guard-2] [WARN] [1781186697.255868703] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 48.9001 s (accepted=9 rejected=476)
+[fastlio_odometry_guard-2] [WARN] [1781186698.255892543] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 49.9001 s (accepted=9 rejected=486)
+[fastlio_odometry_guard-2] [WARN] [1781186699.356523018] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 51.0006 s (accepted=9 rejected=497)
+[fastlio_odometry_guard-2] [WARN] [1781186700.356590013] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 52.0001 s (accepted=9 rejected=507)
+[fastlio_odometry_guard-2] [WARN] [1781186701.455868809] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 53.0999 s (accepted=9 rejected=518)
+[fastlio_odometry_guard-2] [WARN] [1781186702.456592630] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 54.1001 s (accepted=9 rejected=528)
+[fastlio_odometry_guard-2] [WARN] [1781186703.456598245] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 55.0999 s (accepted=9 rejected=538)
+[fastlio_odometry_guard-2] [WARN] [1781186704.555506626] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 56.2 s (accepted=9 rejected=549)
+[fastlio_odometry_guard-2] [WARN] [1781186705.556530973] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 57.2006 s (accepted=9 rejected=559)
+[fastlio_odometry_guard-2] [WARN] [1781186706.655582029] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 58.3 s (accepted=9 rejected=570)
+[fastlio_odometry_guard-2] [WARN] [1781186707.755554262] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 59.4005 s (accepted=9 rejected=581)
+[fastlio_odometry_guard-2] [WARN] [1781186708.855625305] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 60.5001 s (accepted=9 rejected=592)
+[fastlio_odometry_guard-2] [WARN] [1781186709.856588454] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 61.4999 s (accepted=9 rejected=602)
+[fastlio_odometry_guard-2] [WARN] [1781186710.956133959] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 62.6007 s (accepted=9 rejected=613)
+[fastlio_odometry_guard-2] [WARN] [1781186712.055636942] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 63.7002 s (accepted=9 rejected=624)
+[fastlio_odometry_guard-2] [WARN] [1781186713.056604450] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 64.7 s (accepted=9 rejected=634)
+[fastlio_odometry_guard-2] [WARN] [1781186714.155501301] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 65.8006 s (accepted=9 rejected=645)
+[fastlio_odometry_guard-2] [WARN] [1781186715.255522674] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 66.9 s (accepted=9 rejected=656)
+[fastlio_odometry_guard-2] [WARN] [1781186716.355933004] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 67.9999 s (accepted=9 rejected=667)
+[fastlio_odometry_guard-2] [WARN] [1781186717.356497927] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 69.0001 s (accepted=9 rejected=677)
+[fastlio_odometry_guard-2] [WARN] [1781186718.356559172] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 70.0005 s (accepted=9 rejected=687)
+[mavros_node-1] [ERROR] [1781186719.124240296] [mavros.sys]: FCU: EVENT 133277 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186719.455653216] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 71.1 s (accepted=9 rejected=698)
+[fastlio_odometry_guard-2] [WARN] [1781186720.555543541] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 72.2001 s (accepted=9 rejected=709)
+[fastlio_odometry_guard-2] [WARN] [1781186721.555659545] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 73.2001 s (accepted=9 rejected=719)
+[fastlio_odometry_guard-2] [WARN] [1781186722.556583992] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 74.2004 s (accepted=9 rejected=729)
+[fastlio_odometry_guard-2] [WARN] [1781186723.656498809] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 75.3007 s (accepted=9 rejected=740)
+[fastlio_odometry_guard-2] [WARN] [1781186724.756470335] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 76.4 s (accepted=9 rejected=751)
+[fastlio_odometry_guard-2] [WARN] [1781186725.855813220] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 77.5002 s (accepted=9 rejected=762)
+[fastlio_odometry_guard-2] [WARN] [1781186726.856482882] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 78.5 s (accepted=9 rejected=772)
+[fastlio_odometry_guard-2] [WARN] [1781186727.856558897] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 79.5003 s (accepted=9 rejected=782)
+[fastlio_odometry_guard-2] [WARN] [1781186728.955634000] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 80.6005 s (accepted=9 rejected=793)
+[fastlio_odometry_guard-2] [WARN] [1781186730.055529264] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 81.7009 s (accepted=9 rejected=804)
+[fastlio_odometry_guard-2] [WARN] [1781186731.055627292] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 82.7001 s (accepted=9 rejected=814)
+[fastlio_odometry_guard-2] [WARN] [1781186732.056590830] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 83.7003 s (accepted=9 rejected=824)
+[fastlio_odometry_guard-2] [WARN] [1781186733.156261601] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 84.7999 s (accepted=9 rejected=835)
+[fastlio_odometry_guard-2] [WARN] [1781186734.256522967] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 85.9 s (accepted=9 rejected=846)
+[mavros_node-1] [INFO] [1781186734.804517952] [mavros.sys]: FCU: EVENT 11290563 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186734.826197381] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186734.826550449] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186734.826887561] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186734.827238492] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186734.827355038] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186734.827594137] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186734.827927236] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186734.828299034] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186734.828630025] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186734.828986997] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186734.829912323] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186735.355654097] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 87.0004 s (accepted=9 rejected=857)
+[fastlio_odometry_guard-2] [WARN] [1781186736.355891112] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 88.0005 s (accepted=9 rejected=867)
+[fastlio_odometry_guard-2] [WARN] [1781186737.356042882] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 89.0008 s (accepted=9 rejected=877)
+[fastlio_odometry_guard-2] [WARN] [1781186738.356558474] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 89.9999 s (accepted=9 rejected=887)
+[fastlio_odometry_guard-2] [WARN] [1781186739.456538871] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 91.1003 s (accepted=9 rejected=898)
+[fastlio_odometry_guard-2] [WARN] [1781186740.555927476] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 92.2 s (accepted=9 rejected=909)
+[fastlio_odometry_guard-2] [WARN] [1781186741.655621393] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 93.2999 s (accepted=9 rejected=920)
+[fastlio_odometry_guard-2] [WARN] [1781186742.656504189] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 94.3 s (accepted=9 rejected=930)
+[fastlio_odometry_guard-2] [WARN] [1781186743.755986259] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 95.4001 s (accepted=9 rejected=941)
+[fastlio_odometry_guard-2] [WARN] [1781186744.756464230] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 96.4005 s (accepted=9 rejected=951)
+[fastlio_odometry_guard-2] [WARN] [1781186745.855871239] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 97.5007 s (accepted=9 rejected=962)
+[fastlio_odometry_guard-2] [WARN] [1781186746.856534264] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 98.5008 s (accepted=9 rejected=972)
+[fastlio_odometry_guard-2] [WARN] [1781186747.856598369] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 99.5001 s (accepted=9 rejected=982)
+[fastlio_odometry_guard-2] [WARN] [1781186748.955896493] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 100.6 s (accepted=9 rejected=993)
+[fastlio_odometry_guard-2] [WARN] [1781186749.955983969] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 101.6 s (accepted=9 rejected=1003)
+[fastlio_odometry_guard-2] [WARN] [1781186750.956054361] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 102.6 s (accepted=9 rejected=1013)
+[fastlio_odometry_guard-2] [WARN] [1781186752.055603762] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 103.7 s (accepted=9 rejected=1024)
+[fastlio_odometry_guard-2] [WARN] [1781186753.055718489] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 104.7 s (accepted=9 rejected=1034)
+[fastlio_odometry_guard-2] [WARN] [1781186754.055841228] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 105.7 s (accepted=9 rejected=1044)
+[fastlio_odometry_guard-2] [WARN] [1781186755.055874189] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 106.7 s (accepted=9 rejected=1054)
+[fastlio_odometry_guard-2] [WARN] [1781186756.155560577] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 107.801 s (accepted=9 rejected=1065)
+[fastlio_odometry_guard-2] [WARN] [1781186757.155656163] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 108.801 s (accepted=9 rejected=1075)
+[fastlio_odometry_guard-2] [WARN] [1781186758.255461337] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 109.9 s (accepted=9 rejected=1086)
+[fastlio_odometry_guard-2] [WARN] [1781186759.356119594] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 111 s (accepted=9 rejected=1097)
+[fastlio_odometry_guard-2] [WARN] [1781186760.455591004] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 112.1 s (accepted=9 rejected=1108)
+[fastlio_odometry_guard-2] [WARN] [1781186761.456171833] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 113.1 s (accepted=9 rejected=1118)
+[fastlio_odometry_guard-2] [WARN] [1781186762.555335804] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 114.2 s (accepted=9 rejected=1129)
+[fastlio_odometry_guard-2] [WARN] [1781186763.556062902] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 115.2 s (accepted=9 rejected=1139)
+[fastlio_odometry_guard-2] [WARN] [1781186764.655639694] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 116.3 s (accepted=9 rejected=1150)
+[fastlio_odometry_guard-2] [WARN] [1781186765.755275588] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 117.4 s (accepted=9 rejected=1161)
+[fastlio_odometry_guard-2] [WARN] [1781186766.755803825] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 118.401 s (accepted=9 rejected=1171)
+[fastlio_odometry_guard-2] [WARN] [1781186767.855551954] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 119.5 s (accepted=9 rejected=1182)
+[fastlio_odometry_guard-2] [WARN] [1781186768.856153609] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 120.501 s (accepted=9 rejected=1192)
+[mavros_node-1] [INFO] [1781186769.689597600] [mavros.mavros_router]: link[1000] removed stale remote address 160.0
+[mavros_node-1] [INFO] [1781186769.689628769] [mavros.mavros_router]: link[1000] removed stale remote address 160.192
+[fastlio_odometry_guard-2] [WARN] [1781186769.955615629] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 121.6 s (accepted=9 rejected=1203)
+[fastlio_odometry_guard-2] [WARN] [1781186771.055567759] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 122.699 s (accepted=9 rejected=1214)
+[fastlio_odometry_guard-2] [WARN] [1781186772.056021082] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 123.7 s (accepted=9 rejected=1224)
+[fastlio_odometry_guard-2] [WARN] [1781186773.155533999] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 124.8 s (accepted=9 rejected=1235)
+[fastlio_odometry_guard-2] [WARN] [1781186774.156495975] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 125.8 s (accepted=9 rejected=1245)
+[fastlio_odometry_guard-2] [WARN] [1781186775.256568482] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 126.9 s (accepted=9 rejected=1256)
+[fastlio_odometry_guard-2] [WARN] [1781186776.356402251] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 128 s (accepted=9 rejected=1267)
+[fastlio_odometry_guard-2] [WARN] [1781186777.455569826] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 129.1 s (accepted=9 rejected=1278)
+[fastlio_odometry_guard-2] [WARN] [1781186778.556274626] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 130.2 s (accepted=9 rejected=1289)
+[fastlio_odometry_guard-2] [WARN] [1781186779.655601035] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 131.3 s (accepted=9 rejected=1300)
+[fastlio_odometry_guard-2] [WARN] [1781186780.655831288] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 132.3 s (accepted=9 rejected=1310)
+[fastlio_odometry_guard-2] [WARN] [1781186781.656299277] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 133.301 s (accepted=9 rejected=1320)
+[fastlio_odometry_guard-2] [WARN] [1781186782.755447594] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 134.4 s (accepted=9 rejected=1331)
+[fastlio_odometry_guard-2] [WARN] [1781186783.755858549] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 135.4 s (accepted=9 rejected=1341)
+[fastlio_odometry_guard-2] [WARN] [1781186784.756661809] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 136.4 s (accepted=9 rejected=1351)
+[fastlio_odometry_guard-2] [WARN] [1781186785.855515973] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 137.5 s (accepted=9 rejected=1362)
+[fastlio_odometry_guard-2] [WARN] [1781186786.955474242] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 138.601 s (accepted=9 rejected=1373)
+[fastlio_odometry_guard-2] [WARN] [1781186788.055988185] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 139.7 s (accepted=9 rejected=1384)
+[fastlio_odometry_guard-2] [WARN] [1781186789.056311954] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 140.7 s (accepted=9 rejected=1394)
+[fastlio_odometry_guard-2] [WARN] [1781186790.155580825] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 141.8 s (accepted=9 rejected=1405)
+[fastlio_odometry_guard-2] [WARN] [1781186791.256263150] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 142.9 s (accepted=9 rejected=1416)
+[fastlio_odometry_guard-2] [WARN] [1781186792.256347172] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 143.901 s (accepted=9 rejected=1426)
+[fastlio_odometry_guard-2] [WARN] [1781186793.355494668] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 145 s (accepted=9 rejected=1437)
+[fastlio_odometry_guard-2] [WARN] [1781186794.456401016] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 146.101 s (accepted=9 rejected=1448)
+[fastlio_odometry_guard-2] [WARN] [1781186795.555670575] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 147.201 s (accepted=9 rejected=1459)
+[fastlio_odometry_guard-2] [WARN] [1781186796.555713871] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 148.2 s (accepted=9 rejected=1469)
+[fastlio_odometry_guard-2] [WARN] [1781186797.555871449] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 149.2 s (accepted=9 rejected=1479)
+[fastlio_odometry_guard-2] [WARN] [1781186798.556538432] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 150.2 s (accepted=9 rejected=1489)
+[mavros_node-1] [WARN] [1781186798.913916453] [mavros.cmd]: CMD: Unexpected command 512, result 0
+[mavros_node-1] [WARN] [1781186798.995310136] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186798.995647722] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186798.996007297] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186798.996353375] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186798.996692530] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186798.997031346] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186798.997426764] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186798.997731911] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186798.998083991] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186798.998230244] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186799.656758732] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 151.3 s (accepted=9 rejected=1500)
+[fastlio_odometry_guard-2] [WARN] [1781186800.756168662] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 152.4 s (accepted=9 rejected=1511)
+[fastlio_odometry_guard-2] [WARN] [1781186801.756454021] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 153.4 s (accepted=9 rejected=1521)
+[fastlio_odometry_guard-2] [WARN] [1781186802.856463185] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 154.5 s (accepted=9 rejected=1532)
+[mavros_node-1] [WARN] [1781186803.094857915] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186803.095181120] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186803.095485105] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186803.095832271] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186803.096186066] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186803.096494704] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186803.096886171] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186803.097263104] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186803.097526004] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186803.098104917] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186803.856957616] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 155.5 s (accepted=9 rejected=1542)
+[fastlio_odometry_guard-2] [WARN] [1781186804.955859284] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 156.6 s (accepted=9 rejected=1553)
+[fastlio_odometry_guard-2] [WARN] [1781186805.955990477] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 157.6 s (accepted=9 rejected=1563)
+[fastlio_odometry_guard-2] [WARN] [1781186807.055527697] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 158.7 s (accepted=9 rejected=1574)
+[fastlio_odometry_guard-2] [WARN] [1781186808.056441242] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 159.7 s (accepted=9 rejected=1584)
+[fastlio_odometry_guard-2] [WARN] [1781186809.155755974] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 160.8 s (accepted=9 rejected=1595)
+[fastlio_odometry_guard-2] [WARN] [1781186810.156385241] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 161.8 s (accepted=9 rejected=1605)
+[fastlio_odometry_guard-2] [WARN] [1781186811.255670021] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 162.9 s (accepted=9 rejected=1616)
+[mavros_node-1] [WARN] [1781186811.506413657] [mavros.cmd]: CMD: Unexpected command 512, result 2
+[fastlio_odometry_guard-2] [WARN] [1781186812.355368351] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 164 s (accepted=9 rejected=1627)
+[fastlio_odometry_guard-2] [WARN] [1781186813.355539645] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 165.001 s (accepted=9 rejected=1637)
+[fastlio_odometry_guard-2] [WARN] [1781186814.355892849] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 166 s (accepted=9 rejected=1647)
+[fastlio_odometry_guard-2] [WARN] [1781186815.455571763] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 167.1 s (accepted=9 rejected=1658)
+[fastlio_odometry_guard-2] [WARN] [1781186816.555501244] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 168.2 s (accepted=9 rejected=1669)
+[fastlio_odometry_guard-2] [WARN] [1781186817.555695406] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 169.2 s (accepted=9 rejected=1679)
+[fastlio_odometry_guard-2] [WARN] [1781186818.655485798] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 170.301 s (accepted=9 rejected=1690)
+[fastlio_odometry_guard-2] [WARN] [1781186819.655524403] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 171.3 s (accepted=9 rejected=1700)
+[fastlio_odometry_guard-2] [WARN] [1781186820.655542113] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 172.3 s (accepted=9 rejected=1710)
+[fastlio_odometry_guard-2] [WARN] [1781186821.655951113] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 173.3 s (accepted=9 rejected=1720)
+[fastlio_odometry_guard-2] [WARN] [1781186822.755603808] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 174.401 s (accepted=9 rejected=1731)
+[mavros_node-1] [WARN] [1781186823.014719814] [mavros.cmd]: CMD: Unexpected command 512, result 2
+[fastlio_odometry_guard-2] [WARN] [1781186823.756035164] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 175.4 s (accepted=9 rejected=1741)
+[fastlio_odometry_guard-2] [WARN] [1781186824.756082096] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 176.4 s (accepted=9 rejected=1751)
+[fastlio_odometry_guard-2] [WARN] [1781186825.756303428] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 177.4 s (accepted=9 rejected=1761)
+[fastlio_odometry_guard-2] [WARN] [1781186826.756792693] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 178.4 s (accepted=9 rejected=1771)
+[fastlio_odometry_guard-2] [WARN] [1781186827.856204473] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 179.501 s (accepted=9 rejected=1782)
+[fastlio_odometry_guard-2] [WARN] [1781186828.856342806] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 180.5 s (accepted=9 rejected=1792)
+[fastlio_odometry_guard-2] [WARN] [1781186829.955637346] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 181.6 s (accepted=9 rejected=1803)
+[fastlio_odometry_guard-2] [WARN] [1781186830.955660611] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 182.6 s (accepted=9 rejected=1813)
+[fastlio_odometry_guard-2] [WARN] [1781186831.956223326] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 183.6 s (accepted=9 rejected=1823)
+[fastlio_odometry_guard-2] [WARN] [1781186833.055518846] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 184.701 s (accepted=9 rejected=1834)
+[fastlio_odometry_guard-2] [WARN] [1781186834.056257911] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 185.7 s (accepted=9 rejected=1844)
+[fastlio_odometry_guard-2] [WARN] [1781186835.155432374] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 186.8 s (accepted=9 rejected=1855)
+[fastlio_odometry_guard-2] [WARN] [1781186836.155987918] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 187.8 s (accepted=9 rejected=1865)
+[fastlio_odometry_guard-2] [WARN] [1781186837.256579046] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 188.9 s (accepted=9 rejected=1876)
+[fastlio_odometry_guard-2] [WARN] [1781186838.356399676] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 190.001 s (accepted=9 rejected=1887)
+[fastlio_odometry_guard-2] [WARN] [1781186839.455552281] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 191.101 s (accepted=9 rejected=1898)
+[fastlio_odometry_guard-2] [WARN] [1781186840.455584922] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 192.1 s (accepted=9 rejected=1908)
+[fastlio_odometry_guard-2] [WARN] [1781186841.456057684] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 193.1 s (accepted=9 rejected=1918)
+[mavros_node-1] [WARN] [1781186842.015037614] [mavros.cmd]: CMD: Unexpected command 512, result 2
+[fastlio_odometry_guard-2] [WARN] [1781186842.556267902] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 194.2 s (accepted=9 rejected=1929)
+[fastlio_odometry_guard-2] [WARN] [1781186843.556447711] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 195.2 s (accepted=9 rejected=1939)
+[fastlio_odometry_guard-2] [WARN] [1781186844.655877718] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 196.3 s (accepted=9 rejected=1950)
+[fastlio_odometry_guard-2] [WARN] [1781186845.755441188] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 197.4 s (accepted=9 rejected=1961)
+[fastlio_odometry_guard-2] [WARN] [1781186846.755513879] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 198.4 s (accepted=9 rejected=1971)
+[fastlio_odometry_guard-2] [WARN] [1781186847.855626141] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 199.5 s (accepted=9 rejected=1982)
+[fastlio_odometry_guard-2] [WARN] [1781186848.955437901] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 200.601 s (accepted=9 rejected=1993)
+[fastlio_odometry_guard-2] [WARN] [1781186849.956317134] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 201.601 s (accepted=9 rejected=2003)
+[fastlio_odometry_guard-2] [WARN] [1781186851.055527863] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 202.7 s (accepted=9 rejected=2014)
+[fastlio_odometry_guard-2] [WARN] [1781186852.056448394] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 203.7 s (accepted=9 rejected=2024)
+[fastlio_odometry_guard-2] [WARN] [1781186853.155805521] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 204.8 s (accepted=9 rejected=2035)
+[fastlio_odometry_guard-2] [WARN] [1781186854.155880209] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 205.8 s (accepted=9 rejected=2045)
+[fastlio_odometry_guard-2] [WARN] [1781186855.156472954] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 206.801 s (accepted=9 rejected=2055)
+[fastlio_odometry_guard-2] [WARN] [1781186856.256448867] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 207.901 s (accepted=9 rejected=2066)
+[fastlio_odometry_guard-2] [WARN] [1781186857.256735942] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 208.9 s (accepted=9 rejected=2076)
+[fastlio_odometry_guard-2] [WARN] [1781186858.355792937] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 210 s (accepted=9 rejected=2087)
+[fastlio_odometry_guard-2] [WARN] [1781186859.455570763] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 211.1 s (accepted=9 rejected=2098)
+[fastlio_odometry_guard-2] [WARN] [1781186860.555572405] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 212.2 s (accepted=9 rejected=2109)
+[fastlio_odometry_guard-2] [WARN] [1781186861.555775049] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 213.201 s (accepted=9 rejected=2119)
+[fastlio_odometry_guard-2] [WARN] [1781186862.656079137] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 214.3 s (accepted=9 rejected=2130)
+[fastlio_odometry_guard-2] [WARN] [1781186863.755737516] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 215.4 s (accepted=9 rejected=2141)
+[fastlio_odometry_guard-2] [WARN] [1781186864.755942940] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 216.4 s (accepted=9 rejected=2151)
+[fastlio_odometry_guard-2] [WARN] [1781186865.756046535] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 217.4 s (accepted=9 rejected=2161)
+[fastlio_odometry_guard-2] [WARN] [1781186866.855543654] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 218.501 s (accepted=9 rejected=2172)
+[fastlio_odometry_guard-2] [WARN] [1781186867.955269353] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 219.601 s (accepted=9 rejected=2183)
+[fastlio_odometry_guard-2] [WARN] [1781186869.054939422] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 220.699 s (accepted=9 rejected=2194)
+[fastlio_odometry_guard-2] [WARN] [1781186870.056015859] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 221.7 s (accepted=9 rejected=2204)
+[fastlio_odometry_guard-2] [WARN] [1781186871.056218473] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 222.7 s (accepted=9 rejected=2214)
+[fastlio_odometry_guard-2] [WARN] [1781186872.155670150] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 223.8 s (accepted=9 rejected=2225)
+[fastlio_odometry_guard-2] [WARN] [1781186873.156104201] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 224.801 s (accepted=9 rejected=2235)
+[fastlio_odometry_guard-2] [WARN] [1781186874.156383123] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 225.801 s (accepted=9 rejected=2245)
+[fastlio_odometry_guard-2] [WARN] [1781186875.255513856] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 226.9 s (accepted=9 rejected=2256)
+[fastlio_odometry_guard-2] [WARN] [1781186876.256342711] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 227.9 s (accepted=9 rejected=2266)
+[fastlio_odometry_guard-2] [WARN] [1781186877.355809045] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 229 s (accepted=9 rejected=2277)
+[fastlio_odometry_guard-2] [WARN] [1781186878.356517548] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 230 s (accepted=9 rejected=2287)
+[fastlio_odometry_guard-2] [WARN] [1781186879.456562142] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 231.101 s (accepted=9 rejected=2298)
+[fastlio_odometry_guard-2] [WARN] [1781186880.556458664] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 232.201 s (accepted=9 rejected=2309)
+[fastlio_odometry_guard-2] [WARN] [1781186881.556568766] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 233.2 s (accepted=9 rejected=2319)
+[fastlio_odometry_guard-2] [WARN] [1781186882.656276263] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 234.3 s (accepted=9 rejected=2330)
+[fastlio_odometry_guard-2] [WARN] [1781186883.755555000] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 235.4 s (accepted=9 rejected=2341)
+[fastlio_odometry_guard-2] [WARN] [1781186884.756596715] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 236.4 s (accepted=9 rejected=2351)
+[fastlio_odometry_guard-2] [WARN] [1781186885.855725116] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 237.5 s (accepted=9 rejected=2362)
+[fastlio_odometry_guard-2] [WARN] [1781186886.955779278] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 238.601 s (accepted=9 rejected=2373)
+[fastlio_odometry_guard-2] [WARN] [1781186887.956652749] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 239.6 s (accepted=9 rejected=2383)
+[fastlio_odometry_guard-2] [WARN] [1781186889.055937889] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 240.7 s (accepted=9 rejected=2394)
+[fastlio_odometry_guard-2] [WARN] [1781186890.055978273] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 241.7 s (accepted=9 rejected=2404)
+[fastlio_odometry_guard-2] [WARN] [1781186891.056523962] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 242.7 s (accepted=9 rejected=2414)
+[fastlio_odometry_guard-2] [WARN] [1781186892.155558945] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 243.8 s (accepted=9 rejected=2425)
+[fastlio_odometry_guard-2] [WARN] [1781186893.255528328] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 244.9 s (accepted=9 rejected=2436)
+[fastlio_odometry_guard-2] [WARN] [1781186894.255857368] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 245.9 s (accepted=9 rejected=2446)
+[fastlio_odometry_guard-2] [WARN] [1781186895.355615275] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 247 s (accepted=9 rejected=2457)
+[fastlio_odometry_guard-2] [WARN] [1781186896.356481709] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 248 s (accepted=9 rejected=2467)
+[fastlio_odometry_guard-2] [WARN] [1781186897.455626256] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 249.1 s (accepted=9 rejected=2478)
+[fastlio_odometry_guard-2] [WARN] [1781186898.456484428] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 250.1 s (accepted=9 rejected=2488)
+[fastlio_odometry_guard-2] [WARN] [1781186899.555588991] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 251.201 s (accepted=9 rejected=2499)
+[fastlio_odometry_guard-2] [WARN] [1781186900.556022123] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 252.2 s (accepted=9 rejected=2509)
+[fastlio_odometry_guard-2] [WARN] [1781186901.556533214] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 253.2 s (accepted=9 rejected=2519)
+[fastlio_odometry_guard-2] [WARN] [1781186902.655864619] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 254.3 s (accepted=9 rejected=2530)
+[mavros_node-1] [INFO] [1781186903.595117419] [mavros.sys]: FCU: EVENT 16682655 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186903.629574113] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-131-191-1-128-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186903.629920377] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186903.630252044] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186903.630617716] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186903.630740051] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186903.630978317] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186903.631305577] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186903.633605981] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186903.655883259] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 255.3 s (accepted=9 rejected=2540)
+[fastlio_odometry_guard-2] [WARN] [1781186904.656519487] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 256.3 s (accepted=9 rejected=2550)
+[fastlio_odometry_guard-2] [WARN] [1781186905.755898683] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 257.401 s (accepted=9 rejected=2561)
+[fastlio_odometry_guard-2] [WARN] [1781186906.756507879] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 258.401 s (accepted=9 rejected=2571)
+[fastlio_odometry_guard-2] [WARN] [1781186907.855705857] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 259.5 s (accepted=9 rejected=2582)
+[fastlio_odometry_guard-2] [WARN] [1781186908.955590845] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 260.6 s (accepted=9 rejected=2593)
+[fastlio_odometry_guard-2] [WARN] [1781186910.055569941] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 261.7 s (accepted=9 rejected=2604)
+[fastlio_odometry_guard-2] [WARN] [1781186911.056033138] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 262.7 s (accepted=9 rejected=2614)
+[fastlio_odometry_guard-2] [WARN] [1781186912.056577660] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 263.7 s (accepted=9 rejected=2624)
+[fastlio_odometry_guard-2] [WARN] [1781186913.156543705] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 264.801 s (accepted=9 rejected=2635)
+[fastlio_odometry_guard-2] [WARN] [1781186914.256568716] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 265.9 s (accepted=9 rejected=2646)
+[fastlio_odometry_guard-2] [WARN] [1781186915.355688060] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 267 s (accepted=9 rejected=2657)
+[fastlio_odometry_guard-2] [WARN] [1781186916.355753167] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 268 s (accepted=9 rejected=2667)
+[fastlio_odometry_guard-2] [WARN] [1781186917.455617789] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 269.1 s (accepted=9 rejected=2678)
+[fastlio_odometry_guard-2] [WARN] [1781186918.455734569] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 270.1 s (accepted=9 rejected=2688)
+[fastlio_odometry_guard-2] [WARN] [1781186919.456521313] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 271.1 s (accepted=9 rejected=2698)
+[fastlio_odometry_guard-2] [WARN] [1781186920.556611240] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 272.201 s (accepted=9 rejected=2709)
+[fastlio_odometry_guard-2] [WARN] [1781186921.656579345] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 273.3 s (accepted=9 rejected=2720)
+[fastlio_odometry_guard-2] [WARN] [1781186922.756483967] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 274.4 s (accepted=9 rejected=2731)
+[fastlio_odometry_guard-2] [WARN] [1781186923.855579377] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 275.5 s (accepted=9 rejected=2742)
+[fastlio_odometry_guard-2] [WARN] [1781186924.856426846] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 276.5 s (accepted=9 rejected=2752)
+[mavros_node-1] [ERROR] [1781186925.179126670] [mavros.sys]: FCU: EVENT 133277 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186925.955552470] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 277.6 s (accepted=9 rejected=2763)
+[fastlio_odometry_guard-2] [WARN] [1781186926.975570327] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 278.601 s (accepted=9 rejected=2773)
+[mavros_node-1] [WARN] [1781186927.478559608] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186927.478917309] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186927.479281819] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186927.479631727] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186927.479949247] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186927.480052311] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186927.480287891] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186927.480667612] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186927.481003112] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186927.481581707] [mavros.sys]: FCU: EVENT 11290563 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186928.055665808] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 279.7 s (accepted=9 rejected=2784)
+[fastlio_odometry_guard-2] [WARN] [1781186929.055762879] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 280.7 s (accepted=9 rejected=2794)
+[mavros_node-1] [WARN] [1781186929.522093753] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186929.522361367] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186929.522803629] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186929.523043394] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186929.523424443] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186929.523801694] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186929.524086567] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781186929.524429087] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781186929.524833404] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781186929.525288667] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1781186930.155504450] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 281.8 s (accepted=9 rejected=2805)
+[fastlio_odometry_guard-2] [WARN] [1781186931.156503095] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 282.8 s (accepted=9 rejected=2815)
+[fastlio_odometry_guard-2] [WARN] [1781186932.256596641] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 283.9 s (accepted=9 rejected=2826)
+[fastlio_odometry_guard-2] [WARN] [1781186933.355809609] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 285.001 s (accepted=9 rejected=2837)
+[fastlio_odometry_guard-2] [WARN] [1781186934.456583104] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 286.101 s (accepted=9 rejected=2848)
+[fastlio_odometry_guard-2] [WARN] [1781186935.555671493] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 287.2 s (accepted=9 rejected=2859)
+[fastlio_odometry_guard-2] [WARN] [1781186936.656610081] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 288.3 s (accepted=9 rejected=2870)
+[fastlio_odometry_guard-2] [WARN] [1781186937.755530239] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 289.4 s (accepted=9 rejected=2881)
+[fastlio_odometry_guard-2] [WARN] [1781186938.755910485] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 290.4 s (accepted=9 rejected=2891)
+[fastlio_odometry_guard-2] [WARN] [1781186939.855962633] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 291.5 s (accepted=9 rejected=2902)
+[fastlio_odometry_guard-2] [WARN] [1781186940.856556075] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 292.501 s (accepted=9 rejected=2912)
+[fastlio_odometry_guard-2] [WARN] [1781186941.955686721] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 293.6 s (accepted=9 rejected=2923)
+[fastlio_odometry_guard-2] [WARN] [1781186943.055624021] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 294.7 s (accepted=9 rejected=2934)
+[fastlio_odometry_guard-2] [WARN] [1781186944.056498828] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 295.7 s (accepted=9 rejected=2944)
+[fastlio_odometry_guard-2] [WARN] [1781186945.155562890] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 296.8 s (accepted=9 rejected=2955)
+[fastlio_odometry_guard-2] [WARN] [1781186946.256320013] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 297.9 s (accepted=9 rejected=2966)
+[fastlio_odometry_guard-2] [WARN] [1781186947.256503698] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 298.901 s (accepted=9 rejected=2976)
+[fastlio_odometry_guard-2] [WARN] [1781186948.355716481] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 300.001 s (accepted=9 rejected=2987)
+[fastlio_odometry_guard-2] [WARN] [1781186949.455548649] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 301.1 s (accepted=9 rejected=2998)
+[fastlio_odometry_guard-2] [WARN] [1781186950.455738195] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 302.1 s (accepted=9 rejected=3008)
+[fastlio_odometry_guard-2] [WARN] [1781186951.456065568] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 303.1 s (accepted=9 rejected=3018)
+[fastlio_odometry_guard-2] [WARN] [1781186952.555386494] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 304.2 s (accepted=9 rejected=3029)
+[fastlio_odometry_guard-2] [WARN] [1781186953.655179589] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 305.3 s (accepted=9 rejected=3040)
+[fastlio_odometry_guard-2] [WARN] [1781186954.655610859] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 306.3 s (accepted=9 rejected=3050)
+[fastlio_odometry_guard-2] [WARN] [1781186955.755791521] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 307.4 s (accepted=9 rejected=3061)
+[fastlio_odometry_guard-2] [WARN] [1781186956.755793394] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 308.398 s (accepted=9 rejected=3071)
+[fastlio_odometry_guard-2] [WARN] [1781186957.855222476] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 309.497 s (accepted=9 rejected=3082)
+[fastlio_odometry_guard-2] [WARN] [1781186958.855244632] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 310.499 s (accepted=9 rejected=3092)
+[fastlio_odometry_guard-2] [WARN] [1781186959.855516201] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 311.5 s (accepted=9 rejected=3102)
+[fastlio_odometry_guard-2] [WARN] [1781186960.856429091] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 312.501 s (accepted=9 rejected=3112)
+[fastlio_odometry_guard-2] [WARN] [1781186961.955524477] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 313.6 s (accepted=9 rejected=3123)
+[fastlio_odometry_guard-2] [WARN] [1781186962.955726952] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 314.6 s (accepted=9 rejected=3133)
+[fastlio_odometry_guard-2] [WARN] [1781186964.056120376] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 315.7 s (accepted=9 rejected=3144)
+[fastlio_odometry_guard-2] [WARN] [1781186965.155520699] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 316.8 s (accepted=9 rejected=3155)
+[fastlio_odometry_guard-2] [WARN] [1781186966.155781771] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 317.8 s (accepted=9 rejected=3165)
+[fastlio_odometry_guard-2] [WARN] [1781186967.156068069] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 318.8 s (accepted=9 rejected=3175)
+[fastlio_odometry_guard-2] [WARN] [1781186968.256491480] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 319.9 s (accepted=9 rejected=3186)
+[fastlio_odometry_guard-2] [WARN] [1781186969.256676535] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 320.9 s (accepted=9 rejected=3196)
+[fastlio_odometry_guard-2] [WARN] [1781186970.256758620] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 321.9 s (accepted=9 rejected=3206)
+[fastlio_odometry_guard-2] [WARN] [1781186971.356530038] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 323 s (accepted=9 rejected=3217)
+[fastlio_odometry_guard-2] [WARN] [1781186972.455477145] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 324.1 s (accepted=9 rejected=3228)
+[fastlio_odometry_guard-2] [WARN] [1781186973.456532733] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 325.1 s (accepted=9 rejected=3238)
+[fastlio_odometry_guard-2] [WARN] [1781186974.555827378] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 326.2 s (accepted=9 rejected=3249)
+[fastlio_odometry_guard-2] [WARN] [1781186975.556025519] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 327.2 s (accepted=9 rejected=3259)
+[fastlio_odometry_guard-2] [WARN] [1781186976.556180311] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 328.2 s (accepted=9 rejected=3269)
+[fastlio_odometry_guard-2] [WARN] [1781186977.556658137] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 329.2 s (accepted=9 rejected=3279)
+[fastlio_odometry_guard-2] [WARN] [1781186978.656510970] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 330.3 s (accepted=9 rejected=3290)
+[fastlio_odometry_guard-2] [WARN] [1781186979.756466908] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 331.4 s (accepted=9 rejected=3301)
+[fastlio_odometry_guard-2] [WARN] [1781186980.855510507] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 332.5 s (accepted=9 rejected=3312)
+[fastlio_odometry_guard-2] [WARN] [1781186981.855563002] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 333.5 s (accepted=9 rejected=3322)
+[fastlio_odometry_guard-2] [WARN] [1781186982.965628567] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 334.6 s (accepted=9 rejected=3333)
+[fastlio_odometry_guard-2] [WARN] [1781186983.965772243] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 335.6 s (accepted=9 rejected=3343)
+[fastlio_odometry_guard-2] [WARN] [1781186984.965917910] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 336.6 s (accepted=9 rejected=3353)
+[fastlio_odometry_guard-2] [WARN] [1781186986.056037099] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 337.7 s (accepted=9 rejected=3364)
+[fastlio_odometry_guard-2] [WARN] [1781186987.156505239] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 338.801 s (accepted=9 rejected=3375)
+[fastlio_odometry_guard-2] [WARN] [1781186988.255650394] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 339.9 s (accepted=9 rejected=3386)
+[fastlio_odometry_guard-2] [WARN] [1781186989.255790386] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 340.9 s (accepted=9 rejected=3396)
+[fastlio_odometry_guard-2] [WARN] [1781186990.255945401] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 341.901 s (accepted=9 rejected=3406)
+[fastlio_odometry_guard-2] [WARN] [1781186991.256722494] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 342.9 s (accepted=9 rejected=3416)
+[fastlio_odometry_guard-2] [WARN] [1781186992.356451628] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 344 s (accepted=9 rejected=3427)
+[fastlio_odometry_guard-2] [WARN] [1781186993.456957587] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 345.101 s (accepted=9 rejected=3438)
+[fastlio_odometry_guard-2] [WARN] [1781186994.556054138] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 346.2 s (accepted=9 rejected=3449)
+[fastlio_odometry_guard-2] [WARN] [1781186995.556548890] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 347.2 s (accepted=9 rejected=3459)
+[fastlio_odometry_guard-2] [WARN] [1781186996.655789016] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 348.301 s (accepted=9 rejected=3470)
+[fastlio_odometry_guard-2] [WARN] [1781186997.656543176] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 349.3 s (accepted=9 rejected=3480)
+[fastlio_odometry_guard-2] [WARN] [1781186998.756044451] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 350.4 s (accepted=9 rejected=3491)
+[fastlio_odometry_guard-2] [WARN] [1781186999.756622482] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 351.4 s (accepted=9 rejected=3501)
+[fastlio_odometry_guard-2] [WARN] [1781187000.855628506] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 352.5 s (accepted=9 rejected=3512)
+[fastlio_odometry_guard-2] [WARN] [1781187001.856525692] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 353.501 s (accepted=9 rejected=3522)
+[fastlio_odometry_guard-2] [WARN] [1781187002.856701212] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 354.5 s (accepted=9 rejected=3532)
+[fastlio_odometry_guard-2] [WARN] [1781187003.857045357] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 355.5 s (accepted=9 rejected=3542)
+[fastlio_odometry_guard-2] [WARN] [1781187004.986070842] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 356.6 s (accepted=9 rejected=3553)
+[fastlio_odometry_guard-2] [WARN] [1781187006.051792386] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 357.6 s (accepted=9 rejected=3563)
+[fastlio_odometry_guard-2] [WARN] [1781187007.057416725] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 358.601 s (accepted=9 rejected=3573)
+[fastlio_odometry_guard-2] [WARN] [1781187008.156995472] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 359.8 s (accepted=9 rejected=3585)
+[fastlio_odometry_guard-2] [WARN] [1781187009.255708427] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 360.9 s (accepted=9 rejected=3596)
+[fastlio_odometry_guard-2] [WARN] [1781187010.256127936] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 361.9 s (accepted=9 rejected=3606)
+[fastlio_odometry_guard-2] [WARN] [1781187011.256622178] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 362.9 s (accepted=9 rejected=3616)
+[fastlio_odometry_guard-2] [WARN] [1781187012.355898583] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 364.001 s (accepted=9 rejected=3627)
+[fastlio_odometry_guard-2] [WARN] [1781187013.356556225] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 365 s (accepted=9 rejected=3637)
+[fastlio_odometry_guard-2] [WARN] [1781187014.456739383] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 366.1 s (accepted=9 rejected=3648)
+[fastlio_odometry_guard-2] [WARN] [1781187015.457702707] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 367.1 s (accepted=9 rejected=3658)
+[fastlio_odometry_guard-2] [WARN] [1781187016.555987262] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 368.2 s (accepted=9 rejected=3669)
+[fastlio_odometry_guard-2] [WARN] [1781187017.556521192] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 369.2 s (accepted=9 rejected=3679)
+[fastlio_odometry_guard-2] [WARN] [1781187018.655524693] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 370.3 s (accepted=9 rejected=3690)
+[fastlio_odometry_guard-2] [WARN] [1781187019.655675233] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 371.3 s (accepted=9 rejected=3700)
+[fastlio_odometry_guard-2] [WARN] [1781187020.657403379] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 372.3 s (accepted=9 rejected=3710)
+[fastlio_odometry_guard-2] [WARN] [1781187021.756126345] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 373.401 s (accepted=9 rejected=3721)
+[fastlio_odometry_guard-2] [WARN] [1781187022.756566047] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 374.4 s (accepted=9 rejected=3731)
+[fastlio_odometry_guard-2] [WARN] [1781187023.757040770] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 375.4 s (accepted=9 rejected=3741)
+[fastlio_odometry_guard-2] [WARN] [1781187024.857135612] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 376.5 s (accepted=9 rejected=3752)
+[fastlio_odometry_guard-2] [WARN] [1781187025.986100116] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 377.6 s (accepted=9 rejected=3763)
+[fastlio_odometry_guard-2] [WARN] [1781187027.055906917] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 378.701 s (accepted=9 rejected=3774)
+[fastlio_odometry_guard-2] [WARN] [1781187028.056087315] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 379.7 s (accepted=9 rejected=3784)
+[fastlio_odometry_guard-2] [WARN] [1781187029.155656907] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 380.8 s (accepted=9 rejected=3795)
+[fastlio_odometry_guard-2] [WARN] [1781187030.156036714] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 381.8 s (accepted=9 rejected=3805)
+[fastlio_odometry_guard-2] [WARN] [1781187031.157252756] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 382.8 s (accepted=9 rejected=3815)
+[fastlio_odometry_guard-2] [WARN] [1781187032.256094109] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 383.901 s (accepted=9 rejected=3826)
+[fastlio_odometry_guard-2] [WARN] [1781187033.256652381] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 384.9 s (accepted=9 rejected=3836)
+[fastlio_odometry_guard-2] [WARN] [1781187034.355558245] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 386.001 s (accepted=9 rejected=3847)
+[fastlio_odometry_guard-2] [WARN] [1781187035.356966344] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 387 s (accepted=9 rejected=3857)
+[fastlio_odometry_guard-2] [WARN] [1781187036.455735838] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 388.101 s (accepted=9 rejected=3868)
+[fastlio_odometry_guard-2] [WARN] [1781187037.555787502] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 389.2 s (accepted=9 rejected=3879)
+[fastlio_odometry_guard-2] [WARN] [1781187038.556199179] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 390.201 s (accepted=9 rejected=3889)
+[fastlio_odometry_guard-2] [WARN] [1781187039.556688286] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 391.2 s (accepted=9 rejected=3899)
+[fastlio_odometry_guard-2] [WARN] [1781187040.557156621] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 392.2 s (accepted=9 rejected=3909)
+[fastlio_odometry_guard-2] [WARN] [1781187041.655888340] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 393.3 s (accepted=9 rejected=3920)
+[fastlio_odometry_guard-2] [WARN] [1781187042.655905825] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 394.3 s (accepted=9 rejected=3930)
+[fastlio_odometry_guard-2] [WARN] [1781187043.656462876] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 395.301 s (accepted=9 rejected=3940)
+[fastlio_odometry_guard-2] [WARN] [1781187044.755527244] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 396.4 s (accepted=9 rejected=3951)
+[fastlio_odometry_guard-2] [WARN] [1781187045.755536262] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 397.401 s (accepted=9 rejected=3961)
+[fastlio_odometry_guard-2] [WARN] [1781187046.755597208] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 398.4 s (accepted=9 rejected=3971)
+[fastlio_odometry_guard-2] [WARN] [1781187047.855664990] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 399.5 s (accepted=9 rejected=3982)
+[fastlio_odometry_guard-2] [WARN] [1781187048.856522781] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 400.501 s (accepted=9 rejected=3992)
+[fastlio_odometry_guard-2] [WARN] [1781187049.975784202] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 401.6 s (accepted=9 rejected=4003)
+[fastlio_odometry_guard-2] [WARN] [1781187050.975787001] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 402.601 s (accepted=9 rejected=4013)
+[fastlio_odometry_guard-2] [WARN] [1781187052.055865721] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 403.7 s (accepted=9 rejected=4024)
+[fastlio_odometry_guard-2] [WARN] [1781187053.056642361] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 404.7 s (accepted=9 rejected=4034)
+[fastlio_odometry_guard-2] [WARN] [1781187054.155611561] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 405.801 s (accepted=9 rejected=4045)
+[fastlio_odometry_guard-2] [WARN] [1781187055.156629642] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 406.8 s (accepted=9 rejected=4055)
+[fastlio_odometry_guard-2] [WARN] [1781187056.159674444] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 407.8 s (accepted=9 rejected=4065)
+[fastlio_odometry_guard-2] [WARN] [1781187057.256157747] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 408.901 s (accepted=9 rejected=4076)
+[fastlio_odometry_guard-2] [WARN] [1781187058.356774424] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 410 s (accepted=9 rejected=4087)
+[fastlio_odometry_guard-2] [WARN] [1781187059.357507553] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 411 s (accepted=9 rejected=4097)
+[fastlio_odometry_guard-2] [WARN] [1781187060.357666814] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 412.001 s (accepted=9 rejected=4107)
+[fastlio_odometry_guard-2] [WARN] [1781187061.455608964] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 413.1 s (accepted=9 rejected=4118)
+[fastlio_odometry_guard-2] [WARN] [1781187062.455946498] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 414.1 s (accepted=9 rejected=4128)
+[fastlio_odometry_guard-2] [WARN] [1781187063.555763056] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 415.201 s (accepted=9 rejected=4139)
+[fastlio_odometry_guard-2] [WARN] [1781187064.556474675] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 416.2 s (accepted=9 rejected=4149)
+[fastlio_odometry_guard-2] [WARN] [1781187065.556559885] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 417.2 s (accepted=9 rejected=4159)
+[fastlio_odometry_guard-2] [WARN] [1781187066.655806706] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 418.3 s (accepted=9 rejected=4170)
+[fastlio_odometry_guard-2] [WARN] [1781187067.656435350] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 419.3 s (accepted=9 rejected=4180)
+[fastlio_odometry_guard-2] [WARN] [1781187068.755529864] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 420.4 s (accepted=9 rejected=4191)
+[fastlio_odometry_guard-2] [WARN] [1781187069.755565583] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 421.4 s (accepted=9 rejected=4201)
+[fastlio_odometry_guard-2] [WARN] [1781187070.755822859] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 422.4 s (accepted=9 rejected=4211)
+[fastlio_odometry_guard-2] [WARN] [1781187071.755958822] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 423.4 s (accepted=9 rejected=4221)
+[fastlio_odometry_guard-2] [WARN] [1781187072.855487273] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 424.5 s (accepted=9 rejected=4232)
+[fastlio_odometry_guard-2] [WARN] [1781187073.855555304] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 425.5 s (accepted=9 rejected=4242)
+[fastlio_odometry_guard-2] [WARN] [1781187074.856713976] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 426.5 s (accepted=9 rejected=4252)
+[fastlio_odometry_guard-2] [WARN] [1781187075.856776738] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 427.5 s (accepted=9 rejected=4262)
+[fastlio_odometry_guard-2] [WARN] [1781187076.985989148] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 428.6 s (accepted=9 rejected=4273)
+[fastlio_odometry_guard-2] [WARN] [1781187078.056118454] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 429.701 s (accepted=9 rejected=4284)
+[fastlio_odometry_guard-2] [WARN] [1781187079.155775055] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 430.8 s (accepted=9 rejected=4295)
+[fastlio_odometry_guard-2] [WARN] [1781187080.256407026] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 431.9 s (accepted=9 rejected=4306)
+[fastlio_odometry_guard-2] [WARN] [1781187081.356637874] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 433.001 s (accepted=9 rejected=4317)
+[fastlio_odometry_guard-2] [WARN] [1781187082.455700196] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 434.1 s (accepted=9 rejected=4328)
+[fastlio_odometry_guard-2] [WARN] [1781187083.555494635] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 435.2 s (accepted=9 rejected=4339)
+[fastlio_odometry_guard-2] [WARN] [1781187084.555578654] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 436.2 s (accepted=9 rejected=4349)
+[fastlio_odometry_guard-2] [WARN] [1781187085.555786239] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 437.201 s (accepted=9 rejected=4359)
+[fastlio_odometry_guard-2] [WARN] [1781187086.656478087] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 438.3 s (accepted=9 rejected=4370)
+[fastlio_odometry_guard-2] [WARN] [1781187087.657271319] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 439.3 s (accepted=9 rejected=4380)
+[fastlio_odometry_guard-2] [WARN] [1781187088.757969656] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 440.4 s (accepted=9 rejected=4391)
+[fastlio_odometry_guard-2] [WARN] [1781187089.857006011] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 441.501 s (accepted=9 rejected=4402)
+[fastlio_odometry_guard-2] [WARN] [1781187091.006306198] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 442.6 s (accepted=9 rejected=4413)
+[fastlio_odometry_guard-2] [WARN] [1781187092.057206717] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 443.6 s (accepted=9 rejected=4423)
+[fastlio_odometry_guard-2] [WARN] [1781187093.157104857] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 444.8 s (accepted=9 rejected=4435)
+[fastlio_odometry_guard-2] [WARN] [1781187094.256418292] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 445.901 s (accepted=9 rejected=4446)
+[fastlio_odometry_guard-2] [WARN] [1781187095.257110803] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 446.9 s (accepted=9 rejected=4456)
+[fastlio_odometry_guard-2] [WARN] [1781187096.257166425] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 447.9 s (accepted=9 rejected=4466)
+[fastlio_odometry_guard-2] [WARN] [1781187097.357083324] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 449 s (accepted=9 rejected=4477)
+[fastlio_odometry_guard-2] [WARN] [1781187098.456112493] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 450.101 s (accepted=9 rejected=4488)
+[fastlio_odometry_guard-2] [WARN] [1781187099.556988589] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 451.2 s (accepted=9 rejected=4499)
+[fastlio_odometry_guard-2] [WARN] [1781187100.657566968] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 452.3 s (accepted=9 rejected=4510)
+[fastlio_odometry_guard-2] [WARN] [1781187101.757364699] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 453.4 s (accepted=9 rejected=4521)
+[fastlio_odometry_guard-2] [WARN] [1781187102.856550373] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 454.5 s (accepted=9 rejected=4532)
+[fastlio_odometry_guard-2] [WARN] [1781187103.995569758] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 455.601 s (accepted=9 rejected=4543)
+[fastlio_odometry_guard-2] [WARN] [1781187105.055926762] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 456.7 s (accepted=9 rejected=4554)
+[fastlio_odometry_guard-2] [WARN] [1781187106.056855107] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 457.7 s (accepted=9 rejected=4564)
+[fastlio_odometry_guard-2] [WARN] [1781187107.156548102] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 458.8 s (accepted=9 rejected=4575)
+[fastlio_odometry_guard-2] [WARN] [1781187108.256535296] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 459.9 s (accepted=9 rejected=4586)
+[fastlio_odometry_guard-2] [WARN] [1781187109.256921592] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 460.9 s (accepted=9 rejected=4596)
+[fastlio_odometry_guard-2] [WARN] [1781187110.356216855] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 462 s (accepted=9 rejected=4607)
+[fastlio_odometry_guard-2] [WARN] [1781187111.356512300] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 463 s (accepted=9 rejected=4617)
+[fastlio_odometry_guard-2] [WARN] [1781187112.455820228] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 464.101 s (accepted=9 rejected=4628)
+[fastlio_odometry_guard-2] [WARN] [1781187113.456721015] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 465.1 s (accepted=9 rejected=4638)
+[fastlio_odometry_guard-2] [WARN] [1781187114.556627734] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 466.2 s (accepted=9 rejected=4649)
+[fastlio_odometry_guard-2] [WARN] [1781187115.657104915] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 467.3 s (accepted=9 rejected=4660)
+[fastlio_odometry_guard-2] [WARN] [1781187116.657227712] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 468.301 s (accepted=9 rejected=4670)
+[fastlio_odometry_guard-2] [WARN] [1781187117.662806328] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 469.3 s (accepted=9 rejected=4680)
+[fastlio_odometry_guard-2] [WARN] [1781187118.756025006] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 470.4 s (accepted=9 rejected=4691)
+[fastlio_odometry_guard-2] [WARN] [1781187119.756196191] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 471.4 s (accepted=9 rejected=4701)
+[fastlio_odometry_guard-2] [WARN] [1781187120.856047752] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 472.5 s (accepted=9 rejected=4712)
+[fastlio_odometry_guard-2] [WARN] [1781187121.996010442] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 473.601 s (accepted=9 rejected=4723)
+[fastlio_odometry_guard-2] [WARN] [1781187123.006547281] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 474.6 s (accepted=9 rejected=4733)
+[fastlio_odometry_guard-2] [WARN] [1781187124.055976490] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 475.7 s (accepted=9 rejected=4744)
+[fastlio_odometry_guard-2] [WARN] [1781187125.156102976] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 476.8 s (accepted=9 rejected=4755)
+[fastlio_odometry_guard-2] [WARN] [1781187126.255586091] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 477.9 s (accepted=9 rejected=4766)
+[fastlio_odometry_guard-2] [WARN] [1781187127.256229177] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 478.901 s (accepted=9 rejected=4776)
+[fastlio_odometry_guard-2] [WARN] [1781187128.356000549] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 480.001 s (accepted=9 rejected=4787)
+[fastlio_odometry_guard-2] [WARN] [1781187129.357042493] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 481.001 s (accepted=9 rejected=4797)
+[fastlio_odometry_guard-2] [WARN] [1781187130.456471716] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 482.1 s (accepted=9 rejected=4808)
+[fastlio_odometry_guard-2] [WARN] [1781187131.556676627] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 483.201 s (accepted=9 rejected=4819)
+[fastlio_odometry_guard-2] [WARN] [1781187132.557011870] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 484.2 s (accepted=9 rejected=4829)
+[fastlio_odometry_guard-2] [WARN] [1781187133.557539435] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 485.2 s (accepted=9 rejected=4839)
+[fastlio_odometry_guard-2] [WARN] [1781187134.657003223] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 486.3 s (accepted=9 rejected=4850)
+[fastlio_odometry_guard-2] [WARN] [1781187135.657073406] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 487.3 s (accepted=9 rejected=4860)
+[fastlio_odometry_guard-2] [WARN] [1781187136.756093532] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 488.401 s (accepted=9 rejected=4871)
+[fastlio_odometry_guard-2] [WARN] [1781187137.756428506] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 489.4 s (accepted=9 rejected=4881)
+[fastlio_odometry_guard-2] [WARN] [1781187138.757090366] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 490.4 s (accepted=9 rejected=4891)
+[fastlio_odometry_guard-2] [WARN] [1781187139.856700455] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 491.5 s (accepted=9 rejected=4902)
+[fastlio_odometry_guard-2] [WARN] [1781187140.996354045] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 492.6 s (accepted=9 rejected=4913)
+[fastlio_odometry_guard-2] [WARN] [1781187142.006017468] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 493.601 s (accepted=9 rejected=4923)
+[fastlio_odometry_guard-2] [WARN] [1781187143.016178727] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 494.6 s (accepted=9 rejected=4933)
+[fastlio_odometry_guard-2] [WARN] [1781187144.017218632] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 495.6 s (accepted=9 rejected=4943)
+[fastlio_odometry_guard-2] [WARN] [1781187145.056699673] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 496.7 s (accepted=9 rejected=4954)
+[fastlio_odometry_guard-2] [WARN] [1781187146.156215691] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 497.8 s (accepted=9 rejected=4965)
+[fastlio_odometry_guard-2] [WARN] [1781187147.256964136] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 498.901 s (accepted=9 rejected=4976)
+[fastlio_odometry_guard-2] [WARN] [1781187148.257215540] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 499.9 s (accepted=9 rejected=4986)
+[fastlio_odometry_guard-2] [WARN] [1781187149.356644358] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 501 s (accepted=9 rejected=4997)
+[fastlio_odometry_guard-2] [WARN] [1781187150.456269754] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 502.1 s (accepted=9 rejected=5008)
+[fastlio_odometry_guard-2] [WARN] [1781187151.555555277] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 503.201 s (accepted=9 rejected=5019)
+[fastlio_odometry_guard-2] [WARN] [1781187152.556482862] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 504.201 s (accepted=9 rejected=5029)
+[fastlio_odometry_guard-2] [WARN] [1781187153.656841156] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 505.3 s (accepted=9 rejected=5040)
+[fastlio_odometry_guard-2] [WARN] [1781187154.657505274] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 506.3 s (accepted=9 rejected=5050)
+[fastlio_odometry_guard-2] [WARN] [1781187155.755584254] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 507.4 s (accepted=9 rejected=5061)
+[fastlio_odometry_guard-2] [WARN] [1781187156.756312113] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 508.4 s (accepted=9 rejected=5071)
+[fastlio_odometry_guard-2] [WARN] [1781187157.855942477] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 509.501 s (accepted=9 rejected=5082)
+[fastlio_odometry_guard-2] [WARN] [1781187159.005901221] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 510.6 s (accepted=9 rejected=5093)
+[fastlio_odometry_guard-2] [WARN] [1781187160.005912641] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 511.6 s (accepted=9 rejected=5103)
+[fastlio_odometry_guard-2] [WARN] [1781187161.006516438] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 512.6 s (accepted=9 rejected=5113)
+[fastlio_odometry_guard-2] [WARN] [1781187162.056641241] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 513.7 s (accepted=9 rejected=5124)
+[fastlio_odometry_guard-2] [WARN] [1781187163.155519533] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 514.801 s (accepted=9 rejected=5135)
+[fastlio_odometry_guard-2] [WARN] [1781187164.156698980] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 515.8 s (accepted=9 rejected=5145)
+[fastlio_odometry_guard-2] [WARN] [1781187165.256579234] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 516.9 s (accepted=9 rejected=5156)
+[fastlio_odometry_guard-2] [WARN] [1781187166.356546088] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 518 s (accepted=9 rejected=5167)
+[fastlio_odometry_guard-2] [WARN] [1781187167.356732300] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 519 s (accepted=9 rejected=5177)
+[fastlio_odometry_guard-2] [WARN] [1781187168.356799628] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 520 s (accepted=9 rejected=5187)
+[fastlio_odometry_guard-2] [WARN] [1781187169.456233001] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 521.1 s (accepted=9 rejected=5198)
+[fastlio_odometry_guard-2] [WARN] [1781187170.555878405] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 522.2 s (accepted=9 rejected=5209)
+[fastlio_odometry_guard-2] [WARN] [1781187171.556298486] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 523.2 s (accepted=9 rejected=5219)
+[fastlio_odometry_guard-2] [WARN] [1781187172.556350537] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 524.201 s (accepted=9 rejected=5229)
+[fastlio_odometry_guard-2] [WARN] [1781187173.557678695] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 525.201 s (accepted=9 rejected=5239)
+[fastlio_odometry_guard-2] [WARN] [1781187174.655803641] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 526.3 s (accepted=9 rejected=5250)
+[fastlio_odometry_guard-2] [WARN] [1781187175.656659625] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 527.3 s (accepted=9 rejected=5260)
+[fastlio_odometry_guard-2] [WARN] [1781187176.659610547] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 528.3 s (accepted=9 rejected=5270)
+[fastlio_odometry_guard-2] [WARN] [1781187177.757635303] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 529.4 s (accepted=9 rejected=5281)
+[fastlio_odometry_guard-2] [WARN] [1781187178.856853138] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 530.501 s (accepted=9 rejected=5292)
+[fastlio_odometry_guard-2] [WARN] [1781187180.026353756] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 531.6 s (accepted=9 rejected=5303)
+[fastlio_odometry_guard-2] [WARN] [1781187181.056629090] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 532.7 s (accepted=9 rejected=5314)
+[fastlio_odometry_guard-2] [WARN] [1781187182.056716420] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 533.7 s (accepted=9 rejected=5324)
+[fastlio_odometry_guard-2] [WARN] [1781187183.155612721] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 534.801 s (accepted=9 rejected=5335)
+[fastlio_odometry_guard-2] [WARN] [1781187184.156526214] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 535.801 s (accepted=9 rejected=5345)
+[fastlio_odometry_guard-2] [WARN] [1781187185.156988652] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 536.8 s (accepted=9 rejected=5355)
+[fastlio_odometry_guard-2] [WARN] [1781187186.256550204] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 537.9 s (accepted=9 rejected=5366)
+[fastlio_odometry_guard-2] [WARN] [1781187187.355727247] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 539 s (accepted=9 rejected=5377)
+[fastlio_odometry_guard-2] [WARN] [1781187188.456618604] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 540.1 s (accepted=9 rejected=5388)
+[fastlio_odometry_guard-2] [WARN] [1781187189.557293710] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 541.201 s (accepted=9 rejected=5399)
+[fastlio_odometry_guard-2] [WARN] [1781187190.656863271] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 542.3 s (accepted=9 rejected=5410)
+[fastlio_odometry_guard-2] [WARN] [1781187191.755921462] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 543.4 s (accepted=9 rejected=5421)
+[fastlio_odometry_guard-2] [WARN] [1781187192.756643992] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 544.4 s (accepted=9 rejected=5431)
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-06-11-22-15-29-603993-robot-9019
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [9020]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [9022]
+[INFO] [fastlio_mavros_vision_bridge-3]: process started with pid [9024]
+[INFO] [static_transform_publisher-4]: process started with pid [9026]
+[INFO] [static_transform_publisher-5]: process started with pid [9028]
+[INFO] [static_transform_publisher-6]: process started with pid [9030]
+[INFO] [static_transform_publisher-7]: process started with pid [9032]
+[static_transform_publisher-5] [INFO] [1781187329.705470962] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-5] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-5] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-5] from 'base_link' to 'body'
+[static_transform_publisher-6] [INFO] [1781187329.711746176] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] from 'camera_init' to 'camera_init_ned'
+[fastlio_mavros_vision_bridge-3] [INFO] [1781187329.714433306] [fastlio_mavros_vision_bridge]: Bridging /Odometry/guarded -> /mavros/vision_pose/pose_cov for MAVROS vision input
+[mavros_node-1] [INFO] [1781187329.715084442] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1781187329.715177461] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1781187329.715185888] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1781187329.715189831] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1781187329.715193252] [mavros.mavros_node]: Starting mavros router node
+[static_transform_publisher-7] [INFO] [1781187329.717135707] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'body' to 'body_frd'
+[static_transform_publisher-4] [INFO] [1781187329.718160196] [odom_to_camera_init]: Spinning until stopped - publishing transform
+[static_transform_publisher-4] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-4] from 'odom' to 'camera_init'
+[fastlio_odometry_guard-2] [INFO] [1781187329.719679094] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.60m, xy=0.45m, z=0.25m, speed=3.00m/s)
+[mavros_node-1] [INFO] [1781187329.722860671] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1781187329.722884829] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1781187329.722892910] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1781187329.722895963] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1781187329.722981321] [mavros.mavros_node]: Starting mavros uas node
+[mavros_node-1] [INFO] [1781187329.754388522] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1781187329.754452256] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1781187329.755230677] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1781187329.755254423] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1781187329.755267118] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1781187329.757694406] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1781187329.757833532] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1781187329.764433027] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1781187329.782101548] [mavros.mavros]: Plugin actuator_control created
+[mavros_node-1] [INFO] [1781187329.782135136] [mavros.mavros]: Plugin actuator_control initialized
+[mavros_node-1] [INFO] [1781187329.801685519] [mavros.mavros]: Plugin adsb created
+[mavros_node-1] [INFO] [1781187329.801718438] [mavros.mavros]: Plugin adsb initialized
+[mavros_node-1] [INFO] [1781187329.805088448] [mavros.mavros]: Plugin altitude created
+[mavros_node-1] [INFO] [1781187329.805143788] [mavros.mavros]: Plugin altitude initialized
+[mavros_node-1] [INFO] [1781187329.808637230] [mavros.mavros]: Plugin cam_imu_sync created
+[mavros_node-1] [INFO] [1781187329.808670574] [mavros.mavros]: Plugin cam_imu_sync initialized
+[mavros_node-1] [INFO] [1781187329.811837801] [mavros.mavros]: Plugin camera created
+[mavros_node-1] [INFO] [1781187329.811868468] [mavros.mavros]: Plugin camera initialized
+[mavros_node-1] [INFO] [1781187329.816537564] [mavros.mavros]: Plugin cellular_status created
+[mavros_node-1] [INFO] [1781187329.816570031] [mavros.mavros]: Plugin cellular_status initialized
+[mavros_node-1] [INFO] [1781187329.826277580] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1781187329.826329313] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1781187329.830265057] [mavros.mavros]: Plugin companion_process_status created
+[mavros_node-1] [INFO] [1781187329.830295341] [mavros.mavros]: Plugin companion_process_status initialized
+[mavros_node-1] [INFO] [1781187329.834923746] [mavros.mavros]: Plugin debug_value created
+[mavros_node-1] [INFO] [1781187329.834963272] [mavros.mavros]: Plugin debug_value initialized
+[mavros_node-1] [INFO] [1781187329.834968667] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1781187329.840010636] [mavros.mavros]: Plugin esc_status created
+[mavros_node-1] [INFO] [1781187329.840067288] [mavros.mavros]: Plugin esc_status initialized
+[mavros_node-1] [INFO] [1781187329.846671118] [mavros.mavros]: Plugin esc_telemetry created
+[mavros_node-1] [INFO] [1781187329.846728421] [mavros.mavros]: Plugin esc_telemetry initialized
+[mavros_node-1] [INFO] [1781187329.858779868] [mavros.mavros]: Plugin fake_gps created
+[mavros_node-1] [INFO] [1781187329.858830442] [mavros.mavros]: Plugin fake_gps initialized
+[mavros_node-1] [INFO] [1781187329.872546673] [mavros.mavros]: Plugin ftp created
+[mavros_node-1] [INFO] [1781187329.872607643] [mavros.mavros]: Plugin ftp initialized
+[fastlio_odometry_guard-2] [WARN] [1781187329.882494798] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 1.39984 s; reset guard baseline (accepted=6 rejected=1)
+[mavros_node-1] [INFO] [1781187329.884854316] [mavros.mavros]: Plugin geofence created
+[mavros_node-1] [INFO] [1781187329.884920832] [mavros.mavros]: Plugin geofence initialized
+[mavros_node-1] [INFO] [1781187329.899781565] [mavros.mavros]: Plugin gimbal_control created
+[mavros_node-1] [INFO] [1781187329.899850041] [mavros.mavros]: Plugin gimbal_control initialized
+[mavros_node-1] [INFO] [1781187329.914052098] [mavros.mavros]: Plugin global_position created
+[mavros_node-1] [INFO] [1781187329.914151211] [mavros.mavros]: Plugin global_position initialized
+[mavros_node-1] [INFO] [1781187329.925681754] [mavros.mavros]: Plugin gps_input created
+[mavros_node-1] [INFO] [1781187329.925741241] [mavros.mavros]: Plugin gps_input initialized
+[mavros_node-1] [INFO] [1781187329.932353474] [mavros.mavros]: Plugin gps_rtk created
+[mavros_node-1] [INFO] [1781187329.932417105] [mavros.mavros]: Plugin gps_rtk initialized
+[mavros_node-1] [INFO] [1781187329.938246074] [mavros.mavros]: Plugin gps_status created
+[mavros_node-1] [INFO] [1781187329.938292064] [mavros.mavros]: Plugin gps_status initialized
+[mavros_node-1] [INFO] [1781187329.945400211] [mavros.mavros]: Plugin guided_target created
+[mavros_node-1] [INFO] [1781187329.945455994] [mavros.mavros]: Plugin guided_target initialized
+[mavros_node-1] [INFO] [1781187329.955398760] [mavros.mavros]: Plugin hil created
+[mavros_node-1] [INFO] [1781187329.955478938] [mavros.mavros]: Plugin hil initialized
+[mavros_node-1] [INFO] [1781187329.964714834] [mavros.mavros]: Plugin home_position created
+[mavros_node-1] [INFO] [1781187329.964757966] [mavros.mavros]: Plugin home_position initialized
+[mavros_node-1] [INFO] [1781187329.976063081] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1781187329.976115230] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1781187329.986305264] [mavros.mavros]: Plugin landing_target created
+[mavros_node-1] [INFO] [1781187329.986403559] [mavros.mavros]: Plugin landing_target initialized
+[mavros_node-1] [INFO] [1781187329.997012434] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1781187329.997055393] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1781187330.007600066] [mavros.mavros]: Plugin log_transfer created
+[mavros_node-1] [INFO] [1781187330.007654185] [mavros.mavros]: Plugin log_transfer initialized
+[mavros_node-1] [INFO] [1781187330.014680976] [mavros.mavros]: Plugin mag_calibration_status created
+[mavros_node-1] [INFO] [1781187330.014765136] [mavros.mavros]: Plugin mag_calibration_status initialized
+[mavros_node-1] [INFO] [1781187330.024069638] [mavros.mavros]: Plugin manual_control created
+[mavros_node-1] [INFO] [1781187330.024114486] [mavros.mavros]: Plugin manual_control initialized
+[mavros_node-1] [INFO] [1781187330.031075065] [mavros.mavros]: Plugin mocap_pose_estimate created
+[mavros_node-1] [INFO] [1781187330.031115914] [mavros.mavros]: Plugin mocap_pose_estimate initialized
+[mavros_node-1] [INFO] [1781187330.041168280] [mavros.mavros]: Plugin mount_control created
+[mavros_node-1] [INFO] [1781187330.041223001] [mavros.mavros]: Plugin mount_control initialized
+[mavros_node-1] [INFO] [1781187330.051398599] [mavros.mavros]: Plugin nav_controller_output created
+[mavros_node-1] [INFO] [1781187330.051444121] [mavros.mavros]: Plugin nav_controller_output initialized
+[mavros_node-1] [INFO] [1781187330.058992608] [mavros.mavros]: Plugin obstacle_distance created
+[mavros_node-1] [INFO] [1781187330.059043614] [mavros.mavros]: Plugin obstacle_distance initialized
+[mavros_node-1] [INFO] [1781187330.074093224] [mavros.mavros]: Plugin obstacle_distance_3d created
+[mavros_node-1] [INFO] [1781187330.074172292] [mavros.mavros]: Plugin obstacle_distance_3d initialized
+[mavros_node-1] [INFO] [1781187330.083956021] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1781187330.084008074] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1781187330.093004007] [mavros.mavros]: Plugin onboard_computer_status created
+[mavros_node-1] [INFO] [1781187330.093073614] [mavros.mavros]: Plugin onboard_computer_status initialized
+[mavros_node-1] [INFO] [1781187330.105082282] [mavros.mavros]: Plugin open_drone_id created
+[mavros_node-1] [INFO] [1781187330.105115881] [mavros.mavros]: Plugin open_drone_id initialized
+[mavros_node-1] [INFO] [1781187330.116716997] [mavros.mavros]: Plugin optical_flow created
+[mavros_node-1] [INFO] [1781187330.116785884] [mavros.mavros]: Plugin optical_flow initialized
+[mavros_node-1] [INFO] [1781187330.128016042] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1781187330.128060234] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1781187330.136760811] [mavros.mavros]: Plugin play_tune created
+[mavros_node-1] [INFO] [1781187330.136810102] [mavros.mavros]: Plugin play_tune initialized
+[mavros_node-1] [INFO] [1781187330.148583257] [mavros.mavros]: Plugin px4flow created
+[mavros_node-1] [INFO] [1781187330.148636723] [mavros.mavros]: Plugin px4flow initialized
+[mavros_node-1] [INFO] [1781187330.163254281] [mavros.mavros]: Plugin rallypoint created
+[mavros_node-1] [INFO] [1781187330.163344716] [mavros.mavros]: Plugin rallypoint initialized
+[mavros_node-1] [INFO] [1781187330.163353133] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1781187330.175419006] [mavros.mavros]: Plugin rc_io created
+[mavros_node-1] [INFO] [1781187330.175502039] [mavros.mavros]: Plugin rc_io initialized
+[mavros_node-1] [INFO] [1781187330.185661558] [mavros.mavros]: Plugin setpoint_accel created
+[mavros_node-1] [INFO] [1781187330.185712779] [mavros.mavros]: Plugin setpoint_accel initialized
+[mavros_node-1] [INFO] [1781187330.198767782] [mavros.mavros]: Plugin setpoint_attitude created
+[mavros_node-1] [INFO] [1781187330.198853826] [mavros.mavros]: Plugin setpoint_attitude initialized
+[mavros_node-1] [INFO] [1781187330.216550173] [mavros.mavros]: Plugin setpoint_position created
+[mavros_node-1] [INFO] [1781187330.216656546] [mavros.mavros]: Plugin setpoint_position initialized
+[mavros_node-1] [INFO] [1781187330.237597772] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1781187330.237640859] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1781187330.254931500] [mavros.mavros]: Plugin setpoint_trajectory created
+[mavros_node-1] [INFO] [1781187330.254978515] [mavros.mavros]: Plugin setpoint_trajectory initialized
+[mavros_node-1] [INFO] [1781187330.267047303] [mavros.mavros]: Plugin setpoint_velocity created
+[mavros_node-1] [INFO] [1781187330.267110117] [mavros.mavros]: Plugin setpoint_velocity initialized
+[mavros_node-1] [INFO] [1781187330.282533285] [mavros.mavros]: Plugin sim_state created
+[mavros_node-1] [INFO] [1781187330.282613486] [mavros.mavros]: Plugin sim_state initialized
+[mavros_node-1] [INFO] [1781187330.309651355] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1781187330.309704686] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1781187330.321927344] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1781187330.325588717] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1781187330.325639735] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1781187330.338430226] [mavros.mavros]: Plugin tdr_radio created
+[mavros_node-1] [INFO] [1781187330.338526896] [mavros.mavros]: Plugin tdr_radio initialized
+[mavros_node-1] [INFO] [1781187330.353808734] [mavros.mavros]: Plugin terrain created
+[mavros_node-1] [INFO] [1781187330.353874890] [mavros.mavros]: Plugin terrain initialized
+[mavros_node-1] [INFO] [1781187330.367921984] [mavros.mavros]: Plugin trajectory created
+[mavros_node-1] [INFO] [1781187330.367987749] [mavros.mavros]: Plugin trajectory initialized
+[mavros_node-1] [INFO] [1781187330.381403296] [mavros.mavros]: Plugin tunnel created
+[mavros_node-1] [INFO] [1781187330.381490962] [mavros.mavros]: Plugin tunnel initialized
+[mavros_node-1] [INFO] [1781187330.396648396] [mavros.mavros]: Plugin vfr_hud created
+[mavros_node-1] [INFO] [1781187330.396714689] [mavros.mavros]: Plugin vfr_hud initialized
+[mavros_node-1] [INFO] [1781187330.396721217] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1781187330.412994216] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1781187330.413040756] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1781187330.434837465] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1781187330.434921549] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1781187330.456338790] [mavros.mavros]: Plugin waypoint created
+[mavros_node-1] [INFO] [1781187330.456460511] [mavros.mavros]: Plugin waypoint initialized
+[mavros_node-1] [INFO] [1781187330.456467793] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1781187330.475108928] [mavros.mavros]: Plugin wind_estimation created
+[mavros_node-1] [INFO] [1781187330.475193927] [mavros.mavros]: Plugin wind_estimation initialized
+[mavros_node-1] [INFO] [1781187330.476969587] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1781187330.477002050] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1781187330.477007638] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1781187330.477013880] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1781187330.478200377] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1781187330.478907377] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1781187330.495985300] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [INFO] [1781187330.523519663] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [WARN] [1781187330.888698358] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187330.889067053] [mavros.sys]: FCU: EVENT 16642797 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187330.889353081] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187330.889683531] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187330.890138361] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187330.890379809] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187330.890786363] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187330.891154965] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187330.891424000] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187330.891497490] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187330.943536846] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1781187330.943650007] [mavros.mission]: WP: detected enable_partial_push: 0
+[mavros_node-1] [INFO] [1781187330.946628099] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [INFO] [1781187330.958015874] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1781187330.963689379] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [WARN] [1781187331.951610092] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [WARN] [1781187332.951325141] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187332.951654994] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187332.952056238] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187332.952353879] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187332.952755761] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187332.953062228] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187332.953442813] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187332.954207456] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187332.957299099] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1781187333.962034435] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [ERROR] [1781187334.957125658] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781187334.957169819] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [ERROR] [1781187335.975910028] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781187335.975957832] [mavros.sys]: VER: unicast request timeout, retries left 1
+[mavros_node-1] [WARN] [1781187336.091772835] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-0-1-0-0-0-0-0-0-0-0-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187336.092075297] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187336.092427852] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187336.092466723] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187336.092783318] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187336.093163995] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187336.093546869] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187336.952390972] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781187336.952459140] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [ERROR] [1781187337.953615230] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1781187337.953665754] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[mavros_node-1] [INFO] [1781187340.940337364] [mavros.home_position]: HP: requesting home position
+[mavros_node-1] [INFO] [1781187345.974407418] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1781187351.078601328] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1781187356.132711167] [mavros.geofence]: GF: mission received
+[mavros_node-1] [WARN] [1781187425.339991349] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-0-1-0-0-0-0-199-255-127-128-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187425.340335032] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187425.340689231] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187425.341023548] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187425.341351956] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187425.343473084] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187451.336530580] [mavros.sys]: FCU: EVENT 9489139 with args -4-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187451.386086908] [mavros.sys]: FCU: EVENT 1203183 with args -234-7-6-11-14-17-26-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187451.671088628] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-0-1-0-0-0-0-199-255-127-128-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187451.671432665] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187451.671820160] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187451.672113958] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187451.672436441] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187451.672527485] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-4-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187453.208821268] [mavros.sys]: FCU: EVENT 4277609 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187461.240543477] [mavros.sys]: FCU: EVENT 11290563 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187461.310062862] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-16-1-0-0-0-0-0-0-0-0-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187461.310480567] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187461.310741069] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187461.311154255] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187461.311469718] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187461.311809652] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187461.312370755] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-4-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187466.252025825] [mavros.sys]: FCU: EVENT 16017271 with args -8-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187466.252442448] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187466.252754204] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187466.253106217] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187466.253438912] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187466.253797927] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187466.254122806] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187466.254240412] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187466.256431073] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-4-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187469.716170308] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187469.716518769] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187469.716864829] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187469.717234178] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187469.717344538] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187469.717571366] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187469.717881093] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187469.718270933] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187496.322303167] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187496.322749879] [mavros.sys]: FCU: EVENT 9697819 with args -126-209-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187496.322909350] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187496.323026329] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187496.323413261] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187496.323715763] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187496.324118327] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187496.324409164] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187496.324743021] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187496.325067914] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187496.326967917] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187498.338085522] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187498.338436797] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187498.338752707] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187498.339166859] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187498.339432088] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187498.339819466] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187498.340139270] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187498.340469726] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187498.340820432] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187498.341167768] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187500.389379003] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187500.389874613] [mavros.sys]: FCU: EVENT 9697819 with args -126-209-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187500.390056545] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187500.390441175] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187500.390824685] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187500.391135372] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187500.391525541] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187500.391838513] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187500.392149767] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187500.392510956] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187500.392878062] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187502.429333756] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187502.429610539] [mavros.sys]: FCU: EVENT 9697819 with args -126-209-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187502.429960774] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187502.430344239] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187502.430692201] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187502.431044374] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187502.431362800] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187502.431710840] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187502.432055817] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187502.432189249] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187502.432413750] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187504.829983775] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187504.830319844] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187504.830682083] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187504.830997859] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187504.831369717] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187504.831493945] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187504.831695841] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187504.832039593] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187504.832387595] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187504.832723072] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187506.930496329] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187506.930840264] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187506.931191817] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187506.931552124] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187506.931898321] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187506.932030769] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187506.932238248] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187506.933056005] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187517.132958905] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187517.133334767] [mavros.sys]: FCU: EVENT 9697819 with args -126-209-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187517.133693534] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187517.134031672] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187517.134353104] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187517.134703715] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187517.135058588] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187517.135456910] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187517.135768246] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187517.136104955] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187517.136434536] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187519.206528912] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-255-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187519.206913713] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187519.207257482] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187519.207579593] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187519.207930593] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187519.208230629] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187519.208622877] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187519.209233997] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187540.405281315] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187540.405557220] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187540.405942755] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187540.406318199] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187540.406634993] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187540.406979233] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187540.407307771] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187540.407639232] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187540.407960546] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187554.550495879] [mavros.sys]: FCU: EVENT 14234660 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187554.551112116] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.551461372] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.551616576] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.551830683] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187554.552143753] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187554.552499410] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.552841778] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187554.553279266] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187554.567187163] [mavros.cmd]: CMD: Unexpected command 512, result 0
+[mavros_node-1] [WARN] [1781187554.797533047] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.797832818] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.798203713] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.798533441] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187554.798680115] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1781187554.798902164] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1781187554.799304065] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187554.801573562] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1781187567.519626770] [mavros.cmd]: CMD: Unexpected command 512, result 2
+[mavros_node-1] [WARN] [1781187578.976869427] [mavros.cmd]: CMD: Unexpected command 512, result 2

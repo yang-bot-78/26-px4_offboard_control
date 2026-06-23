@@ -72,6 +72,11 @@ add_executable(fastlio_mavros_odometry_bridge src/bridges/fastlio_mavros_odometr
 ament_target_dependencies(fastlio_mavros_odometry_bridge geometry_msgs nav_msgs rclcpp)
 install(TARGETS fastlio_mavros_odometry_bridge DESTINATION lib/${PROJECT_NAME})
 
+# bridges/fastlio_odometry_guard
+add_executable(fastlio_odometry_guard src/bridges/fastlio_odometry_guard.cpp)
+ament_target_dependencies(fastlio_odometry_guard geometry_msgs nav_msgs rclcpp)
+install(TARGETS fastlio_odometry_guard DESTINATION lib/${PROJECT_NAME})
+
 # bridges/fastlio_mavros_vision_bridge
 add_executable(fastlio_mavros_vision_bridge src/bridges/fastlio_mavros_vision_bridge.cpp)
 ament_target_dependencies(fastlio_mavros_vision_bridge geometry_msgs nav_msgs rclcpp)
@@ -139,6 +144,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
+  scripts/check_fastlio_vision_yaw.py
   scripts/fix_mavros_odometry_frames.py
   scripts/fix_mavros_identity.py
   scripts/minipc_mavros_offboard.py
