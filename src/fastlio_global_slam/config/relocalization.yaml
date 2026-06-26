@@ -1,0 +1,33 @@
+fastlio_global_backend:
+  ros__parameters:
+    odom_topic: /Odometry
+    cloud_topic: /cloud_registered
+    global_map_topic: /fastlio_global/map
+    optimized_path_topic: /fastlio_global/path
+    loop_marker_topic: /fastlio_global/loop_markers
+    relocalized_pose_topic: /fastlio_global/relocalized_pose
+    map_frame_id: map
+    map_save_directory: /home/robot/ws_offboard_control/maps/fastlio_global_3d
+    map_load_directory: /home/robot/ws_offboard_control/maps/fastlio_global_3d
+    cloud_is_world_frame: true
+    keyframe_translation_thresh_m: 0.5
+    keyframe_rotation_thresh_deg: 10.0
+    keyframe_voxel_leaf_m: 0.2
+    submap_voxel_leaf_m: 0.3
+    scan_context_rings: 20
+    scan_context_sectors: 60
+    scan_context_max_radius_m: 50.0
+    scan_context_similarity_threshold: 0.82
+    loop_recent_exclusion_count: 30
+    loop_submap_half_width: 5
+    loop_detection_stride: 5
+    icp_max_correspondence_distance_m: 2.0
+    icp_max_iterations: 40
+    icp_fitness_threshold: 0.35
+    relocalization_fitness_threshold: 0.45
+    auto_relocalize_stride: 10
+    publish_map_every_n_keyframes: 3
+    save_keyframe_leaf_m: 0.15
+    enable_loop_closure: true
+    enable_relocalization_mode: true
+    enable_gtsam_backend: true

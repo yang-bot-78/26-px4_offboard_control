@@ -1,0 +1,1252 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-06-24-16-30-05-930962-robot-14458
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [14459]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [14461]
+[INFO] [fastlio_mavros_vision_bridge-3]: process started with pid [14463]
+[INFO] [static_transform_publisher-4]: process started with pid [14465]
+[INFO] [static_transform_publisher-5]: process started with pid [14467]
+[INFO] [static_transform_publisher-6]: process started with pid [14469]
+[INFO] [static_transform_publisher-7]: process started with pid [14471]
+[fastlio_odometry_guard-2] [INFO] [1782289806.033948062] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.30m, xy=0.20m, z=0.10m, speed=1.20m/s)
+[fastlio_mavros_vision_bridge-3] [INFO] [1782289806.032434087] [fastlio_mavros_vision_bridge]: Bridging /Odometry/guarded -> /mavros/vision_pose/pose_cov for MAVROS vision input
+[static_transform_publisher-6] [INFO] [1782289806.046624309] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] from 'camera_init' to 'camera_init_ned'
+[static_transform_publisher-7] [INFO] [1782289806.048876792] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'body' to 'body_frd'
+[mavros_node-1] [INFO] [1782289806.049876330] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1782289806.049985725] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1782289806.049994456] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1782289806.049998959] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1782289806.050003062] [mavros.mavros_node]: Starting mavros router node
+[static_transform_publisher-5] [INFO] [1782289806.050512835] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-5] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-5] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-5] from 'base_link' to 'body'
+[static_transform_publisher-4] [INFO] [1782289806.056504649] [odom_to_camera_init]: Spinning until stopped - publishing transform
+[static_transform_publisher-4] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-4] from 'odom' to 'camera_init'
+[mavros_node-1] [INFO] [1782289806.058998294] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1782289806.059021585] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1782289806.059030233] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1782289806.059033208] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1782289806.059077496] [mavros.mavros_node]: Starting mavros uas node
+[mavros_node-1] [INFO] [1782289806.090920107] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1782289806.090956907] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1782289806.091841542] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1782289806.091854488] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1782289806.091865113] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1782289806.098093258] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1782289806.101111454] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1782289806.108762969] [mavros.mavros_router]: link[1000] detected remote address 48.234
+[mavros_node-1] [INFO] [1782289806.109826964] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1782289806.137087097] [mavros.mavros]: Plugin actuator_control created
+[mavros_node-1] [INFO] [1782289806.137152450] [mavros.mavros]: Plugin actuator_control initialized
+[mavros_node-1] [INFO] [1782289806.166186276] [mavros.mavros]: Plugin adsb created
+[mavros_node-1] [INFO] [1782289806.166248070] [mavros.mavros]: Plugin adsb initialized
+[mavros_node-1] [INFO] [1782289806.172559263] [mavros.mavros]: Plugin altitude created
+[mavros_node-1] [INFO] [1782289806.172606098] [mavros.mavros]: Plugin altitude initialized
+[mavros_node-1] [INFO] [1782289806.179214873] [mavros.mavros]: Plugin cam_imu_sync created
+[mavros_node-1] [INFO] [1782289806.179271686] [mavros.mavros]: Plugin cam_imu_sync initialized
+[mavros_node-1] [INFO] [1782289806.184687419] [mavros.mavros]: Plugin camera created
+[mavros_node-1] [INFO] [1782289806.184751588] [mavros.mavros]: Plugin camera initialized
+[mavros_node-1] [INFO] [1782289806.193441244] [mavros.mavros]: Plugin cellular_status created
+[mavros_node-1] [INFO] [1782289806.193507084] [mavros.mavros]: Plugin cellular_status initialized
+[mavros_node-1] [INFO] [1782289806.201851796] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1782289806.201924337] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1782289806.464987981] [mavros.mavros]: Plugin companion_process_status created
+[mavros_node-1] [INFO] [1782289806.465033054] [mavros.mavros]: Plugin companion_process_status initialized
+[mavros_node-1] [INFO] [1782289806.683287729] [mavros.mavros]: Plugin debug_value created
+[mavros_node-1] [INFO] [1782289806.683374509] [mavros.mavros]: Plugin debug_value initialized
+[mavros_node-1] [INFO] [1782289806.683403496] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1782289806.701207646] [mavros.mavros]: Plugin esc_status created
+[mavros_node-1] [INFO] [1782289806.701262429] [mavros.mavros]: Plugin esc_status initialized
+[mavros_node-1] [INFO] [1782289806.712840160] [mavros.mavros]: Plugin esc_telemetry created
+[mavros_node-1] [INFO] [1782289806.712903645] [mavros.mavros]: Plugin esc_telemetry initialized
+[mavros_node-1] [INFO] [1782289806.730946346] [mavros.mavros]: Plugin fake_gps created
+[mavros_node-1] [INFO] [1782289806.730982224] [mavros.mavros]: Plugin fake_gps initialized
+[mavros_node-1] [INFO] [1782289806.841783580] [mavros.mavros]: Plugin ftp created
+[mavros_node-1] [INFO] [1782289806.841826662] [mavros.mavros]: Plugin ftp initialized
+[mavros_node-1] [INFO] [1782289806.878354190] [mavros.mavros]: Plugin geofence created
+[mavros_node-1] [INFO] [1782289806.878434217] [mavros.mavros]: Plugin geofence initialized
+[mavros_node-1] [INFO] [1782289806.910218527] [mavros.mavros]: Plugin gimbal_control created
+[mavros_node-1] [INFO] [1782289806.910281098] [mavros.mavros]: Plugin gimbal_control initialized
+[mavros_node-1] [INFO] [1782289806.970291393] [mavros.mavros]: Plugin global_position created
+[mavros_node-1] [INFO] [1782289806.970372513] [mavros.mavros]: Plugin global_position initialized
+[mavros_node-1] [INFO] [1782289806.995988547] [mavros.mavros]: Plugin gps_input created
+[mavros_node-1] [INFO] [1782289806.996021935] [mavros.mavros]: Plugin gps_input initialized
+[mavros_node-1] [INFO] [1782289807.018410400] [mavros.mavros]: Plugin gps_rtk created
+[mavros_node-1] [INFO] [1782289807.018451262] [mavros.mavros]: Plugin gps_rtk initialized
+[mavros_node-1] [INFO] [1782289807.052393738] [mavros.mavros]: Plugin gps_status created
+[mavros_node-1] [INFO] [1782289807.052437848] [mavros.mavros]: Plugin gps_status initialized
+[mavros_node-1] [INFO] [1782289807.085212141] [mavros.mavros]: Plugin guided_target created
+[mavros_node-1] [INFO] [1782289807.085268134] [mavros.mavros]: Plugin guided_target initialized
+[mavros_node-1] [INFO] [1782289807.141791876] [mavros.mavros]: Plugin hil created
+[mavros_node-1] [INFO] [1782289807.141852391] [mavros.mavros]: Plugin hil initialized
+[mavros_node-1] [INFO] [1782289807.211493752] [mavros.mavros]: Plugin home_position created
+[mavros_node-1] [INFO] [1782289807.211574573] [mavros.mavros]: Plugin home_position initialized
+[mavros_node-1] [INFO] [1782289807.329972638] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1782289807.330040218] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1782289807.394805590] [mavros.mavros]: Plugin landing_target created
+[mavros_node-1] [INFO] [1782289807.394850257] [mavros.mavros]: Plugin landing_target initialized
+[mavros_node-1] [INFO] [1782289807.453699408] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1782289807.453757122] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1782289807.503144203] [mavros.mavros]: Plugin log_transfer created
+[mavros_node-1] [INFO] [1782289807.503196522] [mavros.mavros]: Plugin log_transfer initialized
+[mavros_node-1] [INFO] [1782289807.530468190] [mavros.mavros]: Plugin mag_calibration_status created
+[mavros_node-1] [INFO] [1782289807.530537016] [mavros.mavros]: Plugin mag_calibration_status initialized
+[mavros_node-1] [INFO] [1782289807.737102751] [mavros.mavros]: Plugin manual_control created
+[mavros_node-1] [INFO] [1782289807.737200484] [mavros.mavros]: Plugin manual_control initialized
+[mavros_node-1] [INFO] [1782289807.806495136] [mavros.mavros]: Plugin mocap_pose_estimate created
+[mavros_node-1] [INFO] [1782289807.806549150] [mavros.mavros]: Plugin mocap_pose_estimate initialized
+[mavros_node-1] [INFO] [1782289807.860581192] [mavros.mavros]: Plugin mount_control created
+[mavros_node-1] [INFO] [1782289807.860629430] [mavros.mavros]: Plugin mount_control initialized
+[mavros_node-1] [INFO] [1782289807.925153399] [mavros.mavros]: Plugin nav_controller_output created
+[mavros_node-1] [INFO] [1782289807.925236294] [mavros.mavros]: Plugin nav_controller_output initialized
+[mavros_node-1] [INFO] [1782289807.978265269] [mavros.mavros]: Plugin obstacle_distance created
+[mavros_node-1] [INFO] [1782289807.978325451] [mavros.mavros]: Plugin obstacle_distance initialized
+[mavros_node-1] [INFO] [1782289808.070368362] [mavros.mavros]: Plugin obstacle_distance_3d created
+[mavros_node-1] [INFO] [1782289808.070436534] [mavros.mavros]: Plugin obstacle_distance_3d initialized
+[mavros_node-1] [INFO] [1782289808.107333853] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1782289808.107384777] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1782289808.177861869] [mavros.mavros]: Plugin onboard_computer_status created
+[mavros_node-1] [INFO] [1782289808.177898313] [mavros.mavros]: Plugin onboard_computer_status initialized
+[mavros_node-1] [INFO] [1782289808.243734960] [mavros.mavros]: Plugin open_drone_id created
+[mavros_node-1] [INFO] [1782289808.243853327] [mavros.mavros]: Plugin open_drone_id initialized
+[mavros_node-1] [INFO] [1782289808.298112510] [mavros.mavros]: Plugin optical_flow created
+[mavros_node-1] [INFO] [1782289808.298172905] [mavros.mavros]: Plugin optical_flow initialized
+[mavros_node-1] [INFO] [1782289808.345593421] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1782289808.345640682] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1782289808.379948507] [mavros.mavros]: Plugin play_tune created
+[mavros_node-1] [INFO] [1782289808.380014510] [mavros.mavros]: Plugin play_tune initialized
+[mavros_node-1] [INFO] [1782289808.413158566] [mavros.mavros]: Plugin px4flow created
+[mavros_node-1] [INFO] [1782289808.413204036] [mavros.mavros]: Plugin px4flow initialized
+[mavros_node-1] [INFO] [1782289808.454814784] [mavros.mavros]: Plugin rallypoint created
+[mavros_node-1] [INFO] [1782289808.454966563] [mavros.mavros]: Plugin rallypoint initialized
+[mavros_node-1] [INFO] [1782289808.455004639] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1782289808.496050626] [mavros.mavros]: Plugin rc_io created
+[mavros_node-1] [INFO] [1782289808.496105478] [mavros.mavros]: Plugin rc_io initialized
+[mavros_node-1] [INFO] [1782289808.538638209] [mavros.mavros]: Plugin setpoint_accel created
+[mavros_node-1] [INFO] [1782289808.538690214] [mavros.mavros]: Plugin setpoint_accel initialized
+[mavros_node-1] [INFO] [1782289808.575911421] [mavros.mavros]: Plugin setpoint_attitude created
+[mavros_node-1] [INFO] [1782289808.575975255] [mavros.mavros]: Plugin setpoint_attitude initialized
+[mavros_node-1] [INFO] [1782289808.650888487] [mavros.mavros]: Plugin setpoint_position created
+[mavros_node-1] [INFO] [1782289808.650939530] [mavros.mavros]: Plugin setpoint_position initialized
+[mavros_node-1] [INFO] [1782289808.741700791] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1782289808.741769309] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1782289808.862175300] [mavros.mavros]: Plugin setpoint_trajectory created
+[mavros_node-1] [INFO] [1782289808.862275639] [mavros.mavros]: Plugin setpoint_trajectory initialized
+[mavros_node-1] [INFO] [1782289808.936393751] [mavros.mavros]: Plugin setpoint_velocity created
+[mavros_node-1] [INFO] [1782289808.936444715] [mavros.mavros]: Plugin setpoint_velocity initialized
+[mavros_node-1] [INFO] [1782289809.113836061] [mavros.mavros]: Plugin sim_state created
+[mavros_node-1] [INFO] [1782289809.118132627] [mavros.mavros]: Plugin sim_state initialized
+[mavros_node-1] [INFO] [1782289810.143316423] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1782289810.143463119] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1782289810.391102251] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1782289810.400170410] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1782289810.400220411] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1782289810.531097550] [mavros.mavros]: Plugin tdr_radio created
+[mavros_node-1] [INFO] [1782289810.531166649] [mavros.mavros]: Plugin tdr_radio initialized
+[mavros_node-1] [INFO] [1782289810.655994815] [mavros.mavros]: Plugin terrain created
+[mavros_node-1] [INFO] [1782289810.656071199] [mavros.mavros]: Plugin terrain initialized
+[mavros_node-1] [INFO] [1782289810.791213099] [mavros.mavros]: Plugin trajectory created
+[mavros_node-1] [INFO] [1782289810.791298863] [mavros.mavros]: Plugin trajectory initialized
+[mavros_node-1] [INFO] [1782289810.865935816] [mavros.mavros]: Plugin tunnel created
+[mavros_node-1] [INFO] [1782289810.866002184] [mavros.mavros]: Plugin tunnel initialized
+[mavros_node-1] [INFO] [1782289810.924378107] [mavros.mavros]: Plugin vfr_hud created
+[mavros_node-1] [INFO] [1782289810.924440183] [mavros.mavros]: Plugin vfr_hud initialized
+[mavros_node-1] [INFO] [1782289810.924449036] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1782289810.981386626] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1782289810.981456395] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1782289811.062913829] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1782289811.062984873] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1782289811.269351003] [mavros.mavros_router]: link[1001] detected remote address 1.191
+[mavros_node-1] [INFO] [1782289811.953802337] [mavros.mavros]: Plugin waypoint created
+[mavros_node-1] [INFO] [1782289811.953890142] [mavros.mavros]: Plugin waypoint initialized
+[mavros_node-1] [INFO] [1782289811.953906328] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1782289812.302839930] [mavros.mavros]: Plugin wind_estimation created
+[mavros_node-1] [INFO] [1782289812.302964592] [mavros.mavros]: Plugin wind_estimation initialized
+[mavros_node-1] [INFO] [1782289812.355681196] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [WARN] [1782289812.356152363] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [INFO] [1782289812.363708020] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1782289812.363746082] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1782289812.363756382] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1782289812.363765446] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1782289812.369401647] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1782289812.372015846] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [WARN] [1782289812.490654686] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-128-0-0-0-128-58-1-128-128-58-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289812.490796712] [mavros.sys]: FCU: EVENT 16642797 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289812.490917848] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289812.491044794] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289812.491180120] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289812.491362106] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289812.491483310] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289812.491578932] [mavros.sys]: FCU: EVENT 453929 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289812.491629719] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289812.491729906] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-2-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289812.626200985] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1782289812.626288141] [mavros.mission]: WP: detected enable_partial_push: 0
+[mavros_node-1] [INFO] [1782289812.631925396] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1782289812.634636832] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [WARN] [1782289813.418530349] [mavros.time]: TM: RTT too high for timesync: 18.02 ms.
+[mavros_node-1] [WARN] [1782289813.649780445] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [WARN] [1782289814.520928032] [mavros.time]: TM: RTT too high for timesync: 20.46 ms.
+[mavros_node-1] [WARN] [1782289814.551802610] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-0-1-128-0-0-0-128-122-127-128-128-122-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289814.552414904] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289814.552618183] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289814.552668250] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289814.553604487] [mavros.sys]: FCU: EVENT 453929 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289814.553667814] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289814.553704918] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-2-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289814.651505620] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1782289815.519813862] [mavros.time]: TM: RTT too high for timesync: 19.33 ms.
+[mavros_node-1] [WARN] [1782289815.634625792] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [INFO] [1782289815.654756037] [mavros.geofence]: GF: Using MISSION_ITEM_INT
+[mavros_node-1] [INFO] [1782289815.654791333] [mavros.rallypoint]: RP: Using MISSION_ITEM_INT
+[mavros_node-1] [INFO] [1782289815.654807183] [mavros.mission]: WP: Using MISSION_ITEM_INT
+[mavros_node-1] [INFO] [1782289815.654819246] [mavros.sys]: VER: 1.1: Capabilities         0x000000000000ecff
+[mavros_node-1] [INFO] [1782289815.654833188] [mavros.sys]: VER: 1.1: Flight software:     010e0000 (b8c541dd72000000)
+[mavros_node-1] [INFO] [1782289815.654842962] [mavros.sys]: VER: 1.1: Middleware software: 010e0000 (b8c541dd72000000)
+[mavros_node-1] [INFO] [1782289815.654851515] [mavros.sys]: VER: 1.1: OS software:         060800ff (0000000000000000)
+[mavros_node-1] [INFO] [1782289815.654862876] [mavros.sys]: VER: 1.1: Board hardware:      00000001
+[mavros_node-1] [INFO] [1782289815.654871492] [mavros.sys]: VER: 1.1: VID/PID:             0000:0000
+[mavros_node-1] [INFO] [1782289815.654879805] [mavros.sys]: VER: 1.1: UID:                 4954414c44494e4f
+[mavros_node-1] [INFO] [1782289815.654909182] [mavros.sys]: VER: 1.1: Capabilities         0x000000000000ecff
+[mavros_node-1] [INFO] [1782289815.654925827] [mavros.sys]: VER: 1.1: Flight software:     010e0000 (b8c541dd72000000)
+[mavros_node-1] [INFO] [1782289815.654929507] [mavros.sys]: VER: 1.1: Middleware software: 010e0000 (b8c541dd72000000)
+[mavros_node-1] [INFO] [1782289815.654932135] [mavros.sys]: VER: 1.1: OS software:         060800ff (0000000000000000)
+[mavros_node-1] [INFO] [1782289815.654934807] [mavros.sys]: VER: 1.1: Board hardware:      00000001
+[mavros_node-1] [INFO] [1782289815.654937232] [mavros.sys]: VER: 1.1: VID/PID:             0000:0000
+[mavros_node-1] [INFO] [1782289815.654939740] [mavros.sys]: VER: 1.1: UID:                 4954414c44494e4f
+[mavros_node-1] [WARN] [1782289815.700046605] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-0-128-0-0-0-192-43-129-255-192-59-129-255-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289815.700201339] [mavros.sys]: FCU: EVENT 9581033 with args -62-208-126-0-17-212-14-8-63-0-0-0-63-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289815.700372435] [mavros.sys]: FCU: EVENT 13835193 with args -60-0-126-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289815.700488703] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289815.700614627] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289815.700723431] [mavros.sys]: FCU: EVENT 3087815 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289815.700846698] [mavros.sys]: FCU: EVENT 453929 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289815.700964192] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289815.701065701] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-10-9-2-40-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289816.117593137] [mavros.time]: TM: RTT too high for timesync: 17.20 ms.
+[mavros_node-1] [WARN] [1782289816.619987580] [mavros.time]: TM: RTT too high for timesync: 19.59 ms.
+[mavros_node-1] [WARN] [1782289817.218603963] [mavros.time]: TM: RTT too high for timesync: 18.22 ms.
+[mavros_node-1] [WARN] [1782289817.718641386] [mavros.time]: TM: RTT too high for timesync: 18.27 ms.
+[mavros_node-1] [WARN] [1782289817.747434628] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-0-128-0-0-0-192-43-129-255-192-59-129-255-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289817.747549695] [mavros.sys]: FCU: EVENT 16642797 with args -62-208-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289817.747649572] [mavros.sys]: FCU: EVENT 9581033 with args -62-208-126-0-17-0-0-128-127-0-0-0-63-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289817.747731818] [mavros.sys]: FCU: EVENT 13835193 with args -60-0-126-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289817.747807696] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289817.747828473] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289817.747902917] [mavros.sys]: FCU: EVENT 3087815 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289817.747990399] [mavros.sys]: FCU: EVENT 453929 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289817.748066833] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289817.748148783] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-10-9-2-40-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289818.320576570] [mavros.time]: TM: RTT too high for timesync: 20.17 ms.
+[mavros_node-1] [WARN] [1782289818.821242765] [mavros.time]: TM: RTT too high for timesync: 20.14 ms.
+[mavros_node-1] [WARN] [1782289819.419417337] [mavros.time]: TM: RTT too high for timesync: 19.04 ms.
+[mavros_node-1] [WARN] [1782289819.923684554] [mavros.time]: TM: RTT too high for timesync: 23.31 ms.
+[mavros_node-1] [WARN] [1782289820.520174189] [mavros.time]: TM: RTT too high for timesync: 19.87 ms.
+[mavros_node-1] [WARN] [1782289821.020547158] [mavros.time]: TM: RTT too high for timesync: 20.23 ms.
+[mavros_node-1] [WARN] [1782289821.617849091] [mavros.time]: TM: RTT too high for timesync: 17.54 ms.
+[mavros_node-1] [WARN] [1782289822.122998659] [mavros.time]: TM: RTT too high for timesync: 22.71 ms.
+[mavros_node-1] [WARN] [1782289822.664552281] [mavros.param]: PR: Param _HASH_CHECK (65535/937): -942042479 different index: 65535/852
+[mavros_node-1] [WARN] [1782289822.666644451] [mavros.param]: PR: Param BAT1_CAPACITY (2/937): -1.000000 different index: 1/852
+[mavros_node-1] [WARN] [1782289822.698553181] [mavros.param]: PR: Param BAT1_N_CELLS (2/852): 4 different index: 5/937
+[mavros_node-1] [WARN] [1782289822.700211090] [mavros.param]: PR: Param BAT1_R_INTERNAL (3/852): -1.000000 different index: 6/937
+[mavros_node-1] [WARN] [1782289822.712495054] [mavros.param]: PR: Param BAT1_SOURCE (4/852): 0 different index: 7/937
+[mavros_node-1] [WARN] [1782289822.726863317] [mavros.param]: PR: Param BAT1_V_CHARGED (5/852): 4.200000 different index: 9/937
+[mavros_node-1] [WARN] [1782289822.730269724] [mavros.param]: PR: Param BAT1_V_EMPTY (6/852): 3.200000 different index: 11/937
+[mavros_node-1] [WARN] [1782289822.732454950] [mavros.param]: PR: Param BAT_AVRG_CURRENT (8/852): 15.000000 different index: 13/937
+[mavros_node-1] [WARN] [1782289822.759735556] [mavros.param]: PR: Param BAT_CRIT_THR (9/852): 0.070000 different index: 14/937
+[mavros_node-1] [WARN] [1782289822.760871675] [mavros.param]: PR: Param BAT_EMERGEN_THR (10/852): 0.050000 different index: 15/937
+[mavros_node-1] [WARN] [1782289822.761211262] [mavros.time]: TM: RTT too high for timesync: 60.97 ms.
+[mavros_node-1] [WARN] [1782289822.762493915] [mavros.param]: PR: Param BAT_LOW_THR (11/852): 0.150000 different index: 16/937
+[mavros_node-1] [WARN] [1782289822.791388093] [mavros.param]: PR: Param CAL_ACC0_ID (16/852): 6946826 different index: 21/937
+[mavros_node-1] [WARN] [1782289822.792736976] [mavros.param]: PR: Param CAL_ACC0_PRIO (17/852): 50 different index: 22/937
+[mavros_node-1] [WARN] [1782289822.855026272] [mavros.param]: PR: Param CAL_ACC0_ROT (18/852): -1 different index: 23/937
+[mavros_node-1] [WARN] [1782289822.857033779] [mavros.param]: PR: Param CAL_ACC0_XOFF (19/852): 0.110798 different index: 24/937
+[mavros_node-1] [WARN] [1782289822.858587955] [mavros.param]: PR: Param CAL_ACC0_XSCALE (20/852): 1.000000 different index: 25/937
+[mavros_node-1] [WARN] [1782289822.872655078] [mavros.param]: PR: Param CAL_ACC0_YOFF (21/852): 0.080345 different index: 26/937
+[mavros_node-1] [WARN] [1782289822.890257615] [mavros.param]: PR: Param CAL_ACC0_YSCALE (22/852): 1.000000 different index: 27/937
+[mavros_node-1] [WARN] [1782289822.894144395] [mavros.param]: PR: Param CAL_ACC0_ZOFF (23/852): 0.094880 different index: 28/937
+[mavros_node-1] [WARN] [1782289822.930111575] [mavros.param]: PR: Param CAL_ACC0_ZSCALE (24/852): 1.000000 different index: 29/937
+[mavros_node-1] [WARN] [1782289822.931315168] [mavros.param]: PR: Param CAL_ACC1_ID (25/852): 6946850 different index: 30/937
+[mavros_node-1] [WARN] [1782289822.932386141] [mavros.param]: PR: Param CAL_ACC1_PRIO (26/852): 50 different index: 31/937
+[mavros_node-1] [WARN] [1782289822.976600350] [mavros.param]: PR: Param CAL_ACC1_ROT (27/852): -1 different index: 32/937
+[mavros_node-1] [WARN] [1782289822.979597935] [mavros.param]: PR: Param CAL_ACC1_XOFF (28/852): -0.019559 different index: 33/937
+[mavros_node-1] [WARN] [1782289822.981896648] [mavros.param]: PR: Param CAL_ACC1_XSCALE (29/852): 1.000000 different index: 34/937
+[mavros_node-1] [WARN] [1782289823.020919033] [mavros.param]: PR: Param CAL_ACC1_YOFF (30/852): 0.011121 different index: 35/937
+[mavros_node-1] [WARN] [1782289823.023992173] [mavros.param]: PR: Param CAL_ACC1_YSCALE (31/852): 1.000000 different index: 36/937
+[mavros_node-1] [WARN] [1782289823.026620338] [mavros.param]: PR: Param CAL_ACC1_ZOFF (32/852): 0.099347 different index: 37/937
+[mavros_node-1] [WARN] [1782289823.069089946] [mavros.param]: PR: Param CAL_ACC1_ZSCALE (33/852): 1.000000 different index: 38/937
+[mavros_node-1] [WARN] [1782289823.071269062] [mavros.param]: PR: Param CAL_ACC2_ID (34/852): 0 different index: 39/937
+[mavros_node-1] [WARN] [1782289823.073803699] [mavros.param]: PR: Param CAL_ACC3_ID (43/852): 0 different index: 40/937
+[mavros_node-1] [WARN] [1782289823.078557680] [mavros.param]: PR: Param CAL_AIR_CMODEL (44/852): 0 different index: 41/937
+[mavros_node-1] [WARN] [1782289823.081442241] [mavros.param]: PR: Param CAL_AIR_TUBED_MM (45/852): 1.500000 different index: 42/937
+[mavros_node-1] [WARN] [1782289823.083691825] [mavros.param]: PR: Param CAL_AIR_TUBELEN (46/852): 0.200000 different index: 43/937
+[mavros_node-1] [WARN] [1782289823.087547162] [mavros.param]: PR: Param CAL_BARO0_ID (47/852): 5207817 different index: 44/937
+[mavros_node-1] [WARN] [1782289823.095518716] [mavros.param]: PR: Param CAL_GYRO0_ID (51/852): 6684682 different index: 47/937
+[mavros_node-1] [WARN] [1782289823.097593421] [mavros.param]: PR: Param CAL_GYRO0_PRIO (52/852): 50 different index: 48/937
+[mavros_node-1] [WARN] [1782289823.100563614] [mavros.param]: PR: Param CAL_GYRO0_ROT (53/852): -1 different index: 49/937
+[mavros_node-1] [WARN] [1782289823.104243222] [mavros.param]: PR: Param CAL_GYRO0_XOFF (54/852): -0.009467 different index: 50/937
+[mavros_node-1] [WARN] [1782289823.107035383] [mavros.param]: PR: Param CAL_GYRO0_YOFF (55/852): 0.006543 different index: 51/937
+[mavros_node-1] [WARN] [1782289823.110226457] [mavros.param]: PR: Param CAL_GYRO0_ZOFF (56/852): 0.002718 different index: 52/937
+[mavros_node-1] [WARN] [1782289823.114103950] [mavros.param]: PR: Param CAL_GYRO1_ID (57/852): 6684706 different index: 53/937
+[mavros_node-1] [WARN] [1782289823.116309299] [mavros.param]: PR: Param CAL_GYRO1_PRIO (58/852): 50 different index: 54/937
+[mavros_node-1] [WARN] [1782289823.118272618] [mavros.param]: PR: Param CAL_GYRO1_ROT (59/852): -1 different index: 55/937
+[mavros_node-1] [WARN] [1782289823.121808349] [mavros.param]: PR: Param CAL_GYRO1_XOFF (60/852): 0.004716 different index: 56/937
+[mavros_node-1] [WARN] [1782289823.125990613] [mavros.param]: PR: Param CAL_GYRO1_YOFF (61/852): 0.010527 different index: 57/937
+[mavros_node-1] [WARN] [1782289823.129108343] [mavros.param]: PR: Param CAL_GYRO1_ZOFF (62/852): -0.000488 different index: 58/937
+[mavros_node-1] [WARN] [1782289823.131676961] [mavros.param]: PR: Param CAL_GYRO2_ID (63/852): 0 different index: 59/937
+[mavros_node-1] [WARN] [1782289823.133832327] [mavros.param]: PR: Param CAL_GYRO3_ID (69/852): 0 different index: 60/937
+[mavros_node-1] [WARN] [1782289823.136213259] [mavros.param]: PR: Param CAL_MAG0_ID (70/852): 0 different index: 61/937
+[mavros_node-1] [WARN] [1782289823.187880630] [mavros.param]: PR: Param CAL_MAG0_ROT (72/852): -1 different index: 62/937
+[mavros_node-1] [WARN] [1782289823.190157270] [mavros.param]: PR: Param CAL_MAG1_ID (85/852): 0 different index: 63/937
+[mavros_node-1] [WARN] [1782289823.192309896] [mavros.param]: PR: Param CAL_MAG1_ROT (87/852): -1 different index: 64/937
+[mavros_node-1] [WARN] [1782289823.265731123] [mavros.param]: PR: Param CAL_MAG2_ID (100/852): 0 different index: 65/937
+[mavros_node-1] [WARN] [1782289823.269956991] [mavros.param]: PR: Param CAL_MAG2_ROT (101/852): -1 different index: 66/937
+[mavros_node-1] [WARN] [1782289823.274531379] [mavros.param]: PR: Param CAL_MAG3_ID (102/852): 0 different index: 67/937
+[mavros_node-1] [WARN] [1782289823.349235470] [mavros.param]: PR: Param CAL_MAG3_ROT (103/852): -1 different index: 68/937
+[mavros_node-1] [WARN] [1782289823.355072265] [mavros.param]: PR: Param CA_AIRFRAME (106/852): 0 different index: 70/937
+[mavros_node-1] [WARN] [1782289823.414186793] [mavros.param]: PR: Param CA_FAILURE_MODE (107/852): 0 different index: 71/937
+[mavros_node-1] [WARN] [1782289823.418822673] [mavros.param]: PR: Param CA_METHOD (108/852): 2 different index: 73/937
+[mavros_node-1] [WARN] [1782289823.494411409] [mavros.param]: PR: Param CA_R0_SLEW (109/852): 0.000000 different index: 74/937
+[mavros_node-1] [WARN] [1782289823.500083271] [mavros.param]: PR: Param CA_R10_SLEW (110/852): 0.000000 different index: 75/937
+[mavros_node-1] [WARN] [1782289823.504759361] [mavros.param]: PR: Param CA_R11_SLEW (111/852): 0.000000 different index: 76/937
+[mavros_node-1] [WARN] [1782289823.511226864] [mavros.param]: PR: Param CA_R1_SLEW (112/852): 0.000000 different index: 77/937
+[mavros_node-1] [WARN] [1782289823.517810409] [mavros.param]: PR: Param CA_R2_SLEW (113/852): 0.000000 different index: 78/937
+[mavros_node-1] [WARN] [1782289823.521339419] [mavros.param]: PR: Param CA_R3_SLEW (114/852): 0.000000 different index: 79/937
+[mavros_node-1] [WARN] [1782289823.633655698] [mavros.param]: PR: Param CA_R4_SLEW (115/852): 0.000000 different index: 80/937
+[mavros_node-1] [WARN] [1782289823.642639339] [mavros.param]: PR: Param CA_R5_SLEW (116/852): 0.000000 different index: 81/937
+[mavros_node-1] [WARN] [1782289823.652522374] [mavros.param]: PR: Param CA_R6_SLEW (117/852): 0.000000 different index: 82/937
+[mavros_node-1] [WARN] [1782289823.749008712] [mavros.param]: PR: Param CA_R7_SLEW (118/852): 0.000000 different index: 83/937
+[mavros_node-1] [WARN] [1782289823.754837256] [mavros.param]: PR: Param CA_R8_SLEW (119/852): 0.000000 different index: 84/937
+[mavros_node-1] [WARN] [1782289823.759234473] [mavros.param]: PR: Param CA_R9_SLEW (120/852): 0.000000 different index: 85/937
+[mavros_node-1] [WARN] [1782289823.834445077] [mavros.param]: PR: Param CA_ROTOR0_AX (121/852): 0.000000 different index: 86/937
+[mavros_node-1] [WARN] [1782289823.837358565] [mavros.param]: PR: Param CA_ROTOR0_AY (122/852): 0.000000 different index: 87/937
+[mavros_node-1] [WARN] [1782289823.841495092] [mavros.param]: PR: Param CA_ROTOR0_AZ (123/852): -1.000000 different index: 88/937
+[mavros_node-1] [WARN] [1782289823.904699704] [mavros.param]: PR: Param CA_ROTOR0_CT (124/852): 6.500000 different index: 89/937
+[mavros_node-1] [WARN] [1782289823.907578022] [mavros.param]: PR: Param CA_ROTOR0_KM (125/852): -0.050000 different index: 90/937
+[mavros_node-1] [WARN] [1782289823.910184046] [mavros.param]: PR: Param CA_ROTOR0_PX (126/852): 1.000000 different index: 91/937
+[mavros_node-1] [WARN] [1782289823.977973345] [mavros.param]: PR: Param CA_ROTOR0_PY (127/852): 1.000000 different index: 92/937
+[mavros_node-1] [WARN] [1782289823.981020991] [mavros.param]: PR: Param CA_ROTOR0_PZ (128/852): 0.000000 different index: 93/937
+[mavros_node-1] [WARN] [1782289823.984096574] [mavros.param]: PR: Param CA_ROTOR10_AX (129/852): 0.000000 different index: 94/937
+[mavros_node-1] [WARN] [1782289823.988068848] [mavros.param]: PR: Param CA_ROTOR10_AY (130/852): 0.000000 different index: 95/937
+[mavros_node-1] [WARN] [1782289823.992856655] [mavros.param]: PR: Param CA_ROTOR10_AZ (131/852): -1.000000 different index: 96/937
+[mavros_node-1] [WARN] [1782289823.996650595] [mavros.param]: PR: Param CA_ROTOR10_CT (132/852): 6.500000 different index: 97/937
+[mavros_node-1] [WARN] [1782289824.000171168] [mavros.param]: PR: Param CA_ROTOR10_KM (133/852): 0.050000 different index: 98/937
+[mavros_node-1] [WARN] [1782289824.014987035] [mavros.param]: PR: Param CA_ROTOR10_PX (134/852): 0.000000 different index: 99/937
+[mavros_node-1] [WARN] [1782289824.042613696] [mavros.param]: PR: Param CA_ROTOR10_PY (135/852): 0.000000 different index: 100/937
+[mavros_node-1] [WARN] [1782289824.083638665] [mavros.param]: PR: Param CA_ROTOR10_PZ (136/852): 0.000000 different index: 101/937
+[mavros_node-1] [WARN] [1782289824.086779580] [mavros.param]: PR: Param CA_ROTOR11_AX (137/852): 0.000000 different index: 102/937
+[mavros_node-1] [WARN] [1782289824.090544978] [mavros.param]: PR: Param CA_ROTOR11_AY (138/852): 0.000000 different index: 103/937
+[mavros_node-1] [WARN] [1782289824.176065954] [mavros.param]: PR: Param CA_ROTOR11_AZ (139/852): -1.000000 different index: 104/937
+[mavros_node-1] [WARN] [1782289824.179607592] [mavros.param]: PR: Param CA_ROTOR11_CT (140/852): 6.500000 different index: 105/937
+[mavros_node-1] [WARN] [1782289824.183451208] [mavros.param]: PR: Param CA_ROTOR11_KM (141/852): 0.050000 different index: 106/937
+[mavros_node-1] [WARN] [1782289824.245641365] [mavros.param]: PR: Param CA_ROTOR11_PX (142/852): 0.000000 different index: 107/937
+[mavros_node-1] [WARN] [1782289824.248582743] [mavros.param]: PR: Param CA_ROTOR11_PY (143/852): 0.000000 different index: 108/937
+[mavros_node-1] [WARN] [1782289824.252689851] [mavros.param]: PR: Param CA_ROTOR11_PZ (144/852): 0.000000 different index: 109/937
+[mavros_node-1] [WARN] [1782289824.325605642] [mavros.param]: PR: Param CA_ROTOR1_AX (145/852): 0.000000 different index: 110/937
+[mavros_node-1] [WARN] [1782289824.328267980] [mavros.param]: PR: Param CA_ROTOR1_AY (146/852): 0.000000 different index: 111/937
+[mavros_node-1] [WARN] [1782289824.332216481] [mavros.param]: PR: Param CA_ROTOR1_AZ (147/852): -1.000000 different index: 112/937
+[mavros_node-1] [WARN] [1782289824.337262637] [mavros.param]: PR: Param CA_ROTOR1_CT (148/852): 6.500000 different index: 113/937
+[mavros_node-1] [WARN] [1782289824.341320209] [mavros.param]: PR: Param CA_ROTOR1_KM (149/852): -0.050000 different index: 114/937
+[mavros_node-1] [WARN] [1782289824.344909211] [mavros.param]: PR: Param CA_ROTOR1_PX (150/852): -1.000000 different index: 115/937
+[mavros_node-1] [WARN] [1782289824.419552377] [mavros.param]: PR: Param CA_ROTOR1_PY (151/852): -1.000000 different index: 116/937
+[mavros_node-1] [WARN] [1782289824.423245356] [mavros.param]: PR: Param CA_ROTOR1_PZ (152/852): 0.000000 different index: 117/937
+[mavros_node-1] [WARN] [1782289824.427636790] [mavros.param]: PR: Param CA_ROTOR2_AX (153/852): 0.000000 different index: 118/937
+[mavros_node-1] [WARN] [1782289824.472101930] [mavros.param]: PR: Param CA_ROTOR2_CT (156/852): 6.500000 different index: 121/937
+[mavros_node-1] [WARN] [1782289824.477512674] [mavros.param]: PR: Param CA_ROTOR2_KM (157/852): 0.050000 different index: 122/937
+[mavros_node-1] [WARN] [1782289824.482567884] [mavros.param]: PR: Param CA_ROTOR2_PX (158/852): 1.000000 different index: 123/937
+[mavros_node-1] [WARN] [1782289824.486627485] [mavros.param]: PR: Param CA_ROTOR2_PY (159/852): -1.000000 different index: 124/937
+[mavros_node-1] [WARN] [1782289824.520405306] [mavros.param]: PR: Param CA_ROTOR2_PZ (160/852): 0.000000 different index: 125/937
+[mavros_node-1] [WARN] [1782289824.619596658] [mavros.param]: PR: Param CA_ROTOR3_PX (166/852): -1.000000 different index: 131/937
+[mavros_node-1] [WARN] [1782289824.624529913] [mavros.param]: PR: Param CA_ROTOR3_PZ (168/852): 0.000000 different index: 133/937
+[mavros_node-1] [WARN] [1782289824.634507301] [mavros.param]: PR: Param CA_ROTOR4_AX (169/852): 0.000000 different index: 134/937
+[mavros_node-1] [WARN] [1782289824.641434046] [mavros.param]: PR: Param CA_ROTOR4_CT (172/852): 6.500000 different index: 137/937
+[mavros_node-1] [WARN] [1782289824.644465184] [mavros.param]: PR: Param CA_ROTOR4_KM (173/852): 0.050000 different index: 138/937
+[mavros_node-1] [WARN] [1782289824.650518033] [mavros.param]: PR: Param CA_ROTOR4_PX (174/852): 0.000000 different index: 139/937
+[mavros_node-1] [WARN] [1782289824.656569919] [mavros.param]: PR: Param CA_ROTOR4_PY (175/852): 0.000000 different index: 140/937
+[mavros_node-1] [WARN] [1782289824.704608941] [mavros.param]: PR: Param CA_ROTOR5_AY (178/852): 0.000000 different index: 143/937
+[mavros_node-1] [WARN] [1782289824.709909637] [mavros.param]: PR: Param CA_ROTOR5_CT (180/852): 6.500000 different index: 145/937
+[mavros_node-1] [WARN] [1782289824.716480491] [mavros.param]: PR: Param CA_ROTOR5_KM (181/852): 0.050000 different index: 146/937
+[mavros_node-1] [WARN] [1782289824.720531256] [mavros.param]: PR: Param CA_ROTOR5_PZ (184/852): 0.000000 different index: 149/937
+[mavros_node-1] [WARN] [1782289824.723932378] [mavros.param]: PR: Param CA_ROTOR6_AX (185/852): 0.000000 different index: 150/937
+[mavros_node-1] [WARN] [1782289824.727340211] [mavros.param]: PR: Param CA_ROTOR6_AY (186/852): 0.000000 different index: 151/937
+[mavros_node-1] [WARN] [1782289824.762639279] [mavros.param]: PR: Param CA_ROTOR6_AZ (187/852): -1.000000 different index: 152/937
+[mavros_node-1] [WARN] [1782289824.766087818] [mavros.param]: PR: Param CA_ROTOR6_CT (188/852): 6.500000 different index: 153/937
+[mavros_node-1] [WARN] [1782289824.770335696] [mavros.param]: PR: Param CA_ROTOR6_KM (189/852): 0.050000 different index: 154/937
+[mavros_node-1] [WARN] [1782289824.819345066] [mavros.param]: PR: Param CA_ROTOR6_PY (191/852): 0.000000 different index: 156/937
+[mavros_node-1] [WARN] [1782289824.825585321] [mavros.param]: PR: Param CA_ROTOR7_AX (193/852): 0.000000 different index: 158/937
+[mavros_node-1] [WARN] [1782289824.831051815] [mavros.param]: PR: Param CA_ROTOR7_AZ (195/852): -1.000000 different index: 160/937
+[mavros_node-1] [WARN] [1782289824.879555273] [mavros.param]: PR: Param CA_ROTOR7_CT (196/852): 6.500000 different index: 161/937
+[mavros_node-1] [WARN] [1782289824.884592838] [mavros.param]: PR: Param CA_ROTOR7_KM (197/852): 0.050000 different index: 162/937
+[mavros_node-1] [WARN] [1782289824.890803448] [mavros.param]: PR: Param CA_ROTOR7_PX (198/852): 0.000000 different index: 163/937
+[mavros_node-1] [WARN] [1782289824.900363209] [mavros.param]: PR: Param CA_ROTOR7_PY (199/852): 0.000000 different index: 164/937
+[mavros_node-1] [WARN] [1782289824.904959092] [mavros.param]: PR: Param CA_ROTOR7_PZ (200/852): 0.000000 different index: 165/937
+[mavros_node-1] [WARN] [1782289824.909898632] [mavros.param]: PR: Param CA_ROTOR8_AX (201/852): 0.000000 different index: 166/937
+[mavros_node-1] [WARN] [1782289824.933771852] [mavros.param]: PR: Param CA_ROTOR8_AY (202/852): 0.000000 different index: 167/937
+[mavros_node-1] [WARN] [1782289824.939219049] [mavros.param]: PR: Param CA_ROTOR8_AZ (203/852): -1.000000 different index: 168/937
+[mavros_node-1] [WARN] [1782289824.944290729] [mavros.param]: PR: Param CA_ROTOR8_CT (204/852): 6.500000 different index: 169/937
+[mavros_node-1] [WARN] [1782289824.948744417] [mavros.param]: PR: Param CA_ROTOR8_KM (205/852): 0.050000 different index: 170/937
+[mavros_node-1] [WARN] [1782289824.953285737] [mavros.param]: PR: Param CA_ROTOR8_PX (206/852): 0.000000 different index: 171/937
+[mavros_node-1] [WARN] [1782289824.954512564] [mavros.time]: TM: RTT too high for timesync: 1653.84 ms.
+[mavros_node-1] [WARN] [1782289824.958413373] [mavros.param]: PR: Param CA_ROTOR8_PZ (208/852): 0.000000 different index: 173/937
+[mavros_node-1] [WARN] [1782289824.963976008] [mavros.param]: PR: Param CA_ROTOR9_AX (209/852): 0.000000 different index: 174/937
+[mavros_node-1] [WARN] [1782289824.969757233] [mavros.param]: PR: Param CA_ROTOR9_AY (210/852): 0.000000 different index: 175/937
+[mavros_node-1] [WARN] [1782289824.975269942] [mavros.param]: PR: Param CA_ROTOR9_AZ (211/852): -1.000000 different index: 176/937
+[mavros_node-1] [WARN] [1782289824.981181457] [mavros.param]: PR: Param CA_ROTOR9_CT (212/852): 6.500000 different index: 177/937
+[mavros_node-1] [WARN] [1782289824.984848314] [mavros.param]: PR: Param CA_ROTOR9_KM (213/852): 0.050000 different index: 178/937
+[mavros_node-1] [WARN] [1782289824.990722313] [mavros.param]: PR: Param CA_ROTOR9_PX (214/852): 0.000000 different index: 179/937
+[mavros_node-1] [WARN] [1782289824.995097240] [mavros.param]: PR: Param CA_ROTOR9_PY (215/852): 0.000000 different index: 180/937
+[mavros_node-1] [WARN] [1782289824.998320736] [mavros.param]: PR: Param CA_ROTOR9_PZ (216/852): 0.000000 different index: 181/937
+[mavros_node-1] [WARN] [1782289825.002138324] [mavros.param]: PR: Param CA_ROTOR_COUNT (217/852): 4 different index: 182/937
+[mavros_node-1] [WARN] [1782289825.007070368] [mavros.param]: PR: Param CA_R_REV (218/852): 0 different index: 183/937
+[mavros_node-1] [WARN] [1782289825.012272655] [mavros.param]: PR: Param CA_SV0_SLEW (219/852): 0.000000 different index: 184/937
+[mavros_node-1] [WARN] [1782289825.019337463] [mavros.param]: PR: Param CA_SV1_SLEW (220/852): 0.000000 different index: 185/937
+[mavros_node-1] [WARN] [1782289825.024395180] [mavros.param]: PR: Param CA_SV2_SLEW (221/852): 0.000000 different index: 186/937
+[mavros_node-1] [WARN] [1782289825.028359019] [mavros.param]: PR: Param CA_SV3_SLEW (222/852): 0.000000 different index: 187/937
+[mavros_node-1] [WARN] [1782289825.033454777] [mavros.param]: PR: Param CA_SV4_SLEW (223/852): 0.000000 different index: 188/937
+[mavros_node-1] [WARN] [1782289825.038845652] [mavros.param]: PR: Param CA_SV5_SLEW (224/852): 0.000000 different index: 189/937
+[mavros_node-1] [WARN] [1782289825.044595223] [mavros.param]: PR: Param CA_SV6_SLEW (225/852): 0.000000 different index: 190/937
+[mavros_node-1] [WARN] [1782289825.050700213] [mavros.param]: PR: Param CA_SV7_SLEW (226/852): 0.000000 different index: 191/937
+[mavros_node-1] [WARN] [1782289825.054804078] [mavros.param]: PR: Param CBRK_BUZZER (228/852): 0 different index: 192/937
+[mavros_node-1] [WARN] [1782289825.059325734] [mavros.param]: PR: Param CBRK_FLIGHTTERM (229/852): 121212 different index: 193/937
+[mavros_node-1] [WARN] [1782289825.063224358] [mavros.param]: PR: Param CBRK_IO_SAFETY (230/852): 22027 different index: 194/937
+[mavros_node-1] [WARN] [1782289825.067327381] [mavros.param]: PR: Param CBRK_SUPPLY_CHK (231/852): 894281 different index: 195/937
+[mavros_node-1] [WARN] [1782289825.070012245] [mavros.param]: PR: Param CBRK_USB_CHK (232/852): 197848 different index: 196/937
+[mavros_node-1] [WARN] [1782289825.075619204] [mavros.param]: PR: Param CBRK_VTOLARMING (233/852): 0 different index: 197/937
+[mavros_node-1] [WARN] [1782289825.080308407] [mavros.param]: PR: Param COM_ACT_FAIL_ACT (234/852): 0 different index: 198/937
+[mavros_node-1] [WARN] [1782289825.086553735] [mavros.param]: PR: Param COM_ARM_AUTH_ID (236/852): 10 different index: 200/937
+[mavros_node-1] [WARN] [1782289825.092183391] [mavros.param]: PR: Param COM_ARM_AUTH_MET (237/852): 0 different index: 201/937
+[mavros_node-1] [WARN] [1782289825.099145921] [mavros.param]: PR: Param COM_ARM_AUTH_REQ (238/852): 0 different index: 202/937
+[mavros_node-1] [WARN] [1782289825.105917966] [mavros.param]: PR: Param COM_ARM_AUTH_TO (239/852): 1.000000 different index: 203/937
+[mavros_node-1] [WARN] [1782289825.118293922] [mavros.param]: PR: Param COM_ARM_HFLT_CHK (245/852): 1 different index: 206/937
+[mavros_node-1] [WARN] [1782289825.125164803] [mavros.param]: PR: Param COM_ARM_MAG_ANG (248/852): 60 different index: 209/937
+[mavros_node-1] [WARN] [1782289825.129694392] [mavros.param]: PR: Param COM_ARM_MAG_STR (249/852): 2 different index: 210/937
+[mavros_node-1] [WARN] [1782289825.136389138] [mavros.param]: PR: Param COM_ARM_MIS_REQ (250/852): 0 different index: 211/937
+[mavros_node-1] [WARN] [1782289825.158479825] [mavros.param]: PR: Param COM_ARM_SWISBTN (252/852): 0 different index: 214/937
+[mavros_node-1] [WARN] [1782289825.164481531] [mavros.param]: PR: Param COM_CPU_MAX (254/852): 95.000000 different index: 217/937
+[mavros_node-1] [WARN] [1782289825.170108661] [mavros.param]: PR: Param COM_DISARM_LAND (255/852): 2.000000 different index: 218/937
+[mavros_node-1] [WARN] [1782289825.175936261] [mavros.param]: PR: Param COM_DISARM_PRFLT (256/852): 10.000000 different index: 219/937
+[mavros_node-1] [WARN] [1782289825.181576497] [mavros.param]: PR: Param COM_DL_LOSS_T (257/852): 10 different index: 221/937
+[mavros_node-1] [WARN] [1782289825.188571569] [mavros.param]: PR: Param COM_FAIL_ACT_T (258/852): 5.000000 different index: 222/937
+[mavros_node-1] [WARN] [1782289825.195355523] [mavros.param]: PR: Param COM_FLTMODE1 (260/852): 8 different index: 224/937
+[mavros_node-1] [WARN] [1782289825.201153305] [mavros.param]: PR: Param COM_FLTMODE3 (262/852): 9 different index: 226/937
+[mavros_node-1] [WARN] [1782289825.205944305] [mavros.param]: PR: Param COM_FLTMODE4 (263/852): 7 different index: 227/937
+[mavros_node-1] [WARN] [1782289825.212082486] [mavros.param]: PR: Param COM_FLTMODE5 (264/852): 11 different index: 228/937
+[mavros_node-1] [WARN] [1782289825.216102914] [mavros.param]: PR: Param COM_FLTMODE6 (265/852): 7 different index: 229/937
+[mavros_node-1] [WARN] [1782289825.233740086] [mavros.param]: PR: Param COM_HOME_IN_AIR (272/852): 0 different index: 236/937
+[mavros_node-1] [WARN] [1782289825.240456687] [mavros.param]: PR: Param COM_LOW_BAT_ACT (276/852): 0 different index: 237/937
+[mavros_node-1] [WARN] [1782289825.251530639] [mavros.param]: PR: Param COM_OBL_RC_ACT (279/852): 0 different index: 239/937
+[mavros_node-1] [WARN] [1782289825.256314314] [mavros.param]: PR: Param COM_OF_LOSS_T (281/852): 1.000000 different index: 240/937
+[mavros_node-1] [WARN] [1782289825.261953054] [mavros.param]: PR: Param COM_POS_FS_EPH (285/852): 5.000000 different index: 242/937
+[mavros_node-1] [WARN] [1782289825.268080797] [mavros.param]: PR: Param COM_POS_LOW_EPH (286/852): -1.000000 different index: 244/937
+[mavros_node-1] [WARN] [1782289825.271757133] [mavros.param]: PR: Param COM_POWER_COUNT (287/852): 1 different index: 245/937
+[mavros_node-1] [WARN] [1782289825.277853145] [mavros.param]: PR: Param COM_PREARM_MODE (288/852): 0 different index: 246/937
+[mavros_node-1] [WARN] [1782289825.287650445] [mavros.param]: PR: Param COM_RCL_EXCEPT (290/852): 0 different index: 249/937
+[mavros_node-1] [WARN] [1782289825.292978134] [mavros.param]: PR: Param COM_RC_IN_MODE (292/852): 3 different index: 250/937
+[mavros_node-1] [WARN] [1782289825.299924078] [mavros.param]: PR: Param COM_RC_LOSS_T (293/852): 0.500000 different index: 251/937
+[mavros_node-1] [WARN] [1782289825.304513652] [mavros.param]: PR: Param COM_RC_OVERRIDE (294/852): 1 different index: 252/937
+[mavros_node-1] [WARN] [1782289825.309002760] [mavros.param]: PR: Param COM_RC_STICK_OV (295/852): 30.000000 different index: 253/937
+[mavros_node-1] [WARN] [1782289825.315689523] [mavros.param]: PR: Param COM_SPOOLUP_TIME (296/852): 1.000000 different index: 254/937
+[mavros_node-1] [WARN] [1782289825.330359708] [mavros.param]: PR: Param COM_VEL_FS_EVH (298/852): 1.000000 different index: 257/937
+[mavros_node-1] [WARN] [1782289825.335887022] [mavros.param]: PR: Param COM_WIND_WARN (300/852): -1.000000 different index: 260/937
+[mavros_node-1] [WARN] [1782289825.340710489] [mavros.param]: PR: Param CP_DELAY (301/852): 0.400000 different index: 261/937
+[mavros_node-1] [WARN] [1782289825.344916064] [mavros.param]: PR: Param CP_GUIDE_ANG (304/852): 30.000000 different index: 264/937
+[mavros_node-1] [WARN] [1782289825.416604903] [mavros.param]: PR: Param EKF2_ABIAS_INIT (305/852): 0.200000 different index: 280/937
+[mavros_node-1] [WARN] [1782289825.421644569] [mavros.param]: PR: Param EKF2_ABL_ACCLIM (306/852): 25.000000 different index: 281/937
+[mavros_node-1] [WARN] [1782289825.426000011] [mavros.param]: PR: Param EKF2_ABL_GYRLIM (307/852): 3.000000 different index: 282/937
+[mavros_node-1] [WARN] [1782289825.429258295] [mavros.param]: PR: Param EKF2_ABL_LIM (308/852): 0.400000 different index: 283/937
+[mavros_node-1] [WARN] [1782289825.435935317] [mavros.param]: PR: Param EKF2_ABL_TAU (309/852): 0.500000 different index: 284/937
+[mavros_node-1] [WARN] [1782289825.441181149] [mavros.param]: PR: Param EKF2_ACC_B_NOISE (310/852): 0.003000 different index: 285/937
+[mavros_node-1] [WARN] [1782289825.462481702] [mavros.param]: PR: Param EKF2_ANGERR_INIT (313/852): 0.100000 different index: 291/937
+[mavros_node-1] [WARN] [1782289825.466197389] [mavros.param]: PR: Param EKF2_ARSP_THR (314/852): 0.000000 different index: 292/937
+[mavros_node-1] [WARN] [1782289825.470494523] [mavros.param]: PR: Param EKF2_ASPD_MAX (315/852): 20.000000 different index: 293/937
+[mavros_node-1] [WARN] [1782289825.474525683] [mavros.param]: PR: Param EKF2_ASP_DELAY (316/852): 100.000000 different index: 294/937
+[mavros_node-1] [WARN] [1782289825.479128137] [mavros.param]: PR: Param EKF2_AVEL_DELAY (317/852): 5.000000 different index: 295/937
+[mavros_node-1] [WARN] [1782289825.483702418] [mavros.param]: PR: Param EKF2_BARO_CTRL (318/852): 1 different index: 296/937
+[mavros_node-1] [WARN] [1782289825.487342867] [mavros.param]: PR: Param EKF2_BARO_DELAY (319/852): 0.000000 different index: 297/937
+[mavros_node-1] [WARN] [1782289825.492460005] [mavros.param]: PR: Param EKF2_BARO_GATE (320/852): 5.000000 different index: 298/937
+[mavros_node-1] [WARN] [1782289825.495834231] [mavros.param]: PR: Param EKF2_BCOEF_X (322/852): 100.000000 different index: 300/937
+[mavros_node-1] [WARN] [1782289825.499811900] [mavros.param]: PR: Param EKF2_BETA_GATE (324/852): 5.000000 different index: 302/937
+[mavros_node-1] [WARN] [1782289825.503609150] [mavros.param]: PR: Param EKF2_BETA_NOISE (325/852): 0.300000 different index: 303/937
+[mavros_node-1] [WARN] [1782289825.508273175] [mavros.param]: PR: Param EKF2_DECL_TYPE (326/852): 3 different index: 304/937
+[mavros_node-1] [WARN] [1782289825.515176114] [mavros.param]: PR: Param EKF2_DRAG_CTRL (327/852): 0 different index: 306/937
+[mavros_node-1] [WARN] [1782289825.518180615] [mavros.param]: PR: Param EKF2_DRAG_NOISE (328/852): 2.500000 different index: 307/937
+[mavros_node-1] [WARN] [1782289825.522770558] [mavros.param]: PR: Param EKF2_EAS_NOISE (329/852): 1.400000 different index: 308/937
+[mavros_node-1] [WARN] [1782289825.531097393] [mavros.param]: PR: Param EKF2_EVA_NOISE (330/852): 0.100000 different index: 310/937
+[mavros_node-1] [WARN] [1782289825.538304102] [mavros.param]: PR: Param EKF2_EVP_GATE (331/852): 5.000000 different index: 311/937
+[mavros_node-1] [WARN] [1782289825.544868839] [mavros.param]: PR: Param EKF2_EVP_NOISE (332/852): 0.100000 different index: 312/937
+[mavros_node-1] [WARN] [1782289825.550166650] [mavros.param]: PR: Param EKF2_EVV_GATE (333/852): 3.000000 different index: 313/937
+[mavros_node-1] [WARN] [1782289825.555958992] [mavros.param]: PR: Param EKF2_EVV_NOISE (334/852): 0.100000 different index: 314/937
+[mavros_node-1] [WARN] [1782289825.562173611] [mavros.param]: PR: Param EKF2_EV_CTRL (335/852): 11 different index: 315/937
+[mavros_node-1] [WARN] [1782289825.566492424] [mavros.param]: PR: Param EKF2_EV_DELAY (336/852): 0.000000 different index: 316/937
+[mavros_node-1] [WARN] [1782289825.573996434] [mavros.param]: PR: Param EKF2_EV_NOISE_MD (337/852): 0 different index: 317/937
+[mavros_node-1] [WARN] [1782289825.580130401] [mavros.param]: PR: Param EKF2_EV_POS_X (338/852): 0.000000 different index: 318/937
+[mavros_node-1] [WARN] [1782289825.585753623] [mavros.param]: PR: Param EKF2_EV_POS_Y (339/852): 0.000000 different index: 319/937
+[mavros_node-1] [WARN] [1782289825.591966686] [mavros.param]: PR: Param EKF2_EV_POS_Z (340/852): 0.000000 different index: 320/937
+[mavros_node-1] [WARN] [1782289825.595875056] [mavros.param]: PR: Param EKF2_EV_QMIN (341/852): 0 different index: 321/937
+[mavros_node-1] [WARN] [1782289825.600718589] [mavros.param]: PR: Param EKF2_FUSE_BETA (342/852): 0 different index: 322/937
+[mavros_node-1] [WARN] [1782289825.607089061] [mavros.param]: PR: Param EKF2_GBIAS_INIT (343/852): 0.100000 different index: 323/937
+[mavros_node-1] [WARN] [1782289825.613960639] [mavros.param]: PR: Param EKF2_GND_EFF_DZ (344/852): 4.000000 different index: 324/937
+[mavros_node-1] [WARN] [1782289825.622141291] [mavros.param]: PR: Param EKF2_GPS_CHECK (346/852): 2047 different index: 326/937
+[mavros_node-1] [WARN] [1782289825.628807398] [mavros.param]: PR: Param EKF2_GPS_CTRL (347/852): 0 different index: 327/937
+[mavros_node-1] [WARN] [1782289825.636595385] [mavros.param]: PR: Param EKF2_GPS_P_GATE (352/852): 5.000000 different index: 329/937
+[mavros_node-1] [WARN] [1782289825.663085118] [mavros.param]: PR: Param EKF2_GYR_NOISE (360/852): 0.015000 different index: 338/937
+[mavros_node-1] [WARN] [1782289825.667272521] [mavros.param]: PR: Param EKF2_HDG_GATE (361/852): 2.600000 different index: 339/937
+[mavros_node-1] [WARN] [1782289825.672768095] [mavros.param]: PR: Param EKF2_HEAD_NOISE (362/852): 0.300000 different index: 340/937
+[mavros_node-1] [WARN] [1782289825.680360152] [mavros.param]: PR: Param EKF2_HGT_REF (363/852): 3 different index: 341/937
+[mavros_node-1] [WARN] [1782289825.684693724] [mavros.param]: PR: Param EKF2_IMU_CTRL (364/852): 7 different index: 342/937
+[mavros_node-1] [WARN] [1782289825.689849230] [mavros.param]: PR: Param EKF2_IMU_POS_X (365/852): 0.000000 different index: 343/937
+[mavros_node-1] [WARN] [1782289825.695468292] [mavros.param]: PR: Param EKF2_IMU_POS_Y (366/852): 0.000000 different index: 344/937
+[mavros_node-1] [WARN] [1782289825.700649744] [mavros.param]: PR: Param EKF2_IMU_POS_Z (367/852): 0.000000 different index: 345/937
+[mavros_node-1] [WARN] [1782289825.711378595] [mavros.param]: PR: Param EKF2_MAG_ACCLIM (368/852): 0.500000 different index: 347/937
+[mavros_node-1] [WARN] [1782289825.715730044] [mavros.param]: PR: Param EKF2_MAG_B_NOISE (369/852): 0.000100 different index: 348/937
+[mavros_node-1] [WARN] [1782289825.719474650] [mavros.param]: PR: Param EKF2_MAG_CHECK (370/852): 0 different index: 349/937
+[mavros_node-1] [WARN] [1782289825.735129647] [mavros.param]: PR: Param EKF2_MAG_DELAY (372/852): 0.000000 different index: 353/937
+[mavros_node-1] [WARN] [1782289825.739291437] [mavros.param]: PR: Param EKF2_MAG_E_NOISE (373/852): 0.001000 different index: 354/937
+[mavros_node-1] [WARN] [1782289825.743713108] [mavros.param]: PR: Param EKF2_MAG_GATE (374/852): 3.000000 different index: 355/937
+[mavros_node-1] [WARN] [1782289825.748763715] [mavros.param]: PR: Param EKF2_MAG_NOISE (375/852): 0.050000 different index: 356/937
+[mavros_node-1] [WARN] [1782289825.753166214] [mavros.param]: PR: Param EKF2_MAG_TYPE (376/852): 5 different index: 357/937
+[mavros_node-1] [WARN] [1782289825.758663223] [mavros.param]: PR: Param EKF2_MCOEF (378/852): 0.150000 different index: 358/937
+[mavros_node-1] [WARN] [1782289825.763798674] [mavros.param]: PR: Param EKF2_MIN_RNG (379/852): 0.010000 different index: 359/937
+[mavros_node-1] [WARN] [1782289825.768000163] [mavros.param]: PR: Param EKF2_NOAID_NOISE (381/852): 10.000000 different index: 361/937
+[mavros_node-1] [WARN] [1782289825.772832141] [mavros.param]: PR: Param EKF2_NOAID_TOUT (382/852): 5000000 different index: 362/937
+[mavros_node-1] [WARN] [1782289825.777481568] [mavros.param]: PR: Param EKF2_OF_CTRL (383/852): 1 different index: 363/937
+[mavros_node-1] [WARN] [1782289825.783641821] [mavros.param]: PR: Param EKF2_OF_DELAY (384/852): 20.000000 different index: 364/937
+[mavros_node-1] [WARN] [1782289825.788542921] [mavros.param]: PR: Param EKF2_OF_GATE (385/852): 3.000000 different index: 365/937
+[mavros_node-1] [WARN] [1782289825.797203014] [mavros.param]: PR: Param EKF2_OF_N_MIN (387/852): 0.150000 different index: 368/937
+[mavros_node-1] [WARN] [1782289825.802298601] [mavros.param]: PR: Param EKF2_OF_POS_X (388/852): 0.000000 different index: 369/937
+[mavros_node-1] [WARN] [1782289825.808744803] [mavros.param]: PR: Param EKF2_OF_POS_Y (389/852): 0.000000 different index: 370/937
+[mavros_node-1] [WARN] [1782289825.813151477] [mavros.param]: PR: Param EKF2_OF_POS_Z (390/852): 0.000000 different index: 371/937
+[mavros_node-1] [WARN] [1782289825.818858173] [mavros.param]: PR: Param EKF2_PCOEF_XN (393/852): 0.000000 different index: 374/937
+[mavros_node-1] [WARN] [1782289825.823979928] [mavros.param]: PR: Param EKF2_PCOEF_XP (394/852): 0.000000 different index: 375/937
+[mavros_node-1] [WARN] [1782289825.828476266] [mavros.param]: PR: Param EKF2_PCOEF_YN (395/852): 0.000000 different index: 376/937
+[mavros_node-1] [WARN] [1782289825.833273945] [mavros.param]: PR: Param EKF2_PCOEF_YP (396/852): 0.000000 different index: 377/937
+[mavros_node-1] [WARN] [1782289825.839435101] [mavros.param]: PR: Param EKF2_PCOEF_Z (397/852): 0.000000 different index: 378/937
+[mavros_node-1] [WARN] [1782289825.844863262] [mavros.param]: PR: Param EKF2_PREDICT_US (398/852): 10000 different index: 380/937
+[mavros_node-1] [WARN] [1782289825.850035446] [mavros.param]: PR: Param EKF2_REQ_EPH (399/852): 3.000000 different index: 381/937
+[mavros_node-1] [WARN] [1782289825.860258534] [mavros.param]: PR: Param EKF2_REQ_GPS_H (401/852): 10.000000 different index: 384/937
+[mavros_node-1] [WARN] [1782289825.865155650] [mavros.param]: PR: Param EKF2_REQ_HDRIFT (402/852): 0.100000 different index: 385/937
+[mavros_node-1] [WARN] [1782289825.870670626] [mavros.param]: PR: Param EKF2_REQ_NSATS (403/852): 6 different index: 386/937
+[mavros_node-1] [WARN] [1782289825.875475414] [mavros.param]: PR: Param EKF2_REQ_PDOP (404/852): 2.500000 different index: 387/937
+[mavros_node-1] [WARN] [1782289825.880081484] [mavros.param]: PR: Param EKF2_REQ_SACC (405/852): 0.500000 different index: 388/937
+[mavros_node-1] [WARN] [1782289825.885150642] [mavros.param]: PR: Param EKF2_REQ_VDRIFT (406/852): 0.200000 different index: 389/937
+[mavros_node-1] [WARN] [1782289825.909604983] [mavros.param]: PR: Param EKF2_RNG_A_HMAX (407/852): 5.000000 different index: 394/937
+[mavros_node-1] [WARN] [1782289825.916648013] [mavros.param]: PR: Param EKF2_RNG_A_VMAX (409/852): 1.000000 different index: 395/937
+[mavros_node-1] [WARN] [1782289825.923554520] [mavros.param]: PR: Param EKF2_RNG_GATE (412/852): 5.000000 different index: 399/937
+[mavros_node-1] [WARN] [1782289825.926683099] [mavros.param]: PR: Param EKF2_RNG_K_GATE (413/852): 1.000000 different index: 400/937
+[mavros_node-1] [WARN] [1782289825.930614167] [mavros.param]: PR: Param EKF2_RNG_NOISE (414/852): 0.100000 different index: 401/937
+[mavros_node-1] [WARN] [1782289825.933677199] [mavros.param]: PR: Param EKF2_RNG_PITCH (415/852): 0.000000 different index: 402/937
+[mavros_node-1] [WARN] [1782289825.938306663] [mavros.param]: PR: Param EKF2_RNG_POS_X (416/852): 0.000000 different index: 403/937
+[mavros_node-1] [WARN] [1782289825.943762705] [mavros.param]: PR: Param EKF2_RNG_POS_Y (417/852): 0.000000 different index: 404/937
+[mavros_node-1] [WARN] [1782289825.948331596] [mavros.param]: PR: Param EKF2_RNG_POS_Z (418/852): 0.000000 different index: 405/937
+[mavros_node-1] [WARN] [1782289825.952731447] [mavros.param]: PR: Param EKF2_RNG_QLTY_T (419/852): 1.000000 different index: 406/937
+[mavros_node-1] [WARN] [1782289825.957278467] [mavros.param]: PR: Param EKF2_RNG_SFE (420/852): 0.050000 different index: 407/937
+[mavros_node-1] [WARN] [1782289825.962010614] [mavros.param]: PR: Param EKF2_SEL_ERR_RED (421/852): 0.200000 different index: 408/937
+[mavros_node-1] [WARN] [1782289825.966756904] [mavros.param]: PR: Param EKF2_SEL_IMU_ACC (422/852): 1.000000 different index: 409/937
+[mavros_node-1] [WARN] [1782289825.971424241] [mavros.param]: PR: Param EKF2_SEL_IMU_ANG (423/852): 15.000000 different index: 410/937
+[mavros_node-1] [WARN] [1782289825.977150626] [mavros.param]: PR: Param EKF2_SEL_IMU_RAT (424/852): 7.000000 different index: 411/937
+[mavros_node-1] [WARN] [1782289825.982320448] [mavros.param]: PR: Param EKF2_SEL_IMU_VEL (425/852): 2.000000 different index: 412/937
+[mavros_node-1] [WARN] [1782289825.992921429] [mavros.param]: PR: Param EKF2_SYNT_MAG_Z (426/852): 0 different index: 414/937
+[mavros_node-1] [WARN] [1782289825.997977168] [mavros.param]: PR: Param EKF2_TAS_GATE (427/852): 5.000000 different index: 415/937
+[mavros_node-1] [WARN] [1782289826.002893434] [mavros.param]: PR: Param EKF2_TAU_POS (428/852): 0.250000 different index: 416/937
+[mavros_node-1] [WARN] [1782289826.007508966] [mavros.param]: PR: Param EKF2_TAU_VEL (429/852): 0.250000 different index: 417/937
+[mavros_node-1] [WARN] [1782289826.014106904] [mavros.param]: PR: Param EKF2_TERR_GRAD (430/852): 0.500000 different index: 418/937
+[mavros_node-1] [WARN] [1782289826.018336296] [mavros.param]: PR: Param EKF2_TERR_NOISE (432/852): 5.000000 different index: 419/937
+[mavros_node-1] [WARN] [1782289826.042307098] [mavros.param]: PR: Param FD_ACT_EN (434/852): 0 different index: 424/937
+[mavros_node-1] [WARN] [1782289826.054851404] [mavros.param]: PR: Param FD_EXT_ATS_EN (439/852): 0 different index: 427/937
+[mavros_node-1] [WARN] [1782289826.058625670] [mavros.param]: PR: Param FD_EXT_ATS_TRIG (440/852): 1900 different index: 428/937
+[mavros_node-1] [WARN] [1782289826.062952765] [mavros.param]: PR: Param FD_FAIL_P (441/852): 60 different index: 429/937
+[mavros_node-1] [WARN] [1782289826.068310564] [mavros.param]: PR: Param FD_FAIL_P_TTRI (442/852): 0.300000 different index: 430/937
+[mavros_node-1] [WARN] [1782289826.074063978] [mavros.param]: PR: Param FD_FAIL_R (443/852): 60 different index: 431/937
+[mavros_node-1] [WARN] [1782289826.078707124] [mavros.param]: PR: Param FD_FAIL_R_TTRI (444/852): 0.300000 different index: 432/937
+[mavros_node-1] [WARN] [1782289826.085900686] [mavros.param]: PR: Param FD_IMB_PROP_THR (445/852): 30 different index: 433/937
+[mavros_node-1] [WARN] [1782289826.091722043] [mavros.param]: PR: Param FLW_TGT_ALT_M (446/852): 0 different index: 434/937
+[mavros_node-1] [WARN] [1782289826.096699032] [mavros.param]: PR: Param FLW_TGT_DST (447/852): 8.000000 different index: 435/937
+[mavros_node-1] [WARN] [1782289826.100614259] [mavros.param]: PR: Param FLW_TGT_FA (448/852): 180.000000 different index: 436/937
+[mavros_node-1] [WARN] [1782289826.105939664] [mavros.param]: PR: Param FLW_TGT_HT (449/852): 8.000000 different index: 437/937
+[mavros_node-1] [WARN] [1782289826.111515192] [mavros.param]: PR: Param FLW_TGT_MAX_VEL (450/852): 5.000000 different index: 438/937
+[mavros_node-1] [WARN] [1782289826.118497813] [mavros.param]: PR: Param FW_AIRSPD_MAX (452/852): 20.000000 different index: 440/937
+[mavros_node-1] [WARN] [1782289826.122937586] [mavros.param]: PR: Param FW_PSP_OFF (455/852): 0.000000 different index: 443/937
+[mavros_node-1] [WARN] [1782289826.127006716] [mavros.param]: PR: Param FW_T_SINK_R_SP (457/852): 2.000000 different index: 445/937
+[mavros_node-1] [WARN] [1782289826.134848757] [mavros.param]: PR: Param GF_ACTION (458/852): 2 different index: 446/937
+[mavros_node-1] [WARN] [1782289826.270288810] [mavros.param]: PR: Param IMU_GYRO_DNF_HMC (479/852): 3 different index: 481/937
+[mavros_node-1] [WARN] [1782289826.275061840] [mavros.param]: PR: Param IMU_GYRO_DNF_MIN (480/852): 25.000000 different index: 482/937
+[mavros_node-1] [WARN] [1782289826.279178026] [mavros.param]: PR: Param IMU_GYRO_FFT_EN (481/852): 1 different index: 483/937
+[mavros_node-1] [WARN] [1782289826.283853235] [mavros.param]: PR: Param IMU_GYRO_FFT_LEN (482/852): 512 different index: 484/937
+[mavros_node-1] [WARN] [1782289826.289643584] [mavros.param]: PR: Param IMU_GYRO_FFT_MAX (483/852): 150.000000 different index: 485/937
+[mavros_node-1] [WARN] [1782289826.293504650] [mavros.param]: PR: Param IMU_GYRO_FFT_MIN (484/852): 30.000000 different index: 486/937
+[mavros_node-1] [WARN] [1782289826.298344499] [mavros.param]: PR: Param IMU_GYRO_FFT_SNR (485/852): 10.000000 different index: 487/937
+[mavros_node-1] [WARN] [1782289826.304251546] [mavros.param]: PR: Param IMU_GYRO_NF0_BW (486/852): 20.000000 different index: 488/937
+[mavros_node-1] [WARN] [1782289826.308843384] [mavros.param]: PR: Param IMU_GYRO_NF0_FRQ (487/852): 0.000000 different index: 489/937
+[mavros_node-1] [WARN] [1782289826.312987785] [mavros.param]: PR: Param IMU_GYRO_NF1_BW (488/852): 20.000000 different index: 490/937
+[mavros_node-1] [WARN] [1782289826.317073213] [mavros.param]: PR: Param IMU_GYRO_NF1_FRQ (489/852): 0.000000 different index: 491/937
+[mavros_node-1] [WARN] [1782289826.322759519] [mavros.param]: PR: Param IMU_GYRO_RATEMAX (490/852): 2000 different index: 492/937
+[mavros_node-1] [WARN] [1782289826.326365943] [mavros.param]: PR: Param IMU_INTEG_RATE (491/852): 200 different index: 493/937
+[mavros_node-1] [WARN] [1782289826.332073470] [mavros.param]: PR: Param LNDMC_ALT_GND (492/852): 2.000000 different index: 494/937
+[mavros_node-1] [WARN] [1782289826.341557204] [mavros.param]: PR: Param LNDMC_ROT_MAX (494/852): 20.000000 different index: 495/937
+[mavros_node-1] [WARN] [1782289826.344731984] [mavros.param]: PR: Param LNDMC_XY_VEL_MAX (496/852): 1.500000 different index: 496/937
+[mavros_node-1] [WARN] [1782289826.349238746] [mavros.param]: PR: Param LNDMC_Z_VEL_MAX (497/852): 0.250000 different index: 497/937
+[mavros_node-1] [WARN] [1782289826.353155681] [mavros.param]: PR: Param LND_FLIGHT_T_HI (498/852): 0 different index: 498/937
+[mavros_node-1] [WARN] [1782289826.358660110] [mavros.param]: PR: Param LND_FLIGHT_T_LO (499/852): 1870158752 different index: 499/937
+[mavros_node-1] [WARN] [1782289826.367642928] [mavros.param]: PR: Param MAN_ARM_GESTURE (500/852): 0 different index: 501/937
+[mavros_node-1] [WARN] [1782289826.414263788] [mavros.param]: PR: Param MAV_COMP_ID (501/852): 1 different index: 512/937
+[mavros_node-1] [WARN] [1782289826.419209632] [mavros.param]: PR: Param MAV_FWDEXTSP (502/852): 1 different index: 513/937
+[mavros_node-1] [WARN] [1782289826.422922206] [mavros.param]: PR: Param MAV_HASH_CHK_EN (503/852): 1 different index: 514/937
+[mavros_node-1] [WARN] [1782289826.426779255] [mavros.param]: PR: Param MAV_HB_FORW_EN (504/852): 1 different index: 515/937
+[mavros_node-1] [WARN] [1782289826.431754194] [mavros.param]: PR: Param MAV_PROTO_VER (505/852): 2 different index: 516/937
+[mavros_node-1] [WARN] [1782289826.437196468] [mavros.param]: PR: Param MAV_SIK_RADIO_ID (507/852): 0 different index: 518/937
+[mavros_node-1] [WARN] [1782289826.443054543] [mavros.param]: PR: Param MAV_SYS_ID (508/852): 1 different index: 519/937
+[mavros_node-1] [WARN] [1782289826.447135047] [mavros.param]: PR: Param MAV_USEHILGPS (510/852): 0 different index: 521/937
+[mavros_node-1] [WARN] [1782289826.462411257] [mavros.param]: PR: Param MC_ACRO_EXPO (511/852): 0.000000 different index: 524/937
+[mavros_node-1] [WARN] [1782289826.466601262] [mavros.param]: PR: Param MC_ACRO_EXPO_Y (512/852): 0.000000 different index: 525/937
+[mavros_node-1] [WARN] [1782289826.470000996] [mavros.param]: PR: Param MC_ACRO_P_MAX (513/852): 100.000000 different index: 526/937
+[mavros_node-1] [WARN] [1782289826.475408572] [mavros.param]: PR: Param MC_ACRO_R_MAX (514/852): 100.000000 different index: 527/937
+[mavros_node-1] [WARN] [1782289826.479279299] [mavros.param]: PR: Param MC_ACRO_SUPEXPO (515/852): 0.000000 different index: 528/937
+[mavros_node-1] [WARN] [1782289826.484554786] [mavros.param]: PR: Param MC_ACRO_SUPEXPOY (516/852): 0.000000 different index: 529/937
+[mavros_node-1] [WARN] [1782289826.488853876] [mavros.param]: PR: Param MC_ACRO_Y_MAX (517/852): 100.000000 different index: 530/937
+[mavros_node-1] [WARN] [1782289826.492655023] [mavros.param]: PR: Param MC_AIRMODE (518/852): 0 different index: 531/937
+[mavros_node-1] [WARN] [1782289826.495926688] [mavros.param]: PR: Param MC_AT_APPLY (519/852): 1 different index: 532/937
+[mavros_node-1] [WARN] [1782289826.500702028] [mavros.param]: PR: Param MC_AT_EN (520/852): 1 different index: 533/937
+[mavros_node-1] [WARN] [1782289826.504747833] [mavros.param]: PR: Param MC_AT_RISE_TIME (521/852): 0.140000 different index: 534/937
+[mavros_node-1] [WARN] [1782289826.508101167] [mavros.param]: PR: Param MC_AT_SYSID_AMP (523/852): 0.700000 different index: 535/937
+[mavros_node-1] [WARN] [1782289826.529456110] [mavros.param]: PR: Param MC_BAT_SCALE_EN (524/852): 0 different index: 536/937
+[mavros_node-1] [WARN] [1782289826.537322298] [mavros.param]: PR: Param MC_PITCHRATE_I (529/852): 0.200000 different index: 542/937
+[mavros_node-1] [WARN] [1782289826.542085929] [mavros.param]: PR: Param MC_PITCHRATE_K (530/852): 0.400000 different index: 543/937
+[mavros_node-1] [WARN] [1782289826.548312992] [mavros.param]: PR: Param MC_PITCHRATE_MAX (531/852): 220.000000 different index: 544/937
+[mavros_node-1] [WARN] [1782289826.553745701] [mavros.param]: PR: Param MC_PITCHRATE_P (532/852): 0.150000 different index: 545/937
+[mavros_node-1] [WARN] [1782289826.581686636] [mavros.param]: PR: Param MC_ROLLRATE_MAX (539/852): 220.000000 different index: 552/937
+[mavros_node-1] [WARN] [1782289826.585270993] [mavros.param]: PR: Param MC_ROLLRATE_P (540/852): 0.150000 different index: 553/937
+[mavros_node-1] [WARN] [1782289826.590361496] [mavros.param]: PR: Param MC_ROLL_P (541/852): 4.000000 different index: 554/937
+[mavros_node-1] [WARN] [1782289826.596281354] [mavros.param]: PR: Param MC_RR_INT_LIM (542/852): 0.300000 different index: 555/937
+[mavros_node-1] [WARN] [1782289826.645364489] [mavros.param]: PR: Param MC_YAWRATE_D (543/852): 0.000000 different index: 566/937
+[mavros_node-1] [WARN] [1782289826.649853107] [mavros.param]: PR: Param MC_YAWRATE_FF (544/852): 0.000000 different index: 567/937
+[mavros_node-1] [WARN] [1782289826.654047657] [mavros.param]: PR: Param MC_YAWRATE_I (545/852): 0.100000 different index: 568/937
+[mavros_node-1] [WARN] [1782289826.660511973] [mavros.param]: PR: Param MC_YAWRATE_K (546/852): 1.200000 different index: 569/937
+[mavros_node-1] [WARN] [1782289826.664830971] [mavros.param]: PR: Param MC_YAWRATE_MAX (547/852): 360.000000 different index: 570/937
+[mavros_node-1] [WARN] [1782289826.668052907] [mavros.param]: PR: Param MC_YAWRATE_P (548/852): 0.200000 different index: 571/937
+[mavros_node-1] [WARN] [1782289826.674909649] [mavros.param]: PR: Param MC_YAW_P (549/852): 2.800000 different index: 572/937
+[mavros_node-1] [WARN] [1782289826.685360772] [mavros.param]: PR: Param MC_YAW_WEIGHT (550/852): 0.400000 different index: 574/937
+[mavros_node-1] [WARN] [1782289826.689582275] [mavros.param]: PR: Param MC_YR_INT_LIM (551/852): 0.300000 different index: 575/937
+[mavros_node-1] [WARN] [1782289826.700135601] [mavros.param]: PR: Param MIS_LND_ABRT_ALT (553/852): 30 different index: 577/937
+[mavros_node-1] [WARN] [1782289826.703394609] [mavros.param]: PR: Param MIS_MNT_YAW_CTL (554/852): 0 different index: 578/937
+[mavros_node-1] [WARN] [1782289826.707051773] [mavros.param]: PR: Param MIS_TAKEOFF_ALT (556/852): 2.500000 different index: 579/937
+[mavros_node-1] [WARN] [1782289826.711160706] [mavros.param]: PR: Param MIS_YAW_ERR (558/852): 12.000000 different index: 580/937
+[mavros_node-1] [WARN] [1782289826.716206739] [mavros.param]: PR: Param MIS_YAW_TMT (559/852): -1.000000 different index: 581/937
+[mavros_node-1] [WARN] [1782289826.720319120] [mavros.param]: PR: Param MNT_MODE_IN (560/852): -1 different index: 582/937
+[mavros_node-1] [WARN] [1782289826.738302530] [mavros.param]: PR: Param MPC_ACC_DOWN_MAX (562/852): 3.000000 different index: 587/937
+[mavros_node-1] [WARN] [1782289826.743467095] [mavros.param]: PR: Param MPC_ACC_HOR (563/852): 3.000000 different index: 588/937
+[mavros_node-1] [WARN] [1782289826.747989826] [mavros.param]: PR: Param MPC_ACC_HOR_MAX (564/852): 5.000000 different index: 589/937
+[mavros_node-1] [WARN] [1782289826.754595133] [mavros.param]: PR: Param MPC_ACC_UP_MAX (565/852): 4.000000 different index: 590/937
+[mavros_node-1] [WARN] [1782289826.758330295] [mavros.param]: PR: Param MPC_ALT_MODE (566/852): 2 different index: 591/937
+[mavros_node-1] [WARN] [1782289826.763037357] [mavros.param]: PR: Param MPC_HOLD_MAX_XY (568/852): 0.800000 different index: 592/937
+[mavros_node-1] [WARN] [1782289826.770500597] [mavros.param]: PR: Param MPC_HOLD_MAX_Z (569/852): 0.600000 different index: 593/937
+[mavros_node-1] [WARN] [1782289826.789084071] [mavros.param]: PR: Param MPC_JERK_AUTO (570/852): 4.000000 different index: 594/937
+[mavros_node-1] [WARN] [1782289826.792852951] [mavros.param]: PR: Param MPC_JERK_MAX (571/852): 8.000000 different index: 595/937
+[mavros_node-1] [WARN] [1782289826.798251698] [mavros.param]: PR: Param MPC_LAND_ALT1 (572/852): 10.000000 different index: 596/937
+[mavros_node-1] [WARN] [1782289826.802633054] [mavros.param]: PR: Param MPC_LAND_ALT2 (573/852): 5.000000 different index: 597/937
+[mavros_node-1] [WARN] [1782289826.805257780] [mavros.param]: PR: Param MPC_LAND_ALT3 (574/852): 1.000000 different index: 598/937
+[mavros_node-1] [WARN] [1782289826.809168640] [mavros.param]: PR: Param MPC_LAND_CRWL (575/852): 0.300000 different index: 599/937
+[mavros_node-1] [WARN] [1782289826.812281084] [mavros.param]: PR: Param MPC_LAND_RADIUS (576/852): -1.000000 different index: 600/937
+[mavros_node-1] [WARN] [1782289826.817490924] [mavros.param]: PR: Param MPC_LAND_RC_HELP (577/852): 0 different index: 601/937
+[mavros_node-1] [WARN] [1782289826.821701640] [mavros.param]: PR: Param MPC_LAND_SPEED (578/852): 0.600000 different index: 602/937
+[mavros_node-1] [WARN] [1782289826.825404580] [mavros.param]: PR: Param MPC_MANTHR_MIN (579/852): 0.080000 different index: 603/937
+[mavros_node-1] [WARN] [1782289826.829199978] [mavros.param]: PR: Param MPC_MAN_TILT_MAX (580/852): 35.000000 different index: 604/937
+[mavros_node-1] [WARN] [1782289826.832843717] [mavros.param]: PR: Param MPC_MAN_Y_MAX (581/852): 150.000000 different index: 605/937
+[mavros_node-1] [WARN] [1782289826.854876685] [mavros.param]: PR: Param MPC_THR_CURVE (584/852): 0 different index: 608/937
+[mavros_node-1] [WARN] [1782289826.898797546] [mavros.param]: PR: Param MPC_THR_MAX (586/852): 1.000000 different index: 610/937
+[mavros_node-1] [WARN] [1782289826.942615848] [mavros.param]: PR: Param MPC_VELD_LP (594/852): 5.000000 different index: 617/937
+[mavros_node-1] [WARN] [1782289826.955648732] [mavros.param]: PR: Param MPC_VEL_MANUAL (595/852): 10.000000 different index: 619/937
+[mavros_node-1] [WARN] [1782289826.960455960] [mavros.param]: PR: Param MPC_VEL_MAN_BACK (596/852): -1.000000 different index: 620/937
+[mavros_node-1] [WARN] [1782289826.963149581] [mavros.param]: PR: Param MPC_VEL_MAN_SIDE (597/852): -1.000000 different index: 621/937
+[mavros_node-1] [WARN] [1782289826.988189035] [mavros.param]: PR: Param MPC_XY_ERR_MAX (599/852): 2.000000 different index: 625/937
+[mavros_node-1] [WARN] [1782289826.996133201] [mavros.param]: PR: Param MPC_XY_VEL_ALL (603/852): -10.000000 different index: 628/937
+[mavros_node-1] [WARN] [1782289827.013177288] [mavros.param]: PR: Param MPC_XY_VEL_I_ACC (605/852): 0.400000 different index: 630/937
+[mavros_node-1] [WARN] [1782289827.021621137] [mavros.param]: PR: Param MPC_XY_VEL_MAX (606/852): 12.000000 different index: 631/937
+[mavros_node-1] [WARN] [1782289827.046645616] [mavros.param]: PR: Param MPC_YAW_MODE (610/852): 0 different index: 635/937
+[mavros_node-1] [WARN] [1782289827.094926625] [mavros.param]: PR: Param MPC_Z_VEL_MAX_UP (617/852): 3.000000 different index: 641/937
+[mavros_node-1] [WARN] [1782289827.112119078] [mavros.param]: PR: Param MPC_Z_V_AUTO_DN (619/852): 1.500000 different index: 643/937
+[mavros_node-1] [WARN] [1782289827.166818654] [mavros.param]: PR: Param NAV_RCL_ACT (629/852): 2 different index: 656/937
+[mavros_node-1] [WARN] [1782289827.176678219] [mavros.param]: PR: Param NAV_TRAFF_A_VER (632/852): 500.000000 different index: 659/937
+[mavros_node-1] [WARN] [1782289827.185515423] [mavros.param]: PR: Param PLD_FAPPR_ALT (636/852): 0.100000 different index: 662/937
+[mavros_node-1] [WARN] [1782289827.187957823] [mavros.param]: PR: Param PLD_HACC_RAD (637/852): 0.200000 different index: 663/937
+[mavros_node-1] [WARN] [1782289827.196172650] [mavros.param]: PR: Param PLD_SRCH_ALT (639/852): 10.000000 different index: 665/937
+[mavros_node-1] [WARN] [1782289827.200413374] [mavros.param]: PR: Param PLD_SRCH_TOUT (640/852): 10.000000 different index: 666/937
+[mavros_node-1] [WARN] [1782289827.382007849] [mavros.param]: PR: Param PWM_MAIN_FUNC3 (650/852): 102 different index: 693/937
+[mavros_node-1] [WARN] [1782289827.393956259] [mavros.param]: PR: Param PWM_MAIN_FUNC6 (653/852): 0 different index: 696/937
+[mavros_node-1] [WARN] [1782289827.396923805] [mavros.param]: PR: Param PWM_MAIN_FUNC7 (654/852): 0 different index: 697/937
+[mavros_node-1] [WARN] [1782289827.445739458] [mavros.param]: PR: Param PWM_MAIN_REV (657/852): 0 different index: 715/937
+[mavros_node-1] [WARN] [1782289827.575599675] [mavros.param]: PR: Param RC18_MAX (699/852): 2000.000000 different index: 751/937
+[mavros_node-1] [WARN] [1782289827.579750225] [mavros.param]: PR: Param RC18_MIN (700/852): 1000.000000 different index: 752/937
+[mavros_node-1] [WARN] [1782289827.588547882] [mavros.param]: PR: Param RC1_MAX (704/852): 2012.000000 different index: 755/937
+[mavros_node-1] [WARN] [1782289827.601524883] [mavros.param]: PR: Param RC2_MAX (709/852): 2012.000000 different index: 759/937
+[mavros_node-1] [WARN] [1782289827.609096231] [mavros.param]: PR: Param RC2_REV (711/852): 1 different index: 761/937
+[mavros_node-1] [WARN] [1782289827.625171981] [mavros.param]: PR: Param RC3_REV (716/852): 1 different index: 765/937
+[mavros_node-1] [WARN] [1782289827.629024508] [mavros.param]: PR: Param RC3_TRIM (717/852): 989.000000 different index: 766/937
+[mavros_node-1] [WARN] [1782289827.773001734] [mavros.param]: PR: Param RC_MAP_AUX3 (759/852): 0 different index: 802/937
+[mavros_node-1] [WARN] [1782289827.787280882] [mavros.param]: PR: Param RC_MAP_AUX4 (760/852): 0 different index: 803/937
+[mavros_node-1] [WARN] [1782289827.791522182] [mavros.param]: PR: Param RC_MAP_AUX6 (762/852): 0 different index: 805/937
+[mavros_node-1] [WARN] [1782289827.795852080] [mavros.param]: PR: Param RC_MAP_ENG_MOT (763/852): 0 different index: 806/937
+[mavros_node-1] [WARN] [1782289827.814846543] [mavros.param]: PR: Param RC_MAP_FLAPS (765/852): 0 different index: 808/937
+[mavros_node-1] [WARN] [1782289827.830518993] [mavros.param]: PR: Param RC_MAP_FLTM_BTN (767/852): 0 different index: 810/937
+[mavros_node-1] [WARN] [1782289827.847176146] [mavros.param]: PR: Param RC_MAP_MODE_SW (772/852): 0 different index: 814/937
+[mavros_node-1] [WARN] [1782289827.888467678] [mavros.param]: PR: Param RC_MAP_RETURN_SW (780/852): 0 different index: 821/937
+[mavros_node-1] [WARN] [1782289827.891393192] [mavros.param]: PR: Param RC_MAP_ROLL (781/852): 1 different index: 822/937
+[mavros_node-1] [WARN] [1782289827.901819578] [mavros.param]: PR: Param RC_MAP_TRANS_SW (784/852): 0 different index: 825/937
+[mavros_node-1] [WARN] [1782289827.961381554] [mavros.param]: PR: Param RTL_CONE_ANG (789/852): 45 different index: 838/937
+[mavros_node-1] [WARN] [1782289827.976703369] [mavros.param]: PR: Param RTL_LOITER_RAD (793/852): 80.000000 different index: 841/937
+[mavros_node-1] [WARN] [1782289828.035851016] [mavros.param]: PR: Param SENS_BARO_RATE (808/852): 20.000000 different index: 859/937
+[mavros_node-1] [WARN] [1782289828.050344355] [mavros.param]: PR: Param SENS_BOARD_X_OFF (810/852): -0.910370 different index: 862/937
+[mavros_node-1] [WARN] [1782289828.052659434] [mavros.param]: PR: Param SENS_BOARD_Y_OFF (811/852): 1.181370 different index: 863/937
+[mavros_node-1] [WARN] [1782289828.187723059] [mavros.param]: PR: Param SENS_IMU_AUTOCAL (817/852): 1 different index: 893/937
+[mavros_node-1] [WARN] [1782289828.204197298] [mavros.param]: PR: Param SENS_MAG_MODE (821/852): 1 different index: 896/937
+[mavros_node-1] [WARN] [1782289828.336755730] [mavros.param]: PR: Param SYS_STCK_EN (839/852): 1 different index: 921/937
+[mavros_node-1] [WARN] [1782289828.383645130] [mavros.param]: PR: Param WV_EN (848/852): 0 different index: 933/937
+[mavros_node-1] [INFO] [1782289828.426323021] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289828.427577312] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289828.427616752] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289828.439012649] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289828.439041500] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289828.446794479] [mavros.time]: TM: RTT too high for timesync: 346.62 ms.
+[mavros_node-1] [INFO] [1782289828.450150295] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289828.450187240] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289828.464474528] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289828.464514725] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289828.838003230] [mavros.time]: TM: RTT too high for timesync: 36.89 ms.
+[mavros_node-1] [WARN] [1782289829.389428063] [mavros.param]: PR: request param #474 timeout, retries left 2, and 3 params still missing
+[mavros_node-1] [WARN] [1782289829.405055430] [mavros.param]: PR: Param MC_MAN_TILT_TAU (525/852): 0.000000 different index: 537/937
+[mavros_node-1] [WARN] [1782289829.409136183] [mavros.param]: PR: Param MC_ORBIT_RAD_MAX (526/852): 1000.000000 different index: 538/937
+[mavros_node-1] [WARN] [1782289829.423762626] [mavros.param]: PR: Param MC_ROLLRATE_I (550/937): 0.200000 different index: 537/852
+[mavros_node-1] [WARN] [1782289829.427464921] [mavros.time]: TM: RTT too high for timesync: 27.34 ms.
+[mavros_node-1] [WARN] [1782289829.430712087] [mavros.param]: PR: Param MC_ROLLRATE_K (551/937): 1.000000 different index: 538/852
+[mavros_node-1] [WARN] [1782289830.024947978] [mavros.time]: TM: RTT too high for timesync: 25.21 ms.
+[mavros_node-1] [WARN] [1782289830.629211205] [mavros.time]: TM: RTT too high for timesync: 29.18 ms.
+[mavros_node-1] [WARN] [1782289831.127841814] [mavros.time]: TM: RTT too high for timesync: 28.04 ms.
+[mavros_node-1] [WARN] [1782289831.723958072] [mavros.time]: TM: RTT too high for timesync: 23.75 ms.
+[mavros_node-1] [WARN] [1782289832.332277431] [mavros.time]: TM: RTT too high for timesync: 32.19 ms.
+[mavros_node-1] [INFO] [1782289832.634440085] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289832.657288679] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289832.657322535] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289832.931451002] [mavros.time]: TM: RTT too high for timesync: 31.37 ms.
+[mavros_node-1] [INFO] [1782289833.415735916] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289833.415784887] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289833.416973118] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289833.417023142] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289833.429369236] [mavros.time]: TM: RTT too high for timesync: 29.17 ms.
+[mavros_node-1] [WARN] [1782289834.034027749] [mavros.time]: TM: RTT too high for timesync: 33.80 ms.
+[mavros_node-1] [WARN] [1782289834.541801596] [mavros.time]: TM: RTT too high for timesync: 41.66 ms.
+[mavros_node-1] [WARN] [1782289835.163897017] [mavros.time]: TM: RTT too high for timesync: 63.59 ms.
+[mavros_node-1] [WARN] [1782289835.927545230] [mavros.time]: TM: RTT too high for timesync: 27.51 ms.
+[mavros_node-1] [WARN] [1782289836.429951194] [mavros.time]: TM: RTT too high for timesync: 30.28 ms.
+[mavros_node-1] [WARN] [1782289837.035568570] [mavros.time]: TM: RTT too high for timesync: 35.59 ms.
+[mavros_node-1] [INFO] [1782289837.635143446] [mavros.geofence]: GF: mission received
+[mavros_node-1] [WARN] [1782289837.635309496] [mavros.time]: TM: RTT too high for timesync: 35.28 ms.
+[mavros_node-1] [INFO] [1782289837.653326440] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289837.653364959] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289837.653415022] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289837.653429806] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289837.658570243] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289837.658611226] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289837.670327825] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289838.139627925] [mavros.time]: TM: RTT too high for timesync: 39.54 ms.
+[mavros_node-1] [INFO] [1782289838.422556175] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289838.437393359] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289838.437435472] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289838.437950798] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289838.437980971] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289838.440006499] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289838.440021679] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289838.734749554] [mavros.time]: TM: RTT too high for timesync: 34.77 ms.
+[mavros_node-1] [WARN] [1782289839.230387173] [mavros.time]: TM: RTT too high for timesync: 30.38 ms.
+[mavros_node-1] [WARN] [1782289839.827134388] [mavros.time]: TM: RTT too high for timesync: 25.88 ms.
+[mavros_node-1] [WARN] [1782289840.338231011] [mavros.time]: TM: RTT too high for timesync: 37.74 ms.
+[mavros_node-1] [WARN] [1782289840.932021700] [mavros.time]: TM: RTT too high for timesync: 32.09 ms.
+[mavros_node-1] [WARN] [1782289841.431443566] [mavros.time]: TM: RTT too high for timesync: 31.55 ms.
+[mavros_node-1] [WARN] [1782289842.026222463] [mavros.time]: TM: RTT too high for timesync: 26.28 ms.
+[mavros_node-1] [WARN] [1782289842.645197927] [mavros.time]: TM: RTT too high for timesync: 45.59 ms.
+[mavros_node-1] [INFO] [1782289842.664835200] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289842.666175461] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289842.666205777] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289842.667261845] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289842.669628654] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289842.669654545] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289842.674997327] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289842.688949961] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289842.688987560] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289842.692852493] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289842.692882371] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289842.701190274] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289842.701226456] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289842.701356262] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289842.701384738] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289843.231766281] [mavros.time]: TM: RTT too high for timesync: 31.94 ms.
+[mavros_node-1] [INFO] [1782289843.444129343] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289843.473084879] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289843.473145661] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289843.474662322] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289843.474691375] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289843.475602179] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289843.475622482] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289843.755618964] [mavros.time]: TM: RTT too high for timesync: 55.93 ms.
+[mavros_node-1] [WARN] [1782289844.323758506] [mavros.time]: TM: RTT too high for timesync: 23.83 ms.
+[mavros_node-1] [WARN] [1782289845.028407652] [mavros.time]: TM: RTT too high for timesync: 28.58 ms.
+[mavros_node-1] [WARN] [1782289845.530423887] [mavros.time]: TM: RTT too high for timesync: 30.44 ms.
+[mavros_node-1] [WARN] [1782289846.125402504] [mavros.time]: TM: RTT too high for timesync: 25.61 ms.
+[mavros_node-1] [WARN] [1782289846.628006036] [mavros.time]: TM: RTT too high for timesync: 28.46 ms.
+[mavros_node-1] [WARN] [1782289847.236396644] [mavros.time]: TM: RTT too high for timesync: 36.66 ms.
+[mavros_node-1] [INFO] [1782289847.693542882] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289847.693598373] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289847.697120956] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289847.697151325] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289847.705829821] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289847.718103782] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289847.718213739] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289847.721524363] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289847.721592916] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289847.735222126] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289847.735285651] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289847.738175780] [mavros.time]: TM: RTT too high for timesync: 38.65 ms.
+[mavros_node-1] [WARN] [1782289848.424838973] [mavros.time]: TM: RTT too high for timesync: 25.10 ms.
+[mavros_node-1] [INFO] [1782289848.479732564] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289848.490474128] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289848.490503642] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289849.030378845] [mavros.time]: TM: RTT too high for timesync: 30.66 ms.
+[mavros_node-1] [WARN] [1782289849.622757450] [mavros.time]: TM: RTT too high for timesync: 23.02 ms.
+[mavros_node-1] [WARN] [1782289850.130283708] [mavros.time]: TM: RTT too high for timesync: 30.52 ms.
+[mavros_node-1] [WARN] [1782289850.720674192] [mavros.time]: TM: RTT too high for timesync: 21.01 ms.
+[mavros_node-1] [WARN] [1782289851.230659189] [mavros.time]: TM: RTT too high for timesync: 30.89 ms.
+[mavros_node-1] [WARN] [1782289851.834020946] [mavros.time]: TM: RTT too high for timesync: 33.48 ms.
+[mavros_node-1] [WARN] [1782289852.321423792] [mavros.time]: TM: RTT too high for timesync: 21.72 ms.
+[mavros_node-1] [INFO] [1782289852.700754806] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289852.719579495] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289852.719617532] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289852.721844972] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289852.721875517] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289852.737065793] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289852.737144135] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289852.738134422] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289852.738667731] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289852.738688195] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289852.741300976] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289852.741330675] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289852.755213526] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289852.755237886] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289852.935545304] [mavros.time]: TM: RTT too high for timesync: 35.77 ms.
+[mavros_node-1] [WARN] [1782289853.431649957] [mavros.time]: TM: RTT too high for timesync: 31.92 ms.
+[mavros_node-1] [INFO] [1782289853.494314025] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289853.502741397] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289853.502767532] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289853.505281202] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289853.505297997] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289853.509932475] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289853.509983075] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289854.030956590] [mavros.time]: TM: RTT too high for timesync: 31.25 ms.
+[mavros_node-1] [WARN] [1782289854.528125318] [mavros.time]: TM: RTT too high for timesync: 28.55 ms.
+[mavros_node-1] [WARN] [1782289855.130535365] [mavros.time]: TM: RTT too high for timesync: 31.07 ms.
+[mavros_node-1] [WARN] [1782289855.625600900] [mavros.time]: TM: RTT too high for timesync: 25.78 ms.
+[mavros_node-1] [WARN] [1782289856.220088273] [mavros.time]: TM: RTT too high for timesync: 20.30 ms.
+[mavros_node-1] [WARN] [1782289856.741116285] [mavros.time]: TM: RTT too high for timesync: 40.58 ms.
+[mavros_node-1] [WARN] [1782289857.342401456] [mavros.time]: TM: RTT too high for timesync: 42.74 ms.
+[mavros_node-1] [INFO] [1782289857.745356255] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289857.761537950] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289857.763405156] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289857.763445559] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289857.764051970] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289857.764066609] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289857.764868486] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289857.764910457] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289857.766505613] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289857.766517641] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289857.768364953] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289857.768383802] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289857.780660359] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289857.780721178] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289857.837675171] [mavros.time]: TM: RTT too high for timesync: 37.29 ms.
+[mavros_node-1] [ERROR] [1782289857.875507899] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289858.512303671] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289858.521685062] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289858.521728223] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289858.522813193] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289858.522837345] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289858.523300125] [mavros.time]: TM: RTT too high for timesync: 23.78 ms.
+[mavros_node-1] [INFO] [1782289858.531115741] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289858.531168535] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289859.024274553] [mavros.time]: TM: RTT too high for timesync: 24.79 ms.
+[mavros_node-1] [WARN] [1782289859.625870549] [mavros.time]: TM: RTT too high for timesync: 26.29 ms.
+[mavros_node-1] [WARN] [1782289860.125390605] [mavros.time]: TM: RTT too high for timesync: 25.56 ms.
+[mavros_node-1] [WARN] [1782289860.935063681] [mavros.time]: TM: RTT too high for timesync: 35.59 ms.
+[mavros_node-1] [WARN] [1782289861.429071915] [mavros.time]: TM: RTT too high for timesync: 29.59 ms.
+[mavros_node-1] [WARN] [1782289862.028355416] [mavros.time]: TM: RTT too high for timesync: 28.90 ms.
+[mavros_node-1] [WARN] [1782289862.636313798] [mavros.time]: TM: RTT too high for timesync: 36.77 ms.
+[mavros_node-1] [INFO] [1782289862.771976317] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289862.783573392] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289862.783687172] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289862.783704054] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289862.784108663] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289862.784140200] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289862.785435822] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289862.785444971] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289862.785497255] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289862.785515562] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289862.785940822] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289862.785964507] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289862.788900663] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289862.796910266] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289862.796948535] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289863.320341449] [mavros.time]: TM: RTT too high for timesync: 20.83 ms.
+[mavros_node-1] [INFO] [1782289863.535334737] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289863.565162664] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289863.565190550] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289863.565997077] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289863.566023826] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289863.567827915] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289863.567836860] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289863.948927165] [mavros.time]: TM: RTT too high for timesync: 49.54 ms.
+[mavros_node-1] [WARN] [1782289864.522387491] [mavros.time]: TM: RTT too high for timesync: 22.98 ms.
+[mavros_node-1] [WARN] [1782289865.030676884] [mavros.time]: TM: RTT too high for timesync: 31.30 ms.
+[mavros_node-1] [WARN] [1782289865.727074493] [mavros.time]: TM: RTT too high for timesync: 27.71 ms.
+[mavros_node-1] [WARN] [1782289866.231888465] [mavros.time]: TM: RTT too high for timesync: 32.46 ms.
+[mavros_node-1] [WARN] [1782289866.925819433] [mavros.time]: TM: RTT too high for timesync: 26.50 ms.
+[mavros_node-1] [WARN] [1782289867.431713403] [mavros.time]: TM: RTT too high for timesync: 32.38 ms.
+[mavros_node-1] [INFO] [1782289867.789216271] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289867.801751834] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289867.805861616] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289867.805894434] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289867.806575421] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289867.806584617] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289867.810747680] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289867.810789641] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289867.822880652] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289867.822932489] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289868.032429144] [mavros.time]: TM: RTT too high for timesync: 32.94 ms.
+[mavros_node-1] [WARN] [1782289868.533198428] [mavros.time]: TM: RTT too high for timesync: 33.71 ms.
+[mavros_node-1] [INFO] [1782289868.575809483] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289868.582129194] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289868.582196594] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289868.584906947] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289868.584953904] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289868.598245375] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289868.598356933] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289869.224888519] [mavros.time]: TM: RTT too high for timesync: 25.62 ms.
+[mavros_node-1] [WARN] [1782289869.726018767] [mavros.time]: TM: RTT too high for timesync: 26.77 ms.
+[mavros_node-1] [WARN] [1782289870.327576805] [mavros.time]: TM: RTT too high for timesync: 28.34 ms.
+[mavros_node-1] [WARN] [1782289871.257365958] [mavros.time]: TM: RTT too high for timesync: 58.14 ms.
+[mavros_node-1] [WARN] [1782289872.036267865] [mavros.time]: TM: RTT too high for timesync: 36.84 ms.
+[mavros_node-1] [WARN] [1782289872.532116049] [mavros.time]: TM: RTT too high for timesync: 32.91 ms.
+[mavros_node-1] [INFO] [1782289872.806275552] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289872.806305819] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289872.808213669] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289872.808242829] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289872.826590704] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289872.832954644] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289872.832990715] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289872.837468565] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289872.837506704] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289873.129937817] [mavros.time]: TM: RTT too high for timesync: 30.75 ms.
+[mavros_node-1] [INFO] [1782289873.601719070] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289873.604466848] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289873.604499001] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289873.607208785] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289873.607243717] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289873.633771818] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289873.633809892] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289873.637319491] [mavros.time]: TM: RTT too high for timesync: 38.10 ms.
+[mavros_node-1] [WARN] [1782289874.221869343] [mavros.time]: TM: RTT too high for timesync: 22.73 ms.
+[mavros_node-1] [WARN] [1782289874.740269297] [mavros.time]: TM: RTT too high for timesync: 41.11 ms.
+[mavros_node-1] [WARN] [1782289875.331929011] [mavros.time]: TM: RTT too high for timesync: 33.15 ms.
+[mavros_node-1] [WARN] [1782289875.833023906] [mavros.time]: TM: RTT too high for timesync: 33.28 ms.
+[mavros_node-1] [WARN] [1782289876.529487727] [mavros.time]: TM: RTT too high for timesync: 29.73 ms.
+[mavros_node-1] [WARN] [1782289877.134215715] [mavros.time]: TM: RTT too high for timesync: 35.09 ms.
+[mavros_node-1] [WARN] [1782289877.748803586] [mavros.time]: TM: RTT too high for timesync: 49.52 ms.
+[mavros_node-1] [INFO] [1782289877.812604901] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289877.827379631] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289877.827421913] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289877.842409248] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289877.857888670] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289877.857914672] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289877.857937816] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289877.857941745] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289877.860582943] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289877.860616150] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289878.232562596] [mavros.time]: TM: RTT too high for timesync: 32.88 ms.
+[mavros_node-1] [WARN] [1782289878.242931749] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-16-1-128-0-0-0-128-58-127-128-128-58-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289878.248384176] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1782289878.248620551] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289878.248721381] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289878.248867322] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289878.248995091] [mavros.sys]: FCU: EVENT 453929 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289878.249130985] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1782289878.249240757] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-2-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289878.623556811] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289878.623592490] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289878.624707639] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289878.624727406] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289878.845428954] [mavros.time]: TM: RTT too high for timesync: 45.51 ms.
+[mavros_node-1] [WARN] [1782289879.569124775] [mavros.time]: TM: RTT too high for timesync: 69.97 ms.
+[mavros_node-1] [WARN] [1782289880.330371953] [mavros.time]: TM: RTT too high for timesync: 31.34 ms.
+[mavros_node-1] [WARN] [1782289880.930844936] [mavros.time]: TM: RTT too high for timesync: 31.74 ms.
+[mavros_node-1] [WARN] [1782289881.544999356] [mavros.time]: TM: RTT too high for timesync: 45.99 ms.
+[mavros_node-1] [WARN] [1782289882.030970816] [mavros.time]: TM: RTT too high for timesync: 32.39 ms.
+[mavros_node-1] [WARN] [1782289882.640133231] [mavros.time]: TM: RTT too high for timesync: 41.12 ms.
+[mavros_node-1] [INFO] [1782289882.833063131] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289882.833162681] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289882.833176270] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289882.836172400] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289882.836202294] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289882.838673656] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289882.849927078] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289882.849970928] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289882.865234299] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289882.882530870] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289882.882571051] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289883.230867045] [mavros.time]: TM: RTT too high for timesync: 31.95 ms.
+[mavros_node-1] [INFO] [1782289883.629041899] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289883.660959463] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289883.661005029] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289883.832605646] [mavros.time]: TM: RTT too high for timesync: 32.92 ms.
+[mavros_node-1] [WARN] [1782289884.329243087] [mavros.time]: TM: RTT too high for timesync: 30.29 ms.
+[mavros_node-1] [WARN] [1782289884.924880961] [mavros.time]: TM: RTT too high for timesync: 25.81 ms.
+[mavros_node-1] [WARN] [1782289885.535686526] [mavros.time]: TM: RTT too high for timesync: 36.79 ms.
+[mavros_node-1] [WARN] [1782289886.028665071] [mavros.time]: TM: RTT too high for timesync: 29.79 ms.
+[mavros_node-1] [WARN] [1782289886.635138098] [mavros.time]: TM: RTT too high for timesync: 36.23 ms.
+[mavros_node-1] [WARN] [1782289887.128615345] [mavros.time]: TM: RTT too high for timesync: 29.73 ms.
+[mavros_node-1] [WARN] [1782289887.739157612] [mavros.time]: TM: RTT too high for timesync: 40.32 ms.
+[mavros_node-1] [INFO] [1782289887.854861796] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289887.858329224] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289887.858371740] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289887.860754886] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289887.870758076] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289887.870784060] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289887.886626959] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289887.888338518] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289887.888388845] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289887.888444816] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289887.888457281] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289887.892262244] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289887.903332344] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289887.903375627] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289888.236239951] [mavros.time]: TM: RTT too high for timesync: 37.42 ms.
+[mavros_node-1] [INFO] [1782289888.651463228] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289888.651500192] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289888.652366632] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289888.652378640] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289888.826766596] [mavros.time]: TM: RTT too high for timesync: 27.10 ms.
+[mavros_node-1] [WARN] [1782289889.531913095] [mavros.time]: TM: RTT too high for timesync: 33.11 ms.
+[mavros_node-1] [WARN] [1782289890.131367752] [mavros.time]: TM: RTT too high for timesync: 32.59 ms.
+[mavros_node-1] [WARN] [1782289890.635395298] [mavros.time]: TM: RTT too high for timesync: 36.65 ms.
+[mavros_node-1] [WARN] [1782289891.232382719] [mavros.time]: TM: RTT too high for timesync: 33.66 ms.
+[mavros_node-1] [WARN] [1782289891.829208866] [mavros.time]: TM: RTT too high for timesync: 29.83 ms.
+[mavros_node-1] [WARN] [1782289892.728574938] [mavros.time]: TM: RTT too high for timesync: 29.69 ms.
+[mavros_node-1] [INFO] [1782289892.875054957] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289892.878602279] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289892.878626694] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289892.881660862] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289892.881690603] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289892.882900120] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289892.882908019] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289892.907973059] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289892.927641675] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289892.927671202] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289892.931998887] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289892.932031470] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289892.940614843] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289892.940658237] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289893.240939088] [mavros.time]: TM: RTT too high for timesync: 42.04 ms.
+[mavros_node-1] [INFO] [1782289893.654414825] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289893.684362703] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289893.684407928] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289893.846139825] [mavros.time]: TM: RTT too high for timesync: 46.57 ms.
+[mavros_node-1] [WARN] [1782289894.338662135] [mavros.time]: TM: RTT too high for timesync: 39.88 ms.
+[mavros_node-1] [WARN] [1782289894.939742496] [mavros.time]: TM: RTT too high for timesync: 41.07 ms.
+[mavros_node-1] [WARN] [1782289895.630478195] [mavros.time]: TM: RTT too high for timesync: 31.81 ms.
+[mavros_node-1] [WARN] [1782289896.227972764] [mavros.time]: TM: RTT too high for timesync: 29.31 ms.
+[mavros_node-1] [WARN] [1782289896.754812386] [mavros.time]: TM: RTT too high for timesync: 56.16 ms.
+[mavros_node-1] [WARN] [1782289897.334947598] [mavros.time]: TM: RTT too high for timesync: 36.00 ms.
+[mavros_node-1] [WARN] [1782289897.833343052] [mavros.time]: TM: RTT too high for timesync: 33.69 ms.
+[mavros_node-1] [INFO] [1782289897.889193211] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289897.891949780] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289897.891994459] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289897.945060183] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289897.961488533] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289897.961521441] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289897.964202162] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289897.964225096] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289897.969862521] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289897.969895475] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289898.425431675] [mavros.time]: TM: RTT too high for timesync: 26.84 ms.
+[mavros_node-1] [INFO] [1782289898.680886741] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289898.680931098] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289898.683456878] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289898.683485105] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289898.931014255] [mavros.time]: TM: RTT too high for timesync: 32.35 ms.
+[mavros_node-1] [WARN] [1782289899.642793220] [mavros.time]: TM: RTT too high for timesync: 44.23 ms.
+[mavros_node-1] [WARN] [1782289900.136434252] [mavros.time]: TM: RTT too high for timesync: 37.79 ms.
+[mavros_node-1] [WARN] [1782289900.833723566] [mavros.time]: TM: RTT too high for timesync: 34.39 ms.
+[mavros_node-1] [WARN] [1782289901.635922068] [mavros.time]: TM: RTT too high for timesync: 37.34 ms.
+[mavros_node-1] [WARN] [1782289902.128348599] [mavros.time]: TM: RTT too high for timesync: 29.81 ms.
+[mavros_node-1] [WARN] [1782289902.736525513] [mavros.time]: TM: RTT too high for timesync: 38.01 ms.
+[mavros_node-1] [INFO] [1782289902.900746993] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289902.904070735] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289902.904101264] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289902.909026955] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289902.909048713] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289902.914618784] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289902.914652343] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289902.974988725] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289902.989263096] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289902.989303527] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289902.993134209] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289902.993152356] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289903.009833231] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289903.009875203] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289903.236288097] [mavros.time]: TM: RTT too high for timesync: 37.62 ms.
+[mavros_node-1] [INFO] [1782289903.686786452] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289903.699175270] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289903.699201474] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289903.837080994] [mavros.time]: TM: RTT too high for timesync: 37.76 ms.
+[mavros_node-1] [WARN] [1782289904.332765086] [mavros.time]: TM: RTT too high for timesync: 34.66 ms.
+[mavros_node-1] [WARN] [1782289905.034785701] [mavros.time]: TM: RTT too high for timesync: 36.38 ms.
+[mavros_node-1] [WARN] [1782289905.646350063] [mavros.time]: TM: RTT too high for timesync: 48.12 ms.
+[mavros_node-1] [WARN] [1782289906.130289338] [mavros.time]: TM: RTT too high for timesync: 31.92 ms.
+[mavros_node-1] [WARN] [1782289906.738982444] [mavros.time]: TM: RTT too high for timesync: 40.52 ms.
+[mavros_node-1] [WARN] [1782289907.226857232] [mavros.time]: TM: RTT too high for timesync: 28.46 ms.
+[mavros_node-1] [WARN] [1782289907.828650254] [mavros.time]: TM: RTT too high for timesync: 29.22 ms.
+[mavros_node-1] [INFO] [1782289907.921538595] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289907.941211865] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289907.941261790] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289907.942282923] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289907.942311655] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289907.943480547] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289907.943505329] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289908.015299654] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289908.017469309] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289908.017509540] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289908.021487570] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289908.021528178] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289908.042812848] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289908.042854446] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289908.337519662] [mavros.time]: TM: RTT too high for timesync: 39.11 ms.
+[mavros_node-1] [INFO] [1782289908.703514257] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289908.723551227] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289908.723580471] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289908.724216670] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289908.724230591] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289908.724611887] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289908.724617067] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289909.032502476] [mavros.time]: TM: RTT too high for timesync: 34.15 ms.
+[mavros_node-1] [WARN] [1782289909.630634309] [mavros.time]: TM: RTT too high for timesync: 32.33 ms.
+[mavros_node-1] [WARN] [1782289910.238894151] [mavros.time]: TM: RTT too high for timesync: 40.62 ms.
+[mavros_node-1] [WARN] [1782289910.736435851] [mavros.time]: TM: RTT too high for timesync: 38.13 ms.
+[mavros_node-1] [WARN] [1782289911.326217843] [mavros.time]: TM: RTT too high for timesync: 27.89 ms.
+[mavros_node-1] [WARN] [1782289911.831832351] [mavros.time]: TM: RTT too high for timesync: 32.98 ms.
+[mavros_node-1] [WARN] [1782289912.444815949] [mavros.time]: TM: RTT too high for timesync: 46.57 ms.
+[mavros_node-1] [WARN] [1782289912.930503195] [mavros.time]: TM: RTT too high for timesync: 32.23 ms.
+[mavros_node-1] [INFO] [1782289912.947156983] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289912.963524957] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289912.963575818] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289912.963774238] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289912.963796673] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289912.966329874] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289912.966368285] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289913.045951585] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289913.047025432] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289913.047044108] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289913.049583420] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289913.049602693] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289913.054011042] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289913.059986226] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289913.060014889] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289913.529111564] [mavros.time]: TM: RTT too high for timesync: 30.81 ms.
+[mavros_node-1] [INFO] [1782289913.733835384] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289913.750489502] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289913.750528304] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289913.750618276] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289913.750646879] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289913.753780618] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289913.753812528] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289914.042733291] [mavros.time]: TM: RTT too high for timesync: 44.50 ms.
+[mavros_node-1] [WARN] [1782289914.624172323] [mavros.time]: TM: RTT too high for timesync: 26.01 ms.
+[mavros_node-1] [WARN] [1782289915.135703061] [mavros.time]: TM: RTT too high for timesync: 37.47 ms.
+[mavros_node-1] [WARN] [1782289916.238431579] [mavros.time]: TM: RTT too high for timesync: 40.29 ms.
+[mavros_node-1] [WARN] [1782289916.753724826] [mavros.time]: TM: RTT too high for timesync: 51.23 ms.
+[mavros_node-1] [WARN] [1782289917.329892846] [mavros.time]: TM: RTT too high for timesync: 31.74 ms.
+[mavros_node-1] [WARN] [1782289917.842765864] [mavros.time]: TM: RTT too high for timesync: 43.88 ms.
+[mavros_node-1] [INFO] [1782289917.972933498] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289917.993207344] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289917.993235690] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289917.993300856] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289917.993303837] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289917.996406425] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289917.996416806] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289918.063443241] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289918.063814317] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289918.063840913] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289918.066255589] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289918.066279141] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [ERROR] [1782289918.070280621] [mavros.sys]: FCU: EVENT 4089486 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1782289918.077354722] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289918.077388485] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289918.635673300] [mavros.time]: TM: RTT too high for timesync: 37.56 ms.
+[mavros_node-1] [INFO] [1782289918.756384315] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289918.775402539] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289918.775436805] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289918.775690931] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289918.775710965] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289918.778468467] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289918.778488537] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289919.238004577] [mavros.time]: TM: RTT too high for timesync: 39.98 ms.
+[mavros_node-1] [WARN] [1782289919.837487370] [mavros.time]: TM: RTT too high for timesync: 38.58 ms.
+[mavros_node-1] [WARN] [1782289920.347905421] [mavros.time]: TM: RTT too high for timesync: 49.74 ms.
+[mavros_node-1] [WARN] [1782289920.931114144] [mavros.time]: TM: RTT too high for timesync: 33.01 ms.
+[mavros_node-1] [WARN] [1782289921.442296699] [mavros.time]: TM: RTT too high for timesync: 44.28 ms.
+[mavros_node-1] [WARN] [1782289922.224941123] [mavros.time]: TM: RTT too high for timesync: 26.92 ms.
+[mavros_node-1] [WARN] [1782289922.731555515] [mavros.time]: TM: RTT too high for timesync: 33.36 ms.
+[mavros_node-1] [INFO] [1782289923.001372759] [mavros.geofence]: GF: mission received
+[mavros_node-1] [INFO] [1782289923.014323440] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.014387783] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289923.083412070] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289923.084199133] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.084228269] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289923.085483854] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.085533893] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289923.100257351] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.100301847] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289923.530636239] [mavros.time]: TM: RTT too high for timesync: 32.65 ms.
+[mavros_node-1] [INFO] [1782289923.783941650] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289923.794953116] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.794982514] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289923.795405581] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.795430492] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289923.797507677] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289923.797526554] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289924.034529470] [mavros.time]: TM: RTT too high for timesync: 36.55 ms.
+[mavros_node-1] [WARN] [1782289924.743651537] [mavros.time]: TM: RTT too high for timesync: 45.44 ms.
+[mavros_node-1] [WARN] [1782289925.341316100] [mavros.time]: TM: RTT too high for timesync: 43.30 ms.
+[mavros_node-1] [WARN] [1782289926.043079733] [mavros.time]: TM: RTT too high for timesync: 45.15 ms.
+[mavros_node-1] [INFO] [1782289926.070129611] [mavros.mavros_router]: link[1000] removed stale remote address 48.0
+[mavros_node-1] [INFO] [1782289926.070161393] [mavros.mavros_router]: link[1000] removed stale remote address 48.234
+[mavros_node-1] [WARN] [1782289926.630740182] [mavros.time]: TM: RTT too high for timesync: 32.83 ms.
+[mavros_node-1] [WARN] [1782289927.227499938] [mavros.time]: TM: RTT too high for timesync: 29.61 ms.
+[mavros_node-1] [WARN] [1782289927.732310345] [mavros.time]: TM: RTT too high for timesync: 34.41 ms.
+[mavros_node-1] [INFO] [1782289928.011899339] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289928.011936062] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289928.013853134] [mavros.geofence]: GF: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289928.013884257] [mavros.geofence]: GF: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289928.106718664] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1782289928.108827905] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289928.108846348] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289928.111341814] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289928.111353400] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [INFO] [1782289928.122448453] [mavros.rallypoint]: RP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289928.122487946] [mavros.rallypoint]: RP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289928.331029733] [mavros.time]: TM: RTT too high for timesync: 32.99 ms.
+[mavros_node-1] [INFO] [1782289928.801318094] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1782289928.813496295] [mavros.mission]: WP: seems GCS requesting mission
+[mavros_node-1] [INFO] [1782289928.813523829] [mavros.mission]: WP: scheduling pull after GCS is done
+[mavros_node-1] [WARN] [1782289928.943727200] [mavros.time]: TM: RTT too high for timesync: 45.64 ms.

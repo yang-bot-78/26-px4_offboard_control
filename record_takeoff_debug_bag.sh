@@ -161,6 +161,7 @@ ros2 bag record -o "${bag_dir}" \
   /mavros/vision_speed/speed_twist_cov \
   /mavros/setpoint_raw/local \
   /mavros/setpoint_raw/target_local \
+  /minipc_mavros_offboard/mpc_setpoint_debug \
   /fmu/out/vehicle_local_position \
   /fmu/out/vehicle_local_position_setpoint \
   /fmu/out/vehicle_attitude \

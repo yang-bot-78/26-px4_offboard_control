@@ -1,0 +1,13 @@
+[INFO] [1782297138.230470089] [minipc_mavros_offboard]: Started minipc_mavros_offboard with arm_only=False, takeoff_height_m=0.8, hover_seconds=2.0, offboard_stabilize_seconds=20.0, use_rc_offboard=True, hold_after_arm_reject=True, ignore_z_in_arm_only=True, debug_hold_after_mode_drop=True, recent_pose_samples=30, require_vision_pose=True, vision_freshness_s=1.0, lift_only_seconds=2.5, z_ramp_seconds=2.0, target_xyz=(0.5, 0.0, -1.0), yaw_deg=0.0, auto_land=False, land_on_offboard_loss=True, offboard_land=True, offboard_land_speed_mps=0.1, offboard_land_auto_handoff_height_m=0.1, target_reached_tolerance_m=0.15, landed_hold_seconds=0.0, drift_guard_enabled=True, drift_warning_m=0.2, drift_land_m=0.3, drift_emergency_m=0.5, legacy_max_horizontal_drift_m=0.5, mavros_state_freshness_s=1.5, control_mode=ramp
+[INFO] [1782297138.265043725] [minipc_mavros_offboard]: Waiting for MAVROS connection
+[INFO] [1782297140.422429436] [minipc_mavros_offboard]: Waiting for MAVROS local odometry before arming
+[INFO] [1782297140.424233215] [minipc_mavros_offboard]: Averaged MAVROS local odometry at lock x=0.00, y=0.00, z=0.07
+[INFO] [1782297140.424717239] [minipc_mavros_offboard]: Target setpoint locked to ENU for MAVROS local setpoint x=0.00, y=0.50, z_start=0.07, z_final=1.07
+[INFO] [1782297140.463197442] [minipc_mavros_offboard]: Streaming pre-arm MAVROS setpoints
+[INFO] [1782297145.464745919] [minipc_mavros_offboard]: Streaming setpoints and waiting for RC to switch OFFBOARD
+[INFO] [1782297155.914022195] [minipc_mavros_offboard]: OFFBOARD reported by MAVROS state
+[INFO] [1782297175.963781833] [minipc_mavros_offboard]: Arming vehicle
+[INFO] [1782297175.965963739] [minipc_mavros_offboard]: Requested arming
+[INFO] [1782297176.014215970] [minipc_mavros_offboard]: MAVROS state before/at arm reject: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[ERROR] [1782297176.014477732] [minipc_mavros_offboard]: Arm request rejected: mavros_msgs.srv.CommandBool_Response(success=False, result=1)
+[INFO] [1782297176.066672345] [minipc_mavros_offboard]: Arm rejected; continuing to hold setpoint for debugging
