@@ -1,0 +1,29 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-07-22-15-27-48-069693-robot-15903
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fastlio_ev_health_monitor.py-1]: process started with pid [15922]
+[INFO] [fastlio_mavros_odometry_bridge-2]: process started with pid [15924]
+[INFO] [static_transform_publisher-3]: process started with pid [15926]
+[INFO] [static_transform_publisher-4]: process started with pid [15928]
+[fastlio_mavros_odometry_bridge-2] [INFO] [1784705268.152329656] [fastlio_mavros_odometry_bridge]: Bridging /Odometry/healthy -> /mavros/odometry/out as nav_msgs/Odometry for MAVROS odometry input
+[static_transform_publisher-4] [INFO] [1784705268.176269515] [body_to_body_frd_ev_validation]: Spinning until stopped - publishing transform
+[static_transform_publisher-4] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] from 'body' to 'body_frd'
+[static_transform_publisher-3] [INFO] [1784705268.192310356] [camera_init_to_camera_init_ned_ev_validation]: Spinning until stopped - publishing transform
+[static_transform_publisher-3] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-3] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-3] from 'camera_init' to 'camera_init_ned'
+[fastlio_ev_health_monitor.py-1] [INFO] [1784705268.473625894] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-1] [WARN] [1784705268.498637798] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-1] [WARN] [1784705268.799380847] [fastlio_ev_health_monitor]: EV health state=FAULT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-1] [INFO] [1784705277.000218897] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-1] [WARN] [1784705489.663387140] [fastlio_ev_health_monitor]: EV health state=SUSPECT: ev_timeout age=0.565s
+[fastlio_ev_health_monitor.py-1] [WARN] [1784705490.062827444] [fastlio_ev_health_monitor]: EV health state=FAULT: ev_timeout age=0.965s
+[fastlio_ev_health_monitor.py-1] [INFO] [1784705511.801821587] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[static_transform_publisher-3] [INFO] [1784705538.379407427] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-4] [INFO] [1784705538.379407079] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_mavros_odometry_bridge-2] [INFO] [1784705538.379412818] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[INFO] [fastlio_mavros_odometry_bridge-2]: process has finished cleanly [pid 15924]
+[INFO] [static_transform_publisher-3]: process has finished cleanly [pid 15926]
+[INFO] [static_transform_publisher-4]: process has finished cleanly [pid 15928]
+[INFO] [fastlio_ev_health_monitor.py-1]: process has finished cleanly [pid 15922]

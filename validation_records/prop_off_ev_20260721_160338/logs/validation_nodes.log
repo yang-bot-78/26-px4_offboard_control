@@ -1,0 +1,12 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-07-21-16-03-42-858668-robot-31667
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fastlio_ev_health_monitor.py-1]: process started with pid [31686]
+[INFO] [fastlio_mavros_vision_bridge-2]: process started with pid [31688]
+[fastlio_mavros_vision_bridge-2] [INFO] [1784621022.994072025] [fastlio_mavros_vision_bridge]: Bridging /Odometry/healthy -> /mavros/vision_pose/pose_cov + vision_speed for MAVROS vision input
+[fastlio_ev_health_monitor.py-1] [INFO] [1784621023.304165326] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-1] [WARN] [1784621023.336010919] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-1] [WARN] [1784621023.622157536] [fastlio_ev_health_monitor]: New publisher discovered on topic '/mavros/local_position/velocity_local', offering incompatible QoS. No messages will be received from it. Last incompatible policy: RELIABILITY
+[fastlio_ev_health_monitor.py-1] [WARN] [1784621023.692433825] [fastlio_ev_health_monitor]: EV health state=FAULT: px4_velocity_timeout
+[fastlio_mavros_vision_bridge-2] [INFO] [1784621094.923188661] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[INFO] [fastlio_mavros_vision_bridge-2]: process has finished cleanly [pid 31688]
+[INFO] [fastlio_ev_health_monitor.py-1]: process has finished cleanly [pid 31686]

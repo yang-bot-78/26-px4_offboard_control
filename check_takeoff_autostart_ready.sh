@@ -73,12 +73,19 @@ set -u
 require_command ros2
 require_ros_executable minipc_mavros_offboard.py
 require_ros_executable fastlio_odometry_guard
+require_ros_executable fastlio_ev_health_monitor.py
 require_ros_executable fastlio_mavros_vision_bridge
 require_ros_executable check_fastlio_vision_yaw.py
 
 if ! ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py --show-args |
   grep -q "vision_position_yaw_offset_rad"; then
   echo "fastlio_mavros_autofix.launch.py does not expose vision_position_yaw_offset_rad" >&2
+  exit 1
+fi
+
+if ! ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py --show-args |
+  grep -q "ev_max_velocity_difference_mps"; then
+  echo "fastlio_mavros_autofix.launch.py does not expose EV health thresholds" >&2
   exit 1
 fi
 

@@ -1,0 +1,49 @@
+--- a/src/fast_lio/src/laserMapping.cpp
++++ b/src/fast_lio/src/laserMapping.cpp
+@@
+ #include <chrono>
++#include <limits>
+@@
+ void publish_odometry(...)
+ {
+@@
+-    pubOdomAftMapped->publish(odomAftMapped);
+     auto P = kf.get_P();
++    odomAftMapped.pose.covariance.fill(0.0);
+@@
++    // state_point.vel is world-frame IMU velocity. REP-147 twist is child-frame.
++    const M3D body_R_world = state_point.rot.toRotationMatrix().transpose();
++    const V3D velocity_body = body_R_world * state_point.vel;
++    const M3D velocity_covariance_world_raw = P.block<3, 3>(12, 12);
++    const M3D velocity_covariance_world =
++        0.5 * (velocity_covariance_world_raw + velocity_covariance_world_raw.transpose());
++    M3D velocity_covariance_body =
++        body_R_world * velocity_covariance_world * body_R_world.transpose();
++    velocity_covariance_body =
++        0.5 * (velocity_covariance_body + velocity_covariance_body.transpose());
++    for (int axis = 0; axis < 3; ++axis)
++        velocity_covariance_body(axis, axis) =
++            std::max(velocity_covariance_body(axis, axis), 1.0e-9);
++    odomAftMapped.twist.twist.linear.x = velocity_body.x();
++    odomAftMapped.twist.twist.linear.y = velocity_body.y();
++    odomAftMapped.twist.twist.linear.z = velocity_body.z();
++    odomAftMapped.twist.covariance.fill(0.0);
++    for (int row = 0; row < 3; ++row)
++        for (int column = 0; column < 3; ++column)
++            odomAftMapped.twist.covariance[row * 6 + column] =
++                velocity_covariance_body(row, column);
++    const double unknown = std::numeric_limits<double>::quiet_NaN();
++    odomAftMapped.twist.twist.angular.x = unknown;
++    odomAftMapped.twist.twist.angular.y = unknown;
++    odomAftMapped.twist.twist.angular.z = unknown;
++    odomAftMapped.twist.covariance[21] = 1.0e6;
++    odomAftMapped.twist.covariance[28] = 1.0e6;
++    odomAftMapped.twist.covariance[35] = 1.0e6;
++    pubOdomAftMapped->publish(odomAftMapped);
+ }
+
+NOTE: This is a recovery record, not a directly applicable context-complete patch.
+The authoritative edited file is:
+`/home/robot/livox_mid360_env/ws_fastlio/src/fast_lio/src/laserMapping.cpp`,
+lines around `publish_odometry()`. Rebuild with `PYTHONNOUSERSITE=1 colcon build
+--symlink-install --packages-select fast_lio` from that workspace.

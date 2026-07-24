@@ -20,11 +20,13 @@ find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(rclpy REQUIRED)
 
 #################
@@ -125,6 +127,7 @@ install(DIRECTORY test DESTINATION share/${PROJECT_NAME}/)
 ############
 
 if(BUILD_TESTING)
+	find_package(Python3 REQUIRED COMPONENTS Interpreter)
 	find_package(ament_lint_auto REQUIRED)
 	# the following line skips the linter which checks for copyrights
 	# uncomment the line when a copyright and license is not present in all source files
@@ -133,6 +136,24 @@ if(BUILD_TESTING)
 	# uncomment the line when this package is not in a git repo
 	#set(ament_cmake_cpplint_FOUND TRUE)
 	ament_lint_auto_find_test_dependencies()
+	add_test(
+		NAME test_ev_health
+		COMMAND ${Python3_EXECUTABLE} -m pytest -q
+			${CMAKE_CURRENT_SOURCE_DIR}/test/test_ev_health.py)
+	set_tests_properties(test_ev_health PROPERTIES ENVIRONMENT
+		"PYTEST_DISABLE_PLUGIN_AUTOLOAD=1;PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
+	add_test(
+		NAME test_minipc_mavros_offboard_ev_safety
+		COMMAND ${Python3_EXECUTABLE}
+			${CMAKE_CURRENT_SOURCE_DIR}/test/test_minipc_mavros_offboard_ev_safety.py)
+	set_tests_properties(test_minipc_mavros_offboard_ev_safety PROPERTIES ENVIRONMENT
+		"PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
+	add_test(
+		NAME test_ev_odometry_acceptance
+		COMMAND ${Python3_EXECUTABLE} -m pytest -q
+			${CMAKE_CURRENT_SOURCE_DIR}/test/test_ev_odometry_acceptance.py)
+	set_tests_properties(test_ev_odometry_acceptance PROPERTIES ENVIRONMENT
+		"PYTEST_DISABLE_PLUGIN_AUTOLOAD=1;PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
 endif()
 
 ###########
@@ -147,6 +168,7 @@ install(PROGRAMS
   scripts/check_fastlio_vision_yaw.py
   scripts/fix_mavros_odometry_frames.py
   scripts/fix_mavros_identity.py
+  scripts/fastlio_ev_health_monitor.py
   scripts/minipc_mavros_offboard.py
   scripts/minipc_offboard_control.py
   src/examples/offboard_py/offboard_control.py

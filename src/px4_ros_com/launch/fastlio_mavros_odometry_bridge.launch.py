@@ -9,6 +9,9 @@ def generate_launch_description():
     body_yaw_offset_rad = LaunchConfiguration("body_yaw_offset_rad")
     fastlio_odom_topic = LaunchConfiguration("fastlio_odom_topic")
     guarded_odom_topic = LaunchConfiguration("guarded_odom_topic")
+    min_linear_velocity_variance = LaunchConfiguration(
+        "min_linear_velocity_variance"
+    )
 
     return LaunchDescription(
         [
@@ -16,6 +19,9 @@ def generate_launch_description():
             DeclareLaunchArgument("body_yaw_offset_rad", default_value="0.0"),
             DeclareLaunchArgument("fastlio_odom_topic", default_value="/Odometry"),
             DeclareLaunchArgument("guarded_odom_topic", default_value="/Odometry/guarded"),
+            DeclareLaunchArgument(
+                "min_linear_velocity_variance", default_value="0.0001"
+            ),
             Node(
                 package="px4_ros_com",
                 executable="fastlio_odometry_guard",
@@ -29,7 +35,7 @@ def generate_launch_description():
                         "max_xy_jump_m": 0.20,
                         "max_z_jump_m": 0.10,
                         "max_computed_speed_mps": 1.2,
-                        "max_computed_z_speed_mps": 0.7,
+                        "max_computed_z_speed_mps": 1.2,
                     }
                 ],
             ),
@@ -45,8 +51,11 @@ def generate_launch_description():
                         "frame_id": "camera_init",
                         "child_frame_id": "body",
                         "force_frame_ids": False,
+                        "restamp_message": False,
+                        "input_linear_velocity_frame": "child",
                         "attitude_yaw_offset_rad": attitude_yaw_offset_rad,
                         "body_yaw_offset_rad": body_yaw_offset_rad,
+                        "min_linear_velocity_variance": min_linear_velocity_variance,
                     }
                 ],
             )

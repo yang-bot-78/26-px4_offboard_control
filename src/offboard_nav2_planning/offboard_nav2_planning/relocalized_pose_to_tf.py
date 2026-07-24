@@ -5,7 +5,9 @@ from typing import Optional, Tuple
 import rclpy
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from tf2_ros import TransformBroadcaster
 
 Quaternion = Tuple[float, float, float, float]
@@ -23,8 +25,16 @@ class RelocalizedPoseToTf(Node):
         self.declare_parameter("publish_rate_hz", 20.0)
 
         self._latest_odom: Optional[Odometry] = None
+        self._pending_relocalized_pose: Optional[PoseStamped] = None
         self._latest_tf: Optional[TransformStamped] = None
         self._broadcaster = TransformBroadcaster(self)
+
+        relocalized_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
 
         self.create_subscription(
             Odometry,
@@ -36,7 +46,7 @@ class RelocalizedPoseToTf(Node):
             PoseStamped,
             self.get_parameter("relocalized_pose_topic").value,
             self._relocalized_pose_cb,
-            10,
+            relocalized_qos,
         )
         publish_rate_hz = max(1.0, float(self.get_parameter("publish_rate_hz").value))
         self.create_timer(1.0 / publish_rate_hz, self._publish_latest_tf)
@@ -51,10 +61,15 @@ class RelocalizedPoseToTf(Node):
 
     def _odom_cb(self, msg: Odometry) -> None:
         self._latest_odom = msg
+        if self._pending_relocalized_pose is not None:
+            pending = self._pending_relocalized_pose
+            self._pending_relocalized_pose = None
+            self._relocalized_pose_cb(pending)
 
     def _relocalized_pose_cb(self, msg: PoseStamped) -> None:
         if self._latest_odom is None:
-            self.get_logger().warn("Relocalized pose received before odometry; ignoring.")
+            self._pending_relocalized_pose = msg
+            self.get_logger().warn("Relocalized pose received before odometry; caching until odometry arrives.")
             return
 
         map_frame = str(self.get_parameter("map_frame").value)
@@ -154,9 +169,12 @@ def main() -> None:
     node = RelocalizedPoseToTf()
     try:
         rclpy.spin(node)
+    except (ExternalShutdownException, KeyboardInterrupt):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

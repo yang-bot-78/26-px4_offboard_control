@@ -7,6 +7,7 @@ from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import ComputePathToPose
 from nav_msgs.msg import Odometry, Path
 from rclpy.action import ActionClient
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 
@@ -141,8 +142,16 @@ class GoalToPath(Node):
 
         path = result.path
         path.header.stamp = self.get_clock().now().to_msg()
+        if not path.header.frame_id:
+            path.header.frame_id = self._global_frame
         self._path_pub.publish(path)
-        self.get_logger().info("Published path with %d poses." % len(path.poses))
+        if path.poses:
+            self.get_logger().info("Published path with %d poses." % len(path.poses))
+        else:
+            self.get_logger().warn(
+                "Planner returned an empty path; published empty path in frame %s"
+                % path.header.frame_id
+            )
         self._active_goal = None
 
 
@@ -151,9 +160,12 @@ def main() -> None:
     node = GoalToPath()
     try:
         rclpy.spin(node)
+    except (ExternalShutdownException, KeyboardInterrupt):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-07-22-15-17-52-519126-robot-13856
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fastlio_ev_health_monitor.py-1]: process started with pid [13875]
+[INFO] [fastlio_mavros_odometry_bridge-2]: process started with pid [13877]
+[INFO] [static_transform_publisher-3]: process started with pid [13879]
+[INFO] [static_transform_publisher-4]: process started with pid [13881]
+[static_transform_publisher-3] [INFO] [1784704672.625378791] [camera_init_to_camera_init_ned_ev_validation]: Spinning until stopped - publishing transform
+[static_transform_publisher-3] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-3] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-3] from 'camera_init' to 'camera_init_ned'
+[static_transform_publisher-4] [INFO] [1784704672.628513086] [body_to_body_frd_ev_validation]: Spinning until stopped - publishing transform
+[static_transform_publisher-4] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-4] from 'body' to 'body_frd'
+[fastlio_mavros_odometry_bridge-2] [INFO] [1784704672.636692718] [fastlio_mavros_odometry_bridge]: Bridging /Odometry/healthy -> /mavros/odometry/out as nav_msgs/Odometry for MAVROS odometry input
+[fastlio_ev_health_monitor.py-1] [INFO] [1784704672.917245149] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-1] [WARN] [1784704673.006343432] [fastlio_ev_health_monitor]: EV health state=SUSPECT: waiting_for_ev
+[fastlio_ev_health_monitor.py-1] [WARN] [1784704673.406123404] [fastlio_ev_health_monitor]: EV health state=FAULT: waiting_for_ev
+[static_transform_publisher-4] [INFO] [1784704826.930071006] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_mavros_odometry_bridge-2] [INFO] [1784704826.930077316] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-3] [INFO] [1784704826.930452210] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[INFO] [fastlio_mavros_odometry_bridge-2]: process has finished cleanly [pid 13877]
+[INFO] [static_transform_publisher-3]: process has finished cleanly [pid 13879]
+[INFO] [static_transform_publisher-4]: process has finished cleanly [pid 13881]
+[INFO] [fastlio_ev_health_monitor.py-1]: process has finished cleanly [pid 13875]

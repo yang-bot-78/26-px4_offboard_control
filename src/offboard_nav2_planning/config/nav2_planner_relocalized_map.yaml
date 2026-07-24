@@ -19,18 +19,18 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       resolution: 0.05
-      robot_radius: 0.35
-      footprint_padding: 0.05
+      robot_radius: 0.25
+      footprint_padding: 0.03
       track_unknown_space: true
       always_send_full_costmap: true
-      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         enabled: true
         map_subscribe_transient_local: true
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
-        enabled: true
+        enabled: false
         observation_sources: fastlio_cloud
         fastlio_cloud:
           topic: /cloud_registered
@@ -46,7 +46,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
-        inflation_radius: 0.60
+        inflation_radius: 0.35
         cost_scaling_factor: 3.0
 
 map_server:
@@ -70,7 +70,8 @@ nav2_stage1_odometry_tf_publisher:
     odom_topic: /Odometry
     frame_id: camera_init
     child_frame_id: body
-    force_frame_ids: false
+    force_frame_ids: true
+    stamp_with_now: true
 
 nav2_stage2_path_2_5d_lifter:
   ros__parameters:

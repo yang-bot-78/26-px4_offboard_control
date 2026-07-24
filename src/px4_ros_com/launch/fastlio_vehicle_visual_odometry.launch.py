@@ -26,7 +26,7 @@ def generate_launch_description():
                         "max_xy_jump_m": 0.20,
                         "max_z_jump_m": 0.10,
                         "max_computed_speed_mps": 1.2,
-                        "max_computed_z_speed_mps": 0.7,
+                        "max_computed_z_speed_mps": 1.2,
                     }
                 ],
             ),

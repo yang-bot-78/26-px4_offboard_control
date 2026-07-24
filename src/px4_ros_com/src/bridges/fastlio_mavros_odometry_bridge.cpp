@@ -9,6 +9,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <functional>
 #include <memory>
@@ -77,6 +78,99 @@ Quaternion quaternion_multiply(const Quaternion &a, const Quaternion &b)
 	return out;
 }
 
+std::array<double, 3> rotate_world_vector_to_body(
+	const Quaternion &body_to_world,
+	double x,
+	double y,
+	double z)
+{
+	Quaternion vector{};
+	vector.x = x;
+	vector.y = y;
+	vector.z = z;
+	const Quaternion q = normalize_quaternion(body_to_world);
+	const Quaternion rotated = quaternion_multiply(
+		quaternion_multiply(quaternion_conjugate(q), vector), q);
+	return {rotated.x, rotated.y, rotated.z};
+}
+
+std::array<double, 36> rotate_world_linear_covariance_to_body(
+	const std::array<double, 36> &input,
+	const Quaternion &body_to_world)
+{
+	const Quaternion q = normalize_quaternion(body_to_world);
+	const double xx = q.x * q.x;
+	const double yy = q.y * q.y;
+	const double zz = q.z * q.z;
+	const double xy = q.x * q.y;
+	const double xz = q.x * q.z;
+	const double yz = q.y * q.z;
+	const double wx = q.w * q.x;
+	const double wy = q.w * q.y;
+	const double wz = q.w * q.z;
+
+	// Transpose of the body->world rotation: world linear velocity -> body.
+	double jacobian[6][6]{};
+	for (std::size_t i = 0; i < 6; ++i) {
+		jacobian[i][i] = 1.0;
+	}
+	jacobian[0][0] = 1.0 - 2.0 * (yy + zz);
+	jacobian[0][1] = 2.0 * (xy + wz);
+	jacobian[0][2] = 2.0 * (xz - wy);
+	jacobian[1][0] = 2.0 * (xy - wz);
+	jacobian[1][1] = 1.0 - 2.0 * (xx + zz);
+	jacobian[1][2] = 2.0 * (yz + wx);
+	jacobian[2][0] = 2.0 * (xz + wy);
+	jacobian[2][1] = 2.0 * (yz - wx);
+	jacobian[2][2] = 1.0 - 2.0 * (xx + yy);
+
+	std::array<double, 36> output{};
+	for (std::size_t row = 0; row < 6; ++row) {
+		for (std::size_t column = 0; column < 6; ++column) {
+			double value = 0.0;
+			for (std::size_t left = 0; left < 6; ++left) {
+				for (std::size_t right = 0; right < 6; ++right) {
+					value += jacobian[row][left] * input[left * 6 + right] *
+						jacobian[column][right];
+				}
+			}
+			output[row * 6 + column] = value;
+		}
+	}
+	return output;
+}
+
+std::array<double, 36> rotate_covariance_xy(
+	const std::array<double, 36> &input,
+	double linear_yaw_rad)
+{
+	double jacobian[6][6]{};
+	for (std::size_t i = 0; i < 6; ++i) {
+		jacobian[i][i] = 1.0;
+	}
+	const double c = std::cos(linear_yaw_rad);
+	const double s = std::sin(linear_yaw_rad);
+	jacobian[0][0] = c;
+	jacobian[0][1] = -s;
+	jacobian[1][0] = s;
+	jacobian[1][1] = c;
+
+	std::array<double, 36> output{};
+	for (std::size_t row = 0; row < 6; ++row) {
+		for (std::size_t column = 0; column < 6; ++column) {
+			double value = 0.0;
+			for (std::size_t left = 0; left < 6; ++left) {
+				for (std::size_t right = 0; right < 6; ++right) {
+					value += jacobian[row][left] * input[left * 6 + right] *
+						jacobian[column][right];
+				}
+			}
+			output[row * 6 + column] = value;
+		}
+	}
+	return output;
+}
+
 double quaternion_to_yaw_rad(const Quaternion &q)
 {
 	const Quaternion q_norm = normalize_quaternion(q);
@@ -94,6 +188,46 @@ bool covariance_is_all_zero(const std::array<double, 36> &covariance)
 	}
 
 	return true;
+}
+
+bool linear_covariance_is_valid(const std::array<double, 36> &covariance)
+{
+	constexpr double tolerance = 1e-9;
+	for (std::size_t row = 0; row < 3; ++row) {
+		if (!std::isfinite(covariance[row * 6 + row]) ||
+		    covariance[row * 6 + row] <= 0.0) {
+			return false;
+		}
+		for (std::size_t column = 0; column < 3; ++column) {
+			if (!std::isfinite(covariance[row * 6 + column]) ||
+			    std::fabs(covariance[row * 6 + column] -
+			      covariance[column * 6 + row]) > tolerance) {
+				return false;
+			}
+		}
+	}
+	for (const auto pair : {std::array<std::size_t, 2>{0, 1},
+	                        std::array<std::size_t, 2>{0, 2},
+	                        std::array<std::size_t, 2>{1, 2}}) {
+		const auto a = pair[0];
+		const auto b = pair[1];
+		if (covariance[a * 6 + a] * covariance[b * 6 + b] -
+		    covariance[a * 6 + b] * covariance[b * 6 + a] < -tolerance) {
+			return false;
+		}
+	}
+	const double determinant =
+		covariance[0] * (covariance[7] * covariance[14] - covariance[8] * covariance[13]) -
+		covariance[1] * (covariance[6] * covariance[14] - covariance[8] * covariance[12]) +
+		covariance[2] * (covariance[6] * covariance[13] - covariance[7] * covariance[12]);
+	return determinant >= -tolerance;
+}
+
+bool finite_linear_velocity(const Odometry &msg)
+{
+	return std::isfinite(msg.twist.twist.linear.x) &&
+	       std::isfinite(msg.twist.twist.linear.y) &&
+	       std::isfinite(msg.twist.twist.linear.z);
 }
 
 void apply_covariance_floor(
@@ -131,22 +265,41 @@ public:
 		frame_id_ = declare_parameter<std::string>("frame_id", "odom");
 		child_frame_id_ = declare_parameter<std::string>("child_frame_id", "base_link");
 		force_frame_ids_ = declare_parameter<bool>("force_frame_ids", true);
-		restamp_message_ = declare_parameter<bool>("restamp_message", true);
+		restamp_message_ = declare_parameter<bool>("restamp_message", false);
+		derive_missing_twist_ = declare_parameter<bool>("derive_missing_twist", false);
+		input_linear_velocity_frame_ = declare_parameter<std::string>(
+			"input_linear_velocity_frame", "child");
 		attitude_yaw_offset_rad_ = declare_parameter<double>("attitude_yaw_offset_rad", 0.0);
 		body_yaw_offset_rad_ = declare_parameter<double>("body_yaw_offset_rad", 0.0);
+		position_yaw_offset_rad_ = declare_parameter<double>("position_yaw_offset_rad", 0.0);
 		default_position_variance_ = declare_parameter<double>("default_position_variance", 0.01);
 		default_orientation_variance_ = declare_parameter<double>("default_orientation_variance", 0.02);
 		default_linear_velocity_variance_ = declare_parameter<double>("default_linear_velocity_variance", 0.01);
 		default_angular_velocity_variance_ = declare_parameter<double>("default_angular_velocity_variance", 0.02);
 		min_position_variance_ = declare_parameter<double>("min_position_variance", 0.01);
 		min_orientation_variance_ = declare_parameter<double>("min_orientation_variance", 0.02);
-		min_linear_velocity_variance_ = declare_parameter<double>("min_linear_velocity_variance", 0.01);
+		min_linear_velocity_variance_ = declare_parameter<double>("min_linear_velocity_variance", 0.0001);
 		min_angular_velocity_variance_ = declare_parameter<double>("min_angular_velocity_variance", 0.02);
+		sensor_to_body_x_m_ = declare_parameter<double>("sensor_to_body_x_m", 0.0);
+		sensor_to_body_y_m_ = declare_parameter<double>("sensor_to_body_y_m", 0.0);
+		sensor_to_body_z_m_ = declare_parameter<double>("sensor_to_body_z_m", 0.0);
+		enforce_unique_ev_input_ = declare_parameter<bool>("enforce_unique_ev_input", true);
+		if (input_linear_velocity_frame_ != "child" &&
+		    input_linear_velocity_frame_ != "world") {
+			RCLCPP_WARN(
+				get_logger(),
+				"Unknown input_linear_velocity_frame=%s; using child",
+				input_linear_velocity_frame_.c_str());
+			input_linear_velocity_frame_ = "child";
+		}
 
 		odometry_publisher_ = create_publisher<Odometry>(output_topic_, 10);
 		odometry_subscription_ = create_subscription<Odometry>(
 			input_topic_, 10,
 			std::bind(&FastlioMavrosOdometryBridge::odometry_callback, this, std::placeholders::_1));
+		uniqueness_timer_ = create_wall_timer(
+			std::chrono::seconds(1),
+			std::bind(&FastlioMavrosOdometryBridge::check_unique_ev_input, this));
 
 		RCLCPP_INFO(
 			get_logger(),
@@ -158,28 +311,79 @@ public:
 private:
 	rclcpp::Subscription<Odometry>::SharedPtr odometry_subscription_;
 	rclcpp::Publisher<Odometry>::SharedPtr odometry_publisher_;
+	rclcpp::TimerBase::SharedPtr uniqueness_timer_;
 
 	std::string input_topic_;
 	std::string output_topic_;
 	std::string frame_id_;
 	std::string child_frame_id_;
 	bool force_frame_ids_{true};
-	bool restamp_message_{true};
+	bool restamp_message_{false};
+	bool derive_missing_twist_{false};
+	std::string input_linear_velocity_frame_{"child"};
 	double attitude_yaw_offset_rad_{0.0};
 	double body_yaw_offset_rad_{0.0};
+	double position_yaw_offset_rad_{0.0};
 	double default_position_variance_{0.01};
 	double default_orientation_variance_{0.02};
 	double default_linear_velocity_variance_{0.01};
 	double default_angular_velocity_variance_{0.02};
 	double min_position_variance_{0.01};
 	double min_orientation_variance_{0.02};
-	double min_linear_velocity_variance_{0.01};
+	double min_linear_velocity_variance_{0.0001};
 	double min_angular_velocity_variance_{0.02};
+	double sensor_to_body_x_m_{0.0};
+	double sensor_to_body_y_m_{0.0};
+	double sensor_to_body_z_m_{0.0};
+	bool enforce_unique_ev_input_{true};
+	mutable bool uniqueness_fault_{false};
 	mutable std::optional<Odometry> previous_msg_;
+	mutable std::optional<int64_t> last_input_stamp_ns_;
 	mutable int64_t last_yaw_log_ns_{0};
+
+	void check_unique_ev_input()
+	{
+		if (!enforce_unique_ev_input_ || uniqueness_fault_) {
+			return;
+		}
+		const auto output_publishers = count_publishers(output_topic_);
+		const auto legacy_pose_publishers = count_publishers("/mavros/vision_pose/pose_cov");
+		const auto direct_px4_publishers = count_publishers("/fmu/in/vehicle_visual_odometry");
+		if (output_publishers > 1 || legacy_pose_publishers > 0 || direct_px4_publishers > 0) {
+			uniqueness_fault_ = true;
+			RCLCPP_FATAL(
+				get_logger(),
+				"Duplicate PX4 EV path detected: odometry/out publishers=%zu, "
+				"vision_pose publishers=%zu, direct PX4 publishers=%zu; stopping output",
+				output_publishers,
+				legacy_pose_publishers,
+				direct_px4_publishers);
+			odometry_publisher_.reset();
+		}
+	}
 
 	void odometry_callback(const Odometry::SharedPtr msg) const
 	{
+		if (uniqueness_fault_ || !odometry_publisher_) {
+			return;
+		}
+		const int64_t input_stamp_ns =
+			static_cast<int64_t>(msg->header.stamp.sec) * 1000000000LL +
+			static_cast<int64_t>(msg->header.stamp.nanosec);
+		if (input_stamp_ns <= 0 ||
+		    (last_input_stamp_ns_.has_value() && input_stamp_ns <= last_input_stamp_ns_.value())) {
+			RCLCPP_ERROR(
+				get_logger(),
+				"Rejecting non-positive, duplicate, or backward EV stamp: %ld (last=%ld)",
+				input_stamp_ns,
+				last_input_stamp_ns_.value_or(-1));
+			return;
+		}
+		last_input_stamp_ns_ = input_stamp_ns;
+		if (!finite_linear_velocity(*msg) || !linear_covariance_is_valid(msg->twist.covariance)) {
+			RCLCPP_ERROR(get_logger(), "Rejecting EV sample with invalid linear velocity/covariance");
+			return;
+		}
 		Odometry out = *msg;
 
 		// MAVROS odometry expects the standard local frame pair odom/base_link.
@@ -192,13 +396,159 @@ private:
 			out.header.stamp = now();
 		}
 
+		apply_position_yaw_offset(out);
 		apply_yaw_offsets(out);
 		fill_missing_pose_covariance(out);
-		fill_missing_twist(out);
+		if (derive_missing_twist_) {
+			fill_missing_twist(out);
+		}
 		fill_missing_twist_covariance(out);
+		convert_world_linear_velocity_to_child(out);
+		if (input_linear_velocity_frame_ == "child" && !transform_child_twist(out)) {
+			RCLCPP_ERROR(
+				get_logger(),
+				"Rejecting EV sample: lever-arm compensation requires finite angular velocity");
+			return;
+		}
 
 		odometry_publisher_->publish(out);
 		previous_msg_ = out;
+	}
+
+	void apply_position_yaw_offset(Odometry &out) const
+	{
+		if (std::fabs(position_yaw_offset_rad_) <= 1e-9) {
+			return;
+		}
+		const double c = std::cos(position_yaw_offset_rad_);
+		const double s = std::sin(position_yaw_offset_rad_);
+		const double x = out.pose.pose.position.x;
+		const double y = out.pose.pose.position.y;
+		out.pose.pose.position.x = c * x - s * y;
+		out.pose.pose.position.y = s * x + c * y;
+		out.pose.covariance = rotate_covariance_xy(
+			out.pose.covariance, position_yaw_offset_rad_);
+
+		if (input_linear_velocity_frame_ == "world") {
+			const double vx = out.twist.twist.linear.x;
+			const double vy = out.twist.twist.linear.y;
+			out.twist.twist.linear.x = c * vx - s * vy;
+			out.twist.twist.linear.y = s * vx + c * vy;
+			out.twist.covariance = rotate_covariance_xy(
+				out.twist.covariance, position_yaw_offset_rad_);
+		}
+	}
+
+	void convert_world_linear_velocity_to_child(Odometry &out) const
+	{
+		if (input_linear_velocity_frame_ != "world" ||
+		    !is_finite_quaternion(out.pose.pose.orientation)) {
+			return;
+		}
+
+		const auto rotated = rotate_world_vector_to_body(
+			out.pose.pose.orientation,
+			out.twist.twist.linear.x,
+			out.twist.twist.linear.y,
+			out.twist.twist.linear.z);
+		out.twist.twist.linear.x = rotated[0];
+		out.twist.twist.linear.y = rotated[1];
+		out.twist.twist.linear.z = rotated[2];
+		out.twist.covariance = rotate_world_linear_covariance_to_body(
+			out.twist.covariance, out.pose.pose.orientation);
+	}
+
+	bool transform_child_twist(Odometry &out) const
+	{
+		const double r[3] = {sensor_to_body_x_m_, sensor_to_body_y_m_, sensor_to_body_z_m_};
+		const bool lever_arm_enabled =
+			std::hypot(std::hypot(r[0], r[1]), r[2]) > 1e-9;
+		const double omega[3] = {
+			out.twist.twist.angular.x,
+			out.twist.twist.angular.y,
+			out.twist.twist.angular.z,
+		};
+		const bool angular_velocity_known =
+			std::isfinite(omega[0]) && std::isfinite(omega[1]) && std::isfinite(omega[2]);
+		if (lever_arm_enabled && !angular_velocity_known) {
+			return false;
+		}
+
+		double velocity_sensor[3] = {
+			out.twist.twist.linear.x,
+			out.twist.twist.linear.y,
+			out.twist.twist.linear.z,
+		};
+		if (lever_arm_enabled) {
+			// r is sensor-origin -> vehicle-body-origin in the input child frame.
+			velocity_sensor[0] += omega[1] * r[2] - omega[2] * r[1];
+			velocity_sensor[1] += omega[2] * r[0] - omega[0] * r[2];
+			velocity_sensor[2] += omega[0] * r[1] - omega[1] * r[0];
+		}
+
+		const double c = std::cos(body_yaw_offset_rad_);
+		const double s = std::sin(body_yaw_offset_rad_);
+		// q_world_target = q_world_sensor * Rz(offset), therefore vectors
+		// expressed in sensor FLU rotate into target FLU with Rz(offset)^T.
+		double rotation[3][3] = {
+			{c, s, 0.0},
+			{-s, c, 0.0},
+			{0.0, 0.0, 1.0},
+		};
+		double transformed_velocity[3]{};
+		for (std::size_t row = 0; row < 3; ++row) {
+			for (std::size_t column = 0; column < 3; ++column) {
+				transformed_velocity[row] += rotation[row][column] * velocity_sensor[column];
+			}
+		}
+		out.twist.twist.linear.x = transformed_velocity[0];
+		out.twist.twist.linear.y = transformed_velocity[1];
+		out.twist.twist.linear.z = transformed_velocity[2];
+
+		if (angular_velocity_known) {
+			double transformed_omega[3]{};
+			for (std::size_t row = 0; row < 3; ++row) {
+				for (std::size_t column = 0; column < 3; ++column) {
+					transformed_omega[row] += rotation[row][column] * omega[column];
+				}
+			}
+			out.twist.twist.angular.x = transformed_omega[0];
+			out.twist.twist.angular.y = transformed_omega[1];
+			out.twist.twist.angular.z = transformed_omega[2];
+		}
+
+		// Jacobian for [v_target, omega_target] where
+		// v_target = R^T (v_sensor - skew(r) * omega_sensor).
+		double skew_r[3][3] = {
+			{0.0, -r[2], r[1]},
+			{r[2], 0.0, -r[0]},
+			{-r[1], r[0], 0.0},
+		};
+		double jacobian[6][6]{};
+		for (std::size_t row = 0; row < 3; ++row) {
+			for (std::size_t column = 0; column < 3; ++column) {
+				jacobian[row][column] = rotation[row][column];
+				jacobian[row + 3][column + 3] = rotation[row][column];
+				for (std::size_t index = 0; index < 3; ++index) {
+					jacobian[row][column + 3] -=
+						rotation[row][index] * skew_r[index][column];
+				}
+			}
+		}
+		std::array<double, 36> transformed_covariance{};
+		for (std::size_t row = 0; row < 6; ++row) {
+			for (std::size_t column = 0; column < 6; ++column) {
+				for (std::size_t left = 0; left < 6; ++left) {
+					for (std::size_t right = 0; right < 6; ++right) {
+						transformed_covariance[row * 6 + column] +=
+							jacobian[row][left] * out.twist.covariance[left * 6 + right] *
+							jacobian[column][right];
+					}
+				}
+			}
+		}
+		out.twist.covariance = transformed_covariance;
+		return linear_covariance_is_valid(out.twist.covariance);
 	}
 
 	void fill_missing_twist(Odometry &out) const

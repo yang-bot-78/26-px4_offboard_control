@@ -1,0 +1,199 @@
+# 无桨 EV 坐标/时间验证
+
+本流程只验证 FAST-LIO、EV 健康门、视觉桥接和 MAVROS/PX4 坐标关系。
+它不启动 `minipc_mavros_offboard.py`，不发布位置设定值，不请求模式切换，
+不调用解锁服务，也不修改 PX4 参数。
+
+## 安全前提
+
+1. 拆除全部螺旋桨，飞机放在可手持移动的空旷区域。
+2. QGC 确认 `Disarmed`，飞行模式不是 `OFFBOARD`。
+3. 只启动以下既有组件：雷达驱动、FAST-LIO、MAVROS-only。
+4. 不运行 `run_takeoff_1m_hold.sh`、`start_takeoff_1m_stack.sh` 或任何 Offboard 节点。
+5. 不启动现有 `fastlio_mavros_autofix.launch.py`；它会提前启动健康监测器和视觉桥，
+   与专用验证脚本重复。专用脚本会自行启动且只启动这两个节点。
+
+`run_prop_off_ev_validation.sh` 在开始前会自动拒绝以下情况：
+
+- MAVROS 没有明确报告 `armed=false`；
+- 当前模式是 `OFFBOARD`；
+- 已存在已知 Offboard 控制节点；
+- 控制/设定值话题已有 ROS 发布者；
+- `/Odometry`、`/mavros/state` 或 PX4 局部速度话题缺失；
+- 健康监测器或视觉桥接器已经重复运行。
+
+开始后，`prop_off_safety_watchdog.py` 会持续订阅 `/mavros/state`。任何时刻出现
+`armed=true` 或 `OFFBOARD`，看门狗都会让验证脚本立即停止节点和录包。它不会自动发送
+反解锁或模式命令，因此操作者仍必须保持遥控器解锁开关在未解锁位置。
+
+专用启动文件中只有：
+
+- `fastlio_ev_health_monitor.py`；
+- `fastlio_mavros_vision_bridge`。
+
+视觉桥只发布外部视觉位置/速度给 MAVROS，不发送解锁、模式或轨迹命令。
+
+## 构建
+
+```bash
+cd ~/ws_offboard_control
+source /opt/ros/humble/setup.bash
+PYTHONNOUSERSITE=1 colcon build --packages-select px4_ros_com
+source install/setup.bash
+```
+
+## 执行
+
+如果当前正在运行下面的完整启动命令，请先在它所属终端按 `Ctrl+C`：
+
+```bash
+ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py ...
+```
+
+不要停止雷达驱动和 FAST-LIO。随后新开终端，只启动 MAVROS：
+
+```bash
+cd ~/ws_offboard_control
+source /opt/ros/humble/setup.bash
+source ~/ws_offboard_control/install/setup.bash
+ros2 launch px4_ros_com prop_off_mavros_only.launch.py
+```
+
+不要直接调用 `mavros node.launch gcs_url:=''`；ROS 2 CLI 会把空值判为 malformed。
+专用 MAVROS-only 文件在 launch 内部安全传递空 GCS URL，并加载本工程 identity override。
+
+确认 MAVROS-only 已就绪：
+
+```bash
+ros2 topic echo --once /mavros/state
+ros2 topic hz /mavros/local_position/velocity_local
+```
+
+必须看到 `connected: true`、`armed: false`，模式不能是 `OFFBOARD`；局部速度应持续
+发布。按 `Ctrl+C` 退出 `topic hz`，但保持 MAVROS-only 终端运行。
+
+此时应不存在重复验证节点：
+
+```bash
+ros2 node list | grep -E 'fastlio_ev_health_monitor|fastlio_mavros_vision_bridge'
+```
+
+该命令应无输出。然后新开终端运行：
+
+```bash
+cd ~/ws_offboard_control
+bash ./run_prop_off_ev_validation.sh
+```
+
+脚本会先录包，再启动专用验证节点，并按顺序提示：
+
+1. 静止 9 秒，记录启动 `SUSPECT -> HEALTHY`；
+2. 向前、向后、向左、向右、向上、向下各缓慢移动约 0.2–0.3 m；
+3. 每次移动用约 3 秒，停止后保持静止 2 秒；
+4. 在 FAST-LIO 原终端按 `Ctrl+C`，但不要停止雷达驱动、MAVROS或验证脚本；
+5. 等待 3 秒记录 `SUSPECT -> FAULT`；
+6. 只重启 FAST-LIO，静止等待 10 秒记录滞回恢复；
+7. 最后确认仍为 `Disarmed`，按 Enter 收包。
+
+不要快速甩动飞机。单帧位移超过 0.15 m 会按设计触发位置跳变保护。
+
+## 7.5 秒说明
+
+生产配置包含两个不同计时器：
+
+- EV 健康状态机的生产恢复滞回默认是 2.0 秒；
+- Offboard 起飞节点还会独立要求连续 `HEALTHY` 7.5 秒后才允许预流/解锁。
+
+本验证禁止启动 Offboard 节点，因此专用验证启动文件把
+`recovery_healthy_s` 临时设为 7.5 秒，以直接从 `/ev_health/status` 验证连续健康计时。
+这不改变生产默认值，也不修改 PX4 参数。
+
+## 坐标与符号预期
+
+当前零 yaw offset 的转换为：
+
+```text
+PX4 NED (N, E, D) = (ROS ENU y, ROS ENU x, -ROS ENU z)
+```
+
+根据上次飞行记录，当前待实测确认的物理方向是：
+
+| 手持动作 | `/Odometry`、healthy、MAVROS vision ENU | PX4 NED |
+|---|---|---|
+| 向前 | x 增加 | E/y 增加 |
+| 向后 | x 减少 | E/y 减少 |
+| 向左 | y 增加 | N/x 增加 |
+| 向右 | y 减少 | N/x 减少 |
+| 向上 | z 增加 | D/z 减少 |
+| 向下 | z 减少 | D/z 增加 |
+
+`/mavros/local_position/odom` 是 MAVROS 将 PX4 NED 再转换后的 ENU 表达；若
+`/fmu/out/vehicle_local_position` 存在，后者才是直接的 PX4 NED 数值。
+
+## 自动记录的话题
+
+关键话题包括：
+
+- `/Odometry`、`/Odometry/healthy`；
+- `/ev_health/status`、`fault`、`diagnostics`、`velocity_ned`；
+- `/mavros/vision_pose/pose_cov`、`vision_speed/speed_twist_cov`；
+- `/mavros/local_position/odom`、`velocity_local`、`/mavros/state`；
+- `/fmu/out/vehicle_local_position`、`/fmu/in/vehicle_visual_odometry`；
+- 控制话题（用于证明没有设定值/命令流量）；
+- `/ev_validation/marker`，用于自动划分每个动作阶段。
+
+点云不会被录制，避免额外负载。
+
+## 离线分析
+
+脚本结束时会打印 rosbag 路径。运行：
+
+```bash
+cd ~/ws_offboard_control
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+python3 ./analyze_prop_off_ev_validation.py \
+  validation_records/prop_off_ev_YYYYMMDD_HHMMSS/rosbag
+```
+
+报告默认保存到同一场次目录的 `validation_report.md`，内容包括：
+
+- MAVROS 是否始终未解锁、是否出现 OFFBOARD；
+- 控制话题消息计数；
+- 接收频率、原始时间戳频率和非单调时间戳计数；
+- source age 的最小值、中位数、P95 和最大值；
+- 启动与重启后到 `HEALTHY` 的时间；
+- FAST-LIO 中断后到 `SUSPECT/FAULT` 的时间；
+- FAULT 到重启期间 healthy 位置输出数量；
+- 六个方向的 ENU/NED 位移、符号和转换误差；
+- 每次停止后视觉速度降至 0.05 m/s 以下所需时间。
+
+## 验收判据
+
+- 全程 `armed=false`，没有 `OFFBOARD`，控制话题消息数为 0；
+- `/Odometry` 原始时间戳严格递增；
+- 正常时 source age 小于 0.25 秒，且没有长时间频率塌陷；
+- 本专用验证配置下，连续正常约 7.5 秒后才进入 `HEALTHY`；
+- raw、healthy、MAVROS vision 的增量一致；PX4 NED 满足 `(y,x,-z)`；
+- 停止后 1 秒内视觉速度降至 0.05 m/s 以下；
+- FAST-LIO 停止约 0.5 秒后进入 `SUSPECT`，再约 0.3 秒进入 `FAULT`；
+- FAULT 期间不发布 `/Odometry/healthy` 的冻结位置；
+- FAST-LIO 恢复后必须再次连续健康约 7.5 秒才能回到 `HEALTHY`。
+
+完成后把场次目录或 `validation_report.md` 提供给 Codex，再将实际 PASS/FAIL、
+数值和 rosbag 路径写入 `CODEX_CHECKPOINT.md`。在结果确认前不要装桨或实飞。
+
+## 2026-07-21 首次完整场次说明
+
+`prop_off_ev_20260721_160508` 已完整保存，但不能通过验收：当时健康节点使用 Reliable
+QoS，而 MAVROS 局部速度发布端是 Best Effort，导致 `px4_velocity_timeout`；同时 bag 在
+16:08:15–16:08:18 记录到约 3 秒 `armed=true`。QoS 和连续状态看门狗现已修复，必须重新
+执行完整动作序列。旧 bag 保留为失败证据，不得作为坐标链 PASS 结果。
+
+## 2026-07-21 16:16 成功复测
+
+`prop_off_ev_20260721_161611` 已通过全部无桨验收：全程未解锁、无 OFFBOARD/控制消息；
+原始时间戳单调且 source age P95 为 15.2 ms；启动和恢复健康门均超过 7.5 秒；停流后
+0.502 秒 SUSPECT、0.802 秒 FAULT，FAULT 期间无 healthy 位置输出；六方向 ENU/NED
+符号全部一致；停止后 0.033–0.124 秒内速度低于 0.05 m/s。详细数值见该场次的
+`validation_report.md` 和 `CODEX_CHECKPOINT.md`。

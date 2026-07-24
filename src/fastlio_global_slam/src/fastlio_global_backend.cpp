@@ -241,7 +241,8 @@ public:
     map_pub_ = create_publisher<CloudMsg>(global_map_topic_, 1);
     path_pub_ = create_publisher<nav_msgs::msg::Path>(optimized_path_topic_, 10);
     loop_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(loop_marker_topic_, 10);
-    relocalized_pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(relocalized_pose_topic_, 10);
+    relocalized_pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
+      relocalized_pose_topic_, rclcpp::QoS(1).reliable().transient_local());
 
     save_map_srv_ = create_service<SaveMapSrv>(
       "~/save_map",
@@ -549,6 +550,7 @@ private:
 
   bool attemptRelocalization(std::string & message, Eigen::Isometry3d & estimated_pose)
   {
+    const auto start_time = now();
     if (!has_loaded_map_) {
       message = "No loaded map is available.";
       return false;
@@ -558,21 +560,32 @@ private:
       return false;
     }
 
+    RCLCPP_INFO(
+      get_logger(),
+      "Relocalization attempt started: loaded_keyframes=%d latest_scan_points=%zu",
+      loaded_keyframe_count_, latest_local_cloud_->size());
+
     const Eigen::MatrixXf latest_descriptor = buildScanContext(*latest_local_cloud_);
     const LoopCandidate loop = detectLoopCandidate(latest_descriptor, -1, 0);
     if (!loop.valid || loop.candidate_index < 0) {
       message = "Scan Context did not find a confident relocalization candidate.";
+      RCLCPP_WARN(get_logger(), "%s", message.c_str());
       return false;
     }
 
     const auto poses = effectivePoses();
     CloudT::Ptr target = buildLocalSubmap(loop.candidate_index, poses);
+    RCLCPP_INFO(
+      get_logger(),
+      "Relocalization candidate: index=%d similarity=%.3f source_points=%zu target_points=%zu",
+      loop.candidate_index, loop.similarity, latest_local_cloud_->size(), target->size());
     double fitness = std::numeric_limits<double>::infinity();
     const auto target_from_source = runIcpRegistration(latest_local_cloud_, target, relocalization_fitness_threshold_, &fitness);
     if (!target_from_source.has_value()) {
       std::ostringstream oss;
       oss << "ICP relocalization failed or exceeded threshold. fitness=" << fitness;
       message = oss.str();
+      RCLCPP_WARN(get_logger(), "%s", message.c_str());
       return false;
     }
 
@@ -593,6 +606,8 @@ private:
         << " similarity=" << std::fixed << std::setprecision(3) << loop.similarity
         << " fitness=" << std::setprecision(4) << fitness;
     message = oss.str();
+    const double elapsed_s = (now() - start_time).seconds();
+    RCLCPP_INFO(get_logger(), "%s elapsed=%.2f s", message.c_str(), elapsed_s);
     return true;
   }
 

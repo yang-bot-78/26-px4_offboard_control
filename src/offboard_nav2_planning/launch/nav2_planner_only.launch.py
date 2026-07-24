@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -74,46 +74,55 @@ def generate_launch_description():
         ],
     )
 
-    goal_to_path = Node(
-        package="offboard_nav2_planning",
-        executable="goal_to_path",
-        name="nav2_stage1_goal_to_path",
+    source_dir = "/home/robot/ws_offboard_control/src/offboard_nav2_planning/offboard_nav2_planning"
+
+    goal_to_path = ExecuteProcess(
+        cmd=[
+            "python3",
+            f"{source_dir}/goal_to_path.py",
+            "--ros-args",
+            "--params-file",
+            params_file,
+        ],
         output="screen",
-        parameters=[params_file],
     )
 
-    odometry_tf_publisher = Node(
-        package="offboard_nav2_planning",
-        executable="odometry_tf_publisher",
-        name="nav2_stage1_odometry_tf_publisher",
+    odometry_tf_publisher = ExecuteProcess(
+        cmd=[
+            "python3",
+            f"{source_dir}/odometry_tf_publisher.py",
+            "--ros-args",
+            "--params-file",
+            params_file,
+        ],
         output="screen",
         condition=IfCondition(publish_odom_tf),
-        parameters=[params_file],
-        remappings=remappings,
     )
 
-    relocalized_pose_to_tf = Node(
-        package="offboard_nav2_planning",
-        executable="relocalized_pose_to_tf",
-        name="nav2_relocalized_pose_to_tf",
+    relocalized_pose_to_tf = ExecuteProcess(
+        cmd=[
+            "python3",
+            f"{source_dir}/relocalized_pose_to_tf.py",
+            "--ros-args",
+            "-p",
+            ["map_frame:=", map_frame],
+            "-p",
+            ["odom_frame:=", odom_frame],
+        ],
         output="screen",
         condition=IfCondition(start_relocalized_tf),
-        parameters=[
-            {
-                "map_frame": map_frame,
-                "odom_frame": odom_frame,
-            }
-        ],
-        remappings=remappings,
     )
 
-    path_2_5d_lifter = Node(
-        package="offboard_nav2_planning",
-        executable="path_2_5d_lifter",
-        name="nav2_stage2_path_2_5d_lifter",
+    path_2_5d_lifter = ExecuteProcess(
+        cmd=[
+            "python3",
+            f"{source_dir}/path_2_5d_lifter.py",
+            "--ros-args",
+            "--params-file",
+            params_file,
+        ],
         output="screen",
         condition=IfCondition(start_2_5d),
-        parameters=[params_file],
     )
 
     rviz_node = Node(

@@ -1,0 +1,20 @@
+default via 198.18.0.2 dev Meta table 2022 
+default via 192.168.9.81 dev wlo1 proto dhcp metric 600 
+169.254.0.0/16 dev wlo1 scope link metric 1000 
+192.168.9.0/24 dev wlo1 proto kernel scope link src 192.168.9.211 metric 600 
+198.18.0.0/30 dev Meta proto kernel scope link src 198.18.0.1 
+local 127.0.0.0/8 dev lo table local proto kernel scope host src 127.0.0.1 
+local 127.0.0.1 dev lo table local proto kernel scope host src 127.0.0.1 
+broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1 
+local 192.168.9.211 dev wlo1 table local proto kernel scope host src 192.168.9.211 
+broadcast 192.168.9.255 dev wlo1 table local proto kernel scope link src 192.168.9.211 
+local 198.18.0.1 dev Meta table local proto kernel scope host src 198.18.0.1 
+broadcast 198.18.0.3 dev Meta table local proto kernel scope link src 198.18.0.1 
+::1 dev lo proto kernel metric 256 pref medium
+fe80::/64 dev Meta proto kernel metric 256 pref medium
+fe80::/64 dev wlo1 proto kernel metric 1024 pref medium
+local ::1 dev lo table local proto kernel metric 0 pref medium
+local fe80::3180:afa8:63d1:ce1c dev Meta table local proto kernel metric 0 pref medium
+local fe80::523c:1e9d:d8b6:28a2 dev wlo1 table local proto kernel metric 0 pref medium
+multicast ff00::/8 dev wlo1 table local proto kernel metric 256 pref medium
+multicast ff00::/8 dev Meta table local proto kernel metric 256 pref medium

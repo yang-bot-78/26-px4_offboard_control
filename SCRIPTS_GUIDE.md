@@ -6,8 +6,8 @@
 
 | 脚本 | 作用 | 什么时候用 |
 |---|---|---|
-| `start_takeoff_1m_stack.sh` | 一键启动 `MID360 -> FAST-LIO -> MAVROS -> rosbag -> 1 m 起降` | 正常试飞主入口 |
-| `run_takeoff_1m_hold.sh` | 1 m 起飞、悬停、Offboard 下降、切 `AUTO.LAND` | 已手动启动其它链路时 |
+| `start_takeoff_1m_stack.sh` | 一键启动 `MID360 -> FAST-LIO -> MAVROS -> rosbag -> 0.5 m 起降` | 正常试飞主入口 |
+| `run_takeoff_1m_hold.sh` | 0.5 m 起飞、悬停、Offboard 下降、切 `AUTO.LAND`、落地后上锁 | 已手动启动其它链路时 |
 | `run_hover_1m_offboard.sh` | 1 m 起飞并保持悬停，不主动降落 | 悬停稳定性测试 |
 | `record_takeoff_debug_bag.sh` | 录制排障 rosbag 和配置快照 | 需要回看高度/漂移/控制问题 |
 | `show_last_rosbag_status.sh` | 查看最近一次录包状态 | 起飞前或排障时 |
@@ -31,7 +31,7 @@ cd ~/ws_offboard_control
 2. `FAST-LIO`
 3. `PX4 MAVROS`
 4. `ROS Bag Debug`
-5. `Takeoff 1m`
+5. `Takeoff 0.5m`
 
 ## 2. 单独起飞 / 悬停
 
@@ -44,10 +44,11 @@ cd ~/ws_offboard_control
 
 当前关键行为：
 
-- 相对起点上升约 `1 m`
+- 相对起点上升约 `0.5 m`
 - 悬停 `10 s`
 - Offboard 控制下降
 - 接近起点高度后请求 `AUTO.LAND`
+- 等待落地后自动 disarm 停桨
 
 ### `run_hover_1m_offboard.sh`
 

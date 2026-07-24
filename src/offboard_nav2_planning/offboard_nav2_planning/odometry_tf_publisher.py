@@ -2,6 +2,7 @@
 import rclpy
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
 
@@ -14,6 +15,7 @@ class OdometryTfPublisher(Node):
         self.declare_parameter("frame_id", "camera_init")
         self.declare_parameter("child_frame_id", "body")
         self.declare_parameter("force_frame_ids", False)
+        self.declare_parameter("stamp_with_now", False)
 
         self._broadcaster = TransformBroadcaster(self)
         self.create_subscription(
@@ -34,6 +36,8 @@ class OdometryTfPublisher(Node):
         transform.header = msg.header
         transform.child_frame_id = msg.child_frame_id
 
+        if bool(self.get_parameter("stamp_with_now").value):
+            transform.header.stamp = self.get_clock().now().to_msg()
         if force_frame_ids or not transform.header.frame_id:
             transform.header.frame_id = self.get_parameter("frame_id").value
         if force_frame_ids or not transform.child_frame_id:
@@ -51,9 +55,12 @@ def main() -> None:
     node = OdometryTfPublisher()
     try:
         rclpy.spin(node)
+    except (ExternalShutdownException, KeyboardInterrupt):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

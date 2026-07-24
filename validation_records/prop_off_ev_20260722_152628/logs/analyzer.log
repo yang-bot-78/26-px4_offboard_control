@@ -1,0 +1,15 @@
+[INFO] [1784705260.027774805] [rosbag2_storage]: Opened database '/home/robot/ws_offboard_control/validation_records/prop_off_ev_20260722_152628/rosbag/rosbag_0.db3' for READ_ONLY.
+Traceback (most recent call last):
+  File "/home/robot/ws_offboard_control/analyze_prop_off_ev_validation.py", line 607, in <module>
+    raise SystemExit(main())
+  File "/home/robot/ws_offboard_control/analyze_prop_off_ev_validation.py", line 148, in main
+    message = deserialize_message(serialized, message_type)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/serialization.py", line 41, in deserialize_message
+    check_for_type_support(message_type)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/type_support.py", line 29, in check_for_type_support
+    msg_or_srv_type.__class__.__import_type_support__()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rcl_interfaces/msg/_log.py", line 33, in __import_type_support__
+    from rosidl_generator_py import import_type_support
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rosidl_generator_py/__init__.py", line 23, in <module>
+    from .generate_py_impl import generate_py
+KeyboardInterrupt

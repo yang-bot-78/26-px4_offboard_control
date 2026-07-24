@@ -1,0 +1,21 @@
+/fastlio_mavros_odometry_bridge
+  Subscribers:
+    /Odometry/healthy: nav_msgs/msg/Odometry
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+  Publishers:
+    /mavros/odometry/out: nav_msgs/msg/Odometry
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+  Service Servers:
+    /fastlio_mavros_odometry_bridge/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /fastlio_mavros_odometry_bridge/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /fastlio_mavros_odometry_bridge/get_parameters: rcl_interfaces/srv/GetParameters
+    /fastlio_mavros_odometry_bridge/list_parameters: rcl_interfaces/srv/ListParameters
+    /fastlio_mavros_odometry_bridge/set_parameters: rcl_interfaces/srv/SetParameters
+    /fastlio_mavros_odometry_bridge/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+

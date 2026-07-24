@@ -117,6 +117,10 @@ copy_if_exists "${project_root}/src/px4_ros_com/src/bridges/fastlio_odometry_gua
   "${snapshot_dir}/fastlio_odometry_guard.cpp"
 copy_if_exists "${project_root}/src/px4_ros_com/scripts/minipc_mavros_offboard.py" \
   "${snapshot_dir}/minipc_mavros_offboard.py"
+copy_if_exists "${project_root}/src/px4_ros_com/scripts/fastlio_ev_health_monitor.py" \
+  "${snapshot_dir}/fastlio_ev_health_monitor.py"
+copy_if_exists "${project_root}/src/px4_ros_com/px4_ros_com/ev_health.py" \
+  "${snapshot_dir}/ev_health.py"
 copy_if_exists "${project_root}/src/px4_ros_com/scripts/check_fastlio_vision_yaw.py" \
   "${snapshot_dir}/check_fastlio_vision_yaw.py"
 
@@ -139,6 +143,8 @@ dump_params_if_node_exists "/fastlio_mavros_vision_bridge" \
   "${snapshot_dir}/fastlio_mavros_vision_bridge.params.yaml"
 dump_params_if_node_exists "/fastlio_odometry_guard" \
   "${snapshot_dir}/fastlio_odometry_guard.params.yaml"
+dump_params_if_node_exists "/fastlio_ev_health_monitor" \
+  "${snapshot_dir}/fastlio_ev_health_monitor.params.yaml"
 dump_params_if_node_exists "/fix_mavros_odometry_frames" \
   "${snapshot_dir}/fix_mavros_odometry_frames.params.yaml"
 dump_params_if_node_exists "/mavros" \
@@ -147,27 +153,47 @@ dump_params_if_node_exists "/mavros" \
 echo "Flight run directory: ${run_root}"
 echo "Parameter snapshot: ${snapshot_dir}"
 echo "Recording rosbag to: ${bag_dir}"
+echo "Record full registered point cloud: ${RECORD_POINTCLOUD:-false}"
 echo "Press Ctrl+C in this terminal to stop recording."
 
-ros2 bag record -o "${bag_dir}" \
-  /Odometry \
-  /Odometry/guarded \
-  /path \
-  /cloud_registered \
-  /mavros/state \
-  /mavros/local_position/pose \
-  /mavros/local_position/odom \
-  /mavros/vision_pose/pose_cov \
-  /mavros/vision_speed/speed_twist_cov \
-  /mavros/setpoint_raw/local \
-  /mavros/setpoint_raw/target_local \
-  /minipc_mavros_offboard/mpc_setpoint_debug \
-  /fmu/out/vehicle_local_position \
-  /fmu/out/vehicle_local_position_setpoint \
-  /fmu/out/vehicle_attitude \
-  /fmu/out/vehicle_attitude_setpoint \
-  /fmu/out/trajectory_setpoint \
-  /fmu/in/trajectory_setpoint &
+bag_topics=(
+  /Odometry
+  /Odometry/guarded
+  /Odometry/healthy
+  /ev_health/status
+  /ev_health/fault
+  /ev_health/diagnostics
+  /ev_health/velocity_ned
+  /path
+  /mavros/state
+  /mavros/local_position/pose
+  /mavros/local_position/odom
+  /mavros/local_position/velocity_local
+  /mavros/vision_pose/pose_cov
+  /mavros/vision_speed/speed_twist_cov
+  /mavros/setpoint_raw/local
+  /mavros/setpoint_raw/target_local
+  /minipc_mavros_offboard/mpc_setpoint_debug
+  /nav2_stage1/path
+  /route_tracker/reference_path_3d
+  /route_tracker/lookahead_target
+  /fmu/out/vehicle_local_position
+  /fmu/out/vehicle_local_position_setpoint
+  /fmu/out/vehicle_attitude
+  /fmu/out/vehicle_attitude_setpoint
+  /fmu/out/trajectory_setpoint
+  /fmu/in/trajectory_setpoint
+)
+
+# PointCloud2 serialization and SQLite writes can starve FAST-LIO on the
+# flight computer.  EV diagnostics contain the health metrics needed for the
+# normal flight review; opt in to the full cloud only for a dedicated ground
+# test.
+if [[ "${RECORD_POINTCLOUD:-false}" == "true" ]]; then
+  bag_topics+=(/cloud_registered)
+fi
+
+ros2 bag record -o "${bag_dir}" "${bag_topics[@]}" &
 
 bag_pid=$!
 printf '%s\n' "${bag_pid}" >"${pid_file}"

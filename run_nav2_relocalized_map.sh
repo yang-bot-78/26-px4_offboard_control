@@ -9,6 +9,18 @@ set -u
 if [[ "${ALLOW_DUPLICATE_NAV2:-false}" != "true" ]]; then
   if ros2 node list 2>/dev/null | grep -qx "/planner_server"; then
     echo "Nav2 planner stack already appears to be running."
+    missing_helpers=()
+    for helper in /nav2_stage1_goal_to_path /nav2_stage1_odometry_tf_publisher /nav2_relocalized_pose_to_tf; do
+      if ! ros2 node list 2>/dev/null | grep -qx "${helper}"; then
+        missing_helpers+=("${helper}")
+      fi
+    done
+    if [[ "${#missing_helpers[@]}" -gt 0 ]]; then
+      echo "However, the stack looks incomplete; missing helper node(s): ${missing_helpers[*]}"
+      echo "Recommended repair:"
+      echo "  STOP_RVIZ=false ./stop_nav2_relocalized_map.sh"
+      echo "  RVIZ=true ./run_nav2_relocalized_map.sh"
+    fi
     echo "Stop the old run first, or use ALLOW_DUPLICATE_NAV2=true if you really need another instance."
     exit 2
   fi
@@ -27,6 +39,9 @@ export START_2_5D="${START_2_5D:-false}"
 
 if [[ -z "${RVIZ:-}" ]]; then
   if pgrep -x rviz2 >/dev/null; then
+    echo "Existing rviz2 process detected; not opening Nav2 RViz automatically."
+    echo "Close old RViz or run:"
+    echo "  rviz2 -d /home/robot/ws_offboard_control/install/offboard_nav2_planning/share/offboard_nav2_planning/rviz/nav2_stage1_planning.rviz"
     export RVIZ=false
   else
     export RVIZ=true

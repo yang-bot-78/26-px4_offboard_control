@@ -1,0 +1,25 @@
+/fastlio_ev_health_monitor
+  Subscribers:
+    /Odometry: nav_msgs/msg/Odometry
+    /mavros/local_position/velocity_local: geometry_msgs/msg/TwistStamped
+  Publishers:
+    /Odometry/healthy: nav_msgs/msg/Odometry
+    /ev_health/diagnostics: diagnostic_msgs/msg/DiagnosticArray
+    /ev_health/fault: std_msgs/msg/Bool
+    /ev_health/status: std_msgs/msg/String
+    /ev_health/velocity_ned: geometry_msgs/msg/TwistWithCovarianceStamped
+    /parameter_events: rcl_interfaces/msg/ParameterEvent
+    /rosout: rcl_interfaces/msg/Log
+  Service Servers:
+    /fastlio_ev_health_monitor/describe_parameters: rcl_interfaces/srv/DescribeParameters
+    /fastlio_ev_health_monitor/get_parameter_types: rcl_interfaces/srv/GetParameterTypes
+    /fastlio_ev_health_monitor/get_parameters: rcl_interfaces/srv/GetParameters
+    /fastlio_ev_health_monitor/list_parameters: rcl_interfaces/srv/ListParameters
+    /fastlio_ev_health_monitor/set_parameters: rcl_interfaces/srv/SetParameters
+    /fastlio_ev_health_monitor/set_parameters_atomically: rcl_interfaces/srv/SetParametersAtomically
+  Service Clients:
+
+  Action Servers:
+
+  Action Clients:
+

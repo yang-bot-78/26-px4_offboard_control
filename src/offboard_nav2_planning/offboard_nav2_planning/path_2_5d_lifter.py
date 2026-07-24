@@ -6,6 +6,7 @@ from typing import DefaultDict, Iterable, List, Optional, Tuple
 
 import rclpy
 from nav_msgs.msg import Path
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import PointCloud2
@@ -199,9 +200,12 @@ def main() -> None:
     node = Path25DLifter()
     try:
         rclpy.spin(node)
+    except (ExternalShutdownException, KeyboardInterrupt):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":
