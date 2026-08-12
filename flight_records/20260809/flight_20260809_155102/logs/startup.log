@@ -1,0 +1,74 @@
+MID360 lever arm validated (body FLU, control-center -> FAST-LIO origin): x=0.0 m y=0.0 m z=0.08 m; R_FASTLIO_body yaw=0.0 rad
+[INFO] Running canonical preflight check...
+Checking offboard autostart prerequisites...
+MID360 lever arm validated (body FLU, control-center -> FAST-LIO origin): x=0.0 m y=0.0 m z=0.08 m; R_FASTLIO_body yaw=0.0 rad
+STRUCTURAL_EV_ENTRY_CONTRACT=PASS
+LAUNCH_AST_PARSE_RESULT=PASS
+SELECTED_VISION_NODE_IDENTITY=package=px4_ros_com,executable=fastlio_mavros_vision_bridge,name=fastlio_mavros_vision_bridge
+VISION_CONDITION_BINDING_RESULT=PASS
+VISION_INPUT_BINDING_RESULT=PASS:/Odometry/healthy
+VISION_RESTAMP_RESULT=PASS:false
+VISION_LEVER_ARM_BINDING_RESULT=PASS:body_FLU_control_center_to_FAST_LIO
+VISION_WORLD_YAW_BINDING_RESULT=PASS:one_alignment_for_position_and_attitude
+PHYSICAL_BODY_TF_RESULT=PASS:base_link_to_FAST_LIO_body
+LAUNCH_DEFAULTS_RESULT=PASS:start_mavros_vision_bridge=true
+SINGLE_EV_WRITER_RESULT=PASS:single_ev_node_in_source
+STACK_COMMAND_TOKEN_BINDING_RESULT=PASS
+Autostart prerequisites look ready.
+[INFO] Flight run directory: /home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_155102
+[INFO] Planner=ego-shadow, mission=false, output=false, rviz=false
+[INFO] Recognition=false, rosbag=true, readiness_timeout=90s
+[INFO] Map: <disabled for validation> (auto_load=false)
+[WARN] NO_MAP_VALIDATION=true: planner output and mission control are disabled; this run is for sensor/EV/link validation only.
+[INFO] MID360 body-to-sensor FLU: x=0.0 m, y=0.0 m, z=0.08 m, yaw=0.0 rad
+[WARN] Horizontal-drift and takeoff-transient guards are absent. Keep manual RC takeover available.
+[INFO] Starting navigation stack (prewarm); log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_155102/logs/navigation.log
+Waiting for message: /race/control/status (timeout=90s)
+Ready: received a message from /race/control/status
+[WARN] No map is loaded; skipping /saved_map readiness (validation mode only).
+[INFO] Starting MID-360 driver; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_155102/logs/mid360_driver.log
+Waiting for message: /livox/imu (timeout=90s)
+Ready: received a message from /livox/imu
+Waiting for message: /livox/lidar (timeout=90s)
+Ready: received a message from /livox/lidar
+[INFO] Starting FAST-LIO; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_155102/logs/fastlio.log
+Waiting for message: /Odometry (timeout=90s)
+Ready: received a message from /Odometry
+[INFO] Starting MAVROS and EV chain; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_155102/logs/px4_mavros.log
+Waiting for mavros_connected: /mavros/state (timeout=90s)
+Ready: MAVROS connected
+Waiting for healthy: /ev_health/status (timeout=90s)
+Readiness timeout: mode=healthy, topic=/ev_health/status, timeout=90s
+[ERROR] Component 'px4_mavros' is not ready. Log: /home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_155102/logs/px4_mavros.log
+[ERROR] Last 30 log lines from 'px4_mavros':
+[mavros_node-1] [INFO] [1786261883.214093758] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [WARN] [1786261883.705958931] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786261883.706180652] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786261883.706560363] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786261883.706950647] [mavros.sys]: FCU: EVENT 13679014 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786261883.707237036] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786261883.707342526] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786261883.707572873] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786261883.707973987] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786261883.710260635] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786261883.805784884] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [INFO] [1786261884.113789159] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1786261884.113966654] [mavros.mission]: WP: detected enable_partial_push: 0
+[mavros_node-1] [INFO] [1786261884.114735623] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786261884.119258369] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1786261884.139848693] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [WARN] [1786261886.117894967] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1786261887.118506619] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [ERROR] [1786261888.144125333] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786261888.144202287] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [ERROR] [1786261889.138222353] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786261889.138274586] [mavros.sys]: VER: unicast request timeout, retries left 1
+[mavros_node-1] [ERROR] [1786261890.133252048] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786261890.133321539] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [ERROR] [1786261891.128507314] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786261891.128590222] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[mavros_node-1] [INFO] [1786261894.114298324] [mavros.home_position]: HP: requesting home position
+[mavros_node-1] [INFO] [1786261899.119908928] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1786261904.117552991] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1786261909.122745763] [mavros.geofence]: GF: mission received
+[WARN] Stopping components started by this run...

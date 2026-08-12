@@ -8,6 +8,7 @@ from px4_ros_com.ev_health import (
     EvHealthMonitorCore,
     HealthConfig,
     HealthState,
+    apply_world_velocity_covariance_floors,
     ev_enu_to_px4_ned,
     quaternion_rotation_matrix_xyzw,
     rotate_covariance_3x3,
@@ -28,7 +29,15 @@ def config(**overrides):
     return HealthConfig(**values)
 
 
-def add_frame(core, stamp, x, *, px4_velocity_enu=(0.0, 0.0, 0.0), age=0.01):
+def add_frame(
+    core,
+    stamp,
+    x,
+    *,
+    px4_velocity_enu=(0.0, 0.0, 0.0),
+    internal_velocity_px4_ned=None,
+    age=0.01,
+):
     receive = stamp + age
     core.update_px4_velocity(
         px4_velocity_enu,
@@ -40,6 +49,7 @@ def add_frame(core, stamp, x, *, px4_velocity_enu=(0.0, 0.0, 0.0), age=0.01):
         stamp_s=stamp,
         receive_time_s=receive,
         raw_position_enu=(x, 0.0, 0.0),
+        internal_velocity_px4_ned=internal_velocity_px4_ned,
         covariance_xyz=(0.01, 0.01, 0.01),
     )
 
@@ -67,7 +77,13 @@ def test_normal_backward_motion_has_matching_negative_sign():
 
 def test_internal_velocity_matches_position_derivative_in_common_frame():
     core = EvHealthMonitorCore(config())
-    add_frame(core, 1.0, 0.0, px4_velocity_enu=(0.5, 0.0, 0.0))
+    add_frame(
+        core,
+        1.0,
+        0.0,
+        px4_velocity_enu=(0.5, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 0.5, 0.0),
+    )
     core.update_px4_velocity(
         (0.5, 0.0, 0.0), 1.11, input_is_enu=True, sample_stamp_s=1.1
     )
@@ -83,7 +99,13 @@ def test_internal_velocity_matches_position_derivative_in_common_frame():
 
 def test_internal_velocity_opposite_to_position_derivative_is_suspect():
     core = EvHealthMonitorCore(config(max_internal_velocity_difference_mps=0.4))
-    add_frame(core, 1.0, 0.0, px4_velocity_enu=(0.5, 0.0, 0.0))
+    add_frame(
+        core,
+        1.0,
+        0.0,
+        px4_velocity_enu=(0.5, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, -0.5, 0.0),
+    )
     core.update_px4_velocity(
         (0.5, 0.0, 0.0), 1.11, input_is_enu=True, sample_stamp_s=1.1
     )
@@ -95,6 +117,50 @@ def test_internal_velocity_opposite_to_position_derivative_is_suspect():
     )
     assert result.state == HealthState.SUSPECT
     assert "internal_velocity_mismatch" in result.reason
+
+
+def test_internal_velocity_is_averaged_over_position_interval():
+    core = EvHealthMonitorCore(config(max_internal_velocity_difference_mps=0.4))
+    add_frame(
+        core,
+        1.0,
+        0.0,
+        px4_velocity_enu=(0.5, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 0.0, 0.0),
+    )
+    result = add_frame(
+        core,
+        1.1,
+        0.05,
+        px4_velocity_enu=(0.5, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 1.0, 0.0),
+    )
+
+    # The position derivative is 0.5m/s and the trapezoidal internal average is
+    # also 0.5m/s. Comparing only the current 1.0m/s sample would falsely fault.
+    assert result.state == HealthState.HEALTHY
+    assert result.metrics.internal_velocity_difference_mps == pytest.approx(0.0)
+
+
+def test_vertical_internal_velocity_mismatch_is_diagnostic_only():
+    core = EvHealthMonitorCore(config(max_internal_velocity_difference_mps=0.4))
+    add_frame(
+        core,
+        1.0,
+        0.0,
+        px4_velocity_enu=(0.0, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 0.0, 0.0),
+    )
+    result = add_frame(
+        core,
+        1.1,
+        0.0,
+        px4_velocity_enu=(0.0, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 0.0, 1.0),
+    )
+
+    assert result.state == HealthState.HEALTHY
+    assert result.metrics.internal_vertical_velocity_difference_mps == pytest.approx(0.5)
 
 
 def test_px4_moves_backward_while_ev_drifts_forward_faults_after_0p3s():
@@ -224,6 +290,39 @@ def test_velocity_covariance_rotation_preserves_cross_terms_and_psd():
     assert covariance_3x3_is_symmetric_psd(rotated)
 
 
+def test_world_velocity_covariance_floors_rotate_back_to_child_frame():
+    yaw = math.pi / 2.0
+    rotation = quaternion_rotation_matrix_xyzw(
+        (0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
+    )
+    covariance_child = (
+        (0.0001, 0.00002, 0.0),
+        (0.00002, 0.0002, 0.00001),
+        (0.0, 0.00001, 0.0003),
+    )
+    floored_child = apply_world_velocity_covariance_floors(
+        rotation, covariance_child, (0.0016, 0.0013, 0.0)
+    )
+    floored_world = rotate_covariance_3x3(rotation, floored_child)
+
+    assert floored_world[0][0] == pytest.approx(0.0016)
+    assert floored_world[1][1] == pytest.approx(0.0013)
+    assert floored_world[2][2] == pytest.approx(0.0003)
+    assert floored_world[0][1] == pytest.approx(-0.00002)
+    assert floored_world[1][0] == pytest.approx(-0.00002)
+    assert covariance_3x3_is_symmetric_psd(floored_child)
+    assert covariance_3x3_is_symmetric_psd(floored_world)
+
+
+def test_world_velocity_covariance_floor_rejects_invalid_floor_values():
+    with pytest.raises(ValueError):
+        apply_world_velocity_covariance_floors(
+            ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
+            ((0.01, 0.0, 0.0), (0.0, 0.01, 0.0), (0.0, 0.0, 0.01)),
+            (0.0016, -0.1, 0.0),
+        )
+
+
 def test_invalid_velocity_covariance_is_rejected():
     assert not covariance_3x3_is_symmetric_psd(
         ((0.01, 0.2, 0.0), (0.2, 0.01, 0.0), (0.0, 0.0, 0.01))
@@ -249,18 +348,16 @@ def test_unknown_angular_velocity_cannot_be_used_for_lever_arm():
         )
 
 
-def test_lidar_forward_pointing_vehicle_right_installation_mapping():
-    # Flight yaw is about +90 deg, so body forward is PX4 local +Y and body
-    # right is PX4 local -X.  If raw FAST-LIO +X really follows a lidar whose
-    # front points body-right, a -90 deg position alignment maps +X to -NED X.
-    installed = ev_enu_to_px4_ned((1.0, 0.0, 0.0), -math.pi / 2.0)
-    assert installed == pytest.approx((-1.0, 0.0, 0.0), abs=1e-12)
+def test_world_yaw_alignment_is_distinct_from_sensor_installation():
+    # This function only aligns the FAST-LIO world frame with the PX4 local
+    # world frame. Sensor housing direction is not evidence for this value.
+    current_zero_alignment = ev_enu_to_px4_ned((1.0, 0.0, 0.0), 0.0)
+    assert current_zero_alignment == pytest.approx((0.0, 1.0, 0.0))
 
-    # This separately records what the current zero launch offset means.  It
-    # maps raw lidar-forward to PX4 local +Y (aircraft-forward at yaw +90 deg),
-    # and is only physically correct if FAST-LIO/extrinsics already align axes.
-    current_zero_offset = ev_enu_to_px4_ned((1.0, 0.0, 0.0), 0.0)
-    assert current_zero_offset == pytest.approx((0.0, 1.0, 0.0))
+    rotated_world_alignment = ev_enu_to_px4_ned(
+        (1.0, 0.0, 0.0), -math.pi / 2.0
+    )
+    assert rotated_world_alignment == pytest.approx((-1.0, 0.0, 0.0), abs=1e-12)
 
 
 def test_stale_measurement_age_is_rejected_and_faults():
@@ -323,6 +420,24 @@ def test_velocity_comparison_uses_measurement_time_not_latest_sample():
 
     assert result.metrics.px4_velocity_px4_ned[1] == pytest.approx(0.5)
     assert result.state == HealthState.HEALTHY
+
+
+def test_unaligned_velocity_retains_nearest_timestamp_error_for_diagnostics():
+    core = EvHealthMonitorCore(config(max_velocity_alignment_s=0.05))
+    core.update_px4_velocity(
+        (0.0, 0.0, 0.0),
+        receive_time_s=1.01,
+        sample_stamp_s=1.0,
+        input_is_enu=True,
+    )
+    result = core.process_ev(
+        stamp_s=1.2,
+        receive_time_s=1.21,
+        raw_position_enu=(0.0, 0.0, 0.0),
+    )
+
+    assert result.reason == "px4_velocity_unaligned"
+    assert result.metrics.velocity_alignment_s == pytest.approx(0.2)
 
 
 def test_default_lowpass_does_not_create_false_fault_during_acceleration_and_reversal():

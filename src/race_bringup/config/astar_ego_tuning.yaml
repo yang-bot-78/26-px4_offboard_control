@@ -1,0 +1,584 @@
+# ============================================================================
+# astar_ego 统一调参文件 —— 这是整条导航链的唯一参数来源
+# ============================================================================
+#
+# 【生效链路】改这里 -> 一定会生效，不需要改任何别的文件
+#
+#   本文件
+#     -> race_bringup/launch/astar_ego_tuning.py : load_tuning()      校验
+#     -> race_bringup/launch/astar_ego_tuning.py : node_parameter_overlays()  分发
+#     -> race_bringup/launch/navigation.launch.py                     覆盖到节点
+#     -> Super / EGO / GoalBridge / TrajectoryBridge / Offboard 五个节点
+#
+#   五个节点各自源码里的 declare_parameter 默认值一律被本文件覆盖。
+#   看到源码默认值和这里不一样，以本文件为准。
+#
+# 【必须知道的三条规则】
+#
+#   1. 改完必须 --clean 完整重启。禁止飞行中改边界、膨胀、动力学限制。
+#        ./start_super_ros2.sh --navigate --clean \
+#          --tuning-file "$(pwd)/src/race_bringup/config/astar_ego_tuning.yaml"
+#
+#   2. 顶层的 11 个块（schema_version / ego_map_source / ego_map / shared_safety /
+#      global_planner / ego_planner / ego_recovery / ego_diagnostics /
+#      trajectory_bridge / offboard / diagnostics）缺一个就启动失败。
+#      块的先后顺序不影响程序，只影响你阅读，可以随意调整。
+#
+#   3. 写错不会静默放过。load_tuning() 会抛 TuningError 直接终止启动，
+#      不会用一个你没要求的值偷偷飞。改完想先验证语法：
+#        python3 -c "import sys; sys.path.insert(0,'src/race_bringup/launch'); \
+#          from astar_ego_tuning import load_tuning; \
+#          load_tuning('src/race_bringup/config/astar_ego_tuning.yaml'); print('OK')"
+#
+# 【注释里的标记含义】
+#   [调大] / [调小]  = 往那个方向调会发生什么
+#   [安全合同]       = 不要凭感觉改，改之前必须有实测依据
+#   [未接线]         = 校验通过但没有下发到任何节点，改了没有效果
+#
+# ============================================================================
+schema_version: 1
+
+
+
+# ============================================================================
+# 局部规划（EGO）的障碍来源。全局规划始终读取正式 PCD 地图，本项只影响 EGO。
+# 可选模式如下（见 race_ego_bridge/src/ego_cloud_bridge.cpp）。
+#
+#   static   = EGO 读取 /saved_map（正式 PCD 静态地图），每 0.5s 整张重发。
+#              已知赛道全部可见，但地图上没有的物体一律看不见。不依赖定位。
+#              ⚠ 要绕比赛现场新摆的柱子绝不能用这个：柱子不在 PCD 里，
+#                EGO 眼中它不存在，会直接撞上去。
+#
+#   live_px4 = EGO 读取 /cloud_registered_body（雷达机体系原始点云），
+#              用已统一对齐的 /race/pose 投影到 map，限流 10Hz。推荐的实时模式。
+#              地图与 EGO 自身定位（ego_odom_bridge 也取 /race/odom）同源，
+#              不会出现"地图相对自己转了一个角度"的矛盾。
+#              ✅ 绕未知柱子必须用这个。
+#
+#   static_live_px4 = 把 static 的固定墙体和 live_px4 的实时柱子合成一张图。
+#              固定墙即使暂时不在雷达视野里也仍然存在，新摆的柱子进入视野后
+#              也会立即加入。比赛导航推荐使用这个模式。
+#
+#   live     = EGO 读取 /cloud_registered（FAST-LIO 已配准的点云），
+#              经 camera_init->map TF 变换后限流 10Hz 转发。
+#              ⚠ 该点云由 FAST-LIO 自己的姿态估计配准。实测在本仿真中
+#              FAST-LIO 姿态会跳变（静止悬停时 roll 在 -35/-17/-9 度之间跳，
+#              PX4 实测 0.2 度），30 度量级的假倾斜会把 8m 外的墙在 z 上甩出
+#              ±3m，导致点云整体错位、EGO 无法规划。原因是 4 线雷达在对称走廊
+#              下几何约束不足，非配置项可修。除排查 FAST-LIO 本身外不要用。
+#
+# 纯实时模式（live_px4 / live）的共同代价：雷达此刻扫不到的墙（侧后方、拐角后、
+# 被遮挡处）在 EGO 眼中不存在。原因是 grid_map 的 cloudCallback
+# （plan_env/src/grid_map.cpp:865）只按点云膨胀、不做 raycasting 清除，
+# 未知栅格一律当自由。好处是柱子一进视野立刻算障碍、反应快；
+# 代价是越界与静态障碍的保护改由全局路线和 geofence 承担。
+# 无点云时 trajectory_bridge 会按 occupancy_timeout_sec 失效保护刹停，
+# 而不是盲飞。
+#
+# [调整] 写成上述四个字符串之一，写错直接终止启动（astar_ego_tuning.py:66）。
+#        单次运行可用 launch 参数 ego_map_source:= 临时覆盖，不改本文件。
+# 修改后必须使用 --clean 完整重启。
+ego_map_source: static_live_px4
+
+
+# ============================================================================
+# ego_map —— 实时柱子点云如何进入 EGO 局部地图
+# ============================================================================
+ego_map:
+  # 实机 FAST-LIO 由 ~/livox_mid360_env/run_fastlio_mid360.sh 独立启动，
+  # laserMapping.cpp 实际发布的是根命名空间话题。不要写成 /fast_lio/...；
+  # 外部进程不会继承 race_mapping.launch.py 内部的 remap。
+  live_topic: /cloud_registered
+  body_topic: /cloud_registered_body
+  pose_topic: /race/pose
+  # 实时雷达柱子在地图中保留多久，单位：s。
+  # 4线雷达有时一帧扫到柱子、下一帧暂时扫不到；保留一小段时间可让柱子稳定。
+  # 本值必须覆盖最大速度下的“反应时间 + 刹停时间”，否则柱子可能在停车前消失。
+  # [调大] 柱子更稳定，但旧点消失更慢。[调小] 反应更快但可能忽隐忽现。
+  # 本项只影响实时点；正式静态地图始终保留。
+  live_obstacle_memory_sec: 1.00
+  # 合并多帧实时点时的去重点格，单位：m。
+  # [调小] 柱子形状更细，但点更多。[调大] 点更少，过大会把细柱子削弱。
+  live_obstacle_voxel_size_m: 0.10
+  # 一个实时体素至少被多少帧独立点云观察后才确认进入 EGO 地图。
+  # [调大] 更能过滤单帧噪声，但柱子首次出现会多等待几帧；[调小] 反应更快但更易受噪声影响。
+  live_obstacle_min_observations: 2
+  # 实测 Mid360 对柱子的最近稳定有效回波距离，用于核算最大速度下能否及时停车。
+  minimum_reliable_detection_range_m: 0.725
+  # 点云时间戳与 PX4 位姿样本允许的最大偏差，以及保留位姿历史的长度。
+  pose_sync_max_skew_sec: 0.30
+  pose_buffer_duration_sec: 1.00
+
+
+# ============================================================================
+# shared_safety —— 全链路共享的安全合同。五个节点读同一组值。
+# ============================================================================
+shared_safety:
+  # 坐标系；Super、EGO、Bridge 和 Offboard 的边界换算均以 map 为基准。
+  # [调整] 修改 frame 必须同时验证 TF，错误 frame 会造成越界或碰撞误判；
+  #        需要完整重启。除非重构坐标系，不要动。
+  frame_id: map
+
+  # ------------------------------------------------------------------------
+  # [安全合同] 无人机中心到 raw 障碍表面的最低安全距离，单位：m。
+  #
+  # 【它是什么】整个系统唯一的硬防撞距离。EGO 连续净空检查和 Bridge 独立复检
+  #   都要求轨迹每个采样点不低于本值。优化器使用更大的 optimization_clearance_m
+  #   作为软目标，避免轨迹贴着硬门收敛。
+  #
+  # 【当前值怎么来的】0.2071 + 0.050 + 0.032 = 0.2891，向上取整到 0.29。
+  # 0.2071m 直接来自实际使用的 iris_mid360_custom_physical 碰撞包络：最外是 24 块
+  # 桨保护圈 custom_guard_*（环半径 0.189666 + 0.031331/2 半格块 = 0.207132），
+  # 即 41.4cm x 41.4cm 外廓。旧值 0.384m 取自上游裸机 iris.sdf 的桨尖
+  # sqrt(0.13^2+0.22^2)+0.128，对本模型高估 0.177m；
+  # race_world/test/test_custom_physical_model.py 已按新包络算出同一个 0.2891。
+  # 0.032m = 首门墙面 PCD x-z 邻点间距 P99 0.0417m 的半值 0.0209m + map/Gazebo 标定最大残差
+  # 0.0102m，向上取整；连续查询不再重复叠加旧 0.15m 栅格半格 0.075m。
+  # 首门实测净空（真值来源：race_arena_simple.sdf 的 custom_mesh_1 pose + 1.STL，
+  # 按 world->map = Rz(+90) 变换后用精确 mesh 距离场沿 y=0 z=0.78 扫描）：
+  # 最紧处在 map x≈2.00，中心线可达净空 0.573m，即通道净宽约 1.15m。
+  # 因此 0.29 契约在首门留有 0.283m 余量，首门不构成对本项取值的约束；
+  # 旧注释里"x=1.40 处净空仅 0.387m"是错的（该处真实净空 0.797m）。旧 0.466
+  # 之所以规划失败另有原因：mid360 仿真插件把每个点的半径少算了 minDist_=0.6m
+  # （ODE contact.depth 是自射线起点而非传感器原点的距离），实时点云整体径向
+  # 内缩，墙面压到全局路线中心线上。已在 mid360_points_plugin.cpp 修复，修复后
+  # 原始点云对 collision 网格真值的中位距离为 0.0000（修复前 0.4500）。
+  #
+  # [调大] 更安全，但窄通道可能整个封死、规划不出任何路径。
+  # [调小] 直接削弱防撞，低于 0.2071 机体半径就是允许撞机。禁止为了"能过窄门"
+  #        或"能绕障"调小本项；绕行由 EGO A* 负责。
+  # ------------------------------------------------------------------------
+  required_center_clearance: 0.29
+
+  geofence:
+    # 共享有限飞行边界，单位：m；所有节点读取同一组值。
+    #
+    # 【它是什么】飞机中心允许到达的绝对坐标范围（map 系）。Super 拒绝范围外的
+    #   目标，EGO 发布前全曲线采样复检，Bridge 独立复检，Offboard 最终限幅。
+    #
+    # 【当前值怎么来的】以 3C-5 的 PCD/map <-> Gazebo world 墙角标定为依据：
+    # 以下是外墙内侧扣除机体、跟踪和栅格安全包络后的中心允许范围；
+    # 不改变任何障碍膨胀或碰撞阈值。
+    #
+    # [调大] 只扩大合法路线范围，不会降低任何 obstacle inflation。
+    #        但超出实际墙体就等于允许撞墙 —— 必须有标定证据。
+    # [调小] 会提前拒绝合法目标，也会压缩绕障可用空间。
+    #        注意：绕柱子需要横向空间，边界太紧会让绕行方案无处可去。
+    # 修改后完整重启。
+    x_min: -0.85
+    x_max: 11.90
+    # 本次 FAST-LIO 重定位后的现场起点约为 y=-2.85m，边界必须覆盖该起点。
+    y_min: -3.20
+    y_max: 12.40
+    # 高度边界，单位：m；必须包住 fixed_flight_height、takeoff 和 EGO release 高度。
+    # [调大] 不代表允许飞越障碍物顶部（本系统是 flat 定高飞行，见
+    #        ego_planner.fixed_flight_height），只是放宽硬限。
+    # [调小] 会触发硬安全拒绝，低于 fixed_flight_height 直接启动失败。
+    # 修改后完整重启。
+    z_min: 0.50
+    z_max: 0.85
+    # 规划路径外的保留边界，单位：m；当前为 grid_resolution 一个体素。
+    # 【它是什么】在上面 6 个硬边界之内再留的一圈缓冲，供 Super 判定路线合法性。
+    # [调大] 需要地图覆盖证据。
+    # [调小] 会降低边界误差余量。
+    # 修改后完整重启。
+    boundary_margin_m: 0.15
+
+
+# ============================================================================
+# global_planner —— Super A* 全局规划。只管静态 PCD 地图上的大致路线，
+#                   不承担动态/未知障碍避让（那是 EGO 的职责）。
+# ============================================================================
+global_planner:
+  # Super A* 栅格分辨率，单位：m。
+  # [调小] 更精细但计算更慢。[调大] 可能丢失窄通道。完整重启。
+  # 注意：trajectory_bridge.collision_sample_spacing_m 必须 <= 本值，
+  #       否则启动校验失败（astar_ego_tuning.py:178）。
+  grid_resolution: 0.15
+  # Super 独立全局规划格网分辨率，单位：m。
+  # 【区别】上面的 grid_resolution 是基础格网，本项是运行时实际搜索分辨率。
+  # 不改变 EGO/plan_env 的 0.15m 地图体素。
+  planning_resolution: 0.05
+  # Super 硬膨胀，单位：m；调大离墙更远、窄通道可能封闭，调小会提高碰撞风险；不得低于已验证下限。
+  # 与 required_center_clearance 同源：0.28 略小于 0.29 的中心净空合同，让全局 A* 能搜出
+  # 穿门路线，同时最终路径仍由 required_center_clearance 逐点复检。
+  # 首门真实净空 0.573m（见 required_center_clearance 处的推导），本项远未封死该门。
+  # [注意] 本项刻意略小于 0.29，不是笔误。全局搜出来的路线还要过 0.29 的复检。
+  hard_inflation_radius: 0.28
+  # Super 最小规划膨胀，单位：m。
+  # [约束] 不得大于 hard_inflation_radius，否则启动失败（astar_ego_tuning.py:96）。
+  # 完整重启。
+  min_planning_inflation_radius: 0.28
+  # Super 软障碍代价半径，单位：m；只提高靠墙代价，不封闭通道。
+  # 按与硬膨胀相同的比例（原 0.70/0.36）缩放到新包络。
+  # [约束] 不得小于 hard_inflation_radius，否则启动失败（astar_ego_tuning.py:99）。
+  # [调大] 路线更偏通道中心。[调小] 更贴墙。完整重启。
+  soft_obstacle_cost_radius: 0.54
+  # Super 靠障碍代价权重，无单位。
+  # [调大] 更偏通道中心，路径更长更安全。[调小] 更偏最短路，更贴墙。
+  # 完整重启后先检查 global path。
+  clearance_cost_weight: 3.0
+  # Super 跟踪前视距离，单位：m。
+  # [调大] 更平滑但转角切弦风险增加。[调小] 更保守但可能抖动。完整重启。
+  tracking_lookahead_distance: 0.30
+  # Super 到 EGO 的 rolling local goal 最大弧长，单位：m。
+  # 【它是什么】Super 每次只把全局路线前方这么长的一段交给 EGO 去精细规划。
+  # [约束] 不得超过 ego_planner.planning_horizon，否则启动失败
+  #        （astar_ego_tuning.py:111）。
+  # [调大] EGO 一次看更远，绕障有更多余量；但优化更慢。
+  # [调小] 滚动更频繁，EGO 可能来不及为远处的柱子准备绕行。
+  # 完整重启。
+  max_local_goal_distance: 1.70
+  # Super 平滑路径最小净空，单位：m。
+  # [调大] 更保守。[调小] 会增加切角风险。完整重启。
+  smoothing_min_clearance: 0.10
+  # 是否允许 A* 直连；true 可能减少绕障点，false 保留完整搜索。
+  # Disabled by default until DIRECT has the same static/local/inflated-map
+  # checks as the ordinary A* final-path pipeline.
+  # [安全合同] 当前冻结为 false。历史上 DIRECT 分支与占据/实体墙语义不一致，
+  #            开启需先补齐与普通 A* 相同的全部复检。改动后必须复验全部障碍。
+  allow_direct_path: false
+  # 是否允许路径 shortcut；true 可能切墙角，false 保留离散安全路径。
+  # [安全合同] 同上，当前冻结为 false。改动后必须复验全部障碍。
+  enable_path_shortcut: false
+
+
+# ============================================================================
+# ego_planner —— EGO 局部 B-spline 规划。这一层负责实时点云里的避障，
+#                包括绕开预扫图上没有的柱子。
+# ============================================================================
+ego_planner:
+  # EGO B-spline 局部规划总开关。false 时，统一启动入口会把
+  # astar_ego/ego/ego-shadow 降级为 Super A* 普通导航，不启动 EGO 节点。
+  # 恢复 EGO 前必须先完成无桨和短距离验证。
+  enable: true
+  # EGO 规划地平线，单位：m。
+  # [调大] 看得更远但优化更复杂。[调小] 需要更频繁滚动目标。
+  # [约束] 必须 >= global_planner.max_local_goal_distance。完整重启。
+  planning_horizon: 5.0
+  # EGO 局部地图半范围，单位：m。以飞机为中心，每帧只更新这个盒子内的占据。
+  # 【与绕障的关系】柱子必须落在这个范围内才会被 EGO 看见。
+  # [调小] 可能丢失后续障碍。[调大] 增加更新成本。完整重启。
+  local_update_range_x: 6.0
+  local_update_range_y: 6.0
+  local_update_range_z: 1.25
+  # EGO GridMap is centered at map x=0. 24m gives [-12, 12], covering the
+  # full calibrated shared range through x=11.90 without making it unbounded.
+  # [约束] occupancy_map_size_x / 2 必须 >= geofence.x_max（astar_ego_tuning.py:214）。
+  occupancy_map_size_x: 24.0
+  # The map is also centered at y=0. 26m gives [-13, 13], covering the full
+  # shared y range through 12.40. The former 14m upstream default ended at
+  # y=7.0 and rejected an otherwise free trajectory at y=7.001.
+  # [约束] occupancy_map_size_y / 2 必须 >= max(|y_min|, |y_max|)（同上:217）。
+  occupancy_map_size_y: 26.0
+  # /race/ego/occupancy_inflate is consumed by the trajectory safety bridge,
+  # not only RViz. It must include the full local map height; a negative
+  # upstream default filters every flight-height voxel and makes all tracks
+  # fail closed as an empty occupancy map.
+  # [约束] 必须 >= geofence.z_max，否则启动失败（astar_ego_tuning.py:211）。
+  # [注意] 这不只是显示参数。调错会让 Bridge 收到空占据图并全部拒绝轨迹。
+  occupancy_publish_max_height: 2.5
+  # EGO 最大速度/加速度，单位：m/s、m/s^2。
+  # 【它是什么】同时下发给 EGO 优化器和 Bridge 的动力学复检
+  #   （Bridge 侧再乘 trajectory_bridge.dynamic_limit_margin）。
+  # [调大] 提高跟踪压力，绕障时更容易超出 PX4 实际跟得上的范围。
+  # [调小] 可能使重规划滞后 —— 飞得太慢，柱子已到眼前才算完新轨迹。
+  # 完整重启。
+  max_velocity: 0.60
+  max_acceleration: 0.80
+  # B-spline 控制点间距，单位：m。
+  # 【与绕障的关系】绕柱子需要轨迹在短距离内拐弯，间距太大拐不过来。
+  # [调小] 更灵活但优化变量更多、更慢。[调大] 更平滑但会切角。完整重启。
+  control_point_spacing: 0.25
+  # 局部A*正常搜索使用的硬规划余量。Bridge最终保命红线仍是上面的0.29m；
+  # 本值只让正常候选不要贴着红线搜索。
+  planning_clearance_m: 0.34
+  # ------------------------------------------------------------------------
+  # 受限通道：正常 planning_clearance_m 规划失败后，允许按更小的净空重试。
+  #
+  # [已关闭] 本机制按设计必须低于 required_center_clearance（启动校验
+  # astar_ego_tuning.py:154 强制 constrained_clearance_m < 0.29），且该值经
+  # Bspline 消息下发给 Bridge，selectTrajectoryClearance 会把 Bridge 的复检门
+  # 一并降到同一个值。也就是说它不是"软目标放宽"，而是真的削掉唯一的硬防撞
+  # 距离 —— 0.24m 对 0.207132m 机体包络只剩 3.3cm 余量。
+  #
+  # 关闭原因：2026-08-05 C 区实飞日志中 0.34m 正常规划连续失败 351 次、持续
+  # 153 秒退化到 0.24m 模式，即系统在靠削安全距离硬挤过柱子，同时掩盖了真正
+  # 的故障（重接点搜索结构性失败，见 ego_recovery.rejoin_search_distance_m）。
+  # required_center_clearance 的注释已明确"禁止为了能过窄门或能绕障调小"，
+  # 本机制与该约定冲突。
+  #
+  # [重新开启的前提] 必须先满足两件事，否则重开等于允许贴柱飞行：
+  #   1. 绕行失败的真实原因已修复（横向重接候选），不再依赖削净空通过；
+  #   2. 修掉 ego_trajectory_bridge.cpp 中 odomCallback/commandCallback 的
+  #      当前位置检查仍用 0.29 的矛盾 —— 否则一条合法的受限轨迹在飞行中会被
+  #      自己的位置检查判成碰撞。
+  # 下面两个数值保留是为了通过启动校验并便于将来审计，enable=false 时不生效。
+  # ------------------------------------------------------------------------
+  constrained_clearance_enable: false
+  constrained_clearance_m: 0.24
+  # 受限模式的优化器软目标（enable=false 时不生效）。
+  # [约束] >= constrained_clearance_m 且 < planning_clearance_m。
+  constrained_optimization_clearance_m: 0.30
+  # 轨迹远端额外追求的净空余量，从近端 0 线性增加到末端本值（纯软代价）。
+  #
+  # 【为什么需要】原先整条轨迹用同一个净空软目标，末端和近端一样贴着目标收敛。
+  # 但未来几秒处的占据估计是整张地图里最不可信的部分（回波稀疏、柱子边缘点跳动），
+  # 于是末端一旦收敛到目标上，毫米级点云抖动就能把它推到 0.29m 硬门槛以下。
+  # 2026-08-05 C 区实飞正是如此：9 次 Bridge 拒绝全部落在 0.2887~0.2898m
+  # （门槛 0.290），且全部位于轨迹 60~98% 处（未来 4~12 秒），而飞机本身离那里
+  # 有数米、自身位置检查全程 0 次触发。拒绝时又无备用安全轨迹可保，只能停车，
+  # 表现为"绕柱时贴得很近然后顿一下"。
+  #
+  # 【为什么不会导致原地不动】本项只是代价函数里的软偏置，不改任何硬判据，
+  # 因此绝不会放宽实际防撞能力。若远端要求导致无解，正常规划失败后仍有横向重接
+  # 与恢复层兜底，最坏退化为本项为 0 时的行为。按同一次飞行 449 个净空样本统计：
+  # 中位数 1.537m、P25 0.734m，要求 0.48m 时仅 3.3% 的采样低于门槛，
+  # 场地绝大多数区域余量充裕，不存在因此封死通道的情况。
+  # [约束] 0~0.15m，且 optimization_clearance_m + 本值 <= required_center_clearance + 0.25。
+  far_end_clearance_extra_m: 0.06
+  # 优化器主动追求的净空软目标。0.42 相对 planning_clearance_m 0.34 留出
+  # 0.08m 软余量，避免 B-spline 平滑后落到硬门槛边缘。
+  # 配合上面的 far_end_clearance_extra_m，末端实际软目标为 0.42 + 0.06 = 0.48。
+  # [约束] >= planning_clearance_m，且最多比required_center_clearance高0.15m。
+  optimization_clearance_m: 0.42
+  # B-spline 平滑后相对 A*/Super 参考种子的最大偏离。
+  # 实际障碍是 0.5x0.5m 方柱（obstacle_box.sdf，半对角 0.354m），按 0.34m 规划
+  # 净空算，正对面绕行需要 0.59m 中心偏移，最坏（对角）需要 0.694m。0.80m 覆盖
+  # 这两种情况并留余量，同时仍拒绝 1m 级别的大甩弯。
+  max_reference_deviation_m: 0.80
+  # true 会同时优化 A* 给出的不同绕行侧，选择代价更低的一条。
+  # 柱子两侧均可能可行时必须开启；最终候选仍经过同一套安全检查。
+  use_distinctive_trajectories: true
+  # EGO 预测位置和 PX4 实际位置相差超过此值时，才从真实位置重新接轨，单位：m。
+  # 0.20m 对 C 区实测约 0.20~0.236m 的正常跟踪滞后过紧。运行时还会按水平
+  # 速度补偿最多一个 0.05s 控制窗口，并硬限制不超过 0.30m。
+  # [调大] 少发生无谓重置。[调太大] 真正偏离很久才会重新接轨。
+  replan_start_position_error_m: 0.25
+  # 两条局部轨迹切换时允许的数值衔接误差。不是防撞距离；每条新轨迹仍逐点检查 0.29m 净空。
+  # 本次实测安全候选的拼接位置误差为 1.4~5.2mm，旧 1mm 门会把它们全部误拒绝。
+  # [约束] 位置/速度 <= 0.02，加速度 <= 0.05。保持远小于飞行器防撞距离和正常跟踪误差。
+  handover_position_tolerance_m: 0.01
+  handover_velocity_tolerance_mps: 0.005
+  handover_acceleration_tolerance_mps2: 0.01
+  # flat 模式实际执行高度，单位：m。本系统是定高飞行，不做垂直避障。
+  # [约束] 必须在 geofence z 范围内。
+  # [安全合同] 禁止用它绕飞墙顶。完整重启。
+  fixed_flight_height: 0.78
+
+
+# ego_recovery —— 柱子后的单点重接
+#
+# 正常 EGO 规划失败时，恢复层不再猜左右偏移。若 rolling goal 落在柱子占据区，
+# 它只沿 Super 路线方向寻找柱子后方连续空闲的重接点，再由 EGO 内置 A* 搜索绕行。
+# 所有结果仍必须通过 EGO 和 Bridge 的净空、边界、动力学检查。
+# ============================================================================
+ego_recovery:
+  enable: true
+  # true 只打印将使用的重接点，不真正采用。
+  diagnostic_only: false
+  reference_path_topic: /race/ego/local_path_reference
+  # 从被占据的 rolling goal 向前最多搜索多远。不是横向绕行距离，也不是防撞距离。
+  # 0.60m 足以跨过柱体及其安全膨胀区；搜索点还需在约一个地图体素长度内
+  # 连续 3 次净空查询通过，避免把单个噪声空点当成安全重接点。
+  # [约束] 0.60~2.00m。过小可能找不到柱后空区，过大会越过过长的路线区间。
+  rejoin_search_distance_m: 0.60
+  # 恢复目标相对当前航向至少要有这点前进量，避免反复生成原地轨迹。
+  # [约束] 0.05~0.40m，且不能大于 rejoin_search_distance_m。
+  minimum_forward_progress_m: 0.15
+  # 只用于柱子后的重接点搜索：重接点要比正常规划净空再多留这点距离，
+  # 避免 B-spline 从刚好贴边的目标切角。不会修改正常路线或 Bridge 红线。
+  # [约束] 0~0.10m，且 planning_clearance_m + 本值 <= optimization_clearance_m。
+  extra_clearance_m: 0.06
+  # 只限制 LOCAL_ASTAR/LOCAL_ASTAR_REJOIN 恢复候选相对参考线的偏离。
+  # 实际障碍是 0.5x0.5m 方柱（obstacle_box.sdf）。按重接搜索净空
+  # planning_clearance_m 0.34 + extra_clearance_m 0.06 = 0.40 算：
+  #   正对面绕行需要中心偏移 0.25 + 0.40 = 0.65m
+  #   最坏（柱子对角朝向路线）需要 0.354 + 0.40 = 0.754m
+  # 旧值 0.65 恰好等于正对面下限、无任何余量，且不足以覆盖对角情况，会把合法的
+  # 绕行候选拒掉。0.78 覆盖两种朝向并留 0.026m 余量，仍低于全局 0.80m 上限。
+  # 旧注释里的"0.44m 必要绕柱偏移"是按直径 0.20m 圆柱算的，与实际障碍不符。
+  # [约束] 0.45~ego_planner.max_reference_deviation_m。
+  max_reference_deviation_m: 0.78
+  # ------------------------------------------------------------------------
+  # 横向重接搜索：仅在沿参考线的一维前向搜索失败后启用。
+  #
+  # 【为什么需要】柱子压在参考线上时，它沿线方向的占据长度是柱宽加两侧净空
+  # （0.5 + 2 x 0.40 = 1.3m），远超 rejoin_search_distance_m 的 0.60m。此时线上
+  # 不存在任何满足净空的点，一维搜索在结构上不可能成功。2026-08-05 C 区日志
+  # 中 213 次 EGO_REJOIN_NOT_FOUND 全部由此产生，飞机原地卡了 140 秒。
+  #
+  # 【它不决定绕哪边】偏移按 ±step 递增成对尝试，取前进距离最小的解，然后仍由
+  # EGO 内置 A*（use_distinctive_trajectories）搜索实际路线并比较两侧代价。
+  # 本参数只负责给 A* 一个可达的目标点，与已删除的"手工左右候选"不同。
+  #
+  # [约束] max_lateral_offset_m 必须 >= 0.25 + planning_clearance_m +
+  #        extra_clearance_m（否则够不到柱子旁的空地），且
+  #        <= 上面的 max_reference_deviation_m（否则搜出来的点later会被偏离门拒掉）。
+  # [调小] 可能绕不过柱子。[调大] 会允许更大的甩弯，并受偏离门限制。
+  max_lateral_offset_m: 0.75
+  # 偏移阶梯步长。0.15m 与 grid_resolution 同量级，5 级阶梯覆盖到 0.75m。
+  # [约束] 0.05~max_lateral_offset_m。调小会增加搜索次数和单次恢复耗时。
+  lateral_offset_step_m: 0.15
+  # ------------------------------------------------------------------------
+  # 每个 rolling goal 最多重试两次，避免优化器高频空转。
+  max_recovery_attempts: 2
+  # 失败后等实时点云和 rolling goal 更新；这不改变正常飞行频率。
+  cooldown_sec: 0.50
+  # 同一目标连续两次失败后使用较长退避，再自动尝试；不再永久等待车辆移动
+  # 才会产生的下一个 rolling goal，从而避免“轨迹结束—等新目标”的互锁。
+  exhausted_backoff_sec: 2.00
+  # EGO 对当前轨迹从实际位置向前检查的距离，单位 m。
+  # 0.65m 能在柱子进入近距离前触发滚动重规划；仍会对发布轨迹做全程复检。
+  active_preplan_lookahead_m: 0.65
+
+
+# ego_diagnostics —— 诊断开关
+# ============================================================================
+# 3C-13 map-version and active-trajectory diagnostics are deliberately opt-in:
+# their full-trajectory sampling is useful for a short investigation, but must
+# not run in the normal flight control path.
+ego_diagnostics:
+  # [调整] true 会开启全轨迹采样诊断日志，耗时明显增加。
+  #        排查问题时临时开，正常飞行必须保持 false。
+  #        下发为节点参数 ego_diagnostics.enable
+  #        （grid_map.cpp:16、ego_replan_fsm.cpp:100 读取）。
+  enable: false
+
+
+# ============================================================================
+# trajectory_bridge —— 独立复检层。EGO 已经检查过的东西它再查一遍，
+#                      两层都过才允许 Offboard 执行。
+# ============================================================================
+trajectory_bridge:
+  # 占据地图超时，单位：s。超过则认为地图过期、拒绝所有轨迹并刹停。
+  # [调大] 容忍旧地图但风险上升。[调小] 更早保护停机。完整重启。
+  occupancy_timeout_sec: 1.0
+  # 活动轨迹复检只保留最近这段历史，覆盖正常跟踪滞后；更早、已经飞过的轨迹不再因
+  # 新出现的身后点云触发急停。当前位置仍由 Bridge 每帧独立检查。
+  active_recheck_history_sec: 0.50
+  # B-spline/最终 EGO setpoint 新鲜度，单位：s。
+  # [注意] 本值同时下发为 offboard 的 ego_setpoint_timeout_sec
+  #        （astar_ego_tuning.py:369）—— 那是起飞后的交接门，
+  #        与 offboard.ego_setpoint_timeout_sec 是两个不同的门，别混淆。
+  # [调大] 容忍短暂切换。[调小] 更早进入保护。完整重启。
+  bspline_timeout_sec: 0.20
+  # PositionCommand 超时，单位：s。
+  # [调大] 容忍上游抖动。[调小] 更早拒绝旧命令。完整重启。
+  command_timeout_sec: 0.20
+  # 已验证动态切换宽限，单位：s；保持当前验证值 0.75。
+  # [安全合同] 禁止在本文件中为绕障目的调低。完整重启。
+  dynamic_invalid_grace_sec: 0.75
+  # EGO 因实际位置偏差重新接轨时，Bridge 在当前位置安全悬停并等待新轨迹的最长时间。
+  # 超时仍会按原有保护逻辑停止，不能无限等待。
+  replan_hold_timeout_sec: 3.0
+  # B-spline 碰撞采样最大空间间距，单位：m。整条曲线按这个间距逐点查净空。
+  # [约束] 不得大于 global_planner.grid_resolution，否则启动失败
+  #        （astar_ego_tuning.py:178）。
+  # [调大] 可能漏检。[调小] 更密但更慢。完整重启。
+  collision_sample_spacing_m: 0.04
+  # Bridge 用这两个值核算停车距离，Offboard 使用同一减速度执行刹车。
+  braking_deceleration_mps2: 0.80
+  reaction_time_sec: 0.15
+  # 动力学限幅倍率，无单位。Bridge 用 ego_planner.max_velocity * 本值 做上限。
+  # [调大] 更宽松。[调小] 更早拒绝。须与 EGO max velocity/acceleration 一起评估。
+  dynamic_limit_margin: 1.10
+  # EGO yaw feed-forward limit, rad/s. The Offboard node independently slews
+  # the yaw target to this same bound before PX4 receives it.
+  # [约束] 必须 > 0。[调大] 转向更快但姿态扰动更大。
+  max_yaw_rate_rad_s: 0.80
+
+
+# ============================================================================
+# offboard —— 飞控接口层。/mavros/setpoint_raw/local 的唯一发布者。
+# （原为 PX4 DDS 的 /fmu/in/trajectory_setpoint，已于 2026-08-08 改为 MAVROS。）
+# ============================================================================
+offboard:
+  # 起飞完成高度，单位：m；达到后等待 EGO 轨迹。
+  # [约束] 必须在 geofence z 范围内。完整重启。
+  takeoff_height_m: 0.55
+  # 释放 EGO rolling goal 的高度，单位：m。到这个高度 Goal Bridge 才放行目标。
+  # [约束] 不得高于 fixed_flight_height_m，且必须在 geofence z 内
+  #        （astar_ego_tuning.py:227）。完整重启。
+  ego_goal_release_height_m: 0.50
+  # EGO starts only after the vehicle remains inside the shared safety height
+  # window (shared_safety.geofence.z_min..z_max) with low horizontal/vertical
+  # velocity for this continuous duration. The legacy tolerance value remains
+  # for launch-file compatibility and is no longer used as a fixed-height gate.
+  # All four active conditions must hold for ego_goal_stable_duration_sec.
+  ego_goal_stable_height_tolerance_m: 0.05
+  ego_goal_stable_horizontal_speed_mps: 0.08
+  ego_goal_stable_vertical_speed_mps: 0.05
+  ego_goal_stable_duration_sec: 0.50
+  # Offboard 固定巡航高度，单位：m。
+  # [约束] 必须与 ego_planner.fixed_flight_height 一致并处于 geofence z 内。
+  # 完整重启。
+  fixed_flight_height_m: 0.78
+  # Offboard 最大安全高度，单位：m。硬限幅，超过就拉回。
+  # [约束] 不得高于 geofence.z_max（astar_ego_tuning.py:229）。完整重启。
+  max_safe_height_m: 0.85
+  # 最终目标 XY 容差，单位：m。到此范围内且速度够低即判定到达。
+  # [调大] 可能过早到达。[调小] 可能在目标附近抖动不判定到达。完整重启。
+  goal_tolerance_xy_m: 0.10
+  # ⚠ [未接线] 本项被 load_tuning 校验（astar_ego_tuning.py:188），但
+  #   node_parameter_overlays 从未下发，offboard 节点也没有对应的
+  #   declare_parameter。改这个值不会有任何效果。
+  #   Z 方向到达判定当前由 offboard 节点内部逻辑处理，不受本文件控制。
+  #   保留本项仅为通过 schema 校验，删掉会导致启动失败。
+  goal_tolerance_z_m: 0.05
+  # PX4 setpoint 发布频率，单位：Hz。
+  # [调低] 低于 2Hz 会导致 PX4 退出 Offboard 模式。[调高] 增加 DDS 负载。
+  # 完整重启。
+  setpoint_rate_hz: 20.0
+  # Reject an implausible PX4 local-pose discontinuity instead of turning it
+  # into an emergency target. The allowance covers normal DDS sample spacing.
+  # 【它们是什么】位姿跳变检测。超过这个速度/距离的位姿变化视为 DDS 异常而
+  #   非真实运动，直接丢弃，避免把一次坏采样变成紧急目标。
+  # [约束] 都必须 > 0。[调大] 容忍更大跳变但可能接受坏数据。
+  trusted_position_max_speed_mps: 4.0
+  trusted_position_jump_allowance_m: 0.40
+  # EGO trajectories must start near the trusted PX4 pose; larger jumps are
+  # rejected and the ordinary stale-trajectory braking path takes over.
+  # [约束] 必须 > 0。[调大] 容忍轨迹起点离飞机更远，有跳飞风险。
+  ego_setpoint_max_lead_m: 2.0
+  # EGO setpoint 新鲜度上限，单位：s；超过即判定规划器失效并进入 PLANNER_FAILURE_HOLD。
+  # 该保护是永久闭锁（planner_safety_failure_latched_ 需重新下发目标才解除），
+  # 因此本值必须高于 EGO 正常重规划周期，否则一次正常的规划间隙就会终止整趟飞行。
+  # 实测依据：EGO 相邻轨迹间隙中位数 0.516s（static 跑通那次 n=35，最大 0.981s），
+  # 旧的 offboard 内置默认值 0.50s 正好压在中位数以下，必然误判——
+  # 20260801_182422 就是这样以 age=0.543 status=PLANNING 闭锁的，而 PLANNING
+  # 本身并不在 offboard 的失败状态清单里，属于纯粹的新鲜度误杀。
+  # 1.5 的依据：> 实测最大间隙 0.981s 且留约 1.5 倍余量；轨迹本身时长约 4.7s，
+  # 故 1.5s 内始终有有效轨迹可跟踪，不存在跟着过期轨迹飞的风险。
+  # [注意] 本项下发为节点的 trajectory_timeout（不是 ego_setpoint_timeout_sec，
+  #        那个来自 trajectory_bridge.bspline_timeout_sec）。见 astar_ego_tuning.py:374。
+  # [约束] 必须 > 1.0 且 <= 3.0（astar_ego_tuning.py:201/207）。
+  # [调大] 会延迟真实规划器故障的响应。[调小] 会重新引入正常间隙误闭锁。完整重启。
+  ego_setpoint_timeout_sec: 2.5
+  # 飞机因 EGO 安全失败停住后，再点同一个目标是否作为“明确重试”。
+  # true 时同一点点击会清除旧锁，但仍必须等一条新的安全轨迹才会继续飞。
+  same_goal_retry_on_safety_latch: true
+  # Offboard 侧独立的 yaw 速率限幅，rad/s。与 trajectory_bridge 同名项各自生效。
+  # [约束] 必须 > 0。
+  ego_yaw_rate_limit_rad_s: 0.80
+  # Do not lock takeoff XY from a single DDS sample after startup. These
+  # values require one stable local-position stream before arming begins.
+  # 【它们是什么】解锁前要求位姿流稳定的判定：持续 sec 秒内，位置散布不超过
+  #   spread_m、速度不超过 speed_mps，才认为可以锁定起飞点。
+  # [约束] 都必须 > 0。[调紧] 启动更慢但起飞点更准。
+  initial_position_stabilization_sec: 0.50
+  initial_position_max_spread_m: 0.08
+  initial_position_max_speed_mps: 0.20
+
+
+# ============================================================================
+# diagnostics —— 启动期日志
+# ============================================================================
+diagnostics:
+  # 启动时打印最终覆盖后的调参摘要。
+  # [调整] true 便于审计（能确认本文件真的生效了），false 会降低可追溯性。
+  #        建议保持 true：这是验证"改动是否生效"最快的手段。
+  print_effective_tuning: true
+  # 调参摘要额定频率，单位：Hz；当前仅启动打印一次，
+  # 保留该字段用于配置校验。[约束] 必须大于零。
+  tuning_summary_rate_hz: 1.0

@@ -1,0 +1,71 @@
+[INFO] 启动前环境清理...
+[清理] Offboard 与导航控制：发现 6 个遗留进程，正在断开。
+        27428  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        27434  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        27436  /usr/bin/python3 /opt/ros/humble/bin/ros2 launch race_bringup navigation.launch.py planner_backend:=
+        27438  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        27547  /home/robot/rong_ws/ws_offboard_control/install/race_offboard/lib/race_offboard/offboard_waypoint_no
+        27559  /home/robot/rong_ws/ws_offboard_control/install/race_ego_bridge/lib/race_ego_bridge/race_ego_odom_br
+[清理] Offboard 与导航控制：已断开。
+[清理] EV 桥接与健康监视：发现 3 个遗留进程，正在断开。
+        28787  /home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_odometry_guard -
+        28789  python3 /home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_healt
+        28793  /home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_mavros_vision_br
+[清理] EV 桥接与健康监视：已断开。
+[清理] MID-360 驱动与 FAST-LIO：发现 11 个遗留进程，正在断开。
+        27804  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        27810  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        27812  bash /home/robot/livox_mid360_env/run_mid360_driver.sh
+        27814  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        27851  /usr/bin/python3 /opt/ros/humble/bin/ros2 launch livox_ros_driver2 msg_MID360_launch.py
+        27860  /home/robot/livox_mid360_env/ws_livox/install/livox_ros_driver2/lib/livox_ros_driver2/livox_ros_driv
+        28387  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        28393  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        28395  bash /home/robot/livox_mid360_env/run_fastlio_mid360.sh
+        28397  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        28530  /home/robot/livox_mid360_env/ws_fastlio/install/fast_lio/lib/fast_lio/fastlio_mapping --ros-args --p
+[清理] MID-360 驱动与 FAST-LIO：已断开。
+[清理] MAVROS：发现 5 个遗留进程，正在断开。
+        28710  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        28716  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        28718  /usr/bin/python3 /opt/ros/humble/bin/ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py fcu_ur
+        28720  bash /home/robot/rong_ws/ws_offboard_control/tools/flight/受管组件窗口.sh 26896 158887 /home/r
+        28785  /opt/ros/humble/lib/mavros/mavros_node --ros-args -r __ns:=/mavros --params-file /tmp/launch_params_
+[清理] MAVROS：已断开。
+[清理] 启动前环境清理完成。
+MID360 杆臂校验通过（机体 FLU，控制中心 -> FAST-LIO 原点）：x=0.0 m y=0.0 m z=0.08 m；R_FASTLIO_body yaw=0.0 rad
+[INFO] Running canonical preflight check...
+Checking offboard autostart prerequisites...
+MID360 杆臂校验通过（机体 FLU，控制中心 -> FAST-LIO 原点）：x=0.0 m y=0.0 m z=0.08 m；R_FASTLIO_body yaw=0.0 rad
+STRUCTURAL_EV_ENTRY_CONTRACT=PASS
+LAUNCH_AST_PARSE_RESULT=PASS
+SELECTED_VISION_NODE_IDENTITY=package=px4_ros_com,executable=fastlio_mavros_vision_bridge,name=fastlio_mavros_vision_bridge
+VISION_CONDITION_BINDING_RESULT=PASS
+VISION_INPUT_BINDING_RESULT=PASS:/Odometry/healthy
+VISION_RESTAMP_RESULT=PASS:false
+VISION_LEVER_ARM_BINDING_RESULT=PASS:body_FLU_control_center_to_FAST_LIO
+VISION_WORLD_YAW_BINDING_RESULT=PASS:one_alignment_for_position_and_attitude
+PHYSICAL_BODY_TF_RESULT=PASS:base_link_to_FAST_LIO_body
+LAUNCH_DEFAULTS_RESULT=PASS:start_mavros_vision_bridge=true
+SINGLE_EV_WRITER_RESULT=PASS:single_ev_node_in_source
+STACK_COMMAND_TOKEN_BINDING_RESULT=PASS
+Autostart prerequisites look ready.
+[INFO] Flight run directory: /home/robot/rong_ws/ws_offboard_control/flight_records/20260811/flight_20260811_163340
+[INFO] Planner=astar_ego, mission=false, output=true, manual_handover=true, rviz=true
+[INFO] Recognition=false, rosbag=true, readiness_timeout=90s
+[INFO] MID-360 to FAST-LIO minimum startup delay=4s
+[INFO] Component windows=false (one GNOME Terminal window per component)
+[INFO] Map: /home/robot/rong_ws/ws_offboard_control/maps/fastlio_global_3d_20260810/GlobalMap_去顶端_z3m.pcd (auto_load=true)
+[INFO] MID360 body-to-sensor FLU: x=0.0 m, y=0.0 m, z=0.08 m, yaw=0.0 rad
+[WARN] Horizontal-drift and takeoff-transient guards are absent. Keep manual RC takeover available.
+[INFO] Starting navigation stack (prewarm) in its own terminal window; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260811/flight_20260811_163340/logs/navigation.log
+正在等待 message：/race/control/status（超时 90s）
+已就绪：收到来自 /race/control/status 的真实消息
+正在等待 topic：/saved_map（超时 90s）
+Ready: topic /saved_map has a publisher
+[INFO] Starting MID-360 driver in its own terminal window; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260811/flight_20260811_163340/logs/mid360_driver.log
+[INFO] Waiting 4s after MID-360 startup before FAST-LIO...
+正在等待 message：/livox/imu（超时 90s）
+已就绪：收到来自 /livox/imu 的真实消息
+[WARN] Received TERM; shutting down the complete stack.
+[WARN] Stopping components started by this run...

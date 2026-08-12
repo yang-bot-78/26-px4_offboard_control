@@ -1,0 +1,72 @@
+MID360 lever arm validated (body FLU, control-center -> FAST-LIO origin): x=0.0 m y=0.0 m z=0.08 m; R_FASTLIO_body yaw=0.0 rad
+[INFO] Running canonical preflight check...
+Checking offboard autostart prerequisites...
+MID360 lever arm validated (body FLU, control-center -> FAST-LIO origin): x=0.0 m y=0.0 m z=0.08 m; R_FASTLIO_body yaw=0.0 rad
+STRUCTURAL_EV_ENTRY_CONTRACT=PASS
+LAUNCH_AST_PARSE_RESULT=PASS
+SELECTED_VISION_NODE_IDENTITY=package=px4_ros_com,executable=fastlio_mavros_vision_bridge,name=fastlio_mavros_vision_bridge
+VISION_CONDITION_BINDING_RESULT=PASS
+VISION_INPUT_BINDING_RESULT=PASS:/Odometry/healthy
+VISION_RESTAMP_RESULT=PASS:false
+VISION_LEVER_ARM_BINDING_RESULT=PASS:body_FLU_control_center_to_FAST_LIO
+VISION_WORLD_YAW_BINDING_RESULT=PASS:one_alignment_for_position_and_attitude
+PHYSICAL_BODY_TF_RESULT=PASS:base_link_to_FAST_LIO_body
+LAUNCH_DEFAULTS_RESULT=PASS:start_mavros_vision_bridge=true
+SINGLE_EV_WRITER_RESULT=PASS:single_ev_node_in_source
+STACK_COMMAND_TOKEN_BINDING_RESULT=PASS
+Autostart prerequisites look ready.
+[INFO] Flight run directory: /home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_153342
+[INFO] Planner=ego-shadow, mission=false, output=false, rviz=false
+[INFO] Recognition=false, rosbag=true, readiness_timeout=90s
+[INFO] Map: <disabled for validation> (auto_load=false)
+[WARN] NO_MAP_VALIDATION=true: planner output and mission control are disabled; this run is for sensor/EV/link validation only.
+[INFO] MID360 body-to-sensor FLU: x=0.0 m, y=0.0 m, z=0.08 m, yaw=0.0 rad
+[WARN] Horizontal-drift and takeoff-transient guards are absent. Keep manual RC takeover available.
+[INFO] Starting navigation stack (prewarm); log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_153342/logs/navigation.log
+Waiting for message: /race/control/status (timeout=90s)
+Ready: received a message from /race/control/status
+[WARN] No map is loaded; skipping /saved_map readiness (validation mode only).
+[INFO] Starting MID-360 driver; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_153342/logs/mid360_driver.log
+Waiting for message: /livox/imu (timeout=90s)
+Ready: received a message from /livox/imu
+Waiting for message: /livox/lidar (timeout=90s)
+Ready: received a message from /livox/lidar
+[INFO] Starting FAST-LIO; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_153342/logs/fastlio.log
+Waiting for message: /Odometry (timeout=90s)
+Ready: received a message from /Odometry
+[INFO] Starting MAVROS and EV chain; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_153342/logs/px4_mavros.log
+Waiting for mavros_connected: /mavros/state (timeout=90s)
+Readiness timeout: mode=mavros_connected, topic=/mavros/state, timeout=90s
+[ERROR] Component 'px4_mavros' is not ready. Log: /home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_153342/logs/px4_mavros.log
+[ERROR] Last 30 log lines from 'px4_mavros':
+[mavros_node-1] [INFO] [1786260840.313094602] [mavros.mavros]: Plugin terrain initialized
+[mavros_node-1] [INFO] [1786260840.339555867] [mavros.mavros]: Plugin trajectory created
+[mavros_node-1] [INFO] [1786260840.339636903] [mavros.mavros]: Plugin trajectory initialized
+[mavros_node-1] [INFO] [1786260840.367458774] [mavros.mavros]: Plugin tunnel created
+[mavros_node-1] [INFO] [1786260840.367543258] [mavros.mavros]: Plugin tunnel initialized
+[mavros_node-1] [INFO] [1786260840.388804049] [mavros.mavros]: Plugin vfr_hud created
+[mavros_node-1] [INFO] [1786260840.388894232] [mavros.mavros]: Plugin vfr_hud initialized
+[mavros_node-1] [INFO] [1786260840.388906214] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1786260840.424073527] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1786260840.424122984] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1786260840.452443090] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1786260840.452611253] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1786260840.495823175] [mavros.mavros]: Plugin waypoint created
+[mavros_node-1] [INFO] [1786260840.495943527] [mavros.mavros]: Plugin waypoint initialized
+[mavros_node-1] [INFO] [1786260840.495963693] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1786260840.520496055] [mavros.mavros]: Plugin wind_estimation created
+[mavros_node-1] [INFO] [1786260840.520622594] [mavros.mavros]: Plugin wind_estimation initialized
+[mavros_node-1] [INFO] [1786260840.524929269] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786260840.524975758] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786260840.524987319] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786260840.524996223] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1786260841.178967271] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [WARN] [1786260842.209226464] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1786260843.209021811] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [WARN] [1786260844.210909200] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [WARN] [1786260845.212007796] [mavros.sys]: VER: unicast request timeout, retries left 1
+[mavros_node-1] [WARN] [1786260846.208939500] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [WARN] [1786260847.209766354] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[fix_mavros_odometry_frames.py-4] [ERROR] [1786260854.849347133] [fix_mavros_odometry_frames]: Failed to set MAVROS odometry parameters.
+[ERROR] [fix_mavros_odometry_frames.py-4]: process has died [pid 52114, exit code 1, cmd '/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fix_mavros_odometry_frames.py --ros-args -r __node:=fix_mavros_odometry_frames --params-file /tmp/launch_params_bs6ij6ud'].
+[WARN] Stopping components started by this run...

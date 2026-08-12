@@ -1,0 +1,36 @@
+Waiting for mavros_connected: /mavros/state (timeout=90s)
+Ready: MAVROS connected
+Waiting for topic: /ev_health/status (timeout=90s)
+Ready: topic /ev_health/status has a publisher
+Flight run directory: /home/robot/ws_offboard_control/flight_records/20260807/flight_20260807_120210
+Parameter snapshot: /home/robot/ws_offboard_control/flight_records/20260807/flight_20260807_120210/snapshot
+Recording rosbag to: /home/robot/ws_offboard_control/flight_records/20260807/flight_20260807_120210/rosbag
+Record full registered point cloud: false
+Press Ctrl+C in this terminal to stop recording.
+stdin is not a terminal device. Keyboard handling disabled.[INFO] [1786075359.049435058] [rosbag2_recorder]: Press SPACE for pausing/resuming
+[INFO] [1786075359.051967020] [rosbag2_storage]: Opened database '/home/robot/ws_offboard_control/flight_records/20260807/flight_20260807_120210/rosbag/rosbag_0.db3' for READ_WRITE.
+[INFO] [1786075359.054020556] [rosbag2_recorder]: Listening for topics...
+[INFO] [1786075359.054035115] [rosbag2_recorder]: Event publisher thread: Starting
+[INFO] [1786075359.057200473] [rosbag2_recorder]: Subscribed to topic '/route_tracker/reference_path_3d'
+[INFO] [1786075359.058618118] [rosbag2_recorder]: Subscribed to topic '/Odometry'
+[INFO] [1786075359.060113637] [rosbag2_recorder]: Subscribed to topic '/Odometry/guarded'
+[INFO] [1786075359.062369989] [rosbag2_recorder]: Subscribed to topic '/Odometry/healthy'
+[INFO] [1786075359.064538867] [rosbag2_recorder]: Subscribed to topic '/ev_health/status'
+[INFO] [1786075359.068205964] [rosbag2_recorder]: Subscribed to topic '/ev_health/diagnostics'
+[INFO] [1786075359.069842688] [rosbag2_recorder]: Subscribed to topic '/ev_health/velocity_ned'
+[INFO] [1786075359.072324001] [rosbag2_recorder]: Subscribed to topic '/mavros/setpoint_raw/local'
+[INFO] [1786075359.073339124] [rosbag2_recorder]: Subscribed to topic '/ev_health/fault'
+[INFO] [1786075359.074164989] [rosbag2_recorder]: Subscribed to topic '/route_tracker/lookahead_target'
+[INFO] [1786075359.075066116] [rosbag2_recorder]: Subscribed to topic '/mavros/vision_pose/pose_cov'
+[INFO] [1786075359.075665440] [rosbag2_recorder]: Subscribed to topic '/path'
+[INFO] [1786075359.076376413] [rosbag2_recorder]: Subscribed to topic '/mavros/vision_speed/speed_twist_cov'
+[INFO] [1786075359.076977094] [rosbag2_recorder]: Subscribed to topic '/minipc_mavros_offboard/mpc_setpoint_debug'
+[INFO] [1786075359.077082556] [rosbag2_recorder]: Recording...
+[INFO] [1786075360.088633835] [rosbag2_recorder]: Subscribed to topic '/mavros/state'
+[INFO] [1786075360.089369215] [rosbag2_recorder]: Subscribed to topic '/mavros/setpoint_raw/target_local'
+[INFO] [1786075360.090118745] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/velocity_local'
+[INFO] [1786075360.090838033] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/odom'
+[INFO] [1786075360.091684862] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/pose'
+terminate called after throwing an instance of 'rosbag2_storage_plugins::SqliteException'
+  what():  Error when processing SQL statement. SQLite error (5): database is locked
+./record_takeoff_debug_bag.sh: 第 234 行：  6250 已中止               （核心已转储） ros2 bag record -o "${bag_dir}" "${bag_topics[@]}"

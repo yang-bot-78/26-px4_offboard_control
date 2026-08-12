@@ -1,0 +1,82 @@
+MID360 lever arm validated (body FLU, control-center -> FAST-LIO origin): x=0.0 m y=0.0 m z=0.08 m; R_FASTLIO_body yaw=0.0 rad
+[INFO] Running canonical preflight check...
+Checking offboard autostart prerequisites...
+MID360 lever arm validated (body FLU, control-center -> FAST-LIO origin): x=0.0 m y=0.0 m z=0.08 m; R_FASTLIO_body yaw=0.0 rad
+STRUCTURAL_EV_ENTRY_CONTRACT=PASS
+LAUNCH_AST_PARSE_RESULT=PASS
+SELECTED_VISION_NODE_IDENTITY=package=px4_ros_com,executable=fastlio_mavros_vision_bridge,name=fastlio_mavros_vision_bridge
+VISION_CONDITION_BINDING_RESULT=PASS
+VISION_INPUT_BINDING_RESULT=PASS:/Odometry/healthy
+VISION_RESTAMP_RESULT=PASS:false
+VISION_LEVER_ARM_BINDING_RESULT=PASS:body_FLU_control_center_to_FAST_LIO
+VISION_WORLD_YAW_BINDING_RESULT=PASS:one_alignment_for_position_and_attitude
+PHYSICAL_BODY_TF_RESULT=PASS:base_link_to_FAST_LIO_body
+LAUNCH_DEFAULTS_RESULT=PASS:start_mavros_vision_bridge=true
+SINGLE_EV_WRITER_RESULT=PASS:single_ev_node_in_source
+STACK_COMMAND_TOKEN_BINDING_RESULT=PASS
+Autostart prerequisites look ready.
+[INFO] Flight run directory: /home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_170522
+[INFO] Planner=ego-shadow, mission=false, output=false, rviz=false
+[INFO] Recognition=false, rosbag=true, readiness_timeout=90s
+[INFO] Component windows=true (one GNOME Terminal window per component)
+[INFO] Map: <disabled for validation> (auto_load=false)
+[WARN] NO_MAP_VALIDATION=true: planner output and mission control are disabled; this run is for sensor/EV/link validation only.
+[INFO] MID360 body-to-sensor FLU: x=0.0 m, y=0.0 m, z=0.08 m, yaw=0.0 rad
+[WARN] Horizontal-drift and takeoff-transient guards are absent. Keep manual RC takeover available.
+[INFO] Starting navigation stack (prewarm) in its own terminal window; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_170522/logs/navigation.log
+Waiting for message: /race/control/status (timeout=90s)
+Ready: received a message from /race/control/status
+[WARN] No map is loaded; skipping /saved_map readiness (validation mode only).
+[INFO] Starting MID-360 driver in its own terminal window; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_170522/logs/mid360_driver.log
+Waiting for message: /livox/imu (timeout=90s)
+Ready: received a message from /livox/imu
+Waiting for message: /livox/lidar (timeout=90s)
+Ready: received a message from /livox/lidar
+[INFO] Starting FAST-LIO in its own terminal window; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_170522/logs/fastlio.log
+Waiting for message: /Odometry (timeout=90s)
+Ready: received a message from /Odometry
+[INFO] Starting MAVROS and EV chain in its own terminal window; log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_170522/logs/px4_mavros.log
+Waiting for mavros_connected: /mavros/state (timeout=90s)
+Ready: MAVROS connected
+Waiting for message: /mavros/local_position/odom (timeout=90s)
+Ready: received a message from /mavros/local_position/odom
+Waiting for message: /mavros/local_position/velocity_local (timeout=90s)
+Ready: received a message from /mavros/local_position/velocity_local
+Waiting for healthy: /ev_health/status (timeout=90s)
+Readiness timeout: mode=healthy, topic=/ev_health/status, timeout=90s
+Latest EV health diagnostics:
+[diagnostic_msgs.msg.DiagnosticStatus(level=b'\x02', name='fastlio_ev_health', message='stale_input age=1.328s', hardware_id='fastlio_px4_local', values=[diagnostic_msgs.msg.KeyValue(key='state', value='FAULT'), diagnostic_msgs.msg.KeyValue(key='reason', value='stale_input age=1.328s'), diagnostic_msgs.msg.KeyValue(key='comparison_frame', value='PX4 local NED'), diagnostic_msgs.msg.KeyValue(key='ev_raw_position_enu_m', value='0.002309,0.006885,-0.034438'), diagnostic_msgs.msg.KeyValue(key='ev_position_px4_ned_m', value='0.006885,0.002309,0.034438'), diagnostic_msgs.msg.KeyValue(key='ev_raw_differenced_velocity_px4_ned_mps', value='nan,nan,nan'), diagnostic_msgs.msg.KeyValue(key='ev_filtered_velocity_px4_ned_mps', value='0.000000,0.000000,0.000000'), diagnostic_msgs.msg.KeyValue(key='ev_internal_velocity_body_flu_mps', value='-0.008840,-0.026695,0.022282'), diagnostic_msgs.msg.KeyValue(key='ev_internal_velocity_world_enu_mps', value='-0.008884,-0.026773,0.022171'), diagnostic_msgs.msg.KeyValue(key='ev_internal_velocity_px4_ned_mps', value='-0.026773,-0.008884,-0.022171'), diagnostic_msgs.msg.KeyValue(key='ev_internal_velocity_covariance_body', value='0.001142,0.000010,-0.000008,0.000010,0.001078,-0.000074,-0.000008,-0.000074,0.001151'), diagnostic_msgs.msg.KeyValue(key='px4_velocity_px4_ned_mps', value='0.001451,-0.003209,0.003120'), diagnostic_msgs.msg.KeyValue(key='horizontal_velocity_difference_mps', value='nan'), diagnostic_msgs.msg.KeyValue(key='internal_vs_position_velocity_difference_mps', value='nan'), diagnostic_msgs.msg.KeyValue(key='single_frame_displacement_m', value='nan'), diagnostic_msgs.msg.KeyValue(key='measurement_dt_s', value='0.099916'), diagnostic_msgs.msg.KeyValue(key='input_age_s', value='1.327503'), diagnostic_msgs.msg.KeyValue(key='velocity_alignment_s', value='nan'), diagnostic_msgs.msg.KeyValue(key='input_covariance_xyz_m2', value='0.000000,0.000000,0.000000'), diagnostic_msgs.msg.KeyValue(key='last_published_covariance_xyz_yaw', value='nan,nan,nan,nan'), diagnostic_msgs.msg.KeyValue(key='covariance_multiplier', value='100.000000')])]
+---
+[ERROR] Component 'px4_mavros' is not ready. Log: /home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_170522/logs/px4_mavros.log
+[ERROR] Last 30 log lines from 'px4_mavros':
+[mavros_node-1] [INFO] [1786266344.216622174] [mavros.mavros]: Plugin wind_estimation created
+[mavros_node-1] [INFO] [1786266344.216719975] [mavros.mavros]: Plugin wind_estimation initialized
+[mavros_node-1] [INFO] [1786266344.219990503] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786266344.220059109] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786266344.220067727] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786266344.220072482] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1786266344.222883246] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1786266344.231594028] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786266344.235315105] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [INFO] [1786266344.235826187] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [WARN] [1786266344.846795943] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [INFO] [1786266344.935276822] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1786266344.935401256] [mavros.mission]: WP: detected enable_partial_push: 0
+[mavros_node-1] [INFO] [1786266344.944456914] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1786266344.950881146] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786266344.985214135] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [WARN] [1786266346.945844203] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1786266347.976370611] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [ERROR] [1786266348.958037730] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786266348.958088575] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [ERROR] [1786266349.954550752] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786266349.954696721] [mavros.sys]: VER: unicast request timeout, retries left 1
+[mavros_node-1] [ERROR] [1786266350.949600151] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786266350.949758902] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [ERROR] [1786266351.953202506] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786266351.953300052] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[mavros_node-1] [INFO] [1786266354.935866666] [mavros.home_position]: HP: requesting home position
+[mavros_node-1] [INFO] [1786266359.939808997] [mavros.mission]: WP: mission received
+[mavros_node-1] [INFO] [1786266364.938450511] [mavros.rallypoint]: RP: mission received
+[mavros_node-1] [INFO] [1786266369.942742787] [mavros.geofence]: GF: mission received
+[WARN] Stopping components started by this run...

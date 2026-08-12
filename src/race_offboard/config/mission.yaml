@@ -1,0 +1,27 @@
+# Four-point race sequence: B1 -> B2 (hold) -> C -> D (hold).
+#
+# Waypoints can come from either source:
+#
+#   1. preset_points below -- the run starts by itself, no operator needed.
+#   2. Clicking in RViz on /race/mission/clicked_goal, in the order
+#      B1, B2, C, D. The first click before takeoff discards any preset, so
+#      RViz always wins on the day.
+#
+# Coordinates are in the unified project map frame (standard ROS ENU) after
+# applying world_yaw_alignment_rad. See 坐标转换.md before entering numbers by
+# hand, and keep every point inside the geofence in
+# race_bringup/config/astar_ego_tuning.yaml (shared_safety.geofence).
+#
+# preset_points is commented out because the values below are placeholders from
+# the simulation arena, not a survey of the real course. Uncomment and replace
+# with measured coordinates, or leave it out and click in RViz.
+#
+# preset_points:
+#   - [1.0, 1.0]     # B1
+#   - [5.0, 1.0]     # B2  (hold b2_hold_sec, recognition on)
+#   - [5.0, 8.0]     # C
+#   - [9.0, 8.0]     # D   (hold d_hold_sec, recognition on)
+
+arrive_radius: 0.40
+b2_hold_sec: 3.0
+d_hold_sec: 3.0

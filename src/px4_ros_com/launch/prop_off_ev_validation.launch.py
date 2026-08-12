@@ -1,4 +1,8 @@
-"""Start only the EV observation path for a disarmed, propeller-off hand test."""
+"""Start only the EV observation path for a disarmed, propeller-off hand test.
+
+EV chain: /Odometry -> fastlio_ev_health_monitor -> /Odometry/healthy
+          -> fastlio_mavros_vision_bridge -> /mavros/vision_pose/pose_cov -> MAVROS
+"""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
@@ -7,13 +11,17 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    """Create a launch description with no arming, mode, or setpoint node."""
     input_topic = LaunchConfiguration("input_topic")
     healthy_topic = LaunchConfiguration("healthy_topic")
-    position_yaw_offset_rad = LaunchConfiguration("position_yaw_offset_rad")
+    world_yaw_alignment_rad = LaunchConfiguration("world_yaw_alignment_rad")
     recovery_healthy_s = LaunchConfiguration("recovery_healthy_s")
+    publish_speed = LaunchConfiguration("publish_speed")
+    body_to_sensor_x_m = LaunchConfiguration("body_to_sensor_x_m")
+    body_to_sensor_y_m = LaunchConfiguration("body_to_sensor_y_m")
+    body_to_sensor_z_m = LaunchConfiguration("body_to_sensor_z_m")
+    body_to_fastlio_yaw_rad = LaunchConfiguration("body_to_fastlio_yaw_rad")
 
-    health_monitor = Node(
+    ev_health_monitor = Node(
         package="px4_ros_com",
         executable="fastlio_ev_health_monitor.py",
         name="fastlio_ev_health_monitor",
@@ -23,7 +31,7 @@ def generate_launch_description():
                 "input_topic": input_topic,
                 "output_topic": healthy_topic,
                 "px4_velocity_topic": "/mavros/local_position/velocity_local",
-                "position_yaw_offset_rad": position_yaw_offset_rad,
+                "world_yaw_alignment_rad": world_yaw_alignment_rad,
                 "max_input_age_s": 0.25,
                 "max_position_jump_m": 0.15,
                 "max_horizontal_velocity_difference_mps": 0.45,
@@ -41,48 +49,23 @@ def generate_launch_description():
         ],
     )
 
-    odometry_bridge = Node(
+    vision_bridge = Node(
         package="px4_ros_com",
-        executable="fastlio_mavros_odometry_bridge",
-        name="fastlio_mavros_odometry_bridge",
+        executable="fastlio_mavros_vision_bridge",
+        name="fastlio_mavros_vision_bridge",
         output="screen",
         parameters=[
             {
                 "input_topic": healthy_topic,
-                "output_topic": "/mavros/odometry/out",
-                "frame_id": "camera_init",
-                "child_frame_id": "body",
-                "force_frame_ids": False,
+                "pose_topic": "/mavros/vision_pose/pose_cov",
                 "restamp_message": False,
-                "derive_missing_twist": False,
-                "input_linear_velocity_frame": "child",
-                "attitude_yaw_offset_rad": 0.0,
-                "body_yaw_offset_rad": 0.0,
-                "position_yaw_offset_rad": position_yaw_offset_rad,
+                "publish_speed": publish_speed,
+                "world_yaw_alignment_rad": world_yaw_alignment_rad,
+                "body_to_sensor_x_m": body_to_sensor_x_m,
+                "body_to_sensor_y_m": body_to_sensor_y_m,
+                "body_to_sensor_z_m": body_to_sensor_z_m,
+                "body_to_fastlio_yaw_rad": body_to_fastlio_yaw_rad,
             }
-        ],
-    )
-
-    world_enu_to_ned = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="camera_init_to_camera_init_ned_ev_validation",
-        arguments=[
-            "--x", "0", "--y", "0", "--z", "0",
-            "--roll", "3.141592653589793", "--pitch", "0",
-            "--yaw", "1.5707963267948966",
-            "--frame-id", "camera_init", "--child-frame-id", "camera_init_ned",
-        ],
-    )
-
-    body_flu_to_frd = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="body_to_body_frd_ev_validation",
-        arguments=[
-            "--x", "0", "--y", "0", "--z", "0",
-            "--roll", "3.141592653589793", "--pitch", "0", "--yaw", "0",
-            "--frame-id", "body", "--child-frame-id", "body_frd",
         ],
     )
 
@@ -90,13 +73,25 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("input_topic", default_value="/Odometry"),
             DeclareLaunchArgument("healthy_topic", default_value="/Odometry/healthy"),
-            DeclareLaunchArgument("position_yaw_offset_rad", default_value="0.0"),
-            # Validation-only override. Production health recovery is 2.0 s and
-            # the Offboard node independently requires 7.5 s continuous HEALTHY.
+            DeclareLaunchArgument(
+                "world_yaw_alignment_rad", default_value="0.0"
+            ),
+            DeclareLaunchArgument("body_to_sensor_x_m", default_value="0.0"),
+            DeclareLaunchArgument("body_to_sensor_y_m", default_value="0.0"),
+            DeclareLaunchArgument("body_to_sensor_z_m", default_value="0.08"),
+            DeclareLaunchArgument("body_to_fastlio_yaw_rad", default_value="0.0"),
+            # Validation-only override; production recovery is 2.0 s and the
+            # Offboard node independently requires 7.5 s continuous HEALTHY.
             DeclareLaunchArgument("recovery_healthy_s", default_value="7.5"),
-            health_monitor,
-            odometry_bridge,
-            world_enu_to_ned,
-            body_flu_to_frd,
+            # vision_speed is diagnostic-only: EKF2_EV_CTRL=11 has no bit2 (=4),
+            # so PX4 does not fuse EV velocity regardless of this flag.  It stays
+            # False by default because the default session should not add a
+            # publisher it will not judge; set it True to record the topic and
+            # verify the child->world twist rotation, which is the whole point of
+            # a velocity-frame session.  Turning it on never enables fusion --
+            # only changing EKF2_EV_CTRL would, and that is out of scope here.
+            DeclareLaunchArgument("publish_speed", default_value="False"),
+            ev_health_monitor,
+            vision_bridge,
         ]
     )

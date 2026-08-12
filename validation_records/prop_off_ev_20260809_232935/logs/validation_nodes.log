@@ -1,0 +1,29 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-09-23-29-41-993837-robot-170896
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fastlio_ev_health_monitor.py-1]: process started with pid [170915]
+[INFO] [fastlio_mavros_vision_bridge-2]: process started with pid [170917]
+[fastlio_mavros_vision_bridge-2] [INFO] [1786289382.092670264] [fastlio_mavros_vision_bridge]: Bridging /Odometry/healthy -> /mavros/vision_pose/pose_cov + vision_speed for MAVROS vision input; body->FAST-LIO origin in body FLU=(0.0000, 0.0000, 0.0000) m, R_FASTLIO_body yaw=0.000000 rad, world yaw alignment=0.000000 rad
+[fastlio_ev_health_monitor.py-1] [INFO] [1786289382.380150620] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-1] [WARN] [1786289382.388157100] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-1] [WARN] [1786289382.766857021] [fastlio_ev_health_monitor]: EV health state=FAULT: px4_velocity_timeout
+[fastlio_ev_health_monitor.py-1] [INFO] [1786289390.785978808] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_mavros_vision_bridge-2] [INFO] [1786289493.078883268] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_ev_health_monitor.py-1] Traceback (most recent call last):
+[fastlio_ev_health_monitor.py-1]   File "/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py", line 496, in <module>
+[fastlio_ev_health_monitor.py-1]     main()
+[fastlio_ev_health_monitor.py-1]   File "/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py", line 486, in main
+[fastlio_ev_health_monitor.py-1]     rclpy.spin(node)
+[fastlio_ev_health_monitor.py-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[fastlio_ev_health_monitor.py-1]     executor.spin_once()
+[fastlio_ev_health_monitor.py-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+[fastlio_ev_health_monitor.py-1]     self._spin_once_impl(timeout_sec)
+[fastlio_ev_health_monitor.py-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 797, in _spin_once_impl
+[fastlio_ev_health_monitor.py-1]     handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+[fastlio_ev_health_monitor.py-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 780, in wait_for_ready_callbacks
+[fastlio_ev_health_monitor.py-1]     return next(self._cb_iter)
+[fastlio_ev_health_monitor.py-1]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 653, in _wait_for_ready_callbacks
+[fastlio_ev_health_monitor.py-1]     wait_set = _rclpy.WaitSet(
+[fastlio_ev_health_monitor.py-1] rclpy._rclpy_pybind11.RCLError: failed to initialize wait set: the given context is not valid, either rcl_init() was not called or rcl_shutdown() was called., at ./src/rcl/wait.c:130
+[INFO] [fastlio_mavros_vision_bridge-2]: process has finished cleanly [pid 170917]
+[fastlio_ev_health_monitor.py-1] [ERROR] [1786289493.275576261] [rclpy.signals]: rcl_trigger_guard_condition() failed: guard condition implementation is invalid, at ./src/rcl/guard_condition.c:172
+[ERROR] [fastlio_ev_health_monitor.py-1]: process has died [pid 170915, exit code 1, cmd '/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py --ros-args -r __node:=fastlio_ev_health_monitor --params-file /tmp/launch_params_s4u0f1ev'].

@@ -1,0 +1,534 @@
+[navigation stack (prewarm)] starting
+[navigation stack (prewarm)] command: env MAP_FILE= PLANNER_BACKEND=ego-shadow MISSION_ENABLED=false RECOGNITION_ENABLED=false RVIZ=false ENABLE_OUTPUT=false MAP_AUTO_LOAD=false /home/robot/rong_ws/ws_offboard_control/tools/flight/run_navigation.sh
+[navigation stack (prewarm)] pid=87361 pgid=87361 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260809/flight_20260809_171025/logs/navigation.log
+Navigation backend: ego-shadow
+Mission sequencer:  false
+Map file:           <disabled for validation>
+Map auto-load:      false
+Recognition:        false
+Navigation output:  false
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-09-17-10-28-791930-robot-87361
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [launch.user]: [TUNING_FILE]
+[INFO] [launch.user]: path=/home/robot/rong_ws/ws_offboard_control/install/race_bringup/share/race_bringup/config/astar_ego_tuning.yaml
+[INFO] [launch.user]: schema_version=1
+[INFO] [launch.user]: [EGO_MAP_SOURCE]
+[INFO] [launch.user]: ego_map_source=static_live_px4
+[INFO] [launch.user]: [EGO_MAP_TUNING]
+[INFO] [launch.user]: {'live_obstacle_memory_sec': 1.0, 'live_obstacle_voxel_size_m': 0.1, 'live_obstacle_min_observations': 2, 'minimum_reliable_detection_range_m': 0.725, 'pose_sync_max_skew_sec': 0.3, 'pose_buffer_duration_sec': 1.0}
+[INFO] [launch.user]: [SHARED_BOUNDS]
+[INFO] [launch.user]: x=[-0.85,11.9] y=[-1.3,12.4] z=[0.5,0.85] margin=0.15
+[INFO] [launch.user]: [GLOBAL_PLANNER_TUNING]
+[INFO] [launch.user]: {'grid_resolution': 0.15, 'planning_resolution': 0.05, 'hard_inflation_radius': 0.28, 'min_planning_inflation_radius': 0.28, 'soft_obstacle_cost_radius': 0.54, 'clearance_cost_weight': 3.0, 'tracking_lookahead_distance': 0.3, 'max_local_goal_distance': 1.7, 'smoothing_min_clearance': 0.1, 'allow_direct_path': False, 'enable_path_shortcut': False}
+[INFO] [launch.user]: [EGO_TUNING]
+[INFO] [launch.user]: {'planning_horizon': 5.0, 'local_update_range_x': 6.0, 'local_update_range_y': 6.0, 'local_update_range_z': 1.25, 'occupancy_map_size_x': 24.0, 'occupancy_map_size_y': 26.0, 'occupancy_publish_max_height': 2.5, 'max_velocity': 0.6, 'max_acceleration': 0.8, 'control_point_spacing': 0.25, 'planning_clearance_m': 0.34, 'constrained_clearance_enable': False, 'constrained_clearance_m': 0.24, 'constrained_optimization_clearance_m': 0.3, 'far_end_clearance_extra_m': 0.06, 'optimization_clearance_m': 0.42, 'max_reference_deviation_m': 0.8, 'use_distinctive_trajectories': True, 'replan_start_position_error_m': 0.25, 'handover_position_tolerance_m': 0.01, 'handover_velocity_tolerance_mps': 0.005, 'handover_acceleration_tolerance_mps2': 0.01, 'fixed_flight_height': 0.78}
+[INFO] [launch.user]: [BRIDGE_TUNING]
+[INFO] [launch.user]: {'occupancy_timeout_sec': 1.0, 'active_recheck_history_sec': 0.5, 'bspline_timeout_sec': 0.2, 'command_timeout_sec': 0.2, 'dynamic_invalid_grace_sec': 0.75, 'replan_hold_timeout_sec': 3.0, 'collision_sample_spacing_m': 0.04, 'braking_deceleration_mps2': 0.8, 'reaction_time_sec': 0.15, 'dynamic_limit_margin': 1.1, 'max_yaw_rate_rad_s': 0.8}
+[INFO] [launch.user]: [OFFBOARD_TUNING]
+[INFO] [launch.user]: {'takeoff_height_m': 0.55, 'ego_goal_release_height_m': 0.5, 'ego_goal_stable_height_tolerance_m': 0.05, 'ego_goal_stable_horizontal_speed_mps': 0.08, 'ego_goal_stable_vertical_speed_mps': 0.05, 'ego_goal_stable_duration_sec': 0.5, 'fixed_flight_height_m': 0.78, 'max_safe_height_m': 0.85, 'goal_tolerance_xy_m': 0.1, 'goal_tolerance_z_m': 0.05, 'setpoint_rate_hz': 20.0, 'trusted_position_max_speed_mps': 4.0, 'trusted_position_jump_allowance_m': 0.4, 'ego_setpoint_max_lead_m': 2.0, 'ego_setpoint_timeout_sec': 2.5, 'same_goal_retry_on_safety_latch': True, 'ego_yaw_rate_limit_rad_s': 0.8, 'initial_position_stabilization_sec': 0.5, 'initial_position_max_spread_m': 0.08, 'initial_position_max_speed_mps': 0.2}
+[INFO] [offboard_waypoint_node-1]: process started with pid [87421]
+[INFO] [fastlio_bridge_node-2]: process started with pid [87423]
+[INFO] [frame_transform_node-3]: process started with pid [87425]
+[INFO] [map_io_node-4]: process started with pid [87427]
+[INFO] [mapping_manager_node-5]: process started with pid [87429]
+[INFO] [super_planner_ros2_node-6]: process started with pid [87431]
+[INFO] [race_ego_odom_bridge-7]: process started with pid [87433]
+[INFO] [race_ego_cloud_bridge-8]: process started with pid [87435]
+[INFO] [race_ego_goal_bridge-9]: process started with pid [87437]
+[INFO] [ego_planner_node-10]: process started with pid [87439]
+[INFO] [traj_server-11]: process started with pid [87441]
+[INFO] [race_ego_trajectory_bridge-12]: process started with pid [87443]
+[race_ego_trajectory_bridge-12] [INFO] [1786266628.999245009] [race_ego_trajectory_bridge]: [BRIDGE_CLEARANCE_THRESHOLD] hard_clearance=0.290000000
+[race_ego_trajectory_bridge-12] [INFO] [1786266628.999525591] [race_ego_trajectory_bridge]: [BRIDGE_BRAKING_CONTRACT] max_speed=0.600 deceleration=0.800 reaction=0.150 clearance=0.290 braking_horizon=0.605 detection_range=0.725
+[mapping_manager_node-5] [INFO] [1786266629.002697472] [mapping_manager_node]: mapping_manager_node started
+[mapping_manager_node-5] [INFO] [1786266629.002832540] [mapping_manager_node]:   auto_load_on_start: false
+[mapping_manager_node-5] [INFO] [1786266629.002839587] [mapping_manager_node]:   auto_save_on_land: true
+[race_ego_odom_bridge-7] [INFO] [1786266629.006383530] [race_ego_odom_bridge]: EGO odom bridge: /mavros/local_position/odom -> /race/ego/odom frame=map conversion=enuToMap(-y,x,z) strict=false
+[race_ego_cloud_bridge-8] [INFO] [1786266629.008089370] [race_ego_cloud_bridge]: EGO cloud bridge: source=static_live_px4 input=/saved_map+/fast_lio/cloud_registered_body output=/race/ego/cloud required_frame=map frame_transform=px4_pose_projection
+[frame_transform_node-3] [INFO] [1786266629.009631465] [frame_transform_node]: frame_transform_node started
+[frame_transform_node-3] [INFO] [1786266629.009758828] [frame_transform_node]:   Published static TF: map -> odom (identity)
+[frame_transform_node-3] [INFO] [1786266629.009766112] [frame_transform_node]:   Published static TF: camera_init -> map (identity, RViz display only)
+[fastlio_bridge_node-2] [INFO] [1786266629.013107017] [fastlio_bridge_node]: FAST-LIO2 里程计桥接已启动：订阅 /Odometry -> /race/odom, /race/pose
+[offboard_waypoint_node-1] [INFO] [1786266629.020476480] [offboard_waypoint_node]: Offboard adapter: control_source=navigation navigation_topic=/race/navigation_setpoint ego_topic=/race/ego/trajectory_setpoint frame=px4_ned timeout=0.80s ego_timeout=0.20s height=[0.50, 0.85]m warmup=1.0s stabilization=3.0s takeoff_complete=0.55m strict_health=false
+[offboard_waypoint_node-1] [INFO] [1786266629.020643096] [offboard_waypoint_node]: [PLANNER_SOURCE] backend=navigation
+[offboard_waypoint_node-1] [INFO] [1786266629.020650846] [offboard_waypoint_node]: [TRAJECTORY_SOURCE] selected=navigation timeout=2.50s
+[map_io_node-4] [INFO] [1786266629.021812697] [map_io_node]: map_io_node started
+[map_io_node-4] [INFO] [1786266629.021960000] [map_io_node]:   map_file: /home/robot/rong_ws/ws_offboard_control/maps/fastlio_global_3d/GlobalMap.pcd
+[map_io_node-4] [INFO] [1786266629.021967137] [map_io_node]:   publish_topic: /saved_map
+[map_io_node-4] [INFO] [1786266629.021971021] [map_io_node]:   display_leaf_size: 0.10 m
+[map_io_node-4] [INFO] [1786266629.021977213] [map_io_node]:   max_display_points: 3000000
+[race_ego_trajectory_bridge-12] [INFO] [1786266629.025980014] [race_ego_trajectory_bridge]: [EGO_STATUS] state=WAIT_MAP control_enabled=false map=missing odom=missing goal=missing trajectory=missing
+[super_planner_ros2_node-6] [INFO] [1786266629.034598123] [super_planner_ros2_node]: MODE_INIT enable_output=false setpoint_topic=/race/navigation_setpoint setpoint_frame=px4_ned control_rate=20.0 replan_rate=2.0 tracking_lookahead=0.30 heading_lookahead=0.80 max_yaw_rate=1.00 odom_topic=/mavros/local_position/odom odom_input_frame=map_enu require_mavros_connected=false mavros_state_topic=/mavros/state cloud_topic=/saved_map PLANNER_INTERNAL_FRAME=map hard_inflation=0.28 soft_cost_radius=0.54 clearance_cost_weight=3.00 smoothing=true method=chaikin iterations=2 sample_resolution=0.10 allow_direct_path=false enable_path_shortcut=false
+[super_planner_ros2_node-6] [INFO] [1786266629.034879656] [super_planner_ros2_node]: GLOBAL_MODE global_only=false control_output=false global_path=/race/global_path local_goal=/race/ego/local_goal
+[super_planner_ros2_node-6] [INFO] [1786266629.034890557] [super_planner_ros2_node]: [SUPER_MODE] global_only=false max_planning_distance=9.000 segment_chaining=false
+[super_planner_ros2_node-6] [INFO] [1786266629.034896367] [super_planner_ros2_node]: [SUPER_DIRECT_MODE] enabled=false
+[super_planner_ros2_node-6] [INFO] [1786266629.034900796] [super_planner_ros2_node]: [SHARED_BOUNDS] x=[-0.85,11.90] y=[-1.30,12.40] z=[0.50,0.85] margin=0.15
+[ego_planner_node-10] [INFO] [1786266629.062378901] [race_ego_planner]: [EGO_RECOVERY_GEOMETRY_CONFIG] search_distance=0.600 minimum_forward_progress=0.150 extra_clearance=0.060 max_reference_deviation=0.780 max_lateral_offset=0.750 lateral_offset_step=0.150
+[offboard_waypoint_node-1] [INFO] [1786266629.070788568] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[ego_planner_node-10] [INFO] [1786266629.072110662] [race_ego_planner]: [EGO_HANDOVER_TOLERANCE] position_m=0.010 velocity_mps=0.005 acceleration_mps2=0.010
+[ego_planner_node-10] [INFO] [1786266629.072160212] [race_ego_planner]: [EGO_REFERENCE_GEOMETRY_LIMIT] max_reference_deviation_m=0.800
+[ego_planner_node-10] [INFO] [1786266629.072481423] [race_ego_planner]: [EGO_OCCUPANCY_SAFETY_MODEL] required_center_clearance=0.290 planning_clearance=0.340 resolution=0.150 coarse_inflation_steps=2 coarse_voxel_clearance=0.300 continuous_query=true
+[ego_planner_node-10] hit: 0.619039
+[ego_planner_node-10] miss: -0.619039
+[ego_planner_node-10] min log: -1.99243
+[ego_planner_node-10] max: 2.19722
+[ego_planner_node-10] thresh log: 1.38629
+[ego_planner_node-10] [INFO] [1786266629.078449200] [race_ego_planner]: [EGO_OBSTACLE_CLEARANCE_CONTRACT] required_center_clearance=0.290000000 planning_clearance=0.340000000 optimization_target_clearance=0.420000000 far_end_clearance_extra=0.060000000 far_end_target_clearance=0.480000000 collision_weight=1.200000000 valid=true
+[ego_planner_node-10] [INFO] [1786266629.078492889] [race_ego_planner]: [EGO_ACTIVE_OPTIMIZATION_TERMS] smoothness=true obstacle=true feasibility=true reference=false endpoint=true smoothness_weight=1.000000 obstacle_weight=1.200000 feasibility_weight=0.400000 reference_weight=0.000000 configured_fitness_weight=1.000000 obstacle_clearance=0.420000
+[super_planner_ros2_node-6] [INFO] [1786266629.085135724] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [INFO] [1786266629.118932329] [race_ego_planner]: [EGO_CONSTRAINED_CLEARANCE_CONFIG] enabled=false normal=0.340 constrained=0.240 optimization=0.300
+[ego_planner_node-10] [INFO] [1786266629.120316105] [race_ego_planner]: single drone:-1
+[traj_server-11] [WARN] [1786266629.999945748] [race_ego_traj_server]: [Traj server]: ready.
+[offboard_waypoint_node-1] [INFO] [1786266630.120600476] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266630.134751035] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[offboard_waypoint_node-1] [INFO] [1786266631.120748540] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [INFO] [1786266631.134921033] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266632.170917844] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [INFO] [1786266632.184919430] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266633.220633164] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [INFO] [1786266633.234906441] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266634.220869356] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [INFO] [1786266634.284793392] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266635.270669598] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [INFO] [1786266635.284844803] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266636.320795657] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [INFO] [1786266636.334893134] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266637.334915556] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[offboard_waypoint_node-1] [INFO] [1786266637.370733510] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266638.334945197] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[offboard_waypoint_node-1] [INFO] [1786266638.370874446] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266639.336929249] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[offboard_waypoint_node-1] [INFO] [1786266639.420729480] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[fastlio_bridge_node-2] [INFO] [1786266640.041178435] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, -0.00, -0.02) -> NED(-0.00, -0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266640.384894486] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[offboard_waypoint_node-1] [INFO] [1786266640.420755136] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266641.385239079] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[offboard_waypoint_node-1] [INFO] [1786266641.420772879] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[offboard_waypoint_node-1] [INFO] [1786266641.595399400] [offboard_waypoint_node]: [EV_HEALTH] state=FAULT continuous_healthy=0.00s
+[fastlio_bridge_node-2] [INFO] [1786266642.051063685] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, -0.00, -0.02) -> NED(-0.00, -0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: INIT
+[ego_planner_node-10] no odom.
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266642.386403221] [super_planner_ros2_node]: SUPER_ROS2 mode=NO_ODOM enable_output=false reason=NO_ODOM odom=(0.00,0.00,0.00) goal=none tracking_setpoint_enu=(0.00,0.00,0.00) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=none cloud_source=none mavros_connected=false
+[super_planner_ros2_node-6] [WARN] [1786266642.461743012] [super_planner_ros2_node]: MAVROS reports connected=false; FCU link is down.
+[offboard_waypoint_node-1] [INFO] [1786266642.470797911] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=WAITING_FOR_ODOM
+[super_planner_ros2_node-6] [WARN] [1786266642.854982281] [super_planner_ros2_node]: Using odom source: /mavros/local_position/odom odom_input_frame=map_enu planner_enu=(-0.36, -0.66, 0.75)
+[offboard_waypoint_node-1] [WARN] [1786266642.855072709] [offboard_waypoint_node]: [POSE_WAIT] no local velocity sample yet on /mavros/local_position/velocity_local
+[ego_planner_node-10] [FSM]: from INIT to WAIT_TARGET
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266643.418083886] [offboard_waypoint_node]: [POSE_TRUSTED] stable_for=0.53s position_ned=(-0.659,-0.360,-0.748)
+[offboard_waypoint_node-1] [WARN] [1786266643.420679498] [offboard_waypoint_node]: [HOLD_POSITION] x=-0.659 y=-0.360 z=-0.748 yaw=0.010 reason=startup idle hold
+[offboard_waypoint_node-1] [WARN] [1786266643.420698441] [offboard_waypoint_node]: [CONTROL_STATE] WAITING_FOR_ODOM -> IDLE_HOLD: no active goal
+[offboard_waypoint_node-1] [INFO] [1786266643.420775328] [offboard_waypoint_node]: [HOLD_ERROR] position_error=0.000 velocity=0.003 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266643.434887817] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.36,-0.66,0.75) goal=none tracking_setpoint_enu=(-0.36,-0.66,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266643.520880765] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266644.041399803] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.02) -> NED(-0.00, 0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[super_planner_ros2_node-6] [INFO] [1786266644.435261830] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.36,-0.66,0.74) goal=none tracking_setpoint_enu=(-0.36,-0.66,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266644.470773984] [offboard_waypoint_node]: [HOLD_ERROR] position_error=0.009 velocity=0.003 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266644.570797102] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266645.041252380] [offboard_waypoint_node]: [EV_HEALTH] state=HEALTHY continuous_healthy=0.00s
+[offboard_waypoint_node-1] [ERROR] [1786266645.351281448] [offboard_waypoint_node]: [POSE_REJECT] jump=1.124m dt=0.033s trusted=(-0.658,-0.363,-0.730) received=(-0.001,-0.001,0.106)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266645.470935377] [offboard_waypoint_node]: [HOLD_ERROR] position_error=0.018 velocity=0.007 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266645.484985162] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266645.570813744] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266646.048212035] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, -0.00, -0.02) -> NED(-0.00, -0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266646.471038698] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.143 velocity=0.013 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266646.535323959] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266646.620824345] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266647.521012509] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.136 velocity=0.002 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266647.584942616] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.10) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266647.620886972] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266648.050860810] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, -0.00, -0.02) -> NED(-0.00, -0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266648.570837116] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.135 velocity=0.001 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266648.584971031] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.10) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266648.621272951] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266649.570844905] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.139 velocity=0.005 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266649.585694144] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.10) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266649.670833955] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266650.049961429] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.03) -> NED(0.00, -0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266650.570975396] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.139 velocity=0.004 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266650.636331368] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266650.670961325] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266651.571150212] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.137 velocity=0.005 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266651.684960360] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266651.721007800] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266652.053913791] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, -0.00, -0.02) -> NED(-0.00, -0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266652.620933723] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.138 velocity=0.004 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266652.685275432] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266652.721113058] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266653.670894046] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.134 velocity=0.003 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266653.736020801] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.10) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266653.770930500] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266654.051100701] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, -0.00, -0.03) -> NED(-0.00, -0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266654.720881101] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.135 velocity=0.003 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266654.785202635] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266654.821049223] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266655.721132387] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.136 velocity=0.005 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266655.835272887] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266655.871387322] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266656.050752856] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.03) -> NED(0.00, 0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266656.771021564] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.141 velocity=0.013 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266656.885056377] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266656.920922714] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266657.820877839] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.139 velocity=0.007 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266657.885095940] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266657.920923499] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266658.051744492] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.02) -> NED(-0.00, 0.00, 0.02)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266658.820961138] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.138 velocity=0.005 state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266658.885165031] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[offboard_waypoint_node-1] [INFO] [1786266658.920964605] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[mapping_manager_node-5] [INFO] [1786266659.003300059] [mapping_manager_node]: Mapping status: in_flight=false, map_loaded=false, map_saved=false
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266659.821153177] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.133 velocity=0.001 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266659.920977678] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266659.935135012] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,-0.00,-0.10) goal=none tracking_setpoint_enu=(-0.01,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266660.050615410] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.01, -0.00, -0.03) -> NED(0.01, -0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266660.871030388] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.136 velocity=0.003 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266660.921244262] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266660.935215003] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266661.871109918] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.138 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266661.970978778] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266661.985101191] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266662.039616091] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.03) -> NED(0.00, -0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266662.921136577] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.138 velocity=0.002 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266662.971021787] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266662.985158251] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266663.921180182] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.134 velocity=0.009 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266663.971140694] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266664.035194833] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.01,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266664.040379198] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.03) -> NED(0.00, -0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266664.971095059] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.132 velocity=0.014 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266664.971206409] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266665.035199686] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.01,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266665.971131173] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.133 velocity=0.009 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266665.971284395] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266666.035388064] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.01,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266666.040834583] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.03) -> NED(-0.00, 0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266666.971156114] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.140 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266666.971341219] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266667.085275049] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266667.971292528] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.143 velocity=0.010 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266667.971485945] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266668.040826958] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.03) -> NED(-0.00, 0.00, 0.03)
+[super_planner_ros2_node-6] [INFO] [1786266668.135293260] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266669.021049175] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.010 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266669.021207609] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266669.135557900] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266670.021242667] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.144 velocity=0.003 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266670.021368009] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266670.051624219] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.03) -> NED(0.00, -0.00, 0.03)
+[super_planner_ros2_node-6] [INFO] [1786266670.185326683] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266671.071136717] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.140 velocity=0.008 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266671.071228602] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266671.235392261] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266672.040685252] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266672.121129484] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.142 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266672.121227113] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266672.236342380] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266673.171132273] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.149 velocity=0.009 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266673.171224116] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266673.285186047] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266674.040516813] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.03) -> NED(0.00, 0.00, 0.03)
+[offboard_waypoint_node-1] [INFO] [1786266674.171155292] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.149 velocity=0.003 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266674.171274997] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266674.285289492] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266675.171330823] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.141 velocity=0.005 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266675.171507602] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266675.285425006] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266676.040471187] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266676.221149361] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.141 velocity=0.006 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266676.221244702] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266676.335318830] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.01,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266677.221187610] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.009 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266677.221244668] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266677.385309892] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,0.01,-0.11) goal=none tracking_setpoint_enu=(-0.01,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266678.040221985] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.03) -> NED(0.00, 0.00, 0.03)
+[offboard_waypoint_node-1] [INFO] [1786266678.271436343] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.009 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266678.271532413] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266678.435312766] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266679.321220957] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.148 velocity=0.008 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266679.321372729] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266679.435338510] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266680.039906378] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.01, 0.00, -0.03) -> NED(0.01, 0.00, 0.03)
+[offboard_waypoint_node-1] [INFO] [1786266680.321297428] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.147 velocity=0.001 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266680.321440790] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266680.435532902] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266681.371400741] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.144 velocity=0.006 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266681.371521257] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266681.485309136] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266682.050172534] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.01, -0.04) -> NED(0.00, 0.01, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266682.421202828] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.009 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266682.421266365] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266682.485331654] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266683.421277695] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266683.421384812] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266683.485358084] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266684.040154210] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266684.471363988] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266684.471513595] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266684.535512391] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266685.521277904] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.142 velocity=0.006 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266685.521381019] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266685.585362557] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266686.040303729] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.03) -> NED(0.00, 0.00, 0.03)
+[offboard_waypoint_node-1] [INFO] [1786266686.521293940] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.144 velocity=0.003 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266686.521389404] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266686.585541269] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266687.521294527] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266687.571313195] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266687.635473894] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266688.050805406] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.01, 0.00, -0.04) -> NED(0.01, 0.00, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266688.521306260] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.002 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266688.621253150] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266688.635480001] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[mapping_manager_node-5] [INFO] [1786266689.003604202] [mapping_manager_node]: Mapping status: in_flight=false, map_loaded=false, map_saved=false
+[offboard_waypoint_node-1] [INFO] [1786266689.571275720] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.002 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266689.621351698] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266689.635627877] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266690.040849966] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266690.571317474] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.143 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266690.671364086] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266690.685499769] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.12) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266691.571498621] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266691.671478166] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266691.685498630] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266692.050014250] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.01, 0.01, -0.04) -> NED(0.01, 0.01, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266692.621365998] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.147 velocity=0.005 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266692.671516760] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266692.735561922] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266693.671408296] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.150 velocity=0.012 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266693.721365461] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266693.785626627] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[fastlio_bridge_node-2] [INFO] [1786266694.039875645] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.04) -> NED(0.00, -0.00, 0.04)
+[offboard_waypoint_node-1] [INFO] [1786266694.721346187] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266694.721441317] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266694.835531854] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266695.721350974] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.145 velocity=0.002 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266695.721483035] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266695.885518059] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266696.050678177] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266696.721399295] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.142 velocity=0.008 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266696.721503601] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266696.935509625] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.01,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266697.771396062] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.142 velocity=0.010 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266697.771470035] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266697.935551434] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,0.01,-0.11) goal=none tracking_setpoint_enu=(-0.01,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266698.049624308] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266698.771428903] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.143 velocity=0.005 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266698.771487792] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266698.935715101] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266699.821379128] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.143 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266699.821444784] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266699.985588387] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266700.040584372] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.03) -> NED(-0.00, 0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266700.821398344] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.141 velocity=0.008 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266700.821470735] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266701.035574352] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.00,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266701.821469618] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.144 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266701.821589704] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266702.035591398] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,0.00,-0.12) goal=none tracking_setpoint_enu=(-0.01,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[fastlio_bridge_node-2] [INFO] [1786266702.040434880] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.03) -> NED(0.00, -0.00, 0.03)
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266702.871556865] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.140 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266702.871637948] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266703.035615335] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,-0.00,-0.11) goal=none tracking_setpoint_enu=(-0.01,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266703.871606678] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.004 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266703.871736908] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266704.051001852] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.04) -> NED(-0.00, 0.00, 0.04)
+[super_planner_ros2_node-6] [INFO] [1786266704.085566471] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266704.921556139] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.150 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266704.921648342] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266705.085612409] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266705.971505566] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.147 velocity=0.001 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266705.971591640] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266706.041055862] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(0.00, 0.00, -0.04) -> NED(-0.00, 0.00, 0.04)
+[super_planner_ros2_node-6] [INFO] [1786266706.085677605] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266706.971513597] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.147 velocity=0.006 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266706.971604375] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266707.135702253] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.00,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266707.971517841] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.146 velocity=0.005 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266707.971607178] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266708.039801303] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, 0.00, -0.04) -> NED(0.00, 0.00, 0.04)
+[super_planner_ros2_node-6] [INFO] [1786266708.185708154] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.01,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.01,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266708.971583267] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.148 velocity=0.007 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266708.971697451] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266709.185715956] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(-0.00,0.01,-0.12) goal=none tracking_setpoint_enu=(-0.00,0.01,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266710.021531854] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.148 velocity=0.019 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266710.021593914] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[fastlio_bridge_node-2] [INFO] [1786266710.050057407] [fastlio_bridge_node]: 已桥接并转换里程计: ENU(-0.00, -0.00, -0.03) -> NED(0.00, -0.00, 0.03)
+[super_planner_ros2_node-6] [INFO] [1786266710.185784229] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.01,0.00,-0.11) goal=none tracking_setpoint_enu=(0.01,0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[offboard_waypoint_node-1] [INFO] [1786266711.021592060] [offboard_waypoint_node]: [HOLD_ERROR] position_error=1.141 velocity=0.013 state=IDLE_HOLD
+[offboard_waypoint_node-1] [INFO] [1786266711.021772595] [offboard_waypoint_node]: [CONTROL_ARBITER] selected_source=safety_hold state=IDLE_HOLD
+[super_planner_ros2_node-6] [INFO] [1786266711.235810387] [super_planner_ros2_node]: SUPER_ROS2 mode=IDLE enable_output=false reason=NO_GOAL odom=(0.01,-0.00,-0.11) goal=none tracking_setpoint_enu=(0.01,-0.00,0.78) setpoint_ned=none yaw(desired/cmd/rate)=(0.00/0.00/0.00) cross_track=0.00 frame_id=px4_ned path_points=0 odom_source=/mavros/local_position/odom cloud_source=none mavros_connected=true
+[ego_planner_node-10] [FSM]: state: WAIT_TARGET
+[ego_planner_node-10] wait for goal or trigger.
+[navigation stack (prewarm)] owner 87131 disappeared; stopping process group 87361
+[navigation stack (prewarm)] stopping process group 87361
+[navigation stack (prewarm)] exited with status 143

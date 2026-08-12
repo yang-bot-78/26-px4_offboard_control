@@ -4,9 +4,9 @@ import sys
 import time
 
 import rclpy
+from rcl_interfaces.srv import SetParameters
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from rclpy.parameter_client import AsyncParameterClient
 
 
 class MavrosOdometryFrameFixer(Node):
@@ -21,7 +21,8 @@ class MavrosOdometryFrameFixer(Node):
 
         target_node = self.get_parameter("target_node").get_parameter_value().string_value
         self._timeout_sec = self.get_parameter("timeout_sec").get_parameter_value().double_value
-        self._client = AsyncParameterClient(self, target_node)
+        service_name = f"{target_node.rstrip('/')}/set_parameters"
+        self._client = self.create_client(SetParameters, service_name)
 
         self._target_values = [
             Parameter(
@@ -50,14 +51,16 @@ class MavrosOdometryFrameFixer(Node):
             return 1
 
         self.get_logger().info("Setting MAVROS odometry target frames to odom/base_link.")
-        future = self._client.set_parameters(self._target_values)
+        request = SetParameters.Request()
+        request.parameters = [parameter.to_parameter_msg() for parameter in self._target_values]
+        future = self._client.call_async(request)
         rclpy.spin_until_future_complete(self, future, timeout_sec=self._timeout_sec)
 
         if not future.done() or future.result() is None:
             self.get_logger().error("Failed to set MAVROS odometry parameters.")
             return 1
 
-        results = future.result()
+        results = future.result().results
         if not all(result.successful for result in results):
             for result in results:
                 if not result.successful:

@@ -1,0 +1,95 @@
+super_planner_ros2_node:
+  ros__parameters:
+    goal_topic: /goal_pose
+    # /race/odom is already in the unified, world-yaw-aligned ROS ENU map.
+    # Setpoints cross the PX4 boundary through the standard ENU -> NED swap.
+    odom_topic: /race/odom
+    fallback_odom_topic: /race/odom
+    odom_input_frame: map
+    mavros_state_topic: /mavros/state
+    require_mavros_connected: false
+    cloud_topic: /saved_map
+    fallback_cloud_topic: /saved_map
+    navigation_setpoint_topic: /race/navigation_setpoint
+    path_topic: /rm_mpc_trajectory_vis_path
+    raw_path_topic: /race/super_planner/raw_path
+    marker_topic: /race/super_planner/debug_markers
+    world_frame: map
+    body_frame: base_link
+    setpoint_output_frame: px4_ned
+
+    control_rate: 20.0
+    replan_rate: 2.0
+    # Single RViz goal / no-EGO validation: plan once, then keep tracking the
+    # validated path. EGO mode uses global_only_mode and its own handoff logic.
+    replan_while_tracking: false
+    tracking_lookahead_distance: 0.30
+    # iris_mid360_custom_physical collision envelope: the outermost geometry is the
+    # 24-block prop guard ring custom_guard_*, at 0.189666 + 0.031331/2 = 0.207132m
+    # (a 41.4cm square outline). The former 0.384 came from upstream bare iris.sdf
+    # rotor tips (sqrt(0.13^2+0.22^2)+0.128) and overstates this model by 0.177m,
+    # which closed off the first gate entirely. See
+    # race_bringup/config/astar_ego_tuning.yaml required_center_clearance.
+    vehicle_collision_radius: 0.2071
+    narrow_corridor_tracking_margin: 0.05
+    narrow_corridor_lookahead_distance: 0.15
+    narrow_corridor_centering_tolerance: 0.05
+    heading_lookahead_distance: 0.80
+    max_path_tracking_error: 0.35
+    yaw_smoothing_time_constant: 0.35
+    max_yaw_rate: 1.0
+    publish_yaw_rate_feedforward: true
+
+    min_safe_height: 0.75
+    max_safe_height: 0.85
+    fixed_flight_height: 0.78
+    use_fixed_flight_height: true
+    final_goal_position_tolerance_m: 0.10
+    final_goal_velocity_tolerance_mps: 0.08
+    final_goal_confirmation_cycles: 10
+    enable_output: false
+    global_only_mode: false
+    publish_global_path: false
+    publish_ego_local_goal: false
+    global_path_topic: /race/global_path
+    ego_local_goal_topic: /race/ego/local_goal
+    ego_reference_path_topic: /race/ego/local_path_reference
+    ego_local_goal_lookahead_m: 1.20
+    ego_local_goal_min_distance_m: 0.60
+    ego_local_goal_max_distance_m: 1.60
+    ego_local_goal_reached_radius_m: 0.30
+    local_goal_update_min_interval_sec: 0.10
+    local_goal_update_distance_m: 0.20
+    goal_update_position_tolerance_m: 0.05
+    ego_status_topic: /race/ego/status
+    local_planner_failure_replan_sec: 1.0
+
+    grid_resolution: 0.15
+    local_range_xy: 10.0
+    obstacle_min_height: 0.30
+    obstacle_max_height: 2.00
+    # Overridden at launch by astar_ego_tuning.yaml global_planner.*; kept in sync
+    # here so this file does not read as a second, stale source of truth.
+    obstacle_inflation_radius: 0.28
+    min_planning_inflation_radius: 0.28
+    soft_obstacle_cost_radius: 0.54
+    clearance_cost_weight: 6.0
+    max_cloud_points: 200000
+    cloud_timeout_sec: 600.0
+    odom_timeout_sec: 1.0
+    goal_timeout_sec: 0.0
+
+    enable_path_smoothing: true
+    smoothing_method: chaikin
+    smoothing_iterations: 2
+    path_sample_resolution: 0.10
+    smoothing_collision_check: true
+    smoothing_max_deviation: 0.8
+    smoothing_min_clearance: 0.10
+    allow_direct_path: false
+    enable_path_shortcut: false
+
+    publish_debug_markers: true
+    debug_marker_height: 0.20
+    debug_max_cells: 25000
+    debug_marker_period_sec: 0.50

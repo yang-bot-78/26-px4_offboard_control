@@ -1,0 +1,46 @@
+offboard_waypoint_node:
+  ros__parameters:
+    control_source: navigation
+    navigation_setpoint_topic: /race/navigation_setpoint
+    ego_setpoint_topic: /race/ego/trajectory_setpoint
+    ego_setpoint_timeout_sec: 0.20
+    required_setpoint_frame: px4_ned
+    setpoint_timeout_sec: 0.8
+    idle_hold_enabled: true
+    trajectory_timeout: 0.50
+    hold_position_tolerance: 0.05
+    hold_velocity_tolerance: 0.05
+    goal_reached_position_tolerance: 0.10
+    goal_reached_velocity_tolerance: 0.08
+    goal_update_position_tolerance_m: 0.05
+    require_global_planner_final_goal: false
+    braking_max_acc: 0.50
+    hold_replan_distance: 0.08
+
+    allow_dead_reckoning_takeoff: true
+    require_strict_local_position_health: false
+    # External-vision gate. EKF2's position comes from FAST-LIO through
+    # /mavros/vision_pose/pose_cov, so arming requires a continuously healthy
+    # EV chain and an in-flight FAULT requests AUTO.LAND.
+    require_ev_health: true
+    ev_health_topic: /ev_health/status
+    ev_health_required_s: 7.5
+    ev_health_freshness_s: 1.0
+    # A discontinuous PX4 local frame may be adopted only while disarmed and
+    # IDLE, after the replacement frame remains still inside these limits.
+    local_origin_rebase_stabilization_sec: 1.0
+    local_origin_rebase_max_spread_m: 0.08
+    local_origin_rebase_max_speed_mps: 0.20
+    ekf_xy_wait_timeout_sec: 3.0
+    offboard_warmup_sec: 1.0
+    preflight_stabilization_sec: 3.0
+    command_retry_period_sec: 1.0
+
+    cruise_altitude_m: 0.78
+    takeoff_complete_height_m: 0.55
+    min_command_height_m: 0.50
+    max_command_height_m: 0.85
+    overheight_guard_margin_m: 0.20
+    emergency_overheight_margin_m: 0.35
+    # force_arm_in_sim (PX4 magic 21196) is deliberately gone: on the real
+    # aircraft, arming must respect PX4's preflight checks.

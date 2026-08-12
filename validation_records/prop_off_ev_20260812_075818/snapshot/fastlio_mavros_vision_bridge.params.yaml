@@ -1,0 +1,24 @@
+/fastlio_mavros_vision_bridge:
+  ros__parameters:
+    body_to_fastlio_yaw_rad: 0.0
+    body_to_sensor_x_m: 0.0
+    body_to_sensor_y_m: 0.0
+    body_to_sensor_z_m: 0.08
+    force_pose_frame_id: odom
+    force_twist_frame_id: odom
+    input_topic: /Odometry/healthy
+    pose_topic: /mavros/vision_pose/pose_cov
+    position_yaw_offset_rad: 0.0
+    publish_speed: true
+    qos_overrides:
+      /parameter_events:
+        publisher:
+          depth: 1000
+          durability: volatile
+          history: keep_last
+          reliability: reliable
+    restamp_message: false
+    speed_topic: /mavros/vision_speed/speed_twist_cov
+    use_sim_time: false
+    yaw_offset_rad: 0.0
+

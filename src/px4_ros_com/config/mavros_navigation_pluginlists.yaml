@@ -1,0 +1,14 @@
+/**:
+  ros__parameters:
+    # 只加载 FAST-LIO EV 与本项目 Offboard 导航实际使用的 MAVROS 插件。
+    # 全量插件在当前机载机上初始化超过 90 秒，会导致启动脚本误判连接超时。
+    plugin_allowlist:
+      - command
+      - imu
+      - local_position
+      - odometry
+      - setpoint_raw
+      - sys_status
+      - sys_time
+      - vision_pose
+      - vision_speed

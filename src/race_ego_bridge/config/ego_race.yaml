@@ -1,0 +1,74 @@
+race_ego_odom_bridge:
+  ros__parameters:
+    # /race/odom already carries the unified, world-yaw-aligned map pose.
+    input_topic: /race/odom
+    output_topic: /race/ego/odom
+    state_topic: /mavros/state
+    frame_id: map
+    child_frame_id: base_link
+    require_strict_health: false
+
+race_ego_cloud_bridge:
+  ros__parameters:
+    map_source: static
+    static_topic: /saved_map
+    live_topic: /cloud_registered
+    body_topic: /cloud_registered_body
+    pose_topic: /race/pose
+    output_topic: /race/ego/cloud
+    required_frame: map
+    min_live_period_sec: 0.10
+    static_republish_period_sec: 0.50
+
+race_ego_goal_bridge:
+  ros__parameters:
+    input_topic: /goal_pose
+    ego_topic: /race/ego/goal_input
+    debug_topic: /race/ego/goal
+    odom_topic: /race/ego/odom
+    frame_id: map
+    release_height: 0.50
+    retry_goal_on_ego_failure: false
+    ego_failure_retry_period_sec: 0.75
+    duplicate_goal_position_tolerance_m: 0.03
+    duplicate_goal_time_window_sec: 1.0
+    flight_mode: flat
+    flight_height: 0.78
+    min_height: 0.50
+    max_height: 0.85
+    min_x: -7.5
+    max_x: 7.5
+    min_y: -7.0
+    max_y: 7.0
+
+race_ego_trajectory_bridge:
+  ros__parameters:
+    frame_id: map
+    position_command_topic: /race/ego/position_command
+    bspline_topic: /race/ego/bspline
+    output_topic: /race/ego/trajectory_setpoint
+    publish_setpoint: true
+    control_enabled: false
+    map_source: static
+    occupancy_topic: /race/ego/occupancy_inflate
+    occupancy_is_inflated: true
+    occupancy_resolution: 0.15
+    trajectory_sample_spacing: 0.04
+    occupancy_timeout_sec: 1.0
+    flight_mode: flat
+    flight_height: 0.78
+    max_velocity: 0.60
+    max_acceleration: 0.80
+    feasibility_tolerance: 1.10
+    dynamic_invalid_grace_sec: 0.75
+    obstacle_clearance: 0.30
+    command_timeout_sec: 0.20
+    odom_timeout_sec: 0.25
+    min_planning_height: -0.15
+    min_height: 0.50
+    bootstrap_release_height: 0.58
+    max_height: 0.85
+    min_x: -7.5
+    max_x: 7.5
+    min_y: -7.0
+    max_y: 7.0

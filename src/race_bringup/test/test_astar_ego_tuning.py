@@ -1,0 +1,598 @@
+#!/usr/bin/env python3
+import copy
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / 'src' / 'race_bringup' / 'launch'))
+
+from astar_ego_tuning import TuningError, load_tuning, node_parameter_overlays  # noqa: E402
+
+
+class AstarEgoTuningTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.path = ROOT / 'src/race_bringup/config/astar_ego_tuning.yaml'
+        cls.tuning = load_tuning(cls.path)
+
+    def test_default_file_loads(self):
+        self.assertEqual(1, self.tuning['schema_version'])
+
+    def test_constrained_clearance_is_explicit_and_reaches_ego_and_bridge(self):
+        overlays = node_parameter_overlays(self.tuning)
+        ego = self.tuning['ego_planner']
+        self.assertIsInstance(ego['constrained_clearance_enable'], bool)
+        self.assertEqual(
+            ego['constrained_clearance_enable'],
+            overlays['ego']['fsm/constrained_clearance/enable'])
+        self.assertEqual(
+            ego['constrained_clearance_enable'],
+            overlays['trajectory_bridge']['constrained_clearance_enable'])
+        self.assertEqual(
+            ego['constrained_clearance_m'],
+            overlays['ego']['fsm/constrained_clearance/clearance_m'])
+        self.assertEqual(
+            ego['constrained_optimization_clearance_m'],
+            overlays['ego']['fsm/constrained_clearance/optimization_m'])
+        self.assertEqual(
+            ego['constrained_clearance_m'],
+            overlays['trajectory_bridge']['constrained_clearance_m'])
+        self.assertLess(ego['constrained_clearance_m'], ego['planning_clearance_m'])
+
+    def test_constrained_clearance_stays_disabled(self):
+        # The constrained channel lowers the only hard anti-collision distance
+        # below required_center_clearance and pushes the reduced value into the
+        # bridge as well, so the shipped configuration must keep it off.  See
+        # the rationale block above constrained_clearance_enable in the YAML for
+        # the two prerequisites that must be met before re-enabling it.
+        self.assertFalse(self.tuning['ego_planner']['constrained_clearance_enable'])
+
+    def test_far_end_clearance_extra_reaches_the_optimizer(self):
+        overlays = node_parameter_overlays(self.tuning)
+        ego = self.tuning['ego_planner']
+        self.assertEqual(0.06, ego['far_end_clearance_extra_m'])
+        self.assertEqual(
+            ego['far_end_clearance_extra_m'],
+            overlays['ego']['optimization/far_end_clearance_extra'])
+        # Soft target only: it must stay above the optimizer's uniform target and
+        # far above the hard floor, never at or below it.
+        self.assertGreater(
+            ego['optimization_clearance_m'] + ego['far_end_clearance_extra_m'],
+            self.tuning['shared_safety']['required_center_clearance'])
+
+    def test_far_end_clearance_extra_is_bounded(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_planner']['far_end_clearance_extra_m'] = 0.16
+        with self.assertRaisesRegex(TuningError, 'far_end_clearance_extra_m'):
+            self._validate(bad)
+        bad['ego_planner']['far_end_clearance_extra_m'] = -0.01
+        with self.assertRaisesRegex(TuningError, 'far_end_clearance_extra_m'):
+            self._validate(bad)
+
+    def test_far_end_target_cannot_run_away_from_the_hard_floor(self):
+        bad = copy.deepcopy(self.tuning)
+        floor = bad['shared_safety']['required_center_clearance']
+        bad['ego_planner']['optimization_clearance_m'] = floor + 0.15
+        bad['ego_planner']['far_end_clearance_extra_m'] = 0.15
+        with self.assertRaisesRegex(TuningError, 'far_end_clearance_extra_m'):
+            self._validate(bad)
+
+    def test_lateral_offset_must_reach_past_a_pillar(self):
+        # A 0.5m box on the reference line blocks lateral offsets up to
+        # half-width + planning_clearance_m + extra_clearance_m.  A ladder that
+        # cannot exceed that reach makes the fallback useless, so the launch
+        # validation has to reject it rather than fail silently in flight.
+        bad = copy.deepcopy(self.tuning)
+        ego = bad['ego_planner']
+        reach = 0.25 + ego['planning_clearance_m'] + \
+            bad['ego_recovery']['extra_clearance_m']
+        bad['ego_recovery']['max_lateral_offset_m'] = reach - 0.01
+        with self.assertRaisesRegex(TuningError, 'max_lateral_offset_m'):
+            self._validate(bad)
+
+    def test_lateral_offset_cannot_exceed_recovery_deviation_gate(self):
+        # Searching further sideways than build_recovery_seed allows would only
+        # produce candidates that are rejected later.
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_recovery']['max_lateral_offset_m'] = \
+            bad['ego_recovery']['max_reference_deviation_m'] + 0.01
+        with self.assertRaisesRegex(TuningError, 'max_lateral_offset_m'):
+            self._validate(bad)
+
+    def test_lateral_offset_step_stays_within_the_ladder(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_recovery']['lateral_offset_step_m'] = \
+            bad['ego_recovery']['max_lateral_offset_m'] + 0.01
+        with self.assertRaisesRegex(TuningError, 'lateral_offset_step_m'):
+            self._validate(bad)
+        bad['ego_recovery']['lateral_offset_step_m'] = 0.04
+        with self.assertRaisesRegex(TuningError, 'lateral_offset_step_m'):
+            self._validate(bad)
+
+    def test_constrained_clearance_cannot_cross_physical_floor(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_planner']['constrained_clearance_m'] = 0.20
+        with self.assertRaisesRegex(TuningError, 'physical envelope'):
+            self._validate(bad)
+
+    def test_constrained_clearance_cannot_be_used_as_normal_clearance(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_planner']['constrained_clearance_m'] = 0.30
+        with self.assertRaisesRegex(TuningError, 'required_center_clearance'):
+            self._validate(bad)
+
+    def test_constrained_optimization_clearance_has_margin_but_stays_below_normal(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_planner']['constrained_optimization_clearance_m'] = (
+            bad['ego_planner']['constrained_clearance_m'] - 0.001)
+        with self.assertRaisesRegex(TuningError, 'constrained_optimization_clearance_m'):
+            self._validate(bad)
+        bad['ego_planner']['constrained_optimization_clearance_m'] = (
+            bad['ego_planner']['planning_clearance_m'])
+        with self.assertRaisesRegex(TuningError, 'constrained_optimization_clearance_m'):
+            self._validate(bad)
+
+    def test_default_map_source_fuses_fixed_walls_and_live_obstacles(self):
+        self.assertEqual('static_live_px4', self.tuning['ego_map_source'])
+
+    def test_real_fastlio_topics_reach_cloud_bridge(self):
+        overlays = node_parameter_overlays(self.tuning)
+        expected = {
+            'live_topic': '/cloud_registered',
+            'body_topic': '/cloud_registered_body',
+            'pose_topic': '/race/pose',
+        }
+        for key, value in expected.items():
+            self.assertEqual(value, self.tuning['ego_map'][key])
+            self.assertEqual(value, overlays['cloud_bridge'][key])
+
+    def test_live_cloud_topics_must_be_absolute(self):
+        for key in ('live_topic', 'body_topic', 'pose_topic'):
+            with self.subTest(key=key):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_map'][key] = 'relative/topic'
+                with self.assertRaisesRegex(TuningError, key):
+                    self._validate(bad)
+
+    def test_flight_scripts_gate_on_real_body_cloud_and_tracking(self):
+        stack = (ROOT / 'tools/flight/一键启动导航栈.sh').read_text(encoding='utf-8')
+        flight = (
+            ROOT / 'tools/flight/人工起飞后Offboard单目标验证.sh'
+        ).read_text(encoding='utf-8')
+        self.assertIn(
+            'wait_component_ready "fastlio" message /cloud_registered_body', stack)
+        self.assertIn(
+            'wait_component_ready "navigation" message /race/ego/cloud', stack)
+        self.assertIn('effective_planner_backend', stack)
+        self.assertIn(
+            '[[ "${effective_planner_backend}" != super', stack)
+        self.assertIn('/state=TRACKING/', flight)
+        self.assertIn('wait_tracking || exit 6', flight)
+        self.assertIn('/race/super_planner/raw_path', flight)
+        self.assertIn('RECORD_EGO_DIAGNOSTICS=true', flight)
+        bag = (ROOT / 'tools/rosbag/开始录包.sh').read_text(encoding='utf-8')
+        self.assertIn('RECORD_EGO_DIAGNOSTICS', bag)
+        for topic in (
+                '/race/ego/cloud', '/race/ego/occupancy',
+                '/race/ego/occupancy_inflate', '/race/ego/predicted_path'):
+            self.assertIn(topic, bag)
+        for name in ('race_click_planner.rviz', 'race_mission_click_planner.rviz'):
+            rviz = (ROOT / 'src/race_bringup/rviz' / name).read_text(encoding='utf-8')
+            self.assertIn('Value: /cloud_registered', rviz)
+            self.assertNotIn('/fast_lio/cloud_registered', rviz)
+
+    def test_pillar_area_tuning_reaches_every_target_node(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertEqual(
+            self.tuning['ego_planner']['replan_start_position_error_m'],
+            overlays['ego']['fsm/replan_start_position_error_m'])
+        for key in (
+                'handover_position_tolerance_m', 'handover_velocity_tolerance_mps',
+                'handover_acceleration_tolerance_mps2'):
+            self.assertEqual(
+                self.tuning['ego_planner'][key], overlays['ego'][f'manager/{key}'])
+            self.assertEqual(
+                self.tuning['ego_planner'][key], overlays['ego'][f'fsm/{key}'])
+        self.assertEqual(
+            self.tuning['global_planner']['max_local_goal_distance'],
+            overlays['super']['ego_local_goal_max_distance_m'])
+        self.assertEqual(
+            self.tuning['ego_map']['live_obstacle_memory_sec'],
+            overlays['cloud_bridge']['live_obstacle_memory_sec'])
+        self.assertEqual(
+            self.tuning['ego_map']['live_obstacle_voxel_size_m'],
+            overlays['cloud_bridge']['live_obstacle_voxel_size_m'])
+        self.assertEqual(
+            self.tuning['ego_map']['pose_sync_max_skew_sec'],
+            overlays['cloud_bridge']['max_pose_age_sec'])
+        self.assertEqual(
+            self.tuning['trajectory_bridge']['braking_deceleration_mps2'],
+            overlays['offboard']['braking_max_acc'])
+        self.assertEqual(
+            self.tuning['ego_map']['minimum_reliable_detection_range_m'],
+            overlays['trajectory_bridge']['minimum_reliable_detection_range_m'])
+        self.assertEqual(
+            self.tuning['trajectory_bridge']['active_recheck_history_sec'],
+            overlays['trajectory_bridge']['active_recheck_history_sec'])
+        self.assertEqual(
+            self.tuning['offboard']['same_goal_retry_on_safety_latch'],
+            overlays['offboard']['same_goal_retry_on_safety_latch'])
+
+    def test_pillar_area_replan_threshold_stays_in_a_safe_band(self):
+        for value in (0.14, 0.31):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_planner']['replan_start_position_error_m'] = value
+                with self.assertRaisesRegex(TuningError, 'replan_start_position_error_m'):
+                    self._validate(bad)
+
+    def test_pose_buffer_covers_both_sides_of_allowed_timestamp_skew(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_map']['pose_buffer_duration_sec'] = 0.59
+        with self.assertRaisesRegex(TuningError, 'pose_buffer_duration_sec'):
+            self._validate(bad)
+
+    def test_maximum_speed_must_stop_inside_reliable_detection_range(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_map']['minimum_reliable_detection_range_m'] = 0.60
+        with self.assertRaisesRegex(TuningError, 'braking horizon'):
+            self._validate(bad)
+
+    def test_live_obstacle_memory_must_cover_stopping_time(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_map']['live_obstacle_memory_sec'] = 0.60
+        with self.assertRaisesRegex(TuningError, 'stopping time'):
+            self._validate(bad)
+
+    def test_unknown_map_source_fails(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_map_source'] = 'static_plus_live_typo'
+        with self.assertRaisesRegex(TuningError, 'ego_map_source'):
+            self._validate(bad)
+
+    def test_missing_field_fails(self):
+        bad = copy.deepcopy(self.tuning)
+        del bad['global_planner']['grid_resolution']
+        with self.assertRaisesRegex(TuningError, 'grid_resolution'):
+            self._validate(bad)
+
+    def test_invalid_x_bounds_fail(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['shared_safety']['geofence']['x_min'] = 12.0
+        with self.assertRaisesRegex(TuningError, 'x_min'):
+            self._validate(bad)
+
+    def test_fixed_height_outside_bounds_fails(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_planner']['fixed_flight_height'] = 0.9
+        with self.assertRaisesRegex(TuningError, 'fixed_flight_height'):
+            self._validate(bad)
+
+    def test_min_inflation_above_hard_fails(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['global_planner']['min_planning_inflation_radius'] = 0.37
+        with self.assertRaisesRegex(TuningError, 'min_planning'):
+            self._validate(bad)
+
+    def test_all_node_bounds_are_identical(self):
+        overlays = node_parameter_overlays(self.tuning)
+        expected = (-0.85, 11.90, -3.20, 12.40, 0.50, 0.85)
+        for name in ('ego', 'goal_bridge', 'trajectory_bridge'):
+            values = overlays[name]
+            self.assertEqual(expected, (
+                values['min_x'], values['max_x'], values['min_y'], values['max_y'],
+                values['min_height'], values['max_height']))
+        self.assertEqual(expected[:4], (
+            overlays['super']['shared_bounds/x_min'], overlays['super']['shared_bounds/x_max'],
+            overlays['super']['shared_bounds/y_min'], overlays['super']['shared_bounds/y_max']))
+        self.assertEqual(expected[4:], (
+            overlays['super']['shared_bounds/z_min'], overlays['super']['shared_bounds/z_max']))
+        self.assertEqual(expected, (
+            overlays['offboard']['shared_bounds/x_min'],
+            overlays['offboard']['shared_bounds/x_max'],
+            overlays['offboard']['shared_bounds/y_min'],
+            overlays['offboard']['shared_bounds/y_max'],
+            overlays['offboard']['shared_bounds/z_min'],
+            overlays['offboard']['shared_bounds/z_max']))
+
+    def test_ego_grid_resolution_is_explicit_and_positive(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertEqual(
+            self.tuning['global_planner']['grid_resolution'],
+            overlays['ego']['grid_map/resolution'])
+        self.assertGreater(overlays['ego']['grid_map/resolution'], 0.0)
+
+    def test_super_planning_resolution_is_independent_of_ego_map_resolution(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertEqual(0.05, overlays['super']['planning_resolution'])
+        self.assertEqual(0.15, overlays['ego']['grid_map/resolution'])
+
+    def test_hard_and_optimization_clearances_are_separate(self):
+        overlays = node_parameter_overlays(self.tuning)
+        required = self.tuning['shared_safety']['required_center_clearance']
+        planning = self.tuning['ego_planner']['planning_clearance_m']
+        target = self.tuning['ego_planner']['optimization_clearance_m']
+        self.assertEqual(required, overlays['ego']['required_center_clearance'])
+        self.assertEqual(target, overlays['ego']['optimization/dist0'])
+        self.assertEqual(required, overlays['ego']['grid_map/obstacles_inflation'])
+        self.assertEqual(planning, overlays['ego']['grid_map/planning_inflation'])
+        self.assertGreater(planning, required)
+        self.assertGreater(target, planning)
+        self.assertNotIn('obstacles_inflation', self.tuning['ego_planner'])
+        self.assertNotIn('dist0', self.tuning['ego_planner'])
+
+    def test_required_center_clearance_maps_to_super_and_bridge(self):
+        overlays = node_parameter_overlays(self.tuning)
+        required = self.tuning['shared_safety']['required_center_clearance']
+        self.assertEqual(required, overlays['super']['required_center_clearance'])
+        self.assertEqual(required, overlays['trajectory_bridge']['obstacle_clearance'])
+
+    def test_inflight_continuity_gate_clears_the_ego_replan_period(self):
+        overlays = node_parameter_overlays(self.tuning)
+        timeout = self.tuning['offboard']['ego_setpoint_timeout_sec']
+        # The node declares this as "trajectory_timeout". Nothing used to map it,
+        # so its 0.50 built-in default silently governed a latching safety gate
+        # while sitting below EGO's 0.516s median replan period.
+        self.assertEqual(timeout, overlays['offboard']['trajectory_timeout'])
+        self.assertGreater(timeout, 0.981)
+        self.assertLessEqual(timeout, 3.0)
+
+    def test_handover_and_continuity_gates_stay_independent(self):
+        overlays = node_parameter_overlays(self.tuning)
+        # The strict handover gate only delays EGO takeover; the continuity gate
+        # latches the whole flight. Collapsing them onto one value is what made a
+        # normal replan gap indistinguishable from a planner failure.
+        self.assertEqual(
+            self.tuning['trajectory_bridge']['bspline_timeout_sec'],
+            overlays['offboard']['ego_setpoint_timeout_sec'])
+        self.assertLess(
+            overlays['offboard']['ego_setpoint_timeout_sec'],
+            overlays['offboard']['trajectory_timeout'])
+
+    def test_inflight_continuity_gate_is_bounded(self):
+        for value in (0.0, -0.1, 0.5, 1.0, 3.1):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['offboard']['ego_setpoint_timeout_sec'] = value
+                with self.assertRaisesRegex(
+                        TuningError, 'ego_setpoint_timeout_sec'):
+                    self._validate(bad)
+
+    def test_optimization_clearance_is_bounded_above_hard_limit(self):
+        for value in (0.28, 0.441):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_planner']['optimization_clearance_m'] = value
+                with self.assertRaisesRegex(
+                        TuningError, 'optimization_clearance_m'):
+                    self._validate(bad)
+
+    def test_planning_clearance_stays_between_hard_and_optimization_limits(self):
+        for value in (0.28, 0.421, 0.431):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_planner']['planning_clearance_m'] = value
+                with self.assertRaisesRegex(TuningError, 'planning_clearance_m'):
+                    self._validate(bad)
+
+    def test_super_and_ego_share_local_reference_topic(self):
+        overlays = node_parameter_overlays(self.tuning)
+        topic = self.tuning['ego_recovery']['reference_path_topic']
+        self.assertEqual(topic, overlays['super']['ego_reference_path_topic'])
+        self.assertEqual(topic, overlays['ego']['fsm/ego_recovery/reference_path_topic'])
+
+    def test_required_center_clearance_must_be_positive(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['shared_safety']['required_center_clearance'] = 0.0
+        with self.assertRaisesRegex(TuningError, 'required_center_clearance'):
+            self._validate(bad)
+
+    def test_required_center_clearance_must_be_finite(self):
+        for value in (float('nan'), float('inf'), float('-inf')):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['shared_safety']['required_center_clearance'] = value
+                with self.assertRaisesRegex(TuningError, 'required_center_clearance'):
+                    self._validate(bad)
+
+    def test_command_continuity_limits_are_positive_and_mapped(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertEqual(0.80, overlays['trajectory_bridge']['max_yaw_rate_rad_s'])
+        self.assertEqual(0.80, overlays['offboard']['ego_yaw_rate_limit_rad_s'])
+        self.assertEqual(2.0, overlays['offboard']['ego_setpoint_max_lead_m'])
+        bad = copy.deepcopy(self.tuning)
+        bad['offboard']['ego_setpoint_max_lead_m'] = 0.0
+        with self.assertRaisesRegex(TuningError, 'ego_setpoint_max_lead_m'):
+            self._validate(bad)
+
+    def test_ego_occupancy_output_covers_the_flight_band(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertGreaterEqual(
+            overlays['ego']['grid_map/visualization_truncate_height'],
+            self.tuning['shared_safety']['geofence']['z_max'])
+
+    def test_calibrated_target_is_inside_shared_bounds(self):
+        bounds = self.tuning['shared_safety']['geofence']
+        target = (10.9922, 3.58093, 0.78)
+        self.assertGreaterEqual(target[0], bounds['x_min'])
+        self.assertLessEqual(target[0], bounds['x_max'])
+        self.assertGreaterEqual(target[1], bounds['y_min'])
+        self.assertLessEqual(target[1], bounds['y_max'])
+        self.assertGreaterEqual(target[2], bounds['z_min'])
+        self.assertLessEqual(target[2], bounds['z_max'])
+
+    def test_goals_outside_each_calibrated_xy_bound_remain_rejected(self):
+        bounds = self.tuning['shared_safety']['geofence']
+        self.assertGreater(11.91, bounds['x_max'])
+        self.assertGreater(12.41, bounds['y_max'])
+        self.assertLess(-0.86, bounds['x_min'])
+        self.assertLess(-3.21, bounds['y_min'])
+
+    def test_ego_map_width_covers_calibrated_x_bounds(self):
+        bounds = self.tuning['shared_safety']['geofence']
+        half_width = self.tuning['ego_planner']['occupancy_map_size_x'] * 0.5
+        self.assertLessEqual(abs(bounds['x_min']), half_width)
+        self.assertLessEqual(abs(bounds['x_max']), half_width)
+
+    def test_ego_map_width_covers_calibrated_y_bounds(self):
+        bounds = self.tuning['shared_safety']['geofence']
+        half_width = self.tuning['ego_planner']['occupancy_map_size_y'] * 0.5
+        self.assertLessEqual(abs(bounds['y_min']), half_width)
+        self.assertLessEqual(abs(bounds['y_max']), half_width)
+        self.assertEqual(
+            self.tuning['ego_planner']['occupancy_map_size_y'],
+            node_parameter_overlays(self.tuning)['ego']['grid_map/map_size_y'])
+
+    def test_ego_map_y_width_must_cover_shared_bounds(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_planner']['occupancy_map_size_y'] = 14.0
+        with self.assertRaisesRegex(TuningError, 'occupancy_map_size_y'):
+            self._validate(bad)
+
+    def test_recovery_framework_is_enabled_and_bounded(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertTrue(self.tuning['ego_planner']['use_distinctive_trajectories'])
+        self.assertTrue(overlays['ego']['manager/use_distinctive_trajs'])
+        self.assertEqual(
+            self.tuning['ego_planner']['max_reference_deviation_m'],
+            overlays['ego']['manager/max_reference_deviation_m'])
+        self.assertTrue(self.tuning['ego_recovery']['enable'])
+        self.assertFalse(self.tuning['ego_recovery']['diagnostic_only'])
+        self.assertEqual(2, self.tuning['ego_recovery']['max_recovery_attempts'])
+        self.assertEqual(0.5, self.tuning['ego_recovery']['cooldown_sec'])
+        self.assertEqual(2.0, self.tuning['ego_recovery']['exhausted_backoff_sec'])
+        self.assertEqual(0.6, self.tuning['ego_recovery']['rejoin_search_distance_m'])
+        self.assertEqual(0.15, self.tuning['ego_recovery']['minimum_forward_progress_m'])
+        self.assertEqual(0.06, self.tuning['ego_recovery']['extra_clearance_m'])
+        self.assertEqual(0.78, self.tuning['ego_recovery']['max_reference_deviation_m'])
+        self.assertEqual(0.75, self.tuning['ego_recovery']['max_lateral_offset_m'])
+        self.assertEqual(0.15, self.tuning['ego_recovery']['lateral_offset_step_m'])
+        self.assertEqual(
+            0.75, overlays['ego']['fsm/ego_recovery/max_lateral_offset_m'])
+        self.assertEqual(
+            0.15, overlays['ego']['fsm/ego_recovery/lateral_offset_step_m'])
+        self.assertTrue(overlays['ego']['fsm/ego_recovery/enable'])
+        self.assertFalse(overlays['ego']['fsm/ego_recovery/diagnostic_only'])
+        self.assertEqual(
+            0.6, overlays['ego']['fsm/ego_recovery/rejoin_search_distance_m'])
+        self.assertEqual(
+            0.15, overlays['ego']['fsm/ego_recovery/minimum_forward_progress_m'])
+        self.assertEqual(
+            0.06, overlays['ego']['fsm/ego_recovery/extra_clearance_m'])
+        self.assertEqual(
+            0.78, overlays['ego']['fsm/ego_recovery/max_reference_deviation_m'])
+        self.assertEqual(
+            2.0, overlays['ego']['fsm/ego_recovery/exhausted_backoff_sec'])
+
+    def test_replan_hold_timeout_reaches_the_trajectory_bridge(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertEqual(
+            self.tuning['trajectory_bridge']['replan_hold_timeout_sec'],
+            overlays['trajectory_bridge']['replan_hold_timeout_sec'])
+
+    def test_reference_deviation_guard_is_bounded(self):
+        for value in (0.0, 0.349, 1.001):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_planner']['max_reference_deviation_m'] = value
+                with self.assertRaisesRegex(TuningError, 'max_reference_deviation_m'):
+                    self._validate(bad)
+
+    def test_rejoin_search_distance_is_bounded(self):
+        for value in (0.0, 0.59, 2.01):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_recovery']['rejoin_search_distance_m'] = value
+                with self.assertRaisesRegex(TuningError, 'rejoin_search_distance_m'):
+                    self._validate(bad)
+
+    def test_forward_progress_is_bounded_by_rejoin_search(self):
+        for value in (0.0, 0.049, 0.401):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_recovery']['minimum_forward_progress_m'] = value
+                with self.assertRaisesRegex(TuningError, 'minimum_forward_progress_m'):
+                    self._validate(bad)
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_recovery']['minimum_forward_progress_m'] = 0.61
+        with self.assertRaisesRegex(TuningError, 'minimum_forward_progress_m'):
+            self._validate(bad)
+
+    def test_recovery_geometry_limits_are_bounded(self):
+        for value in (-0.01, 0.101):
+            with self.subTest(extra_clearance_m=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_recovery']['extra_clearance_m'] = value
+                with self.assertRaisesRegex(TuningError, 'extra_clearance_m'):
+                    self._validate(bad)
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_recovery']['extra_clearance_m'] = 0.09
+        with self.assertRaisesRegex(TuningError, 'extra_clearance_m'):
+            self._validate(bad)
+
+        for value in (0.449, 0.801):
+            with self.subTest(max_reference_deviation_m=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_recovery']['max_reference_deviation_m'] = value
+                with self.assertRaisesRegex(TuningError, 'max_reference_deviation_m'):
+                    self._validate(bad)
+
+    def test_handover_tolerances_are_bounded(self):
+        limits = {
+            'handover_position_tolerance_m': 0.02,
+            'handover_velocity_tolerance_mps': 0.02,
+            'handover_acceleration_tolerance_mps2': 0.05,
+        }
+        for key, limit in limits.items():
+            for value in (0.0, -0.001, limit + 0.001):
+                with self.subTest(key=key, value=value):
+                    bad = copy.deepcopy(self.tuning)
+                    bad['ego_planner'][key] = value
+                    with self.assertRaisesRegex(TuningError, key):
+                        self._validate(bad)
+
+    def test_goal_bridge_stability_gate_is_plumbed(self):
+        overlays = node_parameter_overlays(self.tuning)
+        offboard = self.tuning['offboard']
+        self.assertEqual(
+            offboard['ego_goal_stable_duration_sec'],
+            overlays['goal_bridge']['stable_duration_sec'])
+        self.assertEqual(
+            offboard['ego_goal_stable_height_tolerance_m'],
+            overlays['goal_bridge']['stable_height_tolerance_m'])
+
+    def test_recovery_can_be_disabled_without_changing_other_tuning(self):
+        disabled = copy.deepcopy(self.tuning)
+        disabled['ego_recovery']['enable'] = False
+        overlays = self._validate(disabled)
+        self.assertFalse(node_parameter_overlays(overlays)['ego']['fsm/ego_recovery/enable'])
+
+    def test_recovery_attempt_count_must_be_positive(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_recovery']['max_recovery_attempts'] = 0
+        with self.assertRaisesRegex(TuningError, 'max_recovery_attempts'):
+            self._validate(bad)
+
+    def test_expensive_ego_diagnostics_are_explicitly_disabled_by_default(self):
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertFalse(self.tuning['ego_diagnostics']['enable'])
+        self.assertFalse(overlays['ego']['ego_diagnostics.enable'])
+
+    def test_ego_diagnostics_enable_must_be_boolean(self):
+        bad = copy.deepcopy(self.tuning)
+        bad['ego_diagnostics']['enable'] = 1
+        with self.assertRaisesRegex(TuningError, 'ego_diagnostics.enable'):
+            self._validate(bad)
+
+    def _validate(self, document):
+        import tempfile
+        import yaml
+        with tempfile.NamedTemporaryFile('w', suffix='.yaml') as stream:
+            yaml.safe_dump(document, stream)
+            stream.flush()
+            return load_tuning(stream.name)
+
+
+if __name__ == '__main__':
+    unittest.main()

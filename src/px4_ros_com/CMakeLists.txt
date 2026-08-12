@@ -20,7 +20,6 @@ find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(px4_msgs REQUIRED)
@@ -44,51 +43,31 @@ target_include_directories(frame_transforms PUBLIC
 )
 
 
-# examples/listeners/sensor_combined_listener
-add_executable(sensor_combined_listener src/examples/listeners/sensor_combined_listener.cpp)
-ament_target_dependencies(sensor_combined_listener rclcpp px4_msgs)
-install(TARGETS sensor_combined_listener DESTINATION lib/${PROJECT_NAME})
-
-# examples/listeners/vehicle_gps_position_listener
-add_executable(vehicle_gps_position_listener src/examples/listeners/vehicle_gps_position_listener.cpp)
-ament_target_dependencies(vehicle_gps_position_listener rclcpp px4_msgs)
-install(TARGETS vehicle_gps_position_listener DESTINATION lib/${PROJECT_NAME})
-
-# examples/advertisers/debug_vect_advertiser
-add_executable(debug_vect_advertiser src/examples/advertisers/debug_vect_advertiser.cpp)
-ament_target_dependencies(debug_vect_advertiser rclcpp px4_msgs)
-install(TARGETS debug_vect_advertiser DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/offboard_control
-add_executable(offboard_control src/examples/offboard/offboard_control.cpp)
-ament_target_dependencies(offboard_control rclcpp px4_msgs)
-install(TARGETS offboard_control DESTINATION lib/${PROJECT_NAME})
-
-# examples/offboard/offboard_control_srv
-add_executable(offboard_control_srv src/examples/offboard/offboard_control_srv.cpp)
-ament_target_dependencies(offboard_control_srv rclcpp px4_msgs)
-install(TARGETS offboard_control_srv DESTINATION lib/${PROJECT_NAME})
-
-# bridges/fastlio_mavros_odometry_bridge
-add_executable(fastlio_mavros_odometry_bridge src/bridges/fastlio_mavros_odometry_bridge.cpp)
-ament_target_dependencies(fastlio_mavros_odometry_bridge geometry_msgs nav_msgs rclcpp)
-install(TARGETS fastlio_mavros_odometry_bridge DESTINATION lib/${PROJECT_NAME})
+# ============================================================================
+# EV 链唯一路径（2026-08-08 定稿）
+#
+#   MID-360 -> FAST-LIO -> /Odometry -> fastlio_odometry_guard
+#     -> /Odometry/healthy -> fastlio_mavros_vision_bridge
+#     -> /mavros/vision_pose/pose_cov -> MAVROS -> PX4 EKF2
+#
+# 这是向 PX4 提供外部视觉定位的唯一通路。曾经并存的另两个 EV 写者
+# （fastlio_mavros_odometry_bridge -> /mavros/odometry/out、
+#  fastlio_vehicle_visual_odometry -> /fmu/in/vehicle_visual_odometry）
+# 已删除：它们默认关闭，但只靠 launch 参数互斥，两个 launch 同时起就会
+# 出现多个 EV 写者同时喂 PX4。删掉源头比在运行期检测更可靠。
+#
+# 新增任何 PX4 EV 写者前，先读 坐标转换.md。
+# ============================================================================
 
 # bridges/fastlio_odometry_guard
 add_executable(fastlio_odometry_guard src/bridges/fastlio_odometry_guard.cpp)
 ament_target_dependencies(fastlio_odometry_guard geometry_msgs nav_msgs rclcpp)
 install(TARGETS fastlio_odometry_guard DESTINATION lib/${PROJECT_NAME})
 
-# bridges/fastlio_mavros_vision_bridge
+# bridges/fastlio_mavros_vision_bridge —— 唯一 PX4 EV 写者
 add_executable(fastlio_mavros_vision_bridge src/bridges/fastlio_mavros_vision_bridge.cpp)
 ament_target_dependencies(fastlio_mavros_vision_bridge geometry_msgs nav_msgs rclcpp)
 install(TARGETS fastlio_mavros_vision_bridge DESTINATION lib/${PROJECT_NAME})
-
-# bridges/fastlio_vehicle_visual_odometry
-add_executable(fastlio_vehicle_visual_odometry src/bridges/fastlio_vehicle_visual_odometry.cpp)
-ament_target_dependencies(fastlio_vehicle_visual_odometry nav_msgs px4_msgs rclcpp)
-target_link_libraries(fastlio_vehicle_visual_odometry frame_transforms)
-install(TARGETS fastlio_vehicle_visual_odometry DESTINATION lib/${PROJECT_NAME})
 
 
 ############
@@ -128,32 +107,27 @@ install(DIRECTORY test DESTINATION share/${PROJECT_NAME}/)
 
 if(BUILD_TESTING)
 	find_package(Python3 REQUIRED COMPONENTS Interpreter)
+	find_package(ament_cmake_gtest REQUIRED)
 	find_package(ament_lint_auto REQUIRED)
-	# the following line skips the linter which checks for copyrights
-	# uncomment the line when a copyright and license is not present in all source files
-	#set(ament_cmake_copyright_FOUND TRUE)
-	# the following line skips cpplint (only works in a git repo)
-	# uncomment the line when this package is not in a git repo
-	#set(ament_cmake_cpplint_FOUND TRUE)
 	ament_lint_auto_find_test_dependencies()
-	add_test(
-		NAME test_ev_health
-		COMMAND ${Python3_EXECUTABLE} -m pytest -q
-			${CMAKE_CURRENT_SOURCE_DIR}/test/test_ev_health.py)
-	set_tests_properties(test_ev_health PROPERTIES ENVIRONMENT
-		"PYTEST_DISABLE_PLUGIN_AUTOLOAD=1;PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
-	add_test(
-		NAME test_minipc_mavros_offboard_ev_safety
-		COMMAND ${Python3_EXECUTABLE}
-			${CMAKE_CURRENT_SOURCE_DIR}/test/test_minipc_mavros_offboard_ev_safety.py)
-	set_tests_properties(test_minipc_mavros_offboard_ev_safety PROPERTIES ENVIRONMENT
-		"PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
-	add_test(
-		NAME test_ev_odometry_acceptance
-		COMMAND ${Python3_EXECUTABLE} -m pytest -q
-			${CMAKE_CURRENT_SOURCE_DIR}/test/test_ev_odometry_acceptance.py)
-	set_tests_properties(test_ev_odometry_acceptance PROPERTIES ENVIRONMENT
-		"PYTEST_DISABLE_PLUGIN_AUTOLOAD=1;PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
+
+	# pytest 的插件自动加载会与系统 anyio 插件冲突，统一关闭。
+	set(PYTEST_ENV "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1;PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}:$ENV{PYTHONPATH}")
+
+	ament_add_gtest(test_lever_arm_compensation test/test_lever_arm_compensation.cpp)
+	target_include_directories(test_lever_arm_compensation PRIVATE include)
+
+	foreach(pytest_name
+			test_ev_health
+			test_ev_odometry_acceptance
+			test_mid360_lever_arm_config
+			test_mavros_state_monitor)
+		add_test(
+			NAME ${pytest_name}
+			COMMAND ${Python3_EXECUTABLE} -m pytest -q
+				${CMAKE_CURRENT_SOURCE_DIR}/test/${pytest_name}.py)
+		set_tests_properties(${pytest_name} PROPERTIES ENVIRONMENT "${PYTEST_ENV}")
+	endforeach()
 endif()
 
 ###########
@@ -169,9 +143,6 @@ install(PROGRAMS
   scripts/fix_mavros_odometry_frames.py
   scripts/fix_mavros_identity.py
   scripts/fastlio_ev_health_monitor.py
-  scripts/minipc_mavros_offboard.py
-  scripts/minipc_offboard_control.py
-  src/examples/offboard_py/offboard_control.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

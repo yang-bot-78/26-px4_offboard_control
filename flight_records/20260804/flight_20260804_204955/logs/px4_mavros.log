@@ -1,0 +1,526 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-04-20-50-00-817866-robot-6983
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [6984]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [6986]
+[INFO] [fastlio_ev_health_monitor.py-3]: process started with pid [6988]
+[INFO] [fastlio_mavros_vision_bridge-4]: process started with pid [6990]
+[INFO] [static_transform_publisher-5]: process started with pid [6992]
+[INFO] [static_transform_publisher-6]: process started with pid [6994]
+[INFO] [static_transform_publisher-7]: process started with pid [6996]
+[INFO] [static_transform_publisher-8]: process started with pid [6998]
+[static_transform_publisher-8] [INFO] [1785847800.946123822] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-8] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] from 'body' to 'body_frd'
+[static_transform_publisher-7] [INFO] [1785847800.946217650] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'camera_init' to 'camera_init_ned'
+[static_transform_publisher-5] [INFO] [1785847800.948430132] [odom_to_camera_init]: Spinning until stopped - publishing transform
+[static_transform_publisher-5] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-5] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-5] from 'odom' to 'camera_init'
+[mavros_node-1] [INFO] [1785847800.948656359] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1785847800.948786202] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1785847800.948799898] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1785847800.948809419] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1785847800.948817566] [mavros.mavros_node]: Starting mavros router node
+[fastlio_mavros_vision_bridge-4] [INFO] [1785847800.950408291] [fastlio_mavros_vision_bridge]: Bridging /Odometry/healthy -> /mavros/vision_pose/pose_cov + vision_speed for MAVROS vision input
+[static_transform_publisher-6] [INFO] [1785847800.951439914] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[static_transform_publisher-6] from 'base_link' to 'body'
+[fastlio_odometry_guard-2] [INFO] [1785847800.955017044] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.30m, xy=0.20m, z=0.10m, speed=1.20m/s)
+[mavros_node-1] [INFO] [1785847800.956829563] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1785847800.956854505] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1785847800.956861335] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1785847800.956864205] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1785847800.957084467] [mavros.mavros_node]: Starting mavros uas node
+[mavros_node-1] [INFO] [1785847801.001783617] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1785847801.002066237] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1785847801.003494901] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1785847801.003534270] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1785847801.003562267] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1785847801.004077068] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1785847801.008457559] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1785847801.010408994] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1785847801.046369547] [mavros.mavros]: Plugin actuator_control created
+[mavros_node-1] [INFO] [1785847801.046740303] [mavros.mavros]: Plugin actuator_control initialized
+[mavros_node-1] [INFO] [1785847801.091394714] [mavros.mavros]: Plugin adsb created
+[mavros_node-1] [INFO] [1785847801.091465707] [mavros.mavros]: Plugin adsb initialized
+[mavros_node-1] [INFO] [1785847801.101172857] [mavros.mavros]: Plugin altitude created
+[mavros_node-1] [INFO] [1785847801.101263337] [mavros.mavros]: Plugin altitude initialized
+[mavros_node-1] [INFO] [1785847801.108039773] [mavros.mavros]: Plugin cam_imu_sync created
+[mavros_node-1] [INFO] [1785847801.108125608] [mavros.mavros]: Plugin cam_imu_sync initialized
+[mavros_node-1] [INFO] [1785847801.122295642] [mavros.mavros]: Plugin camera created
+[mavros_node-1] [INFO] [1785847801.122380939] [mavros.mavros]: Plugin camera initialized
+[mavros_node-1] [INFO] [1785847801.137994310] [mavros.mavros]: Plugin cellular_status created
+[mavros_node-1] [INFO] [1785847801.138121070] [mavros.mavros]: Plugin cellular_status initialized
+[mavros_node-1] [INFO] [1785847801.166110591] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1785847801.166178655] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1785847801.175802968] [mavros.mavros]: Plugin companion_process_status created
+[mavros_node-1] [INFO] [1785847801.175872189] [mavros.mavros]: Plugin companion_process_status initialized
+[fastlio_odometry_guard-2] [WARN] [1785847801.186805188] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1)
+[mavros_node-1] [INFO] [1785847801.192846960] [mavros.mavros]: Plugin debug_value created
+[mavros_node-1] [INFO] [1785847801.192913719] [mavros.mavros]: Plugin debug_value initialized
+[mavros_node-1] [INFO] [1785847801.192928542] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1785847801.207684590] [mavros.mavros]: Plugin esc_status created
+[mavros_node-1] [INFO] [1785847801.207787305] [mavros.mavros]: Plugin esc_status initialized
+[mavros_node-1] [INFO] [1785847801.222625070] [mavros.mavros]: Plugin esc_telemetry created
+[mavros_node-1] [INFO] [1785847801.222754651] [mavros.mavros]: Plugin esc_telemetry initialized
+[mavros_node-1] [INFO] [1785847801.238080656] [mavros.mavros]: Plugin fake_gps created
+[mavros_node-1] [INFO] [1785847801.238198872] [mavros.mavros]: Plugin fake_gps initialized
+[mavros_node-1] [INFO] [1785847801.269023677] [mavros.mavros]: Plugin ftp created
+[mavros_node-1] [INFO] [1785847801.269114383] [mavros.mavros]: Plugin ftp initialized
+[mavros_node-1] [INFO] [1785847801.290080554] [mavros.mavros]: Plugin geofence created
+[mavros_node-1] [INFO] [1785847801.290166804] [mavros.mavros]: Plugin geofence initialized
+[mavros_node-1] [INFO] [1785847801.308755813] [mavros.mavros]: Plugin gimbal_control created
+[mavros_node-1] [INFO] [1785847801.308843815] [mavros.mavros]: Plugin gimbal_control initialized
+[mavros_node-1] [INFO] [1785847801.332304520] [mavros.mavros]: Plugin global_position created
+[mavros_node-1] [INFO] [1785847801.332447523] [mavros.mavros]: Plugin global_position initialized
+[mavros_node-1] [INFO] [1785847801.351511659] [mavros.mavros]: Plugin gps_input created
+[mavros_node-1] [INFO] [1785847801.351583546] [mavros.mavros]: Plugin gps_input initialized
+[mavros_node-1] [INFO] [1785847801.363556128] [mavros.mavros]: Plugin gps_rtk created
+[mavros_node-1] [INFO] [1785847801.363614641] [mavros.mavros]: Plugin gps_rtk initialized
+[fastlio_ev_health_monitor.py-3] [INFO] [1785847801.381717201] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[mavros_node-1] [INFO] [1785847801.381954716] [mavros.mavros]: Plugin gps_status created
+[mavros_node-1] [INFO] [1785847801.382023740] [mavros.mavros]: Plugin gps_status initialized
+[mavros_node-1] [INFO] [1785847801.396386620] [mavros.mavros]: Plugin guided_target created
+[mavros_node-1] [INFO] [1785847801.396426241] [mavros.mavros]: Plugin guided_target initialized
+[mavros_node-1] [INFO] [1785847801.409001104] [mavros.mavros]: Plugin hil created
+[mavros_node-1] [INFO] [1785847801.409110969] [mavros.mavros]: Plugin hil initialized
+[mavros_node-1] [INFO] [1785847801.442311785] [mavros.mavros]: Plugin home_position created
+[mavros_node-1] [INFO] [1785847801.442366253] [mavros.mavros]: Plugin home_position initialized
+[fastlio_ev_health_monitor.py-3] [WARN] [1785847801.459922126] [fastlio_ev_health_monitor]: EV health state=SUSPECT: waiting_for_ev
+[mavros_node-1] [INFO] [1785847801.465234907] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1785847801.465302473] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1785847801.476418432] [mavros.mavros]: Plugin landing_target created
+[mavros_node-1] [INFO] [1785847801.476482747] [mavros.mavros]: Plugin landing_target initialized
+[mavros_node-1] [INFO] [1785847801.494581137] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1785847801.494638592] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1785847801.510634047] [mavros.mavros]: Plugin log_transfer created
+[mavros_node-1] [INFO] [1785847801.510702589] [mavros.mavros]: Plugin log_transfer initialized
+[mavros_node-1] [INFO] [1785847801.520217307] [mavros.mavros]: Plugin mag_calibration_status created
+[mavros_node-1] [INFO] [1785847801.520273242] [mavros.mavros]: Plugin mag_calibration_status initialized
+[mavros_node-1] [INFO] [1785847801.536529024] [mavros.mavros]: Plugin manual_control created
+[mavros_node-1] [INFO] [1785847801.536679931] [mavros.mavros]: Plugin manual_control initialized
+[mavros_node-1] [INFO] [1785847801.547935943] [mavros.mavros]: Plugin mocap_pose_estimate created
+[mavros_node-1] [INFO] [1785847801.547978641] [mavros.mavros]: Plugin mocap_pose_estimate initialized
+[mavros_node-1] [INFO] [1785847801.563685002] [mavros.mavros]: Plugin mount_control created
+[mavros_node-1] [INFO] [1785847801.563797206] [mavros.mavros]: Plugin mount_control initialized
+[mavros_node-1] [INFO] [1785847801.582921952] [mavros.mavros]: Plugin nav_controller_output created
+[mavros_node-1] [INFO] [1785847801.583039751] [mavros.mavros]: Plugin nav_controller_output initialized
+[mavros_node-1] [INFO] [1785847801.593293470] [mavros.mavros]: Plugin obstacle_distance created
+[mavros_node-1] [INFO] [1785847801.593372947] [mavros.mavros]: Plugin obstacle_distance initialized
+[mavros_node-1] [INFO] [1785847801.605385806] [mavros.mavros]: Plugin obstacle_distance_3d created
+[mavros_node-1] [INFO] [1785847801.605477838] [mavros.mavros]: Plugin obstacle_distance_3d initialized
+[mavros_node-1] [INFO] [1785847801.631406908] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1785847801.631473731] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1785847801.651369175] [mavros.mavros]: Plugin onboard_computer_status created
+[mavros_node-1] [INFO] [1785847801.651492606] [mavros.mavros]: Plugin onboard_computer_status initialized
+[mavros_node-1] [INFO] [1785847801.671183521] [mavros.mavros]: Plugin open_drone_id created
+[mavros_node-1] [INFO] [1785847801.671228647] [mavros.mavros]: Plugin open_drone_id initialized
+[mavros_node-1] [INFO] [1785847801.685317551] [mavros.mavros]: Plugin optical_flow created
+[mavros_node-1] [INFO] [1785847801.685453844] [mavros.mavros]: Plugin optical_flow initialized
+[mavros_node-1] [INFO] [1785847801.708687136] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1785847801.708735808] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1785847801.721133785] [mavros.mavros]: Plugin play_tune created
+[mavros_node-1] [INFO] [1785847801.721214566] [mavros.mavros]: Plugin play_tune initialized
+[mavros_node-1] [INFO] [1785847801.753514111] [mavros.mavros]: Plugin px4flow created
+[mavros_node-1] [INFO] [1785847801.753576407] [mavros.mavros]: Plugin px4flow initialized
+[mavros_node-1] [INFO] [1785847801.782338065] [mavros.mavros]: Plugin rallypoint created
+[mavros_node-1] [INFO] [1785847801.782436197] [mavros.mavros]: Plugin rallypoint initialized
+[mavros_node-1] [INFO] [1785847801.782452646] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1785847801.802754027] [mavros.mavros]: Plugin rc_io created
+[mavros_node-1] [INFO] [1785847801.802934950] [mavros.mavros]: Plugin rc_io initialized
+[mavros_node-1] [INFO] [1785847801.831259446] [mavros.mavros]: Plugin setpoint_accel created
+[mavros_node-1] [INFO] [1785847801.831363984] [mavros.mavros]: Plugin setpoint_accel initialized
+[fastlio_ev_health_monitor.py-3] [WARN] [1785847801.860193556] [fastlio_ev_health_monitor]: EV health state=FAULT: waiting_for_ev
+[mavros_node-1] [INFO] [1785847801.864231385] [mavros.mavros]: Plugin setpoint_attitude created
+[mavros_node-1] [INFO] [1785847801.864282383] [mavros.mavros]: Plugin setpoint_attitude initialized
+[mavros_node-1] [INFO] [1785847801.880615234] [mavros.mavros]: Plugin setpoint_position created
+[mavros_node-1] [INFO] [1785847801.880703953] [mavros.mavros]: Plugin setpoint_position initialized
+[mavros_node-1] [INFO] [1785847801.910707657] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1785847801.910788379] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1785847801.942440862] [mavros.mavros]: Plugin setpoint_trajectory created
+[mavros_node-1] [INFO] [1785847801.942515300] [mavros.mavros]: Plugin setpoint_trajectory initialized
+[mavros_node-1] [INFO] [1785847801.958273502] [mavros.mavros]: Plugin setpoint_velocity created
+[mavros_node-1] [INFO] [1785847801.958450994] [mavros.mavros]: Plugin setpoint_velocity initialized
+[mavros_node-1] [INFO] [1785847801.986183046] [mavros.mavros]: Plugin sim_state created
+[mavros_node-1] [INFO] [1785847801.986231700] [mavros.mavros]: Plugin sim_state initialized
+[mavros_node-1] [INFO] [1785847802.027247723] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1785847802.027307595] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1785847802.044199420] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1785847802.052150693] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1785847802.052266427] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1785847802.078645018] [mavros.mavros]: Plugin tdr_radio created
+[mavros_node-1] [INFO] [1785847802.078724115] [mavros.mavros]: Plugin tdr_radio initialized
+[mavros_node-1] [INFO] [1785847802.105902112] [mavros.mavros]: Plugin terrain created
+[mavros_node-1] [INFO] [1785847802.106060950] [mavros.mavros]: Plugin terrain initialized
+[mavros_node-1] [INFO] [1785847802.133477904] [mavros.mavros]: Plugin trajectory created
+[mavros_node-1] [INFO] [1785847802.133548869] [mavros.mavros]: Plugin trajectory initialized
+[mavros_node-1] [INFO] [1785847802.155982927] [mavros.mavros]: Plugin tunnel created
+[mavros_node-1] [INFO] [1785847802.156047155] [mavros.mavros]: Plugin tunnel initialized
+[mavros_node-1] [INFO] [1785847802.182367789] [mavros.mavros]: Plugin vfr_hud created
+[mavros_node-1] [INFO] [1785847802.182545626] [mavros.mavros]: Plugin vfr_hud initialized
+[mavros_node-1] [INFO] [1785847802.182552960] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1785847802.201287902] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1785847802.201446192] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1785847802.230626402] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1785847802.230699260] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1785847802.265839835] [mavros.mavros]: Plugin waypoint created
+[mavros_node-1] [INFO] [1785847802.265908251] [mavros.mavros]: Plugin waypoint initialized
+[mavros_node-1] [INFO] [1785847802.265914375] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1785847802.284702315] [mavros.mavros]: Plugin wind_estimation created
+[mavros_node-1] [INFO] [1785847802.284801243] [mavros.mavros]: Plugin wind_estimation initialized
+[mavros_node-1] [INFO] [1785847802.287801174] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1785847802.287887339] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1785847802.287897093] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1785847802.287904109] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1785847802.289310209] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1785847802.302018200] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1785847802.305381093] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [INFO] [1785847802.306194971] [mavros.rc]: RC_CHANNELS message detected!
+[fastlio_odometry_guard-2] [WARN] [1785847802.565452853] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=11)
+[mavros_node-1] [INFO] [1785847802.603349975] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1785847802.603447195] [mavros.mission]: WP: detected enable_partial_push: 0
+[mavros_node-1] [INFO] [1785847802.607414231] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1785847802.608789713] [mavros.rc]: RC_CHANNELS message detected!
+[mavros_node-1] [INFO] [1785847802.622942405] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [WARN] [1785847803.620271529] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[fastlio_odometry_guard-2] [WARN] [1785847803.745167622] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=22)
+[mavros_node-1] [WARN] [1785847804.609323024] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[fastlio_odometry_guard-2] [WARN] [1785847805.025306465] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=33)
+[mavros_node-1] [WARN] [1785847805.611207461] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[fastlio_odometry_guard-2] [WARN] [1785847806.304927885] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=46)
+[mavros_node-1] [ERROR] [1785847806.616676560] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1785847806.616737953] [mavros.sys]: VER: unicast request timeout, retries left 2
+[fastlio_odometry_guard-2] [WARN] [1785847807.308323060] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=59)
+[mavros_node-1] [ERROR] [1785847807.621463319] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1785847807.621535293] [mavros.sys]: VER: unicast request timeout, retries left 1
+[fastlio_odometry_guard-2] [WARN] [1785847808.514940579] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=69)
+[mavros_node-1] [ERROR] [1785847808.617275650] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1785847808.617320501] [mavros.sys]: VER: unicast request timeout, retries left 0
+[fastlio_odometry_guard-2] [WARN] [1785847809.555736602] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=79)
+[mavros_node-1] [ERROR] [1785847809.622707107] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1785847809.622771932] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[fastlio_odometry_guard-2] [WARN] [1785847810.834535387] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=92)
+[fastlio_odometry_guard-2] [WARN] [1785847812.014644001] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=105)
+[mavros_node-1] [INFO] [1785847812.603966953] [mavros.home_position]: HP: requesting home position
+[fastlio_odometry_guard-2] [WARN] [1785847813.105766272] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=117)
+[fastlio_odometry_guard-2] [WARN] [1785847814.285380723] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=128)
+[fastlio_odometry_guard-2] [WARN] [1785847815.406212854] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=139)
+[fastlio_odometry_guard-2] [WARN] [1785847816.683697276] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=150)
+[mavros_node-1] [INFO] [1785847817.606902774] [mavros.mission]: WP: mission received
+[fastlio_odometry_guard-2] [WARN] [1785847817.955725117] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=163)
+[fastlio_odometry_guard-2] [WARN] [1785847819.234540391] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=176)
+[fastlio_odometry_guard-2] [WARN] [1785847820.234857287] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=188)
+[fastlio_odometry_guard-2] [WARN] [1785847821.364752074] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=198)
+[fastlio_odometry_guard-2] [WARN] [1785847822.394187341] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=210)
+[mavros_node-1] [INFO] [1785847822.612863249] [mavros.rallypoint]: RP: mission received
+[fastlio_odometry_guard-2] [WARN] [1785847823.585647099] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=220)
+[fastlio_odometry_guard-2] [WARN] [1785847824.626625626] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=232)
+[fastlio_odometry_guard-2] [WARN] [1785847825.635345376] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=242)
+[fastlio_odometry_guard-2] [WARN] [1785847826.645764674] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=251)
+[mavros_node-1] [INFO] [1785847827.610731014] [mavros.geofence]: GF: mission received
+[fastlio_odometry_guard-2] [WARN] [1785847827.904726702] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=263)
+[fastlio_odometry_guard-2] [WARN] [1785847828.944137099] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=275)
+[fastlio_odometry_guard-2] [WARN] [1785847829.985351499] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=285)
+[fastlio_odometry_guard-2] [WARN] [1785847831.023876050] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=296)
+[fastlio_odometry_guard-2] [WARN] [1785847832.105069107] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=304)
+[fastlio_odometry_guard-2] [WARN] [1785847833.385958169] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=317)
+[fastlio_odometry_guard-2] [WARN] [1785847834.664323482] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=330)
+[fastlio_odometry_guard-2] [WARN] [1785847835.947804131] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=343)
+[fastlio_odometry_guard-2] [WARN] [1785847836.994265257] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=356)
+[fastlio_odometry_guard-2] [WARN] [1785847838.144754539] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=366)
+[fastlio_odometry_guard-2] [WARN] [1785847839.175543625] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=376)
+[fastlio_odometry_guard-2] [WARN] [1785847840.206767978] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=387)
+[fastlio_odometry_guard-2] [WARN] [1785847841.305217028] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=398)
+[fastlio_odometry_guard-2] [WARN] [1785847842.324005313] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=409)
+[fastlio_odometry_guard-2] [WARN] [1785847843.525604219] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=419)
+[fastlio_odometry_guard-2] [WARN] [1785847844.545105003] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=431)
+[fastlio_odometry_guard-2] [WARN] [1785847845.616840941] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=442)
+[fastlio_odometry_guard-2] [WARN] [1785847846.844923165] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=453)
+[fastlio_odometry_guard-2] [WARN] [1785847847.885360192] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=464)
+[fastlio_odometry_guard-2] [WARN] [1785847848.974199568] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=474)
+[fastlio_odometry_guard-2] [WARN] [1785847849.995298355] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=486)
+[fastlio_odometry_guard-2] [WARN] [1785847851.164599672] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=496)
+[fastlio_odometry_guard-2] [WARN] [1785847852.314462731] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=508)
+[fastlio_odometry_guard-2] [WARN] [1785847853.424341202] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=520)
+[fastlio_odometry_guard-2] [WARN] [1785847854.526336626] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=530)
+[fastlio_odometry_guard-2] [WARN] [1785847855.554147492] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=540)
+[fastlio_odometry_guard-2] [WARN] [1785847856.584970743] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=551)
+[fastlio_odometry_guard-2] [WARN] [1785847857.594972206] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=559)
+[fastlio_odometry_guard-2] [WARN] [1785847858.803958597] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=572)
+[fastlio_odometry_guard-2] [WARN] [1785847859.824659481] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=584)
+[fastlio_odometry_guard-2] [WARN] [1785847860.925277321] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=594)
+[fastlio_odometry_guard-2] [WARN] [1785847861.957259758] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=604)
+[fastlio_odometry_guard-2] [WARN] [1785847863.047448212] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=616)
+[fastlio_odometry_guard-2] [WARN] [1785847864.115439084] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=627)
+[fastlio_odometry_guard-2] [WARN] [1785847865.235319753] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=634)
+[fastlio_odometry_guard-2] [WARN] [1785847866.514293667] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=647)
+[fastlio_odometry_guard-2] [WARN] [1785847867.794837056] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=660)
+[fastlio_odometry_guard-2] [WARN] [1785847869.073935798] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=673)
+[fastlio_odometry_guard-2] [WARN] [1785847870.354722966] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=685)
+[fastlio_odometry_guard-2] [WARN] [1785847871.635383694] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=698)
+[fastlio_odometry_guard-2] [WARN] [1785847872.913724891] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=711)
+[fastlio_odometry_guard-2] [WARN] [1785847874.195674695] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=724)
+[fastlio_odometry_guard-2] [WARN] [1785847875.473785333] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=737)
+[fastlio_odometry_guard-2] [WARN] [1785847876.755327408] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=749)
+[fastlio_odometry_guard-2] [WARN] [1785847878.035599632] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=762)
+[fastlio_odometry_guard-2] [WARN] [1785847879.320880684] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=775)
+[fastlio_odometry_guard-2] [WARN] [1785847880.474893207] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=788)
+[fastlio_odometry_guard-2] [WARN] [1785847881.495277473] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=801)
+[fastlio_odometry_guard-2] [WARN] [1785847882.496338487] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=811)
+[fastlio_odometry_guard-2] [WARN] [1785847883.525942177] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=821)
+[fastlio_odometry_guard-2] [WARN] [1785847884.526208784] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=831)
+[fastlio_odometry_guard-2] [WARN] [1785847885.584752238] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=839)
+[fastlio_odometry_guard-2] [WARN] [1785847886.876456320] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=852)
+[fastlio_odometry_guard-2] [WARN] [1785847888.143745495] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=864)
+[fastlio_odometry_guard-2] [WARN] [1785847889.426412676] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=877)
+[fastlio_odometry_guard-2] [WARN] [1785847890.705451392] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=890)
+[fastlio_odometry_guard-2] [WARN] [1785847891.985303935] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=903)
+[fastlio_odometry_guard-2] [WARN] [1785847893.265631006] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=916)
+[fastlio_odometry_guard-2] [WARN] [1785847894.544426289] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=929)
+[fastlio_odometry_guard-2] [WARN] [1785847895.825902095] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=942)
+[fastlio_odometry_guard-2] [WARN] [1785847897.115701410] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=955)
+[fastlio_odometry_guard-2] [WARN] [1785847898.394026816] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=967)
+[fastlio_odometry_guard-2] [WARN] [1785847899.674240485] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=980)
+[fastlio_odometry_guard-2] [WARN] [1785847900.717870559] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=993)
+[fastlio_odometry_guard-2] [WARN] [1785847901.844601604] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1004)
+[fastlio_odometry_guard-2] [WARN] [1785847902.844701001] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1013)
+[fastlio_odometry_guard-2] [WARN] [1785847903.853129462] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1024)
+[fastlio_odometry_guard-2] [WARN] [1785847905.066093204] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1032)
+[fastlio_odometry_guard-2] [WARN] [1785847906.348752566] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1045)
+[fastlio_odometry_guard-2] [WARN] [1785847907.707331481] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1058)
+[fastlio_odometry_guard-2] [WARN] [1785847908.816604703] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1072)
+[fastlio_odometry_guard-2] [WARN] [1785847910.127032892] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1083)
+[fastlio_odometry_guard-2] [WARN] [1785847911.406871950] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1096)
+[fastlio_odometry_guard-2] [WARN] [1785847912.675319538] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1109)
+[fastlio_odometry_guard-2] [WARN] [1785847913.908960154] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1123)
+[fastlio_odometry_guard-2] [WARN] [1785847914.960468990] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1135)
+[fastlio_odometry_guard-2] [WARN] [1785847915.977505583] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1145)
+[fastlio_odometry_guard-2] [WARN] [1785847917.087896695] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1156)
+[fastlio_odometry_guard-2] [WARN] [1785847918.246543710] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1167)
+[fastlio_odometry_guard-2] [WARN] [1785847919.264817784] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1177)
+[fastlio_odometry_guard-2] [WARN] [1785847920.356401901] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1187)
+[fastlio_odometry_guard-2] [WARN] [1785847921.479391613] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1199)
+[fastlio_odometry_guard-2] [WARN] [1785847922.545029085] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1211)
+[fastlio_odometry_guard-2] [WARN] [1785847923.731449813] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1222)
+[fastlio_odometry_guard-2] [WARN] [1785847924.835389688] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1234)
+[fastlio_odometry_guard-2] [WARN] [1785847926.047861682] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1244)
+[fastlio_odometry_guard-2] [WARN] [1785847927.326912667] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1257)
+[fastlio_odometry_guard-2] [WARN] [1785847928.609061830] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1270)
+[fastlio_odometry_guard-2] [WARN] [1785847929.883965773] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1282)
+[fastlio_odometry_guard-2] [WARN] [1785847931.163932180] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1295)
+[fastlio_odometry_guard-2] [WARN] [1785847932.305606755] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1308)
+[fastlio_odometry_guard-2] [WARN] [1785847933.306367899] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1319)
+[fastlio_odometry_guard-2] [WARN] [1785847934.485243464] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1327)
+[fastlio_odometry_guard-2] [WARN] [1785847935.734468974] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1340)
+[fastlio_odometry_guard-2] [WARN] [1785847936.734516835] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1353)
+[fastlio_odometry_guard-2] [WARN] [1785847937.836808496] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1362)
+[fastlio_odometry_guard-2] [WARN] [1785847939.144461493] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1375)
+[fastlio_odometry_guard-2] [WARN] [1785847940.486730633] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1388)
+[fastlio_odometry_guard-2] [WARN] [1785847942.053900993] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1401)
+[fastlio_odometry_guard-2] [WARN] [1785847943.334940817] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1414)
+[fastlio_odometry_guard-2] [WARN] [1785847944.613800374] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1426)
+[fastlio_odometry_guard-2] [WARN] [1785847945.896774112] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1439)
+[fastlio_odometry_guard-2] [WARN] [1785847947.173917193] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1452)
+[fastlio_odometry_guard-2] [WARN] [1785847948.455887178] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1465)
+[fastlio_odometry_guard-2] [WARN] [1785847949.735203153] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1478)
+[fastlio_odometry_guard-2] [WARN] [1785847951.015438862] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1491)
+[fastlio_odometry_guard-2] [WARN] [1785847952.019170536] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1505)
+[fastlio_odometry_guard-2] [WARN] [1785847953.101263173] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1516)
+[fastlio_odometry_guard-2] [WARN] [1785847954.246748861] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1528)
+[fastlio_odometry_guard-2] [WARN] [1785847955.376684449] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1538)
+[fastlio_odometry_guard-2] [WARN] [1785847956.409052915] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1550)
+[fastlio_odometry_guard-2] [WARN] [1785847957.494719625] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1559)
+[fastlio_odometry_guard-2] [WARN] [1785847958.774020956] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1570)
+[fastlio_odometry_guard-2] [WARN] [1785847960.054521578] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1582)
+[fastlio_odometry_guard-2] [WARN] [1785847961.364378213] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1596)
+[fastlio_odometry_guard-2] [WARN] [1785847962.475344598] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1609)
+[fastlio_odometry_guard-2] [WARN] [1785847963.484019053] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1621)
+[fastlio_odometry_guard-2] [WARN] [1785847964.657875457] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1630)
+[fastlio_odometry_guard-2] [WARN] [1785847965.685870393] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1643)
+[fastlio_odometry_guard-2] [WARN] [1785847966.717382737] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1650)
+[fastlio_odometry_guard-2] [WARN] [1785847967.998244652] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1663)
+[fastlio_odometry_guard-2] [WARN] [1785847969.148735713] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1676)
+[fastlio_odometry_guard-2] [WARN] [1785847970.166009627] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1687)
+[fastlio_odometry_guard-2] [WARN] [1785847971.276827406] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1698)
+[fastlio_odometry_guard-2] [WARN] [1785847972.336650584] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1708)
+[fastlio_odometry_guard-2] [WARN] [1785847973.364568717] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1719)
+[fastlio_odometry_guard-2] [WARN] [1785847974.646013391] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1729)
+[fastlio_odometry_guard-2] [WARN] [1785847975.815402676] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1742)
+[fastlio_odometry_guard-2] [WARN] [1785847976.826480496] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1754)
+[fastlio_odometry_guard-2] [WARN] [1785847977.835898697] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1762)
+[fastlio_odometry_guard-2] [WARN] [1785847979.178806387] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1774)
+[fastlio_odometry_guard-2] [WARN] [1785847980.357905445] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1787)
+[fastlio_odometry_guard-2] [WARN] [1785847981.638001062] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1799)
+[fastlio_odometry_guard-2] [WARN] [1785847982.757795333] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1812)
+[fastlio_odometry_guard-2] [WARN] [1785847984.037396122] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1824)
+[fastlio_odometry_guard-2] [WARN] [1785847985.319825460] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1837)
+[fastlio_odometry_guard-2] [WARN] [1785847986.329654256] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1849)
+[fastlio_odometry_guard-2] [WARN] [1785847987.446766836] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1860)
+[fastlio_odometry_guard-2] [WARN] [1785847988.585917382] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1870)
+[fastlio_odometry_guard-2] [WARN] [1785847989.627519465] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1881)
+[fastlio_odometry_guard-2] [WARN] [1785847990.709566141] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1891)
+[fastlio_odometry_guard-2] [WARN] [1785847991.714628474] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1903)
+[fastlio_odometry_guard-2] [WARN] [1785847992.717769764] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1913)
+[fastlio_odometry_guard-2] [WARN] [1785847993.735330533] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1922)
+[fastlio_odometry_guard-2] [WARN] [1785847994.855906453] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1932)
+[fastlio_odometry_guard-2] [WARN] [1785847995.868214596] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1944)
+[fastlio_odometry_guard-2] [WARN] [1785847997.008181400] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1955)
+[fastlio_odometry_guard-2] [WARN] [1785847998.027589458] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1965)
+[fastlio_odometry_guard-2] [WARN] [1785847999.146208061] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1977)
+[fastlio_odometry_guard-2] [WARN] [1785848000.416198562] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1986)
+[fastlio_odometry_guard-2] [WARN] [1785848001.475262303] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=1999)
+[fastlio_odometry_guard-2] [WARN] [1785848002.548687661] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2010)
+[fastlio_odometry_guard-2] [WARN] [1785848003.595984973] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2022)
+[fastlio_odometry_guard-2] [WARN] [1785848004.645641964] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2031)
+[fastlio_odometry_guard-2] [WARN] [1785848005.709925064] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2042)
+[fastlio_odometry_guard-2] [WARN] [1785848006.726246989] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2053)
+[fastlio_odometry_guard-2] [WARN] [1785848007.887132458] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2062)
+[fastlio_odometry_guard-2] [WARN] [1785848009.025451170] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2075)
+[fastlio_odometry_guard-2] [WARN] [1785848010.026433374] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2086)
+[fastlio_odometry_guard-2] [WARN] [1785848011.156342868] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2095)
+[fastlio_odometry_guard-2] [WARN] [1785848012.157929079] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2107)
+[fastlio_odometry_guard-2] [WARN] [1785848013.326359485] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2118)
+[fastlio_odometry_guard-2] [WARN] [1785848014.436865436] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2130)
+[fastlio_odometry_guard-2] [WARN] [1785848015.489318466] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2141)
+[fastlio_odometry_guard-2] [WARN] [1785848016.717281085] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2151)
+[fastlio_odometry_guard-2] [WARN] [1785848017.756381770] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2163)
+[fastlio_odometry_guard-2] [WARN] [1785848018.907181882] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2173)
+[fastlio_odometry_guard-2] [WARN] [1785848020.207277089] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2185)
+[fastlio_odometry_guard-2] [WARN] [1785848021.219022880] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2198)
+[fastlio_odometry_guard-2] [WARN] [1785848022.296257704] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2208)
+[fastlio_odometry_guard-2] [WARN] [1785848023.436426112] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2219)
+[fastlio_odometry_guard-2] [WARN] [1785848024.477079735] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2230)
+[fastlio_odometry_guard-2] [WARN] [1785848025.495568840] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2241)
+[fastlio_odometry_guard-2] [WARN] [1785848026.636638540] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2250)
+[fastlio_odometry_guard-2] [WARN] [1785848027.774848032] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2263)
+[fastlio_odometry_guard-2] [WARN] [1785848028.863052069] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2272)
+[fastlio_odometry_guard-2] [WARN] [1785848029.945273809] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2285)
+[fastlio_odometry_guard-2] [WARN] [1785848031.048195746] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2296)
+[fastlio_odometry_guard-2] [WARN] [1785848032.048243652] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2306)
+[fastlio_odometry_guard-2] [WARN] [1785848033.196352369] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2317)
+[fastlio_odometry_guard-2] [WARN] [1785848034.306656561] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2326)
+[fastlio_odometry_guard-2] [WARN] [1785848035.586033788] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2339)
+[fastlio_odometry_guard-2] [WARN] [1785848036.667778921] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2352)
+[fastlio_odometry_guard-2] [WARN] [1785848037.737251140] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2363)
+[fastlio_odometry_guard-2] [WARN] [1785848038.756097587] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2372)
+[fastlio_odometry_guard-2] [WARN] [1785848039.856112093] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2384)
+[fastlio_odometry_guard-2] [WARN] [1785848040.887116692] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2394)
+[fastlio_odometry_guard-2] [WARN] [1785848041.904018554] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2405)
+[fastlio_odometry_guard-2] [WARN] [1785848042.926805139] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2413)
+[fastlio_odometry_guard-2] [WARN] [1785848044.205170695] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2425)
+[fastlio_odometry_guard-2] [WARN] [1785848045.485148957] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2438)
+[fastlio_odometry_guard-2] [WARN] [1785848046.546057439] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2451)
+[fastlio_odometry_guard-2] [WARN] [1785848047.587074682] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2461)
+[fastlio_odometry_guard-2] [WARN] [1785848048.598006710] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2472)
+[fastlio_odometry_guard-2] [WARN] [1785848049.854533619] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2482)
+[fastlio_odometry_guard-2] [WARN] [1785848050.865446569] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2493)
+[fastlio_odometry_guard-2] [WARN] [1785848051.903942384] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2505)
+[fastlio_odometry_guard-2] [WARN] [1785848053.076598459] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2515)
+[fastlio_odometry_guard-2] [WARN] [1785848054.166512399] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2527)
+[fastlio_odometry_guard-2] [WARN] [1785848055.329751644] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2537)
+[fastlio_odometry_guard-2] [WARN] [1785848056.395553947] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2550)
+[fastlio_odometry_guard-2] [WARN] [1785848057.447829397] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2560)
+[fastlio_odometry_guard-2] [WARN] [1785848058.455378636] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2569)
+[fastlio_odometry_guard-2] [WARN] [1785848059.555981714] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2580)
+[fastlio_odometry_guard-2] [WARN] [1785848060.635527418] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2592)
+[fastlio_odometry_guard-2] [WARN] [1785848061.765126265] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2603)
+[fastlio_odometry_guard-2] [WARN] [1785848062.886215427] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2614)
+[fastlio_odometry_guard-2] [WARN] [1785848063.997100203] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2624)
+[fastlio_odometry_guard-2] [WARN] [1785848065.017455870] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2635)
+[fastlio_odometry_guard-2] [WARN] [1785848066.026908521] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2643)
+[fastlio_odometry_guard-2] [WARN] [1785848067.234955102] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2656)
+[fastlio_odometry_guard-2] [WARN] [1785848068.585109679] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2669)
+[fastlio_odometry_guard-2] [WARN] [1785848069.595342200] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2681)
+[fastlio_odometry_guard-2] [WARN] [1785848070.625964210] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2692)
+[fastlio_odometry_guard-2] [WARN] [1785848071.633761521] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2702)
+[fastlio_odometry_guard-2] [WARN] [1785848072.745551213] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2713)
+[fastlio_odometry_guard-2] [WARN] [1785848073.874453011] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2724)
+[fastlio_odometry_guard-2] [WARN] [1785848074.978449287] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2733)
+[fastlio_odometry_guard-2] [WARN] [1785848076.256892322] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2746)
+[fastlio_odometry_guard-2] [WARN] [1785848077.475447051] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2758)
+[fastlio_odometry_guard-2] [WARN] [1785848078.824855254] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2770)
+[fastlio_odometry_guard-2] [WARN] [1785848080.188605499] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2784)
+[fastlio_odometry_guard-2] [WARN] [1785848081.314576241] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2797)
+[fastlio_odometry_guard-2] [WARN] [1785848082.538640703] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2808)
+[fastlio_odometry_guard-2] [WARN] [1785848083.665417863] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2821)
+[fastlio_odometry_guard-2] [WARN] [1785848084.706956880] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2833)
+[fastlio_odometry_guard-2] [WARN] [1785848085.806608684] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2843)
+[fastlio_odometry_guard-2] [WARN] [1785848086.807391626] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2854)
+[fastlio_odometry_guard-2] [WARN] [1785848087.958013771] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2864)
+[fastlio_odometry_guard-2] [WARN] [1785848089.037954042] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2874)
+[fastlio_odometry_guard-2] [WARN] [1785848090.226511315] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2887)
+[fastlio_odometry_guard-2] [WARN] [1785848091.519768208] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2899)
+[fastlio_odometry_guard-2] [WARN] [1785848092.537980800] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2911)
+[fastlio_odometry_guard-2] [WARN] [1785848093.584986575] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2920)
+[fastlio_odometry_guard-2] [WARN] [1785848094.616244794] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2932)
+[fastlio_odometry_guard-2] [WARN] [1785848095.668620561] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2941)
+[fastlio_odometry_guard-2] [WARN] [1785848096.759560494] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2951)
+[fastlio_odometry_guard-2] [WARN] [1785848097.986184443] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2964)
+[fastlio_odometry_guard-2] [WARN] [1785848099.008145123] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2976)
+[mavros_node-1] [INFO] [1785848099.084452634] [mavros.sys]: FCU: EVENT 16682655 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1785848099.104734652] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-131-191-1-128-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848099.105629316] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848099.106255942] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848099.107076928] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848099.108755111] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848099.109515506] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848099.110335292] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848099.111107533] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1785848099.111522688] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848099.622060991] [mavros.sys]: FCU: EVENT 9489139 with args -2-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848099.762446370] [mavros.sys]: FCU: EVENT 4535132 with args -0-0-100-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1785848100.208191854] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2986)
+[mavros_node-1] [WARN] [1785848100.576578250] [mavros.cmd]: CMD: Unexpected command 176, result 0
+[mavros_node-1] [WARN] [1785848100.593522373] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-131-191-1-128-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848100.593860580] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848100.594115367] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848100.594383892] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848100.594589201] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848100.594746953] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848100.594993595] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1785848100.595152628] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-4-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848100.595322502] [mavros.sys]: FCU: EVENT 12770418 with args -0-0-4-6-8-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1785848101.497424088] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=2998)
+[mavros_node-1] [INFO] [1785848101.517684468] [mavros.sys]: FCU: EVENT 16017271 with args -2-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848102.543944966] [mavros.sys]: FCU: EVENT 11290563 with args -0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1785848102.626844644] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3011)
+[mavros_node-1] [WARN] [1785848102.660756969] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848102.660991591] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848102.661220139] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848102.661586451] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848102.661898846] [mavros.sys]: FCU: EVENT 1871713 with args -32-48-60-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848102.662259428] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848102.663198631] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848102.663387999] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848102.663526719] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848102.663679807] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848102.663858115] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1785848102.665972519] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-4-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1785848103.766967574] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3022)
+[fastlio_odometry_guard-2] [WARN] [1785848104.859649644] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3034)
+[mavros_node-1] [WARN] [1785848104.977162974] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848104.977506828] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848104.977818292] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848104.977933273] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848104.978678551] [mavros.sys]: FCU: EVENT 1871713 with args -32-48-60-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848104.978827126] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848104.979030581] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848104.979398164] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848104.979571832] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1785848104.980007691] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1785848104.980339542] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1785848104.980634794] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1785848106.035601293] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3045)
+[fastlio_odometry_guard-2] [WARN] [1785848107.186202246] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3056)
+[fastlio_odometry_guard-2] [WARN] [1785848108.208962000] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3068)
+[fastlio_odometry_guard-2] [WARN] [1785848109.456447427] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3078)
+[fastlio_odometry_guard-2] [WARN] [1785848110.737041887] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3088)
+[fastlio_odometry_guard-2] [WARN] [1785848111.967861523] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3102)
+[fastlio_odometry_guard-2] [WARN] [1785848113.009184865] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3116)
+[fastlio_odometry_guard-2] [WARN] [1785848114.186190200] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3125)
+[fastlio_odometry_guard-2] [WARN] [1785848115.308588559] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: non-finite twist (accepted=0 rejected=3138)

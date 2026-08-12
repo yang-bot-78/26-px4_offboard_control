@@ -1,0 +1,22 @@
+[relocalization frame bridge] starting
+[relocalization frame bridge] command: python3 /home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py --ros-args -p odom_topic:=/Odometry -p output_odom_topic:=/planning/odom -p map_frame:=map -p odom_frame:=camera_init -p body_frame:=body -p publish_odom_body_tf:=false
+[relocalization frame bridge] pid=48120 pgid=48120 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260812/flight_20260812_195313/logs/relocalization_bridge.log
+[INFO] [1786535621.999090502] [planning_relocalization_frame_bridge]: 等待 FAST-LIO 里程计和重定位结果；成功后发布 /planning/odom。
+[INFO] [1786535632.594864359] [planning_relocalization_frame_bridge]: 重定位坐标对齐完成，开始发布 map -> camera_init 和 /planning/odom。
+Traceback (most recent call last):
+  File "/home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py", line 237, in <module>
+    main()
+  File "/home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py", line 227, in main
+    rclpy.spin(node)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+    executor.spin_once()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 797, in _spin_once_impl
+    handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 780, in wait_for_ready_callbacks
+    return next(self._cb_iter)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 681, in _wait_for_ready_callbacks
+    raise ExternalShutdownException()
+rclpy.executors.ExternalShutdownException
+[relocalization frame bridge] 已退出，状态码 1

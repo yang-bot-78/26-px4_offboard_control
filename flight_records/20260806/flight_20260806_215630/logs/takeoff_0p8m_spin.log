@@ -1,0 +1,132 @@
+[INFO] [1786024602.475246252] [minipc_mavros_offboard]: Started minipc_mavros_offboard with arm_only=False, takeoff_height_m=0.8, hover_seconds=5.0, offboard_stabilize_seconds=20.0, use_rc_offboard=True, hold_after_arm_reject=True, ignore_z_in_arm_only=True, debug_hold_after_mode_drop=True, recent_pose_samples=30, require_vision_pose=True, vision_freshness_s=1.0, require_ev_health=True, ev_health_topic=/ev_health/status, ev_health_required_s=7.5, ev_health_freshness_s=1.0, lift_only_seconds=0.0, z_ramp_seconds=2.5, target_xyz=(0.0, 0.0, -0.8), xy_move_unlock_height_m=0.5, yaw_deg=0.0, enable_spin_test=True, spin_yaw_degrees=360.0, spin_yaw_rate_deg_s=20.0, post_spin_hover_seconds=10.0, auto_land=False, land_on_offboard_loss=True, offboard_land=True, offboard_land_speed_mps=0.07, offboard_land_auto_handoff_height_m=0.1, auto_disarm_after_land=True, disarm_after_land_delay_s=2.0, land_wait_timeout_s=45.0, land_mode_retry_s=1.0, land_mode_confirm_timeout_s=2.0, landed_ground_tolerance_m=0.06, target_reached_tolerance_m=0.15, landed_hold_seconds=0.0, drift_guard_enabled=True, drift_warning_m=0.2, drift_land_m=0.5, drift_emergency_m=0.6, drift_land_trigger_duration_s=0.3, drift_emergency_trigger_duration_s=0.1, takeoff_transient_guard_enabled=True, takeoff_transient_window_s=3.0, takeoff_transient_trigger_duration_s=0.2, takeoff_transient_limits=(displacement=0.5, speed=0.5, roll=10.0, pitch=10.0), legacy_max_horizontal_drift_m=0.5, mavros_state_freshness_s=1.5, control_mode=ramp, enable_route_tracking=False, route_path_topic=/nav2_stage1/path, route_fixed_flight_height_m=1.0, route_start_tolerance_m=0.4, route_goal_tolerance_m=0.2, route_lookahead_m=0.4, route_max_vxy_mps=0.25, route_max_vz_mps=0.15, route_setpoint_rate_hz=30.0, route_path_timeout_s=2.0, route_fail_action=hold, route_final_hold_seconds=3.0
+[INFO] [1786024602.489923795] [minipc_mavros_offboard]: Waiting for MAVROS connection
+[INFO] [1786024603.980016638] [minipc_mavros_offboard]: EV health is HEALTHY; continuous pre-arm timer restarted
+[INFO] [1786024605.259996912] [minipc_mavros_offboard]: Waiting for MAVROS local odometry before arming
+[WARN] [1786024605.260667001] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 1.3s / required 7.5s
+[WARN] [1786024606.290498638] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 2.3s / required 7.5s
+[WARN] [1786024606.763608027] [minipc_mavros_offboard]: EV health changed to SUSPECT
+[WARN] [1786024607.290838994] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV health state is SUSPECT
+[WARN] [1786024608.290698934] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV health state is SUSPECT
+[INFO] [1786024608.882689502] [minipc_mavros_offboard]: EV health is HEALTHY; continuous pre-arm timer restarted
+[WARN] [1786024609.291140042] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 0.4s / required 7.5s
+[WARN] [1786024610.323669142] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 1.4s / required 7.5s
+[WARN] [1786024611.327512021] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 2.4s / required 7.5s
+[WARN] [1786024612.360139353] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 3.5s / required 7.5s
+[WARN] [1786024613.233471727] [minipc_mavros_offboard]: EV health changed to SUSPECT
+[WARN] [1786024613.391177004] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV health state is SUSPECT
+[WARN] [1786024614.423729435] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV health state is SUSPECT
+[INFO] [1786024615.277717925] [minipc_mavros_offboard]: EV health is HEALTHY; continuous pre-arm timer restarted
+[WARN] [1786024615.456352998] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 0.2s / required 7.5s
+[WARN] [1786024616.489185256] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 1.2s / required 7.5s
+[WARN] [1786024617.489235007] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 2.2s / required 7.5s
+[WARN] [1786024618.489567351] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 3.2s / required 7.5s
+[WARN] [1786024619.523112312] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 4.2s / required 7.5s
+[WARN] [1786024620.524358891] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 5.2s / required 7.5s
+[WARN] [1786024621.556230571] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 6.3s / required 7.5s
+[WARN] [1786024622.557290793] [minipc_mavros_offboard]: Waiting for continuous healthy EV before prestream: EV healthy duration 7.3s / required 7.5s
+[INFO] [1786024622.789614100] [minipc_mavros_offboard]: Averaged MAVROS local odometry for prestream x=0.13, y=0.22, z=-0.11
+[INFO] [1786024622.790045515] [minipc_mavros_offboard]: Provisional prestream target in MAVROS local ENU x=0.13, y=0.22, z_start=-0.11, z_final=0.69
+[INFO] [1786024622.822747505] [minipc_mavros_offboard]: Streaming pre-arm MAVROS setpoints
+[INFO] [1786024626.156808256] [minipc_mavros_offboard]: Streaming setpoints and waiting for RC to switch OFFBOARD
+[INFO] [1786024635.222966772] [minipc_mavros_offboard]: Locked takeoff reference at first OFFBOARD activation: current_enu=(0.122, 0.219, -0.112), target_enu=(0.122, 0.219, 0.688)
+[INFO] [1786024635.223205068] [minipc_mavros_offboard]: OFFBOARD reported by MAVROS state
+[INFO] [1786024655.256084588] [minipc_mavros_offboard]: Arming vehicle
+[INFO] [1786024655.256812117] [minipc_mavros_offboard]: Requested arming
+[INFO] [1786024655.290683313] [minipc_mavros_offboard]: Locked hold yaw to current MAVROS local yaw 0.5 deg
+[INFO] [1786024655.323584216] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.324566015] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.325157938] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.356097620] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.356553063] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.356739875] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.390760320] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.391609108] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.391896096] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.423802768] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.425011128] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.425280414] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.459809706] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.465286361] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.467365030] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.490972646] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.491872188] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.492352499] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.523295350] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.524016126] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.524234341] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.557166615] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.558425303] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.559152653] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.589484710] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.590324722] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.590560404] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.622847280] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.623525101] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.623962726] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.656720480] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.658101119] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.658641006] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.690377362] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.691238499] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.691780908] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.723305814] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.724599631] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.725114997] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.757092535] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.758320347] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.758568050] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.790052785] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.791375960] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.791852691] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.824033257] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.825817285] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.826197936] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.856875289] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.858083915] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.858571308] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.890444405] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.892223777] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.892738157] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.924439335] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.926955226] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.927278136] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.956069123] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.956772427] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.956964495] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024655.989317635] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024655.990506619] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024655.990773653] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.023286994] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024656.023988630] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024656.024213617] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.056693741] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024656.057528556] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024656.057801729] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.090036140] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024656.091124446] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024656.091368296] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.125294586] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024656.125893396] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024656.126094973] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.156157346] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024656.156809703] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024656.157020175] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.189773841] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[INFO] [1786024656.191138167] [minipc_mavros_offboard]: Vehicle left armed/OFFBOARD state; continuing debug hold
+[INFO] [1786024656.191900323] [minipc_mavros_offboard]: Debug hold after OFFBOARD/armed drop: connected=True, armed=False, guided=False, manual_input=False, mode=OFFBOARD
+[INFO] [1786024656.224227175] [minipc_mavros_offboard]: Holding MAVROS setpoint
+[WARN] [1786024656.823569285] [minipc_mavros_offboard]: EV health changed to SUSPECT
+[ERROR] [1786024656.827901168] [minipc_mavros_offboard]: EV health safety landing triggered; stopping climb and requesting AUTO.LAND: EV health state is SUSPECT
+[ERROR] [1786024656.830523146] [minipc_mavros_offboard]: Safety landing latched; normal takeoff/hold/route flow is disabled. AUTO.LAND will be retried: EV health state is SUSPECT
+[INFO] [1786024656.858641595] [minipc_mavros_offboard]: Requesting AUTO.LAND while holding a no-climb setpoint
+[INFO] [1786024656.868172611] [minipc_mavros_offboard]: Requested AUTO.LAND mode
+[INFO] [1786024656.926320215] [minipc_mavros_offboard]: Waiting for MAVROS to confirm AUTO.LAND; maintaining safe handoff setpoints
+[INFO] [1786024657.229285933] [minipc_mavros_offboard]: AUTO.LAND confirmed by MAVROS state
+[INFO] [1786024657.264404555] [minipc_mavros_offboard]: Waiting for landing completion before disarm
+[ERROR] [1786024658.777160251] [minipc_mavros_offboard]: EV health changed to FAULT: EV health state is FAULT
+[INFO] [1786024659.023312068] [minipc_mavros_offboard]: Landing detected; waiting before disarm request
+[INFO] [1786024661.056956164] [minipc_mavros_offboard]: Disarming after landing
+[INFO] [1786024661.058113239] [minipc_mavros_offboard]: Requested disarm after landing
+[INFO] [1786024661.123338981] [minipc_mavros_offboard]: Waiting for disarm confirmation
+[INFO] [1786024661.223081906] [minipc_mavros_offboard]: Vehicle disarmed; motors should be stopped
+[INFO] [1786024661.256195125] [minipc_mavros_offboard]: MAVROS offboard control completed; stopping node

@@ -1,0 +1,21 @@
+fastlio_global_backend:
+  ros__parameters:
+    odom_topic: /Odometry
+    cloud_topic: /cloud_registered
+    relocalized_pose_topic: /fastlio_global/relocalized_pose
+    map_frame_id: map
+    cloud_is_world_frame: true
+    scan_context_rings: 20
+    scan_context_sectors: 60
+    scan_context_max_radius_m: 50.0
+    scan_context_similarity_threshold: 0.82
+    loop_submap_half_width: 5
+    submap_voxel_leaf_m: 0.3
+    icp_max_correspondence_distance_m: 2.0
+    icp_max_iterations: 40
+    relocalization_fitness_threshold: 0.45
+    enable_relocalization_mode: true
+    enable_loop_closure: false
+    # 本次只由脚本手动调用一次 relocalize；关闭周期性自动重定位。
+    # 后端内部使用 max(1, stride)，因此不能设为 0。
+    auto_relocalize_stride: 2147483647

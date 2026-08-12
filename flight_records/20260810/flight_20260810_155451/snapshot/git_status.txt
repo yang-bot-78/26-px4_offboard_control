@@ -1,0 +1,478 @@
+ M .gitignore
+ D CODEX_CHECKPOINT.md
+ D EV_VEL_FUSION_ACCEPTANCE.md
+ D EV_VEL_NEXT.md
+ D HIGH_RATE_EV_ODOM_DESIGN.md
+ D PROP_OFF_EV_VALIDATION.md
+ M README.md
+ D analyze_prop_off_ev_validation.py
+ D check_fastlio_global_3d_map.sh
+ D check_nav2_path_status.sh
+ D check_relocalization_status.sh
+ D check_takeoff_autostart_ready.sh
+ D delete_recorded_rosbags.sh
+ D disable_autostart.sh
+RM ROOT_SCRIPTS_QUICK_REF.md -> docs/archive/ROOT_SCRIPTS_QUICK_REF.md
+RM SCRIPTS_GUIDE.md -> docs/archive/SCRIPTS_GUIDE.md
+ D enable_autostart.sh
+ D flight_records/20260718/flight_20260718_200655/rosbag/metadata.yaml
+ D flight_records/20260718/flight_20260718_201031/rosbag/metadata.yaml
+ D flight_records/20260719/flight_20260719_153231/rosbag/metadata.yaml
+ M flight_records/20260721/flight_20260721_183313/snapshot/rosbag_status.txt
+ D load_fastlio_global_3d_map.sh
+ D phase4_analysis_20260724_162737/ANALYSIS.sha256
+ D phase4_analysis_20260724_162737/analysis.json
+ D phase4_analysis_20260724_162737/analyze_phase4.py
+ D phase4_analysis_20260724_162737/analyzer.log
+ D phase4_analysis_20260724_162737/validation_report.md
+ D phase4_operator_records/phase4_20260724_162350/COLLECTION_STATUS.md
+ D phase4_operator_records/phase4_20260724_162350/EVIDENCE.sha256
+ D phase4_operator_records/phase4_20260724_162350/evidence/checkpoint_after.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/events.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/preflight/checkpoint_and_live_sha256.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/preflight/forbidden_processes.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/preflight/ping_mid360.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/preflight/processes_before.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/preflight/readiness.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/preflight/residual_runtime.txt
+ D phase4_operator_records/phase4_20260724_162350/evidence/processes_after.txt
+ D phase4_operator_records/phase4_20260724_162350/logs/A_default_off_livox.log
+ D phase4_operator_records/phase4_20260724_162737/COLLECTION_STATUS.md
+ D phase4_operator_records/phase4_20260724_162737/EVIDENCE.sha256
+ D phase4_operator_records/phase4_20260724_162737/bags/A_default_off/metadata.yaml
+ D phase4_operator_records/phase4_20260724_162737/bags/B_enabled_motion/metadata.yaml
+ D phase4_operator_records/phase4_20260724_162737/bags/C_fault_recovery/metadata.yaml
+ D phase4_operator_records/phase4_20260724_162737/evidence/A_nodes.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/A_phase2_param.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/A_phase3_param.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/A_residual_runtime.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/A_topics.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/B_final_diagnostics.yaml
+ D phase4_operator_records/phase4_20260724_162737/evidence/B_first_healthy.yaml
+ D phase4_operator_records/phase4_20260724_162737/evidence/B_residual_runtime.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/C_before_imu_fault.yaml
+ D phase4_operator_records/phase4_20260724_162737/evidence/C_imu_fault.yaml
+ D phase4_operator_records/phase4_20260724_162737/evidence/C_initial_healthy.yaml
+ D phase4_operator_records/phase4_20260724_162737/evidence/bag_info_A_default_off.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/bag_info_B_enabled_motion.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/bag_info_C_fault_recovery.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/checkpoint_after.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/events.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/markers_wall_time.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/checkpoint_and_live_sha256.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/forbidden_processes.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/livox_ldd.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/ping_mid360.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/processes_before.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/readiness.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/preflight/residual_runtime.txt
+ D phase4_operator_records/phase4_20260724_162737/evidence/processes_after.txt
+ D phase4_operator_records/phase4_20260724_162737/logs/A_default_off_fastlio.log
+ D phase4_operator_records/phase4_20260724_162737/logs/A_default_off_livox.log
+ D phase4_operator_records/phase4_20260724_162737/logs/A_default_off_rosbag.log
+ D phase4_operator_records/phase4_20260724_162737/logs/B_enabled_fastlio.log
+ D phase4_operator_records/phase4_20260724_162737/logs/B_enabled_livox.log
+ D phase4_operator_records/phase4_20260724_162737/logs/B_enabled_motion_rosbag.log
+ D phase4_operator_records/phase4_20260724_162737/logs/C_fault_fastlio.log
+ D phase4_operator_records/phase4_20260724_162737/logs/C_fault_imu_gate.log
+ D phase4_operator_records/phase4_20260724_162737/logs/C_fault_lidar_gate.log
+ D phase4_operator_records/phase4_20260724_162737/logs/C_fault_livox.log
+ D phase4_operator_records/phase4_20260724_162737/logs/C_fault_recovery_rosbag.log
+ D phase4_operator_records/phase4_20260724_162737/metrics/A_default_off_fastlio_pid.txt
+ D phase4_operator_records/phase4_20260724_162737/metrics/A_default_off_pidstat_t.txt
+ D phase4_operator_records/phase4_20260724_162737/metrics/A_default_off_rss_threads.csv
+ D phase4_operator_records/phase4_20260724_162737/metrics/B_enabled_fastlio_pid.txt
+ D phase4_operator_records/phase4_20260724_162737/metrics/B_enabled_pidstat_t.txt
+ D phase4_operator_records/phase4_20260724_162737/metrics/B_enabled_rss_threads.csv
+ D phase4_operator_records/phase4_20260724_162737/metrics/C_fault_fastlio_pid.txt
+ D phase4_operator_records/phase4_20260724_162737/metrics/C_fault_pidstat_t.txt
+ D phase4_operator_records/phase4_20260724_162737/metrics/C_fault_rss_threads.csv
+ D phase4_prerequisites_20260724_154104/CHECKSUMS.sha256
+ D phase4_prerequisites_20260724_154104/EVIDENCE.sha256
+ D phase4_prerequisites_20260724_154104/evidence/forbidden_process_matches.txt
+ D phase4_prerequisites_20260724_154104/evidence/ip_address.txt
+ D phase4_prerequisites_20260724_154104/evidence/ip_neighbor.txt
+ D phase4_prerequisites_20260724_154104/evidence/network_device.txt
+ D phase4_prerequisites_20260724_154104/evidence/network_profile.txt
+ D phase4_prerequisites_20260724_154104/evidence/pidstat_sha256.txt
+ D phase4_prerequisites_20260724_154104/evidence/pidstat_thread_test.txt
+ D phase4_prerequisites_20260724_154104/evidence/pidstat_version.txt
+ D phase4_prerequisites_20260724_154104/evidence/ping_192.168.1.128.txt
+ D phase4_prerequisites_20260724_154104/readiness_report.md
+ D phase4_prerequisites_20260724_155046/CHECKSUMS.sha256
+ D phase4_prerequisites_20260724_155046/EVIDENCE.sha256
+ D phase4_prerequisites_20260724_155046/evidence/forbidden_process_matches.txt
+ D phase4_prerequisites_20260724_155046/evidence/ip_address.txt
+ D phase4_prerequisites_20260724_155046/evidence/ip_neighbor.txt
+ D phase4_prerequisites_20260724_155046/evidence/network_device.txt
+ D phase4_prerequisites_20260724_155046/evidence/network_profile.txt
+ D phase4_prerequisites_20260724_155046/evidence/pidstat_sha256.txt
+ D phase4_prerequisites_20260724_155046/evidence/pidstat_thread_test.txt
+ D phase4_prerequisites_20260724_155046/evidence/pidstat_version.txt
+ D phase4_prerequisites_20260724_155046/evidence/ping_mid360.txt
+ D phase4_prerequisites_20260724_155046/readiness_report.md
+ D phase4_topic_gate.py
+ D phase4_validation_20260724_153046/EVIDENCE.sha256
+ D phase4_validation_20260724_153046/NO_ROSBAG_CREATED.txt
+ D phase4_validation_20260724_153046/REPORT_CHECKSUMS.sha256
+ D phase4_validation_20260724_153046/evidence/forbidden_process_matches.txt
+ D phase4_validation_20260724_153046/evidence/live_source_vs_phase35_checkpoint.txt
+ D phase4_validation_20260724_153046/evidence/network_addresses.txt
+ D phase4_validation_20260724_153046/evidence/network_carrier.txt
+ D phase4_validation_20260724_153046/evidence/network_routes.txt
+ D phase4_validation_20260724_153046/evidence/phase35_checkpoint_selfcheck.txt
+ D phase4_validation_20260724_153046/evidence/ping_mid360_192.168.1.12.txt
+ D phase4_validation_20260724_153046/evidence/ping_mid360_192.168.1.128.txt
+ D phase4_validation_20260724_153046/evidence/process_preflight.txt
+ D phase4_validation_20260724_153046/evidence/tool_preflight.txt
+ D phase4_validation_20260724_153046/validation_report.md
+ D phase4_validation_20260724_160134/bags/A_default_off/metadata.yaml
+ D phase4_validation_20260724_160134/bags/B_enabled_motion/metadata.yaml
+ D phase4_validation_20260724_160134/evidence/A_bag_info.txt
+ D phase4_validation_20260724_160134/evidence/A_node_list.txt
+ D phase4_validation_20260724_160134/evidence/A_phase2_param.txt
+ D phase4_validation_20260724_160134/evidence/A_phase3_param.txt
+ D phase4_validation_20260724_160134/evidence/A_post_stop_processes.txt
+ D phase4_validation_20260724_160134/evidence/A_topic_list.txt
+ D phase4_validation_20260724_160134/evidence/B_diagnostics_first.txt
+ D phase4_validation_20260724_160134/evidence/B_motion_schedule.txt
+ D phase4_validation_20260724_160134/evidence/B_phase2_param.txt
+ D phase4_validation_20260724_160134/evidence/B_phase3_param.txt
+ D phase4_validation_20260724_160134/evidence/B_topic_list.txt
+ D phase4_validation_20260724_160134/evidence/preflight/ip_address.txt
+ D phase4_validation_20260724_160134/evidence/preflight/live_source_vs_checkpoint.txt
+ D phase4_validation_20260724_160134/evidence/preflight/network_device.txt
+ D phase4_validation_20260724_160134/evidence/preflight/phase35_checkpoint_check.txt
+ D phase4_validation_20260724_160134/evidence/preflight/pidstat.txt
+ D phase4_validation_20260724_160134/evidence/preflight/ping_mid360.txt
+ D phase4_validation_20260724_160134/evidence/preflight/processes_all.txt
+ D phase4_validation_20260724_160134/evidence/preflight/ros_related_processes.txt
+ D phase4_validation_20260724_160134/evidence/preflight/runtime_binary_sha256.txt
+ D phase4_validation_20260724_160134/logs/A_fastlio_default_off.log
+ D phase4_validation_20260724_160134/logs/A_livox.log
+ D phase4_validation_20260724_160134/logs/A_rosbag.log
+ D phase4_validation_20260724_160134/logs/B_fastlio_enabled.log
+ D phase4_validation_20260724_160134/logs/B_livox.log
+ D phase4_validation_20260724_160134/logs/B_rosbag.log
+ D phase4_validation_20260724_160134/metrics/A_odometry_hz.txt
+ D phase4_validation_20260724_160134/metrics/A_pidstat_t.txt
+ D phase4_validation_20260724_160134/metrics/A_process_samples.txt
+ D phase4_validation_20260724_160134/metrics/B_pidstat_t.txt
+ D phase4_validation_20260724_160134/metrics/B_process_samples.txt
+ D phase4_validation_20260724_160134/metrics/B_propagated_hz.txt
+ D phase_checkpoints/phase2_signoff_20260724_134235/CHECKPOINT.sha256
+ D phase_checkpoints/phase2_signoff_20260724_134235/MANIFEST.sha256
+ D phase_checkpoints/phase2_signoff_20260724_134235/README.md
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/CMakeLists.txt
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/config/mid360.yaml
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/include/high_rate_ev_propagator.hpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/include/use-ikfom.hpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/launch/mapping.launch.py
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/package.xml
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/src/IMU_Processing.hpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/src/high_rate_ev_propagator.cpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/src/laserMapping.cpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/test/ikfom_predictor_fixture.hpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/test/test_high_rate_ev_phase2.cpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/files/test/test_ikfom_predictor_parity.cpp
+ D phase_checkpoints/phase2_signoff_20260724_134235/phase2_files.tar.gz
+ D phase_checkpoints/phase35_signoff_20260724_152912/CHECKPOINT.sha256
+ D phase_checkpoints/phase35_signoff_20260724_152912/MANIFEST.sha256
+ D phase_checkpoints/phase35_signoff_20260724_152912/README.md
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/CMakeLists.txt
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/HIGH_RATE_EV_ODOM_DESIGN.md
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/config/mid360.yaml
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/include/high_rate_ev_diagnostics.hpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/include/high_rate_ev_odometry.hpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/include/high_rate_ev_propagator.hpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/include/use-ikfom.hpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/launch/mapping.launch.py
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/package.xml
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/src/IMU_Processing.hpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/src/high_rate_ev_diagnostics.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/src/high_rate_ev_odometry.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/src/high_rate_ev_propagator.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/src/laserMapping.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/test/ikfom_predictor_fixture.hpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/test/test_high_rate_ev_phase2.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/test/test_high_rate_ev_phase3.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/test/test_high_rate_ev_phase35.cpp
+ D phase_checkpoints/phase35_signoff_20260724_152912/files/test/test_ikfom_predictor_parity.cpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/CHECKPOINT.sha256
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/MANIFEST.sha256
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/README.md
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/CMakeLists.txt
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/HIGH_RATE_EV_ODOM_DESIGN.md
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/config/mid360.yaml
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/include/high_rate_ev_odometry.hpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/include/high_rate_ev_propagator.hpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/include/use-ikfom.hpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/launch/mapping.launch.py
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/package.xml
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/src/IMU_Processing.hpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/src/high_rate_ev_odometry.cpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/src/high_rate_ev_propagator.cpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/src/laserMapping.cpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/test/ikfom_predictor_fixture.hpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/test/test_high_rate_ev_phase2.cpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/test/test_high_rate_ev_phase3.cpp
+ D phase_checkpoints/phase3_runtime_signoff_20260724_143546/files/test/test_ikfom_predictor_parity.cpp
+ D prop_off_safety_watchdog.py
+ D record_takeoff_debug_bag.sh
+ D refresh_last_rosbag_status.sh
+ D run_fastlio_global_relocalization.sh
+ D run_fastlio_global_slam.sh
+ D run_high_rate_ev_phase4_validation.sh
+ D run_hover_1m_offboard.sh
+ D run_nav2_relocalized_helpers.sh
+ D run_nav2_relocalized_map.sh
+ D run_nav2_stage1_planning.sh
+ D run_prop_off_ev_validation.sh
+ D run_takeoff_1m_hold.sh
+ D runtime/autostart_login.log
+ M runtime/last_rosbag_status.txt
+ M runtime/last_rosbag_status_history.log
+ D runtime/takeoff_debug_bag_run_dir.txt
+ D save_fastlio_global_3d_map.sh
+ D save_fastlio_nav2_map.sh
+ D send_nav2_test_goal.sh
+ D show_last_rosbag_status.sh
+ D src/fastlio_global_slam/CMakeLists.txt
+ D src/fastlio_global_slam/config/backend.yaml
+ D src/fastlio_global_slam/config/fastlio_global_slam.rviz
+ D src/fastlio_global_slam/config/relocalization.yaml
+ D src/fastlio_global_slam/launch/fastlio_global_slam.launch.py
+ D src/fastlio_global_slam/package.xml
+ D src/fastlio_global_slam/src/fastlio_global_backend.cpp
+ D src/fastlio_global_slam/srv/LoadMap.srv
+ D src/fastlio_global_slam/srv/Relocalize.srv
+ D src/fastlio_global_slam/srv/SaveMap.srv
+ D src/offboard_nav2_planning/config/nav2_planner_pointcloud.yaml
+ D src/offboard_nav2_planning/config/nav2_planner_relocalized_map.yaml
+ D src/offboard_nav2_planning/config/nav2_planner_static_map.yaml
+ D src/offboard_nav2_planning/launch/nav2_planner_only.launch.py
+ D src/offboard_nav2_planning/offboard_nav2_planning/__init__.py
+ D src/offboard_nav2_planning/offboard_nav2_planning/goal_to_path.py
+ D src/offboard_nav2_planning/offboard_nav2_planning/odometry_tf_publisher.py
+ D src/offboard_nav2_planning/offboard_nav2_planning/path_2_5d_lifter.py
+ D src/offboard_nav2_planning/offboard_nav2_planning/relocalized_pose_to_tf.py
+ D src/offboard_nav2_planning/offboard_nav2_planning/save_2d_map_from_cloud.py
+ D src/offboard_nav2_planning/package.xml
+ D src/offboard_nav2_planning/resource/offboard_nav2_planning
+ D src/offboard_nav2_planning/rviz/nav2_stage1_planning.rviz
+ D src/offboard_nav2_planning/setup.cfg
+ D src/offboard_nav2_planning/setup.py
+ M src/px4_ros_com/CMakeLists.txt
+ M src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py
+ D src/px4_ros_com/launch/fastlio_mavros_odometry_bridge.launch.py
+ D src/px4_ros_com/launch/fastlio_vehicle_visual_odometry.launch.py
+ D src/px4_ros_com/launch/offboard_control_launch.yaml
+ M src/px4_ros_com/launch/prop_off_ev_validation.launch.py
+ D src/px4_ros_com/launch/sensor_combined_listener.launch.py
+ M src/px4_ros_com/package.xml
+ M src/px4_ros_com/px4_ros_com/ev_health.py
+ M src/px4_ros_com/scripts/fix_mavros_odometry_frames.py
+ D src/px4_ros_com/scripts/minipc_mavros_offboard.py
+ D src/px4_ros_com/scripts/minipc_offboard_control.py
+ D src/px4_ros_com/src/bridges/fastlio_mavros_odometry_bridge.cpp
+ M src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp
+ M src/px4_ros_com/src/bridges/fastlio_odometry_guard.cpp
+ D src/px4_ros_com/src/bridges/fastlio_vehicle_visual_odometry.cpp
+ D src/px4_ros_com/src/examples/advertisers/debug_vect_advertiser.cpp
+ D src/px4_ros_com/src/examples/listeners/sensor_combined_listener.cpp
+ D src/px4_ros_com/src/examples/listeners/vehicle_gps_position_listener.cpp
+ D src/px4_ros_com/src/examples/offboard/offboard_control.cpp
+ D src/px4_ros_com/src/examples/offboard/offboard_control_srv.cpp
+ D src/px4_ros_com/src/examples/offboard_py/offboard_control.py
+ M src/px4_ros_com/test/test_ev_health.py
+ M src/px4_ros_com/test/test_ev_odometry_acceptance.py
+ D src/px4_ros_com/test/test_minipc_mavros_offboard_ev_safety.py
+ D start_takeoff_1m_stack.sh
+ D start_takeoff_1m_stack_login.sh
+ D stop_nav2_relocalized_map.sh
+ D stop_takeoff_debug_bag.sh
+ D trigger_fastlio_relocalize.sh
+ D validation_records/ev_vel_cov_20260722_171818.tar.gz
+ D validation_records/ev_vel_cov_20260722_171818/metadata.yaml
+ D validation_records/ev_vel_cov_final_20260722_173030.tar.gz
+ D validation_records/ev_vel_cov_final_20260722_173030/metadata.yaml
+ D validation_records/ev_vel_prop_off/rosbag_final.tar.gz
+ D validation_records/ev_vel_prop_off/rosbag_final/metadata.yaml
+ D validation_records/prop_off_ev_20260721_160338/logs/rosbag.log
+ D validation_records/prop_off_ev_20260721_160338/logs/validation_nodes.log
+ D validation_records/prop_off_ev_20260721_160338/rosbag/metadata.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/diagnostics_after_startup.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/fastlio_ev_health_monitor.node.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/fastlio_ev_health_monitor.params.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/fastlio_mavros_vision_bridge.node.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/fastlio_mavros_vision_bridge.params.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/git_diff_stat.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/git_status.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/health_after_startup.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/markers_wall_time.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/mavros_state_after.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/mavros_state_before.yaml
+ D validation_records/prop_off_ev_20260721_160338/snapshot/nodes_after.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/nodes_before.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/topics_after.txt
+ D validation_records/prop_off_ev_20260721_160338/snapshot/topics_before.txt
+ D validation_records/prop_off_ev_20260721_160508/logs/rosbag.log
+ D validation_records/prop_off_ev_20260721_160508/logs/validation_nodes.log
+ D validation_records/prop_off_ev_20260721_160508/rosbag/metadata.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/diagnostics_after_recovery.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/diagnostics_after_startup.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/fastlio_ev_health_monitor.node.txt
+ D validation_records/prop_off_ev_20260721_160508/snapshot/fastlio_ev_health_monitor.params.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/fastlio_mavros_vision_bridge.node.txt
+ D validation_records/prop_off_ev_20260721_160508/snapshot/fastlio_mavros_vision_bridge.params.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/git_diff_stat.txt
+ D validation_records/prop_off_ev_20260721_160508/snapshot/git_status.txt
+ D validation_records/prop_off_ev_20260721_160508/snapshot/health_after_recovery.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/health_after_startup.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/markers_wall_time.txt
+ D validation_records/prop_off_ev_20260721_160508/snapshot/mavros_state_before.yaml
+ D validation_records/prop_off_ev_20260721_160508/snapshot/nodes_before.txt
+ D validation_records/prop_off_ev_20260721_160508/snapshot/topics_before.txt
+ D validation_records/prop_off_ev_20260721_160508/validation_report.md
+ D validation_records/prop_off_ev_20260721_161611/logs/rosbag.log
+ D validation_records/prop_off_ev_20260721_161611/logs/safety_watchdog.log
+ D validation_records/prop_off_ev_20260721_161611/logs/validation_nodes.log
+ D validation_records/prop_off_ev_20260721_161611/rosbag/metadata.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/diagnostics_after_recovery.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/diagnostics_after_startup.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/fastlio_ev_health_monitor.node.txt
+ D validation_records/prop_off_ev_20260721_161611/snapshot/fastlio_ev_health_monitor.params.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/fastlio_mavros_vision_bridge.node.txt
+ D validation_records/prop_off_ev_20260721_161611/snapshot/fastlio_mavros_vision_bridge.params.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/git_diff_stat.txt
+ D validation_records/prop_off_ev_20260721_161611/snapshot/git_status.txt
+ D validation_records/prop_off_ev_20260721_161611/snapshot/health_after_recovery.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/health_after_startup.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/markers_wall_time.txt
+ D validation_records/prop_off_ev_20260721_161611/snapshot/mavros_state_before.yaml
+ D validation_records/prop_off_ev_20260721_161611/snapshot/nodes_before.txt
+ D validation_records/prop_off_ev_20260721_161611/snapshot/topics_before.txt
+ D validation_records/prop_off_ev_20260721_161611/validation_report.md
+ D validation_records/prop_off_ev_20260722_151746/logs/analyzer.log
+ D validation_records/prop_off_ev_20260722_151746/logs/rosbag.log
+ D validation_records/prop_off_ev_20260722_151746/logs/safety_watchdog.log
+ D validation_records/prop_off_ev_20260722_151746/logs/validation_nodes.log
+ D validation_records/prop_off_ev_20260722_151746/rosbag/metadata.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/diagnostics_after_startup.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/fastlio_ev_health_monitor.node.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/fastlio_ev_health_monitor.params.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/fastlio_mavros_odometry_bridge.node.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/fastlio_mavros_odometry_bridge.params.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/git_diff_stat.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/git_status.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/health_after_startup.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/markers_wall_time.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/mavros_state_after.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/mavros_state_before.yaml
+ D validation_records/prop_off_ev_20260722_151746/snapshot/nodes_after.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/nodes_before.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/topic_info_fmu_in_vehicle_visual_odometry.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/topic_info_mavros_odometry_out.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/topic_info_mavros_vision_pose_pose_cov.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/topics_after.txt
+ D validation_records/prop_off_ev_20260722_151746/snapshot/topics_before.txt
+ D validation_records/prop_off_ev_20260722_151746/validation_report.md
+ D validation_records/prop_off_ev_20260722_152628/logs/analyzer.log
+ D validation_records/prop_off_ev_20260722_152628/logs/rosbag.log
+ D validation_records/prop_off_ev_20260722_152628/logs/safety_watchdog.log
+ D validation_records/prop_off_ev_20260722_152628/logs/validation_nodes.log
+ D validation_records/prop_off_ev_20260722_152628/rosbag/metadata.yaml
+ D validation_records/prop_off_ev_20260722_152628/snapshot/fastlio_ev_health_monitor.node.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/fastlio_ev_health_monitor.params.yaml
+ D validation_records/prop_off_ev_20260722_152628/snapshot/fastlio_mavros_odometry_bridge.node.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/fastlio_mavros_odometry_bridge.params.yaml
+ D validation_records/prop_off_ev_20260722_152628/snapshot/git_diff_stat.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/git_status.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/markers_wall_time.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/mavros_state_after.yaml
+ D validation_records/prop_off_ev_20260722_152628/snapshot/mavros_state_before.yaml
+ D validation_records/prop_off_ev_20260722_152628/snapshot/nodes_after.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/nodes_before.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/topic_info_fmu_in_vehicle_visual_odometry.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/topic_info_mavros_odometry_out.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/topic_info_mavros_vision_pose_pose_cov.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/topics_after.txt
+ D validation_records/prop_off_ev_20260722_152628/snapshot/topics_before.txt
+ D validation_records/prop_off_ev_20260722_152742/logs/rosbag.log
+ D validation_records/prop_off_ev_20260722_152742/logs/safety_watchdog.log
+ D validation_records/prop_off_ev_20260722_152742/logs/validation_nodes.log
+ D validation_records/prop_off_ev_20260722_152742/rosbag/metadata.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/diagnostics_after_recovery.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/diagnostics_after_startup.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/fastlio_ev_health_monitor.node.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/fastlio_ev_health_monitor.params.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/fastlio_mavros_odometry_bridge.node.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/fastlio_mavros_odometry_bridge.params.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/git_diff_stat.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/git_status.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/health_after_recovery.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/health_after_startup.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/markers_wall_time.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/mavros_state_before.yaml
+ D validation_records/prop_off_ev_20260722_152742/snapshot/nodes_before.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/topic_info_fmu_in_vehicle_visual_odometry.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/topic_info_mavros_odometry_out.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/topic_info_mavros_vision_pose_pose_cov.txt
+ D validation_records/prop_off_ev_20260722_152742/snapshot/topics_before.txt
+ D validation_records/prop_off_ev_20260722_152742/validation_report.md
+ D ws_offboard_rosbag_shutdown.service
+ M "\350\247\204\345\210\222\346\216\247\345\210\266.md"
+?? Lin_shi/
+?? bs/
+?? docs/CURRENT_STATE.md
+?? docs/DECISION_LOG.md
+?? docs/NAVIGATION_MERGE.md
+?? docs/STATE_CONFLICTS.md
+?? docs/VALIDATION_MATRIX.md
+?? docs/archive/README_history.md
+?? docs/archive/README_nav2_history.md
+?? flight_records/20260731/
+?? flight_records/20260801/
+?? flight_records/20260802/
+?? flight_records/20260804/
+?? flight_records/20260806/
+?? flight_records/20260807/
+?? flight_records/20260809/
+?? flight_records/20260810/
+?? src/ego_planner_upstream/
+?? src/px4_ros_com/config/mid360_lever_arm.conf
+?? src/px4_ros_com/include/px4_ros_com/fresh_relay_policy.hpp
+?? src/px4_ros_com/include/px4_ros_com/fresh_relay_trace.hpp
+?? src/px4_ros_com/include/px4_ros_com/imu_ingress_observer.hpp
+?? src/px4_ros_com/include/px4_ros_com/lever_arm_compensation.hpp
+?? src/px4_ros_com/include/px4_ros_com/lidar_observability_trace.hpp
+?? src/px4_ros_com/include/px4_ros_com/trace_control.hpp
+?? src/px4_ros_com/test/ev_entry_contract_static.py
+?? src/px4_ros_com/test/test_lever_arm_compensation.cpp
+?? src/px4_ros_com/test/test_mavros_state_monitor.py
+?? src/px4_ros_com/test/test_mid360_lever_arm_config.py
+?? src/race_bringup/
+?? src/race_ego_bridge/
+?? src/race_mapping/
+?? src/race_msgs/
+?? src/race_offboard/
+?? src/race_super_planner_ros2/
+?? tools/
+?? validation_records/mid360_axis_20260807_100143/
+?? validation_records/mid360_axis_20260807_103452/
+?? validation_records/mid360_axis_20260807_105923/
+?? validation_records/prop_off_ev_20260809_213026/
+?? validation_records/prop_off_ev_20260809_213308/
+?? validation_records/prop_off_ev_20260809_224415/
+?? validation_records/prop_off_ev_20260809_232935/
+?? validation_records/prop_off_ev_20260809_233135/
+?? validation_records/velocity_frame_static_20260809_211615/
+?? "\345\235\220\346\240\207\350\275\254\346\215\242.md"
+?? "\345\276\205\345\256\214\346\210\220.md"
+?? "\346\227\240\346\241\250\350\247\206\350\247\211\351\252\214\350\257\201.md"
+?? "\350\204\232\346\234\254\346\270\205\345\215\225.md"
+?? "\350\236\215\345\220\210\346\200\273\347\273\223.md"
+?? "\350\247\206\350\247\211\351\200\237\345\272\246\350\236\215\345\220\210\351\252\214\346\224\266.md"
+?? "\350\257\212\346\226\255.sh"
+?? "\351\200\237\345\272\246\345\235\220\346\240\207\347\263\273\345\217\226\350\257\201.md"
+?? "\351\252\214\350\257\201\346\226\271\346\263\225.md"
