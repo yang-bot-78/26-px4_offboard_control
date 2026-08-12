@@ -4,7 +4,14 @@ set -euo pipefail
 # 手动删除点云顶部：只生成输出副本，不修改输入文件。
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
-default_input="${project_root}/maps/fastlio_global_3d_20260810/GlobalMap.pcd"
+if [[ -n "${GLOBAL_MAP_PCD:-}" ]]; then
+  default_input="${GLOBAL_MAP_PCD}"
+else
+  default_input="$(find "${project_root}/maps" -mindepth 2 -maxdepth 2 -type f \
+    -name 'GlobalMap.pcd' -printf '%T@ %p\n' 2>/dev/null |
+    sort -nr | sed -n '1s/^[^ ]* //p')"
+  default_input="${default_input:-${project_root}/maps/fastlio_global_3d_20260810/GlobalMap.pcd}"
+fi
 
 usage() {
   cat <<'EOF'
@@ -13,13 +20,13 @@ usage() {
 
 默认值：
   输入：maps/fastlio_global_3d_20260810/GlobalMap.pcd
-  最高保留高度：3.0
+  最高保留高度：2.5
   输出：输入文件名后追加 _去顶端_z<高度>m.pcd
 
 示例：
   ./tools/fastlio/去除点云顶层.sh
   ./tools/fastlio/去除点云顶层.sh 地图.pcd 2.5
-  ./tools/fastlio/去除点云顶层.sh 地图.pcd 3.0 新地图_去顶端.pcd
+  ./tools/fastlio/去除点云顶层.sh 地图.pcd 2.5 新地图_去顶端.pcd
 EOF
 }
 
@@ -29,7 +36,7 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--帮助" || "${1:-}" == "--help" ]]; the
 fi
 
 input_file="${1:-${default_input}}"
-max_z="${2:-3.0}"
+max_z="${2:-2.5}"
 if [[ -n "${3:-}" ]]; then
   output_file="$3"
 else
