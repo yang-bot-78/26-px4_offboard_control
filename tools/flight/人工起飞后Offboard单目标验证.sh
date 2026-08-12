@@ -6,12 +6,40 @@ set -euo pipefail
 # 才允许 RViz 的一个目标点交给导航器。
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
+
+find_unique_file_by_suffix() {
+  local directory="$1"
+  local suffix="$2"
+  local description="$3"
+  local -a matches=()
+
+  [[ -d "${directory}" ]] || {
+    echo "[错误] ${description}目录不存在：${directory}" >&2
+    return 2
+  }
+  mapfile -d '' -t matches < <(
+    find "${directory}" -maxdepth 1 -type f -iname "*.${suffix}" -print0 | sort -z
+  )
+  if ((${#matches[@]} != 1)); then
+    echo "[错误] ${directory} 根目录必须有且只有一个 .${suffix} ${description}，当前找到 ${#matches[@]} 个。" >&2
+    ((${#matches[@]} == 0)) || printf '  %s\n' "${matches[@]}" >&2
+    return 2
+  fi
+  printf '%s\n' "${matches[0]}"
+}
+
 stack_script="${script_dir}/一键启动导航栈.sh"
 lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${project_root}/src/px4_ros_com/config/mid360_lever_arm.conf}"
 lever_arm_validator="${project_root}/tools/fastlio/校验杆臂配置.sh"
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
-map_file="${MAP_FILE:-${project_root}/maps/fastlio_global_3d_20260810/GlobalMap_去顶端_z3m.pcd}"
-global_map_dir="${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps/fastlio_global_3d_20260810}"
+default_map_dir="${project_root}/maps/main"
+global_map_source_dir="${FASTLIO_GLOBAL_MAP_DIR:-${default_map_dir}}"
+map_file="${MAP_FILE:-}"
+if [[ -z "${map_file}" ]]; then
+  map_file="$(find_unique_file_by_suffix "${default_map_dir}" pcd "规划地图")"
+fi
+metadata_file="$(find_unique_file_by_suffix "${global_map_source_dir}" csv "重定位元数据")"
+global_map_dir="${global_map_source_dir}"
 requested_planner_backend="${PLANNER_BACKEND:-astar_ego}"
 effective_planner_backend="${requested_planner_backend}"
 tuning_file="${TUNING_FILE:-${project_root}/src/race_bringup/config/astar_ego_tuning.yaml}"
@@ -21,6 +49,15 @@ flight_timestamp="${FLIGHT_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 flight_date="${flight_timestamp%%_*}"
 flight_run_dir="${FLIGHT_RUN_DIR:-${project_root}/flight_records/${flight_date}/flight_${flight_timestamp}}"
 stack_ready_file="${flight_run_dir}/snapshot/stack_ready.state"
+
+# 重定位后端固定读取 metadata.csv。当用户更换的 CSV 名字不同时，
+# 在本次飞行记录中建立标准结构，源地图目录保持不变。
+if [[ "${metadata_file}" != "${global_map_source_dir}/metadata.csv" ]]; then
+  global_map_dir="${flight_run_dir}/relocalization_map"
+  mkdir -p "${global_map_dir}"
+  ln -s "${metadata_file}" "${global_map_dir}/metadata.csv"
+  ln -s "${global_map_source_dir}/keyframes" "${global_map_dir}/keyframes"
+fi
 
 cleanup() {
   trap - EXIT INT TERM HUP
@@ -37,9 +74,9 @@ trap cleanup EXIT INT TERM HUP
 [[ -f "${lever_arm_config}" ]] || { echo "[错误] 缺少坐标配置：${lever_arm_config}" >&2; exit 2; }
 [[ -x "${lever_arm_validator}" ]] || { echo "[错误] 缺少坐标配置校验器：${lever_arm_validator}" >&2; exit 2; }
 [[ -s "${map_file}" ]] || { echo "[错误] 地图不存在或为空：${map_file}" >&2; exit 2; }
-[[ -s "${global_map_dir}/metadata.csv" ]] || { echo "[错误] 重定位 metadata 不存在：${global_map_dir}/metadata.csv" >&2; exit 2; }
-[[ -d "${global_map_dir}/keyframes" ]] || { echo "[错误] 重定位关键帧目录不存在：${global_map_dir}/keyframes" >&2; exit 2; }
-keyframe_count="$(find "${global_map_dir}/keyframes" -maxdepth 1 -type f -name '*.pcd' -printf . | wc -c)"
+[[ -s "${metadata_file}" ]] || { echo "[错误] 重定位 CSV 不存在或为空：${metadata_file}" >&2; exit 2; }
+[[ -d "${global_map_source_dir}/keyframes" ]] || { echo "[错误] 重定位关键帧目录不存在：${global_map_source_dir}/keyframes" >&2; exit 2; }
+keyframe_count="$(find "${global_map_source_dir}/keyframes" -maxdepth 1 -type f -iname '*.pcd' -printf . | wc -c)"
 ((keyframe_count >= 10)) || { echo "[错误] 实飞重定位库至少需要 10 个关键帧，当前只有 ${keyframe_count} 个。" >&2; exit 2; }
 [[ -f "${tuning_file}" ]] || { echo "[错误] 调参文件不存在：${tuning_file}" >&2; exit 2; }
 [[ -t 0 ]] || { echo "[错误] 必须在交互终端执行。" >&2; exit 2; }
@@ -291,7 +328,8 @@ cat <<EOF
 本脚本不会：解锁、起飞、切 POSITION、切 OFFBOARD、自动执行任务航点。
 
 规划地图：${map_file}
-重定位库：${global_map_dir}
+重定位源目录：${global_map_source_dir}
+重定位 CSV：${metadata_file}
 关键帧数：${keyframe_count}
 导航模式：单个 RViz 目标点；未点击目标前只悬停。
 规划后端：请求=${requested_planner_backend}，实际=${effective_planner_backend}，EGO开关=${ego_enabled}

@@ -4,7 +4,16 @@ set -euo pipefail
 # 只查看已保存的 GlobalMap.pcd，不启动传感器、重定位或飞行控制。
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
-map_file="${GLOBAL_MAP_PCD:-${project_root}/maps/fastlio_global_3d_20260810/GlobalMap_去顶端_z3m.pcd}"
+if [[ -n "${GLOBAL_MAP_PCD:-}" ]]; then
+  map_file="${GLOBAL_MAP_PCD}"
+else
+  map_file="$(find "${project_root}/maps" -mindepth 2 -maxdepth 2 -type f \
+    -name 'GlobalMap_去顶端_z*.pcd' -printf '%T@ %p\n' 2>/dev/null |
+    sort -nr | sed -n '1s/^[^ ]* //p')"
+  if [[ -z "${map_file}" ]]; then
+    map_file="${project_root}/maps/fastlio_global_3d_20260810/GlobalMap_去顶端_z3m.pcd"
+  fi
+fi
 rviz_config="${project_root}/Lin_shi/fastlio_global_slam/config/fastlio_global_slam.rviz"
 log_dir="${project_root}/runtime/查看全局地图_$(date +%Y%m%d_%H%M%S)"
 

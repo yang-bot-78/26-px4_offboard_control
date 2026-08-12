@@ -15,10 +15,12 @@ set -euo pipefail
 # RECORD_BAG, READINESS_TIMEOUT_SEC, AUTO_STOP_AFTER_READY_SEC,
 # MID360_FASTLIO_DELAY_SEC,
 # COMPONENT_WINDOWS, COMPONENT_WINDOW_GEOMETRY,
+# RELOCALIZATION_RETRY_COUNT, RELOCALIZATION_RETRY_DELAY_SEC,
 # SKIP_PREFLIGHT_CHECK.
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
+autofix_launch="${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py"
 livox_env="${LIVOX_MID360_ENV:-${HOME}/livox_mid360_env}"
 livox_setup="${livox_env}/setup_mid360.bash"
 
@@ -59,6 +61,8 @@ relocalization_backend_config="${RELOCALIZATION_BACKEND_CONFIG:-${project_root}/
 relocalization_bridge="${project_root}/tools/fastlio/重定位坐标桥.py"
 relocalization_fresh_scan_delay_sec="${RELOCALIZATION_FRESH_SCAN_DELAY_SEC:-3}"
 relocalization_call_timeout_sec="${RELOCALIZATION_CALL_TIMEOUT_SEC:-120}"
+relocalization_retry_count="${RELOCALIZATION_RETRY_COUNT:-8}"
+relocalization_retry_delay_sec="${RELOCALIZATION_RETRY_DELAY_SEC:-2}"
 
 flight_timestamp="${FLIGHT_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 flight_date="${flight_timestamp%%_*}"
@@ -375,24 +379,33 @@ run_relocalization() {
   log_info "Waiting ${relocalization_fresh_scan_delay_sec}s for a fresh synchronized scan"
   sleep "${relocalization_fresh_scan_delay_sec}"
   wait_component_ready "fastlio" message /cloud_registered
-  output="$(timeout "${relocalization_call_timeout_sec}s" ros2 service call \
-    /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
-    '{use_latest_scan: true}' 2>&1)" || {
-      printf '%s\n' "${output}" >&2
-      log_error "Relocalization call failed or timed out; MAVROS and control will not start"
-      return 1
-    }
-  printf '%s\n' "${output}"
-  grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${output}" || {
-    log_error "Relocalization was rejected; MAVROS and control will not start"
+  local attempt relocalization_ok=false
+  for ((attempt=1; attempt<=relocalization_retry_count; attempt++)); do
+    log_info "Relocalization attempt ${attempt}/${relocalization_retry_count}; keep the aircraft/vehicle still and in view of the mapped area"
+    output="$(timeout "${relocalization_call_timeout_sec}s" ros2 service call \
+      /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
+      '{use_latest_scan: true}' 2>&1)" || true
+    printf '%s\n' "${output}"
+    if grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${output}"; then
+      relocalization_ok=true
+      break
+    fi
+    if ((attempt < relocalization_retry_count)); then
+      log_warn "Relocalization did not find a confident candidate; waiting ${relocalization_retry_delay_sec}s for another synchronized scan"
+      sleep "${relocalization_retry_delay_sec}"
+    fi
+  done
+  if [[ "${relocalization_ok}" != true ]]; then
+    log_error "Relocalization was rejected after ${relocalization_retry_count} attempts; MAVROS and control will not start"
     return 1
-  }
+  fi
   wait_component_ready "relocalization_bridge" message /planning/odom
 }
 
 validate_configuration() {
   require_file /opt/ros/humble/setup.bash
   require_file "${project_root}/install/setup.bash"
+  require_file "${autofix_launch}"
   require_executable "${livox_env}/run_mid360_driver.sh"
   require_executable "${livox_env}/run_fastlio_mid360.sh"
   require_file "${livox_setup}"
@@ -431,6 +444,14 @@ validate_configuration() {
     }
     if awk -v value="${world_yaw_alignment_rad}" 'BEGIN { exit !(value != 0.0) }'; then
       log_error "Relocalization already defines map alignment; WORLD_YAW_ALIGNMENT_RAD must be 0.0"
+      exit 1
+    fi
+    if [[ ! "${relocalization_retry_count}" =~ ^[1-9][0-9]*$ ]]; then
+      log_error "RELOCALIZATION_RETRY_COUNT must be a positive integer"
+      exit 1
+    fi
+    if ! awk -v value="${relocalization_retry_delay_sec}" 'BEGIN {exit !(value ~ /^[0-9]+([.][0-9]*)?$/)}'; then
+      log_error "RELOCALIZATION_RETRY_DELAY_SEC must be a non-negative number"
       exit 1
     fi
   fi
@@ -539,6 +560,25 @@ prepare_run() {
   "${lever_arm_validator}" "${lever_arm_config}"
   # shellcheck disable=SC1090
   source "${lever_arm_config}"
+  # Do not allow the FAST-LIO environment or an old workspace overlay to select
+  # a legacy launch with a second PX4 external-vision writer.
+  local resolved_px4_share expected_px4_share
+  resolved_px4_share="$(python3 - <<'PY'
+from ament_index_python.packages import get_package_share_directory
+print(get_package_share_directory("px4_ros_com"))
+PY
+)"
+  expected_px4_share="${project_root}/install/px4_ros_com/share/px4_ros_com"
+  if [[ "${resolved_px4_share}" != "${expected_px4_share}" ]]; then
+    log_error "px4_ros_com is shadowed by an old overlay: ${resolved_px4_share}"
+    log_error "Expected current workspace: ${expected_px4_share}"
+    exit 1
+  fi
+  if grep -Eq 'DeclareLaunchArgument\("start_(bridge|px4_ev_bridge)' "${autofix_launch}" ||
+     grep -Eq 'Only one external-vision output may feed PX4' "${autofix_launch}"; then
+    log_error "fastlio_mavros_autofix.launch.py contains the legacy multi-EV path; refusing to start."
+    exit 1
+  fi
   cp "${lever_arm_config}" "${flight_run_dir}/mid360_lever_arm.conf"
 
   if [[ "${skip_preflight_check}" == 0 ]]; then
@@ -649,6 +689,24 @@ start_stack() {
   wait_component_ready "px4_mavros" message /Odometry/healthy
   wait_component_ready "px4_mavros" message /mavros/vision_pose/pose_cov
   wait_component_ready "px4_mavros" message /mavros/vision_speed/speed_twist_cov
+
+  # The bridge contract is exactly one publisher into MAVROS vision_pose and
+  # no publisher on the retired direct-PX4 EV topics.
+  local pose_info direct_info
+  pose_info="$(ros2 topic info -v /mavros/vision_pose/pose_cov 2>/dev/null || true)"
+  if ! grep -Eq 'Publisher count:[[:space:]]+1$' <<<"${pose_info}"; then
+    log_error "EV bridge contract failed: /mavros/vision_pose/pose_cov must have exactly one publisher."
+    printf '%s\n' "${pose_info}" >&2
+    return 1
+  fi
+  for direct_topic in /mavros/odometry/out /fmu/in/vehicle_visual_odometry; do
+    direct_info="$(ros2 topic info -v "${direct_topic}" 2>/dev/null || true)"
+    if grep -Eq 'Publisher count:[[:space:]]+[1-9]' <<<"${direct_info}"; then
+      log_error "EV bridge contract failed: retired input ${direct_topic} has a publisher."
+      printf '%s\n' "${direct_info}" >&2
+      return 1
+    fi
+  done
 
   if [[ "${relocalization_enabled}" == true ]]; then
     log_info "Waiting for Offboard to lock the map -> PX4 local transform"
