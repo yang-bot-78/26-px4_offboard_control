@@ -151,7 +151,7 @@ def generate_launch_description():
         DeclareLaunchArgument('local_map_z', default_value='1.25'),
         DeclareLaunchArgument('flight_mode', default_value='flat'),
         DeclareLaunchArgument('flight_height', default_value='0.78'),
-        DeclareLaunchArgument('max_height', default_value='0.85'),
+        DeclareLaunchArgument('max_height', default_value='0.90'),
         DeclareLaunchArgument('goal_input_topic', default_value='/goal_pose'),
         DeclareLaunchArgument('require_strict_local_position_health', default_value='false'),
         # Defaults to true: this stack only ever runs against Gazebo SITL, whose

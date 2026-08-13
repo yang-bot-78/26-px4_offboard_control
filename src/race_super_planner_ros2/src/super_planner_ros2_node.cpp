@@ -18,6 +18,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <race_msgs/msg/global_planner_status.hpp>
+#include <race_msgs/msg/flight_altitude_reference.hpp>
 #include <race_msgs/msg/local_path_reference.hpp>
 #include <race_msgs/msg/navigation_setpoint.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -28,11 +29,13 @@
 #include <sensor_msgs/point_cloud2_iterator.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/u_int64.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/utils.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <traj_utils/msg/bspline.hpp>
 
 #include "race_super_planner_ros2/path_fallback_policy.hpp"
 #include "race_super_planner_ros2/takeoff_path_policy.hpp"
@@ -40,6 +43,7 @@
 #include "race_super_planner_ros2/narrow_corridor_policy.hpp"
 #include "race_super_planner_ros2/obstacle_aware_smoothing_policy.hpp"
 #include "race_super_planner_ros2/continuous_segment_policy.hpp"
+#include "race_super_planner_ros2/local_goal_lifecycle_policy.hpp"
 
 using namespace std::chrono_literals;
 
@@ -195,7 +199,7 @@ public:
     max_yaw_rate_ = declare_parameter<double>("max_yaw_rate", 1.0);
     publish_yaw_rate_feedforward_ = declare_parameter<bool>("publish_yaw_rate_feedforward", true);
     min_safe_height_ = declare_parameter<double>("min_safe_height", 0.75);
-    max_safe_height_ = declare_parameter<double>("max_safe_height", 0.85);
+    max_safe_height_ = declare_parameter<double>("max_safe_height", 0.90);
     fixed_flight_height_ = declare_parameter<double>("fixed_flight_height", 0.78);
     use_fixed_flight_height_ = declare_parameter<bool>("use_fixed_flight_height", true);
     final_goal_position_tolerance_m_ =
@@ -225,8 +229,17 @@ public:
     goal_update_position_tolerance_m_ =
       declare_parameter<double>("goal_update_position_tolerance_m", 0.05);
     ego_status_topic_ = declare_parameter<std::string>("ego_status_topic", "/race/ego/status");
+    validated_bspline_topic_ = declare_parameter<std::string>(
+      "validated_bspline_topic", "/race/ego/validated_bspline");
+    command_local_goal_seq_topic_ = declare_parameter<std::string>(
+      "command_local_goal_seq_topic", "/race/ego/command_local_goal_seq");
     local_planner_failure_replan_sec_ =
       declare_parameter<double>("local_planner_failure_replan_sec", 1.0);
+    trajectory_prefetch_sec_ = declare_parameter<double>("trajectory_prefetch_sec", 1.5);
+    trajectory_stall_timeout_sec_ = declare_parameter<double>(
+      "trajectory_stall_timeout_sec", 1.0);
+    trajectory_recovery_confirmation_sec_ = declare_parameter<double>(
+      "trajectory_recovery_confirmation_sec", 0.5);
     resolution_ = declare_parameter<double>("grid_resolution", 0.20);
     planning_resolution_ = declare_parameter<double>("planning_resolution", resolution_);
     local_range_xy_ = declare_parameter<double>("local_range_xy", 10.0);
@@ -259,7 +272,7 @@ public:
     shared_bounds_y_min_ = declare_parameter<double>("shared_bounds/y_min", -7.0);
     shared_bounds_y_max_ = declare_parameter<double>("shared_bounds/y_max", 7.0);
     shared_bounds_z_min_ = declare_parameter<double>("shared_bounds/z_min", 0.50);
-    shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 0.85);
+    shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 0.90);
     shared_bounds_margin_m_ = declare_parameter<double>("shared_bounds/boundary_margin_m", 0.0);
     if (shared_bounds_x_min_ >= shared_bounds_x_max_ ||
       shared_bounds_y_min_ >= shared_bounds_y_max_ ||
@@ -303,6 +316,10 @@ public:
     local_goal_update_distance_m_ = std::clamp(local_goal_update_distance_m_, 0.15, 0.25);
     goal_update_position_tolerance_m_ = std::max(0.01, goal_update_position_tolerance_m_);
     local_planner_failure_replan_sec_ = std::max(0.25, local_planner_failure_replan_sec_);
+    trajectory_prefetch_sec_ = std::max(0.2, trajectory_prefetch_sec_);
+    trajectory_stall_timeout_sec_ = std::max(0.5, trajectory_stall_timeout_sec_);
+    trajectory_recovery_confirmation_sec_ = std::clamp(
+      trajectory_recovery_confirmation_sec_, 0.2, trajectory_stall_timeout_sec_);
 
     goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
       goal_topic_, 10, std::bind(&SuperPlannerRos2Node::goalCallback, this, std::placeholders::_1));
@@ -318,6 +335,10 @@ public:
     mavros_state_sub_ = create_subscription<mavros_msgs::msg::State>(
       mavros_state_topic_, rclcpp::SensorDataQoS(),
       std::bind(&SuperPlannerRos2Node::mavrosStateCallback, this, std::placeholders::_1));
+    altitude_reference_sub_ = create_subscription<race_msgs::msg::FlightAltitudeReference>(
+      "/race/flight_altitude_reference", rclcpp::QoS(1).reliable().transient_local(),
+      std::bind(
+        &SuperPlannerRos2Node::altitudeReferenceCallback, this, std::placeholders::_1));
 
     cloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
       cloud_topic_, rclcpp::SensorDataQoS(),
@@ -347,6 +368,15 @@ public:
       ego_status_sub_ = create_subscription<std_msgs::msg::String>(
         ego_status_topic_, rclcpp::QoS(1).reliable().transient_local(),
         std::bind(&SuperPlannerRos2Node::egoStatusCallback, this, std::placeholders::_1));
+      validated_bspline_sub_ = create_subscription<traj_utils::msg::Bspline>(
+        validated_bspline_topic_, rclcpp::QoS(10).reliable(),
+        std::bind(
+          &SuperPlannerRos2Node::validatedBsplineCallback, this, std::placeholders::_1));
+      command_local_goal_seq_sub_ = create_subscription<std_msgs::msg::UInt64>(
+        command_local_goal_seq_topic_, rclcpp::SensorDataQoS(),
+        [this](const std_msgs::msg::UInt64::SharedPtr msg) {
+          last_validated_local_goal_seq_ = msg->data;
+        });
     }
     marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(marker_topic_, 10);
     status_pub_ = create_publisher<std_msgs::msg::String>(
@@ -408,8 +438,95 @@ private:
     NO_MAP
   };
 
+  double heightAboveGround(double map_z) const
+  {
+    return altitude_reference_valid_ ? map_z - ground_z_map_ : map_z;
+  }
+
+  double effectiveMinSafeHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + min_safe_height_;
+  }
+
+  double effectiveMaxSafeHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + max_safe_height_;
+  }
+
+  double effectiveFixedFlightHeight() const
+  {
+    return altitude_reference_valid_ ? target_z_map_ : fixed_flight_height_;
+  }
+
+  double effectiveSharedMinHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + shared_bounds_z_min_;
+  }
+
+  double effectiveSharedMaxHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + shared_bounds_z_max_;
+  }
+
+  void altitudeReferenceCallback(
+    const race_msgs::msg::FlightAltitudeReference::SharedPtr msg)
+  {
+    if (!msg->valid) {
+      if (altitude_reference_valid_ && msg->flight_id == altitude_reference_flight_id_) {
+        altitude_reference_valid_ = false;
+        have_goal_ = false;
+        active_path_.clear();
+        resetLocalGoalProgress();
+        RCLCPP_WARN(
+          get_logger(), "[SUPER_ALTITUDE_REFERENCE_RESET] flight_id=%lu",
+          static_cast<unsigned long>(msg->flight_id));
+      }
+      return;
+    }
+    const bool finite = std::isfinite(msg->ground_z_map) &&
+      std::isfinite(msg->target_z_map) && std::isfinite(msg->target_agl_m) &&
+      std::isfinite(msg->min_agl_m) && std::isfinite(msg->max_agl_m) &&
+      std::isfinite(msg->ground_z_local_ned) && std::isfinite(msg->target_z_local_ned);
+    if (!finite || std::abs(msg->target_agl_m - fixed_flight_height_) > 1.0e-3 ||
+      std::abs(msg->min_agl_m - shared_bounds_z_min_) > 1.0e-3 ||
+      std::abs(msg->max_agl_m - shared_bounds_z_max_) > 1.0e-3 ||
+      std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3 ||
+      std::abs(
+        (msg->ground_z_local_ned - msg->target_z_local_ned) -
+        msg->target_agl_m) > 1.0e-3)
+    {
+      RCLCPP_ERROR(
+        get_logger(),
+        "[SUPER_ALTITUDE_REFERENCE_REJECT] flight_id=%lu target_agl=%.3f configured=%.3f",
+        static_cast<unsigned long>(msg->flight_id), msg->target_agl_m,
+        fixed_flight_height_);
+      return;
+    }
+    if (altitude_reference_valid_ && msg->flight_id < altitude_reference_flight_id_) {
+      return;
+    }
+    altitude_reference_flight_id_ = msg->flight_id;
+    ground_z_map_ = msg->ground_z_map;
+    target_z_map_ = msg->target_z_map;
+    ground_z_local_ned_ = msg->ground_z_local_ned;
+    target_z_local_ned_ = msg->target_z_local_ned;
+    altitude_reference_valid_ = true;
+    RCLCPP_WARN(
+      get_logger(),
+      "[SUPER_ALTITUDE_REFERENCE_ACCEPTED] flight_id=%lu ground_map=%.3f "
+      "target_map=%.3f target_agl=%.3f",
+      static_cast<unsigned long>(msg->flight_id), ground_z_map_, target_z_map_,
+      msg->target_agl_m);
+  }
+
   void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
+    if (use_fixed_flight_height_ && !altitude_reference_valid_) {
+      RCLCPP_ERROR(
+        get_logger(),
+        "[SUPER_GOAL_REJECT] no valid /race/flight_altitude_reference for this flight");
+      return;
+    }
     Vec3 goal{msg->pose.position.x, msg->pose.position.y, msg->pose.position.z};
     if (!finite_vec(goal)) {
       RCLCPP_ERROR(get_logger(), "Reject non-finite goal from %s", goal_topic_.c_str());
@@ -421,7 +538,8 @@ private:
         get_logger(),
         "FINAL_GOAL_OUT_OF_SHARED_BOUNDS goal=(%.3f,%.3f,%.3f) shared_bounds=x=[%.3f,%.3f] y=[%.3f,%.3f] z=[%.3f,%.3f]",
         goal.x, goal.y, goal.z, shared_bounds_x_min_, shared_bounds_x_max_,
-        shared_bounds_y_min_, shared_bounds_y_max_, shared_bounds_z_min_, shared_bounds_z_max_);
+        shared_bounds_y_min_, shared_bounds_y_max_, effectiveSharedMinHeight(),
+        effectiveSharedMaxHeight());
       return;
     }
     if (have_goal_ && distance2d(goal, latest_goal_) <= goal_update_position_tolerance_m_ &&
@@ -446,33 +564,98 @@ private:
 
   void egoStatusCallback(const std_msgs::msg::String::SharedPtr msg)
   {
-    const bool local_goal_reached = msg->data.rfind("LOCAL_GOAL_REACHED", 0) == 0;
-    if (local_goal_reached) {
-      local_planner_failure_start_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-      local_planner_failure_replan_latched_ = false;
-      return;
-    }
     const bool failed = msg->data == "NO_SAFE_TRAJECTORY" ||
       msg->data == "SETPOINT_INVALID" || msg->data == "TRAJECTORY_TIMEOUT" ||
-      msg->data == "EMERGENCY_HOLD";
-    if (!failed) {
-      local_planner_failure_start_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-      local_planner_failure_replan_latched_ = false;
-      return;
-    }
+      msg->data == "EMERGENCY_HOLD" ||
+      msg->data == "REPLAN_SWITCH_DISCONTINUITY";
+    // TRACKING and LOCAL_GOAL_REACHED are observations, not proof of recovery.
+    // Only a newer bridge-validated trajectory that remains healthy for the
+    // confirmation window clears the failure below.
+    if (!failed) {return;}
+    recovery_required_after_trajectory_id_ = last_validated_trajectory_id_;
+    trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     if (local_planner_failure_start_time_.nanoseconds() == 0) {
       local_planner_failure_start_time_ = now();
-      return;
     }
-    if (!local_planner_failure_replan_latched_ &&
-      ageSeconds(local_planner_failure_start_time_) >= local_planner_failure_replan_sec_)
+  }
+
+  void validatedBsplineCallback(const traj_utils::msg::Bspline::SharedPtr msg)
+  {
+    if (msg->traj_id <= last_validated_trajectory_id_) {return;}
+    last_validated_trajectory_id_ = msg->traj_id;
+    last_validated_trajectory_time_ = now();
+    if (race_super_planner_ros2::shouldStartRecoveryConfirmation(
+        msg->traj_id, recovery_required_after_trajectory_id_,
+        trajectory_recovery_candidate_since_.nanoseconds() != 0))
     {
+      // Start once on the first post-failure validated trajectory. Later
+      // healthy trajectory updates must not perpetually restart the window.
+      trajectory_recovery_candidate_since_ = now();
+    }
+    double duration = 0.0;
+    const std::size_t order = msg->order > 0 ? static_cast<std::size_t>(msg->order) : 0U;
+    if (msg->knots.size() > msg->pos_pts.size() && order < msg->knots.size()) {
+      duration = msg->knots[msg->pos_pts.size()] - msg->knots[order];
+    }
+    if (!std::isfinite(duration) || duration <= 0.0) {
+      duration = trajectory_prefetch_sec_;
+    }
+    const rclcpp::Time trajectory_start(msg->start_time, get_clock()->get_clock_type());
+    validated_trajectory_lease_deadline_ =
+      trajectory_start + rclcpp::Duration::from_seconds(duration);
+  }
+
+  double validatedTrajectoryLeaseRemaining()
+  {
+    if (validated_trajectory_lease_deadline_.nanoseconds() == 0) {
+      return -std::numeric_limits<double>::infinity();
+    }
+    return (validated_trajectory_lease_deadline_ - now()).seconds();
+  }
+
+  void updateLocalPlannerWatchdog()
+  {
+    const bool recovery_candidate_is_stable =
+      trajectory_recovery_candidate_since_.nanoseconds() != 0 &&
+      last_validated_trajectory_id_ > recovery_required_after_trajectory_id_ &&
+      ageSeconds(trajectory_recovery_candidate_since_) >=
+      trajectory_recovery_confirmation_sec_;
+    if (recovery_candidate_is_stable) {
+      local_planner_failure_start_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      local_planner_failure_replan_latched_ = false;
+      trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    }
+
+    const double trajectory_age = last_validated_trajectory_time_.nanoseconds() == 0 ?
+      std::numeric_limits<double>::infinity() : ageSeconds(last_validated_trajectory_time_);
+    const bool goal_waiting_for_trajectory = have_local_goal_ &&
+      local_goal_seq_ > last_validated_local_goal_seq_ &&
+      ageSeconds(last_local_goal_publish_time_) > trajectory_stall_timeout_sec_;
+    const bool objective_stall = race_super_planner_ros2::localPlanningStalled(
+      global_only_mode_ && have_goal_ && !final_goal_reached_latched_ &&
+      heightAboveGround(latest_odom_.z) >= min_safe_height_,
+      local_goal_reached_logged_, goal_waiting_for_trajectory, trajectory_age,
+      validatedTrajectoryLeaseRemaining(), trajectory_stall_timeout_sec_);
+    const bool reported_failure_persisted =
+      local_planner_failure_start_time_.nanoseconds() != 0 &&
+      ageSeconds(local_planner_failure_start_time_) >= local_planner_failure_replan_sec_;
+    if (!local_planner_failure_replan_latched_ &&
+      (objective_stall || reported_failure_persisted))
+    {
+      if (objective_stall && local_planner_failure_start_time_.nanoseconds() == 0) {
+        recovery_required_after_trajectory_id_ = last_validated_trajectory_id_;
+        trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      }
       local_planner_failure_replan_latched_ = true;
       local_planner_replan_requested_ = true;
       RCLCPP_WARN(
         get_logger(),
-        "EGO local planner failure persisted for %.2fs; request one global replan",
-        local_planner_failure_replan_sec_);
+        "[EGO_PROGRESS_STALLED] trajectory_id=%ld trajectory_age=%.3f "
+        "lease_remaining=%.3f local_goal_seq=%lu validated_goal_seq=%lu "
+        "local_goal_reached=%s; request one global replan",
+        last_validated_trajectory_id_, trajectory_age,
+        validatedTrajectoryLeaseRemaining(), local_goal_seq_,
+        last_validated_local_goal_seq_, local_goal_reached_logged_ ? "true" : "false");
     }
   }
 
@@ -515,6 +698,16 @@ private:
     }
     have_odom_ = true;
     last_odom_time_ = now();
+    if (mavros_armed_ && !takeoff_path_released_ &&
+      heightAboveGround(latest_odom_.z) >= min_safe_height_ - 1.0e-3)
+    {
+      takeoff_path_released_ = true;
+      RCLCPP_INFO(
+        get_logger(),
+        "[SUPER_TAKEOFF_PATH_RELEASED] height=%.3f release_height=%.3f; "
+        "later altitude excursions will not reset path progress",
+        heightAboveGround(latest_odom_.z), min_safe_height_);
+    }
     if (active_odom_source_ != source) {
       active_odom_source_ = source;
       RCLCPP_WARN(
@@ -531,6 +724,13 @@ private:
     // MAVROS has no per-sample estimator validity flags.  Link health is the only
     // signal available here; odom finiteness/freshness is checked in odomCallback.
     mavros_connected_ = msg->connected;
+    if (mavros_armed_ && !msg->armed) {
+      takeoff_path_released_ = false;
+      RCLCPP_INFO(
+        get_logger(),
+        "[SUPER_TAKEOFF_PATH_RESET] vehicle disarmed; next flight must release the takeoff path");
+    }
+    mavros_armed_ = msg->armed;
     last_mavros_state_time_ = now();
     if (!mavros_connected_) {
       RCLCPP_WARN_THROTTLE(
@@ -607,6 +807,15 @@ private:
       return;
     }
 
+    if (use_fixed_flight_height_ && !altitude_reference_valid_) {
+      active_path_.clear();
+      selected_setpoint_ = latest_odom_;
+      setMode(Mode::IDLE);
+      publish_reason_ = "WAIT_ALTITUDE_REFERENCE";
+      logStatus();
+      return;
+    }
+
     const bool goal_ok = have_goal_ &&
       (goal_timeout_sec_ <= 0.0 || ageSeconds(last_goal_time_) <= goal_timeout_sec_);
     if (!goal_ok) {
@@ -630,6 +839,8 @@ private:
       return;
     }
 
+    updateLocalPlannerWatchdog();
+
     const bool cloud_ok = have_cloud_ && ageSeconds(last_cloud_time_) <= cloud_timeout_sec_;
     if (!cloud_ok) {
       active_path_.clear();
@@ -644,7 +855,8 @@ private:
 
     const bool freeze_global_path_for_takeoff =
       race_super_planner_ros2::shouldFreezeGlobalPathDuringTakeoff(
-      global_only_mode_, latest_odom_.z, min_safe_height_);
+      global_only_mode_, takeoff_path_released_, heightAboveGround(latest_odom_.z),
+      min_safe_height_);
 
     if (freeze_global_path_for_takeoff && local_planner_replan_requested_) {
       local_planner_replan_requested_ = false;
@@ -653,7 +865,7 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "[SUPER_TAKEOFF_REPLAN_SUPPRESSED] height=%.3f release_height=%.3f",
-        latest_odom_.z, min_safe_height_);
+        heightAboveGround(latest_odom_.z), min_safe_height_);
     } else if (global_only_mode_ && local_planner_replan_requested_) {
       active_path_.clear();
       resetLocalGoalProgress();
@@ -729,7 +941,8 @@ private:
         get_logger(), *get_clock(), 1000,
         "[SUPER_TAKEOFF_PATH_FREEZE] path_id=%lu height=%.3f release_height=%.3f "
         "cross_track_ignored=%.3f local_goal_seq=%lu",
-        global_path_id_, latest_odom_.z, min_safe_height_, cross_track_error_, local_goal_seq_);
+        global_path_id_, heightAboveGround(latest_odom_.z), min_safe_height_, cross_track_error_,
+        local_goal_seq_);
       logStatus();
       return;
     }
@@ -1341,6 +1554,17 @@ private:
     local_goal_progress_index_ = std::max(
       local_goal_progress_index_, forward_projection.segment_index);
 
+    const double remaining_path = remainingPathDistance(path, forward_projection);
+    const bool force_final_approach =
+      have_local_goal_ && local_goal_reached_logged_ &&
+      race_super_planner_ros2::shouldPublishFinalApproach(
+      remaining_path, local_goal_update_distance_m_,
+      distance2d(last_local_goal_, path.back()), goal_update_position_tolerance_m_,
+      final_goal_reached_latched_, final_approach_published_);
+    const bool trajectory_prefetch_due = have_local_goal_ &&
+      last_validated_local_goal_seq_ >= local_goal_seq_ &&
+      validatedTrajectoryLeaseRemaining() <= trajectory_prefetch_sec_;
+
     const double preferred = cornerAwareLookahead(path, forward_projection);
     std::optional<PathSample> selected;
     for (double distance = preferred;
@@ -1444,7 +1668,10 @@ private:
       selected_progress - last_local_goal_path_distance_ >= local_goal_update_distance_m_;
     const bool position_changed =
       distance2d(selected->point, last_local_goal_) >= local_goal_update_distance_m_;
-    const bool advanced = first_for_path || index_advanced || position_changed;
+    const bool prefetch_advanced = trajectory_prefetch_due &&
+      distance2d(selected->point, last_local_goal_) >= 0.05;
+    const bool advanced = first_for_path || index_advanced || position_changed ||
+      force_final_approach || prefetch_advanced;
     if (!advanced) {
       return true;
     }
@@ -1486,12 +1713,24 @@ private:
     ego_reference_path_pub_->publish(reference_message);
     ego_local_goal_pub_->publish(message);
 
+    const double previous_goal_to_end = have_local_goal_ ?
+      distance2d(last_local_goal_, path.back()) :
+      std::numeric_limits<double>::infinity();
     last_local_goal_index_ = selected->path_index;
     last_local_goal_path_distance_ = selected_progress;
     last_local_goal_ = selected->point;
     have_local_goal_ = true;
     ++local_goal_seq_;
     local_goal_reached_logged_ = false;
+    if (force_final_approach) {
+      final_approach_published_ = true;
+      RCLCPP_WARN(
+        get_logger(),
+        "[FINAL_APPROACH] path_id=%lu seq=%lu remaining_path=%.3f "
+        "previous_goal_to_end=%.3f",
+        global_path_id_, local_goal_seq_, remaining_path,
+        previous_goal_to_end);
+    }
     clearFinalGoalReached("new_local_goal");
     last_local_goal_publish_time_ = now();
     RCLCPP_INFO(
@@ -1516,6 +1755,20 @@ private:
       distance += distance2d(path[i - 1], path[i]);
     }
     return distance;
+  }
+
+  double remainingPathDistance(
+    const std::vector<Vec3> & path, const PathProjection & projection) const
+  {
+    if (path.size() < 2 || projection.segment_index + 1 >= path.size()) {
+      return 0.0;
+    }
+    double remaining = distance2d(
+      projection.point, path[projection.segment_index + 1]);
+    for (std::size_t index = projection.segment_index + 2; index < path.size(); ++index) {
+      remaining += distance2d(path[index - 1], path[index]);
+    }
+    return remaining;
   }
 
   double pathLength(const std::vector<Vec3> & path) const
@@ -1777,14 +2030,14 @@ private:
         axis = "Y";
         bound = shared_bounds_y_max_;
         overshoot = point.y - shared_bounds_y_max_;
-      } else if (point.z < shared_bounds_z_min_) {
+      } else if (point.z < effectiveSharedMinHeight()) {
         axis = "Z";
-        bound = shared_bounds_z_min_;
-        overshoot = shared_bounds_z_min_ - point.z;
+        bound = effectiveSharedMinHeight();
+        overshoot = effectiveSharedMinHeight() - point.z;
       } else {
         axis = "Z";
-        bound = shared_bounds_z_max_;
-        overshoot = point.z - shared_bounds_z_max_;
+        bound = effectiveSharedMaxHeight();
+        overshoot = point.z - effectiveSharedMaxHeight();
       }
       RCLCPP_WARN(
         get_logger(),
@@ -1837,7 +2090,7 @@ private:
       const race_super_planner_ros2::smoothing::Point3 & point)
       {
         return distanceToNearestRawObstacle(
-          Vec3{point.x, point.y, clampHeight(fixed_flight_height_)});
+          Vec3{point.x, point.y, clampHeight(effectiveFixedFlightHeight())});
       };
     const auto segment_safe = [this](
       const race_super_planner_ros2::smoothing::Point3 & start,
@@ -1861,7 +2114,7 @@ private:
       const race_super_planner_ros2::smoothing::Point3 & point)
       {
         return distanceToNearestRawObstacle(
-          Vec3{point.x, point.y, clampHeight(fixed_flight_height_)});
+          Vec3{point.x, point.y, clampHeight(effectiveFixedFlightHeight())});
       };
     const auto segment_safe = [this](
       const race_super_planner_ros2::smoothing::Point3 & start,
@@ -2242,7 +2495,7 @@ private:
   {
     PointSafetyResult result;
     result.query_point = point;
-    result.query_point.z = clampHeight(fixed_flight_height_);
+    result.query_point.z = clampHeight(effectiveFixedFlightHeight());
     if (!finite_vec(point)) {
       result.failure = SegmentSafetyFailure::NON_FINITE;
       return result;
@@ -2398,6 +2651,7 @@ private:
     last_local_goal_path_distance_ = 0.0;
     have_local_goal_ = false;
     local_goal_reached_logged_ = false;
+    final_approach_published_ = false;
   }
 
   bool controlOutputEnabled() const
@@ -2410,7 +2664,7 @@ private:
     return finite_vec(point) && point.x >= shared_bounds_x_min_ &&
            point.x <= shared_bounds_x_max_ &&
            point.y >= shared_bounds_y_min_ && point.y <= shared_bounds_y_max_ &&
-           point.z >= shared_bounds_z_min_ && point.z <= shared_bounds_z_max_;
+           point.z >= effectiveSharedMinHeight() && point.z <= effectiveSharedMaxHeight();
   }
 
   void publishRawPath(const std::vector<Vec3> & path)
@@ -2500,7 +2754,10 @@ private:
       return;
     }
 
-    const Vec3 ned = enuToNed(safe);
+    Vec3 ned = enuToNed(safe);
+    if (altitude_reference_valid_ && use_fixed_flight_height_) {
+      ned.z = target_z_local_ned_;
+    }
     if (!isSafeNedGoal(ned)) {
       setMode(Mode::BLOCKED_UNSAFE);
       publish_reason_ = "BLOCKED_UNSAFE";
@@ -2542,7 +2799,9 @@ private:
     if (distance2d(latest_odom_, goal) > max_expected_distance) {
       return false;
     }
-    if (goal.z < min_safe_height_ - 1.0e-3 || goal.z > max_safe_height_ + 1.0e-3) {
+    if (goal.z < effectiveMinSafeHeight() - 1.0e-3 ||
+      goal.z > effectiveMaxSafeHeight() + 1.0e-3)
+    {
       return false;
     }
     return std::abs(goal.x) <= 20.0 && std::abs(goal.y) <= 20.0 && std::abs(goal.z) <= 5.0;
@@ -2556,19 +2815,22 @@ private:
     if (std::abs(goal.x) > 20.0 || std::abs(goal.y) > 20.0 || std::abs(goal.z) > 5.0) {
       return false;
     }
-    const double height = -goal.z;
+    const double height = altitude_reference_valid_ ?
+      ground_z_local_ned_ - goal.z : -goal.z;
     return height >= min_safe_height_ - 1.0e-3 && height <= max_safe_height_ + 1.0e-3;
   }
 
   double clampHeight(double height) const
   {
     if (use_fixed_flight_height_) {
-      return std::min(std::max(fixed_flight_height_, min_safe_height_), max_safe_height_);
+      return std::min(
+        std::max(effectiveFixedFlightHeight(), effectiveMinSafeHeight()),
+        effectiveMaxSafeHeight());
     }
     if (!std::isfinite(height) || height < 0.05) {
-      return (min_safe_height_ + max_safe_height_) * 0.5;
+      return (effectiveMinSafeHeight() + effectiveMaxSafeHeight()) * 0.5;
     }
-    return std::min(std::max(height, min_safe_height_), max_safe_height_);
+    return std::min(std::max(height, effectiveMinSafeHeight()), effectiveMaxSafeHeight());
   }
 
   double interpolateHeight(const Vec3 & start, const Vec3 & goal, double ratio) const
@@ -2600,7 +2862,7 @@ private:
     return Vec3{
       grid_origin_x_ + (static_cast<double>(cell.x) + 0.5) * planning_resolution_,
       grid_origin_y_ + (static_cast<double>(cell.y) + 0.5) * planning_resolution_,
-      min_safe_height_};
+      effectiveMinSafeHeight()};
   }
 
   bool isInside(const Cell & cell) const
@@ -2720,7 +2982,7 @@ private:
     // collision clearance must instead be evaluated at the actual fixed flight
     // height used by the emitted global path.
     Vec3 flight_point = point;
-    flight_point.z = clampHeight(fixed_flight_height_);
+    flight_point.z = clampHeight(effectiveFixedFlightHeight());
     return distanceToNearestRawObstacle(flight_point) >= requiredContinuousClearance();
   }
 
@@ -2731,7 +2993,7 @@ private:
       return minimum;
     }
     minimum = distanceToNearestRawObstacle(
-      Vec3{path.front().x, path.front().y, clampHeight(fixed_flight_height_)});
+      Vec3{path.front().x, path.front().y, clampHeight(effectiveFixedFlightHeight())});
     for (std::size_t index = 1; index < path.size(); ++index) {
       const SegmentSafetyResult segment = isSegmentContinuouslySafe(
         path[index - 1], path[index],
@@ -2979,6 +3241,8 @@ private:
   std::string ego_local_goal_topic_;
   std::string ego_reference_path_topic_;
   std::string ego_status_topic_;
+  std::string validated_bspline_topic_;
+  std::string command_local_goal_seq_topic_;
   std::string raw_path_topic_;
   std::string marker_topic_;
   std::string world_frame_;
@@ -3012,13 +3276,21 @@ private:
   double local_goal_update_distance_m_{0.20};
   double goal_update_position_tolerance_m_{0.05};
   double local_planner_failure_replan_sec_{1.0};
+  double trajectory_prefetch_sec_{1.5};
+  double trajectory_stall_timeout_sec_{1.0};
+  double trajectory_recovery_confirmation_sec_{0.5};
   double shared_bounds_x_min_{-7.5};
   double shared_bounds_x_max_{7.5};
   double shared_bounds_y_min_{-7.0};
   double shared_bounds_y_max_{7.0};
   double shared_bounds_z_min_{0.50};
-  double shared_bounds_z_max_{0.85};
+  double shared_bounds_z_max_{0.90};
   double shared_bounds_margin_m_{0.0};
+  uint64_t altitude_reference_flight_id_{0};
+  double ground_z_map_{0.0};
+  double target_z_map_{0.0};
+  double ground_z_local_ned_{0.0};
+  double target_z_local_ned_{0.0};
   double resolution_{0.20};
   double planning_resolution_{0.20};
   double local_range_xy_{10.0};
@@ -3050,6 +3322,7 @@ private:
   bool require_mavros_connected_{false};
   bool smoothing_collision_check_{true};
   bool use_fixed_flight_height_{true};
+  bool altitude_reference_valid_{false};
   bool allow_direct_path_{false};
   bool enable_path_shortcut_{false};
   std::string smoothing_method_{"chaikin"};
@@ -3059,9 +3332,13 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr fallback_odom_sub_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr mavros_state_sub_;
+  rclcpp::Subscription<race_msgs::msg::FlightAltitudeReference>::SharedPtr
+    altitude_reference_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr fallback_cloud_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr ego_status_sub_;
+  rclcpp::Subscription<traj_utils::msg::Bspline>::SharedPtr validated_bspline_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr command_local_goal_seq_sub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr raw_path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
@@ -3094,9 +3371,14 @@ private:
   rclcpp::Time last_mavros_state_time_;
   rclcpp::Time last_local_goal_publish_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time local_planner_failure_start_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_validated_trajectory_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time validated_trajectory_lease_deadline_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time trajectory_recovery_candidate_since_{0, 0, RCL_ROS_TIME};
   std::string active_odom_source_;
   std::string active_cloud_source_;
   bool mavros_connected_{false};
+  bool mavros_armed_{false};
+  bool takeoff_path_released_{false};
   bool have_current_yaw_{false};
   bool have_commanded_yaw_{false};
   double current_yaw_ned_{0.0};
@@ -3124,6 +3406,9 @@ private:
   uint64_t global_goal_id_{0};
   uint64_t global_path_id_{0};
   uint64_t local_goal_seq_{0};
+  uint64_t last_validated_local_goal_seq_{0};
+  int64_t last_validated_trajectory_id_{-1};
+  int64_t recovery_required_after_trajectory_id_{-1};
   std::size_t local_goal_progress_index_{0};
   std::size_t tracking_progress_index_{0};
   std::size_t last_local_goal_index_{0};
@@ -3132,6 +3417,7 @@ private:
   bool local_planner_replan_requested_{false};
   bool local_planner_failure_replan_latched_{false};
   bool local_goal_reached_logged_{false};
+  bool final_approach_published_{false};
   bool final_goal_reached_latched_{false};
   int final_goal_confirmation_count_{0};
   Mode mode_{Mode::IDLE};

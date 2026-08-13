@@ -41,7 +41,7 @@ super_planner_ros2_node:
     publish_yaw_rate_feedforward: true
 
     min_safe_height: 0.75
-    max_safe_height: 0.85
+    max_safe_height: 0.90
     fixed_flight_height: 0.78
     use_fixed_flight_height: true
     final_goal_position_tolerance_m: 0.10
@@ -63,6 +63,9 @@ super_planner_ros2_node:
     goal_update_position_tolerance_m: 0.05
     ego_status_topic: /race/ego/status
     local_planner_failure_replan_sec: 1.0
+    trajectory_prefetch_sec: 1.5
+    trajectory_stall_timeout_sec: 1.0
+    trajectory_recovery_confirmation_sec: 0.5
 
     grid_resolution: 0.15
     local_range_xy: 10.0

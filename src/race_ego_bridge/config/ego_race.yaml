@@ -35,7 +35,7 @@ race_ego_goal_bridge:
     flight_mode: flat
     flight_height: 0.78
     min_height: 0.50
-    max_height: 0.85
+    max_height: 0.90
     min_x: -7.5
     max_x: 7.5
     min_y: -7.0
@@ -61,13 +61,16 @@ race_ego_trajectory_bridge:
     max_acceleration: 0.80
     feasibility_tolerance: 1.10
     dynamic_invalid_grace_sec: 0.75
+    switch_position_tolerance_m: 0.05
+    switch_velocity_tolerance_mps: 0.10
+    switch_acceleration_tolerance_mps2: 0.20
     obstacle_clearance: 0.30
     command_timeout_sec: 0.20
     odom_timeout_sec: 0.25
     min_planning_height: -0.15
     min_height: 0.50
     bootstrap_release_height: 0.58
-    max_height: 0.85
+    max_height: 0.90
     min_x: -7.5
     max_x: 7.5
     min_y: -7.0

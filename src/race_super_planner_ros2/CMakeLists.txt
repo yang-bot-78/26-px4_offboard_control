@@ -16,6 +16,7 @@ find_package(mavros_msgs REQUIRED)
 find_package(race_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(traj_utils REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -41,6 +42,7 @@ ament_target_dependencies(super_planner_ros2_node
   race_msgs
   sensor_msgs
   std_msgs
+  traj_utils
   visualization_msgs
   tf2
   tf2_ros
@@ -99,6 +101,13 @@ if(BUILD_TESTING)
   ament_add_gtest(test_takeoff_path_policy test/test_takeoff_path_policy.cpp)
   if(TARGET test_takeoff_path_policy)
     target_include_directories(test_takeoff_path_policy PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  endif()
+  ament_add_gtest(
+    test_local_goal_lifecycle_policy
+    test/test_local_goal_lifecycle_policy.cpp)
+  if(TARGET test_local_goal_lifecycle_policy)
+    target_include_directories(test_local_goal_lifecycle_policy PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/include)
   endif()
 endif()

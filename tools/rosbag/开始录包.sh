@@ -233,6 +233,7 @@ bag_topics=(
   /race/super_planner/raw_path
   /race/planner/status
   /race/global_planner/status
+  /race/flight_altitude_reference
   /race/control/status
   /race/ego/odom
   /race/ego/local_goal
