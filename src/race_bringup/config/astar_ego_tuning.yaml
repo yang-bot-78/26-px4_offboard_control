@@ -176,7 +176,7 @@ shared_safety:
     # [调小] 会触发硬安全拒绝，低于 fixed_flight_height 直接启动失败。
     # 修改后完整重启。
     z_min: 0.50
-    z_max: 0.85
+    z_max: 0.90
     # 规划路径外的保留边界，单位：m；当前为 grid_resolution 一个体素。
     # 【它是什么】在上面 6 个硬边界之内再留的一圈缓冲，供 Super 判定路线合法性。
     # [调大] 需要地图覆盖证据。
@@ -229,6 +229,13 @@ global_planner:
   # [调小] 滚动更频繁，EGO 可能来不及为远处的柱子准备绕行。
   # 完整重启。
   max_local_goal_distance: 1.70
+  # 旧轨迹剩余时间进入该窗口时，允许 Super 提前滚动一次 local goal，给 EGO
+  # 留出后台规划时间。已有目标仍需被 Bridge 确认执行，避免无限超前发布。
+  trajectory_prefetch_sec: 1.50
+  # 任务未完成且局部目标/轨迹没有客观进展超过该时间，触发一次全局重规划。
+  trajectory_stall_timeout_sec: 1.00
+  # 新 trajectory_id 通过 Bridge 后需稳定存在这段时间，才清除旧故障。
+  trajectory_recovery_confirmation_sec: 0.50
   # Super 平滑路径最小净空，单位：m。
   # [调大] 更保守。[调小] 会增加切角风险。完整重启。
   smoothing_min_clearance: 0.10
@@ -472,6 +479,11 @@ trajectory_bridge:
   # EGO 因实际位置偏差重新接轨时，Bridge 在当前位置安全悬停并等待新轨迹的最长时间。
   # 超时仍会按原有保护逻辑停止，不能无限等待。
   replan_hold_timeout_sec: 3.0
+  # 新旧轨迹原子交接门限。候选自身安全但与当前输出不连续时，Bridge 拒绝
+  # 瞬间切换并进入实测位置保持，要求 EGO 重新锚定。
+  switch_position_tolerance_m: 0.05
+  switch_velocity_tolerance_mps: 0.10
+  switch_acceleration_tolerance_mps2: 0.20
   # B-spline 碰撞采样最大空间间距，单位：m。整条曲线按这个间距逐点查净空。
   # [约束] 不得大于 global_planner.grid_resolution，否则启动失败
   #        （astar_ego_tuning.py:178）。
@@ -516,7 +528,7 @@ offboard:
   fixed_flight_height_m: 0.78
   # Offboard 最大安全高度，单位：m。硬限幅，超过就拉回。
   # [约束] 不得高于 geofence.z_max（astar_ego_tuning.py:229）。完整重启。
-  max_safe_height_m: 0.85
+  max_safe_height_m: 0.90
   # 最终目标 XY 容差，单位：m。到此范围内且速度够低即判定到达。
   # [调大] 可能过早到达。[调小] 可能在目标附近抖动不判定到达。完整重启。
   goal_tolerance_xy_m: 0.10

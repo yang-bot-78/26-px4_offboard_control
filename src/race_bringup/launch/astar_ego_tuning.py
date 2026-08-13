@@ -90,7 +90,9 @@ def load_tuning(path):
             'grid_resolution', 'planning_resolution', 'hard_inflation_radius',
             'min_planning_inflation_radius', 'soft_obstacle_cost_radius',
             'clearance_cost_weight', 'tracking_lookahead_distance',
-            'max_local_goal_distance', 'smoothing_min_clearance'):
+            'max_local_goal_distance', 'smoothing_min_clearance',
+            'trajectory_prefetch_sec', 'trajectory_stall_timeout_sec',
+            'trajectory_recovery_confirmation_sec'):
         _non_negative(global_planner, key, 'global_planner')
     for key in ('allow_direct_path', 'enable_path_shortcut'):
         _require(global_planner, key, bool, 'global_planner')
@@ -100,6 +102,16 @@ def load_tuning(path):
     if global_planner['soft_obstacle_cost_radius'] < global_planner['hard_inflation_radius']:
         raise TuningError(
             'global_planner.soft_obstacle_cost_radius must be >= hard_inflation_radius')
+    if global_planner['trajectory_prefetch_sec'] < 0.5:
+        raise TuningError('global_planner.trajectory_prefetch_sec must be >= 0.5')
+    if not 0.5 <= global_planner['trajectory_stall_timeout_sec'] <= 3.0:
+        raise TuningError(
+            'global_planner.trajectory_stall_timeout_sec must be in [0.5, 3.0]')
+    if not 0.2 <= global_planner['trajectory_recovery_confirmation_sec'] <= \
+            global_planner['trajectory_stall_timeout_sec']:
+        raise TuningError(
+            'global_planner.trajectory_recovery_confirmation_sec must be in '
+            '[0.2, trajectory_stall_timeout_sec]')
 
     ego = tuning['ego_planner']
     _require(ego, 'enable', bool, 'ego_planner')
@@ -290,6 +302,8 @@ def load_tuning(path):
             'active_recheck_history_sec',
             'dynamic_invalid_grace_sec', 'collision_sample_spacing_m',
             'replan_hold_timeout_sec',
+            'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
+            'switch_acceleration_tolerance_mps2',
             'dynamic_limit_margin', 'max_yaw_rate_rad_s',
             'braking_deceleration_mps2',
             'reaction_time_sec'):
@@ -307,6 +321,15 @@ def load_tuning(path):
     if not 0.50 <= bridge['replan_hold_timeout_sec'] <= 3.0:
         raise TuningError(
             'trajectory_bridge.replan_hold_timeout_sec must be in [0.50, 3.0]')
+    if bridge['switch_position_tolerance_m'] > 0.10:
+        raise TuningError(
+            'trajectory_bridge.switch_position_tolerance_m must be <= 0.10')
+    if bridge['switch_velocity_tolerance_mps'] > 0.20:
+        raise TuningError(
+            'trajectory_bridge.switch_velocity_tolerance_mps must be <= 0.20')
+    if bridge['switch_acceleration_tolerance_mps2'] > 0.40:
+        raise TuningError(
+            'trajectory_bridge.switch_acceleration_tolerance_mps2 must be <= 0.40')
     maximum_speed = ego['max_velocity']
     stopping_time = (
         bridge['reaction_time_sec'] +
@@ -421,6 +444,11 @@ def node_parameter_overlays(tuning):
             'clearance_cost_weight': global_planner['clearance_cost_weight'],
             'tracking_lookahead_distance': global_planner['tracking_lookahead_distance'],
             'ego_local_goal_max_distance_m': global_planner['max_local_goal_distance'],
+            'trajectory_prefetch_sec': global_planner['trajectory_prefetch_sec'],
+            'trajectory_stall_timeout_sec':
+                global_planner['trajectory_stall_timeout_sec'],
+            'trajectory_recovery_confirmation_sec':
+                global_planner['trajectory_recovery_confirmation_sec'],
             'smoothing_min_clearance': global_planner['smoothing_min_clearance'],
             'allow_direct_path': global_planner['allow_direct_path'],
             'enable_path_shortcut': global_planner['enable_path_shortcut'],
@@ -524,6 +552,12 @@ def node_parameter_overlays(tuning):
                               'bspline_timeout_sec': bridge['bspline_timeout_sec'],
                               'dynamic_invalid_grace_sec': bridge['dynamic_invalid_grace_sec'],
                               'replan_hold_timeout_sec': bridge['replan_hold_timeout_sec'],
+                              'switch_position_tolerance_m':
+                                  bridge['switch_position_tolerance_m'],
+                              'switch_velocity_tolerance_mps':
+                                  bridge['switch_velocity_tolerance_mps'],
+                              'switch_acceleration_tolerance_mps2':
+                                  bridge['switch_acceleration_tolerance_mps2'],
                               'trajectory_sample_spacing': bridge['collision_sample_spacing_m'],
                               'braking_deceleration_mps2':
                                   bridge['braking_deceleration_mps2'],

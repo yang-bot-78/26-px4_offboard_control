@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -34,6 +35,17 @@ inline double clampTrajectoryTime(double elapsed, double duration)
   return std::clamp(elapsed, 0.0, duration);
 }
 
+inline double trajectorySwitchEvaluationTime(
+  double elapsed, double duration, bool measured_position_hold)
+{
+  return measured_position_hold ? 0.0 : clampTrajectoryTime(elapsed, duration);
+}
+
+inline bool shouldResetFlightHandover(bool was_armed, bool armed)
+{
+  return was_armed && !armed;
+}
+
 inline bool transitionContinuous(const Vec3 & previous, const Vec3 & next, double max_jump)
 {
   if (!finite(previous) || !finite(next) || !std::isfinite(max_jump) || max_jump < 0.0) {
@@ -41,6 +53,49 @@ inline bool transitionContinuous(const Vec3 & previous, const Vec3 & next, doubl
   }
   return std::hypot(
     std::hypot(next.x - previous.x, next.y - previous.y), next.z - previous.z) <= max_jump;
+}
+
+struct TrajectoryState
+{
+  Vec3 position;
+  Vec3 velocity;
+  Vec3 acceleration;
+};
+
+struct TrajectoryTransitionCheck
+{
+  bool continuous{false};
+  double position_error{std::numeric_limits<double>::infinity()};
+  double velocity_error{std::numeric_limits<double>::infinity()};
+  double acceleration_error{std::numeric_limits<double>::infinity()};
+};
+
+inline TrajectoryTransitionCheck transitionStateContinuous(
+  const TrajectoryState & previous, const TrajectoryState & next,
+  double position_tolerance, double velocity_tolerance,
+  double acceleration_tolerance)
+{
+  TrajectoryTransitionCheck result;
+  if (!finite(previous.position) || !finite(previous.velocity) ||
+    !finite(previous.acceleration) || !finite(next.position) ||
+    !finite(next.velocity) || !finite(next.acceleration) ||
+    !std::isfinite(position_tolerance) || position_tolerance < 0.0 ||
+    !std::isfinite(velocity_tolerance) || velocity_tolerance < 0.0 ||
+    !std::isfinite(acceleration_tolerance) || acceleration_tolerance < 0.0)
+  {
+    return result;
+  }
+  const auto norm = [](const Vec3 & lhs, const Vec3 & rhs) {
+      return std::hypot(
+        std::hypot(lhs.x - rhs.x, lhs.y - rhs.y), lhs.z - rhs.z);
+    };
+  result.position_error = norm(previous.position, next.position);
+  result.velocity_error = norm(previous.velocity, next.velocity);
+  result.acceleration_error = norm(previous.acceleration, next.acceleration);
+  result.continuous = result.position_error <= position_tolerance &&
+    result.velocity_error <= velocity_tolerance &&
+    result.acceleration_error <= acceleration_tolerance;
+  return result;
 }
 
 struct ClearanceModeSelection

@@ -12,16 +12,39 @@ TEST(ManualHandoverPolicy, TracksCurrentPositionBeforeOffboard)
 
 TEST(ManualHandoverPolicy, AcceptsOnlyAlignedSafeOffboardTransition)
 {
-  EXPECT_TRUE(race_offboard::canAcceptManualHandover(
+  EXPECT_TRUE(
+    race_offboard::canAcceptManualHandover(
       true, true, true, true, true, true, true, true, true));
-  EXPECT_FALSE(race_offboard::canAcceptManualHandover(
+  EXPECT_FALSE(
+    race_offboard::canAcceptManualHandover(
       true, true, true, true, true, true, false, true, true));
-  EXPECT_FALSE(race_offboard::canAcceptManualHandover(
+  EXPECT_FALSE(
+    race_offboard::canAcceptManualHandover(
       true, true, true, true, true, false, true, true, true));
-  EXPECT_FALSE(race_offboard::canAcceptManualHandover(
+  EXPECT_FALSE(
+    race_offboard::canAcceptManualHandover(
       true, true, true, true, true, true, true, false, true));
-  EXPECT_FALSE(race_offboard::canAcceptManualHandover(
+  EXPECT_FALSE(
+    race_offboard::canAcceptManualHandover(
       true, true, true, true, true, true, true, true, false));
+}
+
+TEST(PilotOverridePolicy, LeavingOffboardRevokesActiveAutomation)
+{
+  EXPECT_TRUE(race_offboard::pilotOverrideRequested(true, true, false, true, true));
+  EXPECT_FALSE(race_offboard::pilotOverrideRequested(false, true, false, true, true));
+  EXPECT_FALSE(race_offboard::pilotOverrideRequested(true, false, false, false, false));
+}
+
+TEST(PilotOverridePolicy, DisarmRevokesActiveAutomation)
+{
+  EXPECT_TRUE(race_offboard::pilotOverrideRequested(true, true, true, true, false));
+  EXPECT_FALSE(race_offboard::pilotOverrideRequested(true, true, true, true, true));
+}
+
+TEST(AltitudeHoldPolicy, PlannerStopsKeepConfiguredFlightLevel)
+{
+  EXPECT_DOUBLE_EQ(-0.75, race_offboard::fixedAltitudeHoldZ(-0.75));
 }
 
 TEST(TakeoffHandoverPolicy, GroundGoalCanStartVerticalTakeoffWithoutEgoTrajectory)

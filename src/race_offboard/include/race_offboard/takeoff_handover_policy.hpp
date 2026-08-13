@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <string>
 
 namespace race_offboard
@@ -19,6 +20,26 @@ inline bool canAcceptManualHandover(
 {
   return manual_handover && vehicle_idle && armed && offboard &&
          have_finite_position && ev_ready && hold_aligned && speed_safe && height_safe;
+}
+
+// Once an automated takeoff/flight transaction owns OFFBOARD, an operator
+// mode switch or disarm is an explicit revocation of that authority.  The
+// node must latch the revocation for the remainder of the process instead of
+// racing the RC by requesting OFFBOARD/arm again.
+inline bool pilotOverrideRequested(
+  bool automation_active, bool was_offboard, bool offboard,
+  bool was_armed, bool armed)
+{
+  return automation_active &&
+         ((was_offboard && !offboard) || (was_armed && !armed));
+}
+
+// Flat-flight safety holds preserve the configured flight level.  Capturing
+// the measured altitude after every planner stop creates a downward ratchet
+// and can incorrectly re-enter the takeoff gates.
+inline double fixedAltitudeHoldZ(double cruise_z)
+{
+  return std::isfinite(cruise_z) ? cruise_z : 0.0;
 }
 
 // Keep the takeoff and EGO-handover gates separate.  A valid user goal may

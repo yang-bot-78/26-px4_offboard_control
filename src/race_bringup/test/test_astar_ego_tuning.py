@@ -265,7 +265,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_fixed_height_outside_bounds_fails(self):
         bad = copy.deepcopy(self.tuning)
-        bad['ego_planner']['fixed_flight_height'] = 0.9
+        bad['ego_planner']['fixed_flight_height'] = 0.91
         with self.assertRaisesRegex(TuningError, 'fixed_flight_height'):
             self._validate(bad)
 
@@ -277,7 +277,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_all_node_bounds_are_identical(self):
         overlays = node_parameter_overlays(self.tuning)
-        expected = (-0.85, 11.90, -3.20, 12.40, 0.50, 0.85)
+        expected = (-0.85, 11.90, -3.20, 12.40, 0.50, 0.90)
         for name in ('ego', 'goal_bridge', 'trajectory_bridge'):
             values = overlays[name]
             self.assertEqual(expected, (
@@ -561,6 +561,19 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertEqual(
             offboard['ego_goal_stable_height_tolerance_m'],
             overlays['goal_bridge']['stable_height_tolerance_m'])
+
+    def test_trajectory_lifecycle_and_switch_gates_are_plumbed(self):
+        overlays = node_parameter_overlays(self.tuning)
+        planner = self.tuning['global_planner']
+        bridge = self.tuning['trajectory_bridge']
+        for key in (
+                'trajectory_prefetch_sec', 'trajectory_stall_timeout_sec',
+                'trajectory_recovery_confirmation_sec'):
+            self.assertEqual(planner[key], overlays['super'][key])
+        for key in (
+                'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
+                'switch_acceleration_tolerance_mps2'):
+            self.assertEqual(bridge[key], overlays['trajectory_bridge'][key])
 
     def test_recovery_can_be_disabled_without_changing_other_tuning(self):
         disabled = copy.deepcopy(self.tuning)
