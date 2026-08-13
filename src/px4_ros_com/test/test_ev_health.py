@@ -22,6 +22,7 @@ def config(**overrides):
         max_input_age_s=0.25,
         max_position_jump_m=0.15,
         max_horizontal_velocity_difference_mps=0.45,
+        velocity_comparison_window_s=0.1,
         anomaly_to_fault_s=0.3,
         velocity_lowpass_cutoff_hz=0.0,
     )
@@ -140,6 +141,57 @@ def test_internal_velocity_is_averaged_over_position_interval():
     # also 0.5m/s. Comparing only the current 1.0m/s sample would falsely fault.
     assert result.state == HealthState.HEALTHY
     assert result.metrics.internal_velocity_difference_mps == pytest.approx(0.0)
+
+
+def test_150ms_window_rejects_single_lidar_correction_velocity_spike():
+    core = EvHealthMonitorCore(
+        config(
+            velocity_comparison_window_s=0.15,
+            max_internal_velocity_difference_mps=0.50,
+        )
+    )
+    result = None
+    for index in range(61):
+        stamp = 1.0 + index * 0.005
+        # A 3 mm LiDAR correction at one 200 Hz frame looks like 0.6 m/s with
+        # adjacent-sample differencing, but only 0.02 m/s over 150 ms.
+        position = 0.0 if index < 30 else 0.003
+        result = add_frame(
+            core,
+            stamp,
+            position,
+            px4_velocity_enu=(0.0, 0.0, 0.0),
+            internal_velocity_px4_ned=(0.0, 0.0, 0.0),
+        )
+        assert "velocity_mismatch" not in result.reason
+
+    assert result is not None
+    assert result.state == HealthState.HEALTHY
+    assert result.metrics.velocity_comparison_dt_s == pytest.approx(0.15)
+
+
+def test_150ms_window_still_detects_sustained_velocity_mismatch():
+    core = EvHealthMonitorCore(
+        config(
+            velocity_comparison_window_s=0.15,
+            max_internal_velocity_difference_mps=0.40,
+        )
+    )
+    result = None
+    for index in range(101):
+        stamp = 1.0 + index * 0.005
+        result = add_frame(
+            core,
+            stamp,
+            0.6 * (stamp - 1.0),
+            px4_velocity_enu=(0.6, 0.0, 0.0),
+            internal_velocity_px4_ned=(0.0, 0.0, 0.0),
+        )
+
+    assert result is not None
+    assert result.state == HealthState.FAULT
+    assert "internal_velocity_mismatch" in result.reason
+    assert result.metrics.raw_velocity_px4_ned[1] == pytest.approx(0.6)
 
 
 def test_vertical_internal_velocity_mismatch_is_diagnostic_only():

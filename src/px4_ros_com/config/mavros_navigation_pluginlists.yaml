@@ -7,6 +7,9 @@
       - imu
       - local_position
       - odometry
+      # Required only for the POSITION preflight's read-only EKF2_EV_CTRL
+      # check. The flight scripts never call the ParamSet service.
+      - param
       - setpoint_raw
       - sys_status
       - sys_time

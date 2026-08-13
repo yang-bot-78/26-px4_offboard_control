@@ -40,6 +40,7 @@ class HealthConfig:
     max_position_jump_m: float = 0.15
     max_horizontal_velocity_difference_mps: float = 0.45
     max_internal_velocity_difference_mps: float = 0.50
+    velocity_comparison_window_s: float = 0.15
     velocity_difference_min_speed_mps: float = 0.05
     anomaly_to_fault_s: float = 0.3
     recovery_healthy_s: float = 2.0
@@ -79,6 +80,7 @@ class HealthMetrics:
     internal_vertical_velocity_difference_mps: float = math.nan
     single_frame_displacement_m: float = math.nan
     dt_s: float = math.nan
+    velocity_comparison_dt_s: float = math.nan
     input_age_s: float = math.nan
     velocity_alignment_s: float = math.nan
     internal_velocity_alignment_s: float = math.nan
@@ -282,6 +284,10 @@ class EvHealthMonitorCore:
 
     def __init__(self, config: Optional[HealthConfig] = None) -> None:
         self.config = config or HealthConfig()
+        if self.config.velocity_comparison_window_s <= self.config.min_dt_s:
+            raise ValueError(
+                "velocity_comparison_window_s must be greater than min_dt_s"
+            )
         self.state = HealthState.SUSPECT
         self.reason = "initializing"
         self.metrics = HealthMetrics()
@@ -289,6 +295,7 @@ class EvHealthMonitorCore:
         self._last_stamp_s: Optional[float] = None
         self._last_receive_s: Optional[float] = None
         self._last_position_ned: Optional[Vector3] = None
+        self._position_history = deque()
         self._filtered_velocity_ned: Vector3 = (0.0, 0.0, 0.0)
         self._px4_velocity_ned: Optional[Vector3] = None
         self._px4_receive_s: Optional[float] = None
@@ -476,6 +483,7 @@ class EvHealthMonitorCore:
         self.metrics.internal_vertical_velocity_difference_mps = math.nan
         self.metrics.single_frame_displacement_m = math.nan
         self.metrics.dt_s = math.nan
+        self.metrics.velocity_comparison_dt_s = math.nan
         self.metrics.input_age_s = math.nan
         self.metrics.velocity_alignment_s = math.nan
         self.metrics.internal_velocity_alignment_s = math.nan
@@ -514,6 +522,7 @@ class EvHealthMonitorCore:
 
         if self._last_stamp_s is None or self._last_position_ned is None:
             self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
+            self._record_position(float(stamp_s), position_ned)
             self._last_stamp_s = float(stamp_s)
             self._last_receive_s = now_s
             self._last_position_ned = position_ned
@@ -548,8 +557,32 @@ class EvHealthMonitorCore:
             self._resync(float(stamp_s), now_s, raw)
             return self._result(False, now_s)
 
-        raw_velocity = tuple(component / dt for component in delta)
-        self.metrics.raw_velocity_px4_ned = raw_velocity  # type: ignore[assignment]
+        self._last_stamp_s = float(stamp_s)
+        self._last_receive_s = now_s
+        self._last_position_ned = position_ned
+        self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
+        self._record_position(float(stamp_s), position_ned)
+
+        window = self._windowed_position_velocity(float(stamp_s))
+        if window is None:
+            aligned_px4 = self._interpolated_px4_velocity(float(stamp_s), now_s)
+            effective_points_reason = self._effective_points_reason(now_s)
+            if aligned_px4 is not None and effective_points_reason is None:
+                self.metrics.px4_velocity_px4_ned = aligned_px4
+                self._set_healthy_sample(now_s)
+            else:
+                reason = (
+                    "px4_velocity_unaligned"
+                    if aligned_px4 is None
+                    else effective_points_reason
+                )
+                self._set_anomaly(now_s, reason)
+            return self._result(True, now_s)
+
+        interval_start_stamp_s, raw_velocity = window
+        comparison_dt = float(stamp_s) - interval_start_stamp_s
+        self.metrics.velocity_comparison_dt_s = comparison_dt
+        self.metrics.raw_velocity_px4_ned = raw_velocity
         cutoff = max(0.0, self.config.velocity_lowpass_cutoff_hz)
         alpha = (
             1.0
@@ -577,12 +610,6 @@ class EvHealthMonitorCore:
             )
         self._filtered_velocity_ned = filtered  # type: ignore[assignment]
         self.metrics.velocity_px4_ned = self._filtered_velocity_ned
-
-        interval_start_stamp_s = self._last_stamp_s
-        self._last_stamp_s = float(stamp_s)
-        self._last_receive_s = now_s
-        self._last_position_ned = position_ned
-        self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
 
         anomaly_reason: Optional[str] = None
         effective_points_reason = self._effective_points_reason(now_s)
@@ -706,6 +733,52 @@ class EvHealthMonitorCore:
         if alignment_s > self.config.max_velocity_alignment_s + 1e-9:
             return None
         return nearest[1], alignment_s
+
+    def _record_position(self, sample_stamp_s: float, position_ned: Vector3) -> None:
+        if self._position_history and sample_stamp_s <= self._position_history[-1][0]:
+            return
+        self._position_history.append((sample_stamp_s, position_ned))
+        window_s = self.config.velocity_comparison_window_s
+        while (
+            len(self._position_history) > 2
+            and sample_stamp_s - self._position_history[1][0] >= window_s
+        ):
+            self._position_history.popleft()
+
+    def _windowed_position_velocity(
+        self, end_stamp_s: float
+    ) -> Optional[Tuple[float, Vector3]]:
+        target_stamp_s = end_stamp_s - self.config.velocity_comparison_window_s
+        samples = list(self._position_history)
+        if len(samples) < 2 or target_stamp_s < samples[0][0] - 1e-9:
+            return None
+
+        before = None
+        after = None
+        for sample in samples:
+            if sample[0] <= target_stamp_s + 1e-12:
+                before = sample
+            if sample[0] >= target_stamp_s - 1e-12:
+                after = sample
+                break
+        if before is None or after is None:
+            return None
+
+        if after[0] - before[0] <= 1e-12:
+            start_position = before[1]
+        else:
+            fraction = (target_stamp_s - before[0]) / (after[0] - before[0])
+            start_position = tuple(
+                left + fraction * (right - left)
+                for left, right in zip(before[1], after[1])
+            )
+        end_position = samples[-1][1]
+        interval_s = end_stamp_s - target_stamp_s
+        velocity = tuple(
+            (end - start) / interval_s
+            for start, end in zip(start_position, end_position)
+        )
+        return target_stamp_s, velocity  # type: ignore[return-value]
 
     def _interpolated_px4_velocity(
         self, sample_stamp_s: float, now_s: float
@@ -850,6 +923,8 @@ class EvHealthMonitorCore:
         self._filtered_velocity_ned = (0.0, 0.0, 0.0)
         self.metrics.velocity_px4_ned = self._filtered_velocity_ned
         self._internal_velocity_history.clear()
+        self._position_history.clear()
+        self._record_position(stamp_s, self._last_position_ned)
 
     def _px4_velocity_is_fresh(self, now_s: float) -> bool:
         return (

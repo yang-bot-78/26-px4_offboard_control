@@ -36,6 +36,7 @@ def generate_launch_description():
                 "max_position_jump_m": 0.15,
                 "max_horizontal_velocity_difference_mps": 0.45,
                 "max_internal_velocity_difference_mps": 0.50,
+                "velocity_comparison_window_s": 0.15,
                 "anomaly_to_fault_s": 0.3,
                 "recovery_healthy_s": recovery_healthy_s,
                 "message_timeout_s": 0.5,

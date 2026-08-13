@@ -123,6 +123,23 @@ def test_internal_velocity_difference_threshold_is_launch_configurable():
     )
 
 
+def test_velocity_comparison_window_is_launch_configurable():
+    source = AUTOFIX_LAUNCH_PATH.read_text()
+    assert (
+        'ev_velocity_comparison_window_s = LaunchConfiguration(\n'
+        '        "ev_velocity_comparison_window_s"\n'
+        "    )"
+    ) in source
+    assert (
+        '"velocity_comparison_window_s": ev_velocity_comparison_window_s'
+        in source
+    )
+    assert (
+        '"ev_velocity_comparison_window_s", default_value="0.15"'
+        in source
+    )
+
+
 def test_one_click_stack_explicitly_selects_only_mavros_vision_path():
     source = STACK_PATH.read_text()
     assert "start_mavros_vision_bridge:=true" in source

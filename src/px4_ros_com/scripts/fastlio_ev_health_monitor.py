@@ -90,6 +90,9 @@ class FastlioEvHealthMonitor(Node):
                     "max_internal_velocity_difference_mps", 0.50
                 ).value
             ),
+            velocity_comparison_window_s=float(
+                self.declare_parameter("velocity_comparison_window_s", 0.15).value
+            ),
             velocity_difference_min_speed_mps=float(
                 self.declare_parameter("velocity_difference_min_speed_mps", 0.05).value
             ),
@@ -185,7 +188,7 @@ class FastlioEvHealthMonitor(Node):
             TwistWithCovarianceStamped, self.velocity_diagnostic_topic, 10
         )
         self.ev_subscription = self.create_subscription(
-            Odometry, self.input_topic, self._ev_callback, 20
+            Odometry, self.input_topic, self._ev_callback, qos_profile_sensor_data
         )
         self.velocity_subscription = self.create_subscription(
             TwistStamped,
@@ -480,6 +483,10 @@ class FastlioEvHealthMonitor(Node):
                 value=f"{metrics.single_frame_displacement_m:.6f}",
             ),
             KeyValue(key="measurement_dt_s", value=f"{metrics.dt_s:.6f}"),
+            KeyValue(
+                key="velocity_comparison_dt_s",
+                value=f"{metrics.velocity_comparison_dt_s:.6f}",
+            ),
             KeyValue(key="input_age_s", value=f"{metrics.input_age_s:.6f}"),
             KeyValue(
                 key="velocity_alignment_s",
