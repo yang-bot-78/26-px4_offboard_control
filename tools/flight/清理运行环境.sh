@@ -12,7 +12,7 @@ set -uo pipefail
 #   ev        EV 桥接、里程计守护、健康监视、无桨验证 launch 与安全看门狗
 #   offboard  Offboard 与导航控制节点
 #   rosbag    ros2 bag 录包进程
-#   sensor    MID-360 驱动与 FAST-LIO
+#   sensor    MID-360 驱动与 FAST-LIO/FR-LIO
 #   mavros    mavros_node 与 fastlio_mavros_autofix.launch.py
 #   rviz      rviz2
 #   all       以上全部
@@ -67,6 +67,8 @@ patterns_sensor=(
   run_mid360_driver.sh
   fastlio_mapping
   run_fastlio_mid360.sh
+  frlio
+  'fr_lio lio.launch.py'
 )
 patterns_mavros=(
   mavros_node

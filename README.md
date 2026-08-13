@@ -25,9 +25,9 @@
 > 静态契约测试为准。脚本分类见 [脚本清单.md](脚本清单.md)。安全边界见
 > [docs/CURRENT_STATE.md](docs/CURRENT_STATE.md)。
 >
-> 高频里程计那条路已判定不采用（`HIGH_RATE_PROMOTION_AUTHORIZED=NO`、B2 的
-> 90 秒验证 FAIL），相关产物与脚本已清理，历史记录见
-> `docs/archive/README_history.md`。
+> 高频里程计的 FR-LIO 实现已随工作区源码纳入 `src/fr_lio`，但其接入 PX4 的
+> 放行仍为 `HIGH_RATE_PROMOTION_AUTHORIZED=NO`（历史 B2 的 90 秒验证 FAIL）。
+> 默认实飞链路不变；FR-LIO 仅可通过显式 `LIO_BACKEND=fr_lio` 用于无桨验证。
 >
 > 本文是工程说明，不构成飞行授权。实飞前按 脚本清单的安全分类逐项确认。
 
@@ -515,25 +515,25 @@ source ~/rong_ws/ws_offboard_control/install/setup.bash
 修改 `race_ego_bridge`（EGO 轨迹到 MAVROS 的桥）后同理换包名。`PYTHONNOUSERSITE=1`
 是必需的：用户 site-packages 里有版本冲突的包会让 colcon 的 Python 扩展加载失败。
 
-改了 FAST-LIO（`~/livox_mid360_env/ws_fastlio`）则必须限定包发现范围：
+仓库内的高频 FR-LIO 位于 `src/fr_lio`。它依赖已安装的 `livox_ros_driver2` 和
+`ikd_tree` CMake 包；来源、许可证和完整构建前置条件见
+[src/fr_lio/UPSTREAM.md](src/fr_lio/UPSTREAM.md)。构建时必须先 source Livox overlay：
 
 ```bash
-cd ~/livox_mid360_env/ws_fastlio
+cd ~/rong_ws/26-px4_offboard_control
 source /opt/ros/humble/setup.bash
-source ~/livox_mid360_env/setup_mid360.bash
-PYTHONNOUSERSITE=1 colcon build --base-paths src --symlink-install --packages-select fast_lio
+source ~/livox_ws/install/setup.bash
+PYTHONNOUSERSITE=1 colcon build --packages-up-to fr_lio
 ```
 
-不加 `--base-paths src`，遗留的 sanitizer 构建目录会让 colcon 报
-`Duplicate package names not supported` 并中止。编译后用 `readlink -f` 核对真实
-二进制的时间戳，`install/` 是符号链接树、它自己的 mtime 证明不了任何事：
+默认启动仍使用已验证的外部 FAST-LIO。无桨集成验证才显式选择 FR-LIO：
 
 ```bash
-ls -l "$(readlink -f ~/livox_mid360_env/ws_fastlio/install/fast_lio/lib/fast_lio/fastlio_mapping)" \
-      ~/livox_mid360_env/ws_fastlio/src/fast_lio/src/laserMapping.cpp
+LIO_BACKEND=fr_lio NO_MAP_VALIDATION=true ENABLE_OUTPUT=false \
+MISSION_ENABLED=false RVIZ=false ./tools/flight/一键启动导航栈.sh
 ```
 
-`./诊断.sh --static` 已内置这项新旧检查。
+该命令仍会连接真实 MID-360 和 MAVROS，不是飞行授权。
 
 `fastlio_global_slam` 已移至 `Lin_shi/`，不参与默认构建；它的 GTSAM 因子图需要
 `libgtsam-dev`，本机未安装，代码会自动退化成无因子图模式。

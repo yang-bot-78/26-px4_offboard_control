@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build (${{ matrix.env }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [default, jazzy]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: prefix-dev/setup-pixi@v0.9.4
+        with:
+          pixi-version: latest
+          environments: ${{ matrix.env }}
+          cache: true
+
+      - name: Fetch source deps
+        run: pixi run -e ${{ matrix.env }} vcs-import
+
+      - name: Build
+        run: pixi run -e ${{ matrix.env }} build
+
+      - name: Test
+        run: pixi run -e ${{ matrix.env }} test

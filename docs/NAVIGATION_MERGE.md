@@ -191,11 +191,11 @@ header-only 便于单测），行为一致：
 
 这两个不是移植引入的，是移植过程中暴露出来的：
 
-**`race_mapping.launch.py` 硬依赖 `fast_lio` 包。**
+**`race_mapping.launch.py` 不再硬依赖 `fast_lio` 包。**
 它在构建 launch description 时调用 `get_package_share_directory('fast_lio')`。
-本工作区**故意没有移植 FAST-LIO**（真机用 `~/livox_mid360_env/ws_fastlio` 的
-预编译二进制，这是既定约束），所以这个包不存在，launch 会直接抛
-`PackageNotFoundError`。已改为可选（`start_fast_lio` 参数，默认 false）。
+原先工作区没有移植 FAST-LIO，真机使用外部预编译二进制；该包现在仍保持可选，
+而高频 FR-LIO 已作为 `src/fr_lio` 随仓库版本控制。默认实飞链路仍使用已验证
+的 FAST-LIO，FR-LIO 必须通过 `LIO_BACKEND=fr_lio` 显式选择且仅用于无桨验证。
 
 **5 处硬编码 `use_sim_time: True`。**
 真机没有 Gazebo `/clock`，节点会永久等待一个永远不来的时钟。
@@ -420,7 +420,8 @@ EGO 收到的速度会在转弯时出错。
 
 ## 13. 没有移植的东西
 
-- `FAST_LIO`（真机用 `~/livox_mid360_env/ws_fastlio` 二进制，既定约束）
+- `FAST_LIO`（默认真机仍使用外部 `~/livox_mid360_env/ws_fastlio` 二进制；高频
+  FR-LIO 源码已作为 `src/fr_lio` 纳入）
 - `livox_ros_driver2`（真机已有）
 - `mid360_simulation`、`race_world`（仿真件）
 - `PX4-Autopilot`、`Micro-XRCE-DDS-Agent`（真机走 MAVROS 串口）
