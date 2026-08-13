@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 统一的硬件启动顺序：
-#   导航预热 -> MID-360 -> FAST-LIO -> 可选全局重定位 -> MAVROS/EV -> rosbag。
+#   导航预热 -> MID-360 -> LIO -> 可选全局重定位 -> MAVROS/EV -> rosbag。
 # 导航先于实时定位链路起来，这样节点发现和规划器初始化就不会让 FAST-LIO 去处理
 # 一堆积压的旧雷达数据。数据就绪检查仍然按依赖顺序进行。
 #
@@ -13,7 +13,7 @@ set -euo pipefail
 # PLANNER_BACKEND, MISSION_ENABLED, RECOGNITION_ENABLED, RVIZ, ENABLE_OUTPUT,
 # MANUAL_HANDOVER, RELOCALIZATION_ENABLED, FASTLIO_GLOBAL_MAP_DIR,
 # RECORD_BAG, READINESS_TIMEOUT_SEC, AUTO_STOP_AFTER_READY_SEC,
-# MID360_FASTLIO_DELAY_SEC,
+# MID360_FASTLIO_DELAY_SEC, LIO_BACKEND, FRLIO_CONFIG,
 # COMPONENT_WINDOWS, COMPONENT_WINDOW_GEOMETRY,
 # RELOCALIZATION_RETRY_COUNT, RELOCALIZATION_RETRY_DELAY_SEC,
 # SKIP_PREFLIGHT_CHECK.
@@ -23,6 +23,8 @@ project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
 autofix_launch="${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py"
 livox_env="${LIVOX_MID360_ENV:-${HOME}/livox_mid360_env}"
 livox_setup="${livox_env}/setup_mid360.bash"
+lio_backend="${LIO_BACKEND:-fast_lio}"
+frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
 
 default_map_file="${project_root}/maps/fastlio_global_3d/GlobalMap.pcd"
 no_map_validation="${NO_MAP_VALIDATION:-false}"
@@ -407,7 +409,18 @@ validate_configuration() {
   require_file "${project_root}/install/setup.bash"
   require_file "${autofix_launch}"
   require_executable "${livox_env}/run_mid360_driver.sh"
-  require_executable "${livox_env}/run_fastlio_mid360.sh"
+  case "${lio_backend}" in
+    fast_lio)
+      require_executable "${livox_env}/run_fastlio_mid360.sh"
+      ;;
+    fr_lio)
+      require_file "${frlio_config}"
+      ;;
+    *)
+      log_error "LIO_BACKEND must be fast_lio or fr_lio; got: ${lio_backend}"
+      exit 1
+      ;;
+  esac
   require_file "${livox_setup}"
   require_executable "${lever_arm_validator}"
   require_executable "${readiness_helper}"
@@ -602,7 +615,10 @@ print_configuration() {
   log_info "Flight run directory: ${flight_run_dir}"
   log_info "Planner requested=${planner_backend}, effective=${effective_planner_backend}, ego_enabled=${ego_enabled}, mission=${mission_enabled}, output=${enable_output}, manual_handover=${manual_handover}, rviz=${rviz}"
   log_info "Recognition=${recognition_enabled}, rosbag=${record_bag}, readiness_timeout=${readiness_timeout_sec}s"
-  log_info "MID-360 to FAST-LIO minimum startup delay=${mid360_fastlio_delay_sec}s"
+  log_info "LIO backend=${lio_backend}; MID-360 to LIO minimum startup delay=${mid360_fastlio_delay_sec}s"
+  if [[ "${lio_backend}" == fr_lio ]]; then
+    log_warn "FR-LIO high-rate output remains diagnostic only and is not authorized to replace the PX4 EV path."
+  fi
   log_info "Component windows=${component_windows} (one GNOME Terminal window per component)"
   log_info "Map: ${map_file:-<disabled for validation>} (auto_load=${map_auto_load})"
   log_info "Global relocalization=${relocalization_enabled} keyframes=${global_map_dir}"
@@ -650,13 +666,19 @@ start_stack() {
 
   start_component "MID-360 driver" "mid360_driver" \
     "${livox_env}/run_mid360_driver.sh"
-  log_info "Waiting ${mid360_fastlio_delay_sec}s after MID-360 startup before FAST-LIO..."
+  log_info "Waiting ${mid360_fastlio_delay_sec}s after MID-360 startup before ${lio_backend}..."
   sleep "${mid360_fastlio_delay_sec}"
   wait_component_ready "mid360_driver" message /livox/imu
   wait_component_ready "mid360_driver" message /livox/lidar
 
-  start_component "FAST-LIO" "fastlio" \
-    "${livox_env}/run_fastlio_mid360.sh"
+  if [[ "${lio_backend}" == fr_lio ]]; then
+    start_component "FR-LIO" "fastlio" \
+      ros2 launch fr_lio lio.launch.py "config_file:=${frlio_config}" \
+      rviz:=false lidar_accumulator:=false
+  else
+    start_component "FAST-LIO" "fastlio" \
+      "${livox_env}/run_fastlio_mid360.sh"
+  fi
   wait_component_ready "fastlio" message /Odometry
   wait_component_ready "fastlio" message /cloud_registered_body
 
@@ -773,7 +795,7 @@ main() {
   print_configuration
   start_stack
 
-  log_info "PASS: complete chain is ready: MID-360 -> FAST-LIO -> relocalization(${relocalization_enabled}) -> MAVROS/EV -> rosbag(${record_bag}) -> navigation."
+  log_info "PASS: complete chain is ready: MID-360 -> ${lio_backend} -> relocalization(${relocalization_enabled}) -> MAVROS/EV -> rosbag(${record_bag}) -> navigation."
   printf 'state=ready\nflight_run_dir=%s\n' "${flight_run_dir}" >"${stack_ready_file}.tmp.$$"
   mv -f "${stack_ready_file}.tmp.$$" "${stack_ready_file}"
   log_info "Component logs: ${flight_log_dir}"

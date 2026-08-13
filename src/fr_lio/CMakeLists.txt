@@ -1,0 +1,163 @@
+cmake_minimum_required(VERSION 3.8)
+project(fr_lio)
+
+option(FR_LIO_ENABLE_LOOP_CLOSURE
+  "Build the optional GTSAM-based loop-closure pipeline" OFF)
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+ADD_COMPILE_OPTIONS(-std=c++17)
+set(CMAKE_CXX_FLAGS "-std=c++17 -O3")
+
+add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -pthread -fexceptions")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+message("Current CPU archtecture: ${CMAKE_SYSTEM_PROCESSOR}")
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+  include(ProcessorCount)
+  ProcessorCount(N)
+  message("Processer number:  ${N}")
+
+  if(N GREATER 4)
+    add_definitions(-DMP_EN)
+    add_definitions(-DMP_PROC_NUM=3)
+    message("core for MP: 3")
+  elseif(N GREATER 3)
+    add_definitions(-DMP_EN)
+    add_definitions(-DMP_PROC_NUM=2)
+    message("core for MP: 2")
+  else()
+    add_definitions(-DMP_PROC_NUM=1)
+  endif()
+else()
+  add_definitions(-DMP_PROC_NUM=1)
+endif()
+
+find_package(OpenMP QUIET)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
+
+find_package(PythonLibs REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Development)
+
+# ROS dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(pcl_ros REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(livox_ros_driver2 REQUIRED)
+find_package(mocap4r2_msgs QUIET)
+
+set(dependencies
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  std_msgs
+  std_srvs
+  visualization_msgs
+  pcl_ros
+  pcl_conversions
+  livox_ros_driver2
+)
+
+# Thirdparty libraries
+find_package(Eigen3 REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common io)
+find_package(TBB REQUIRED)
+find_package(ikd_tree REQUIRED)
+if(FR_LIO_ENABLE_LOOP_CLOSURE)
+  find_package(GTSAM REQUIRED)
+endif()
+# GTSAM's exported CMake target may add a bare -ltbb that the macOS/conda
+# toolchain can't resolve without an explicit link directory. Add the pixi
+# env's lib dir so `-ltbb` finds libtbb.dylib.
+get_target_property(_TBB_LIB_PATH TBB::tbb LOCATION)
+if(_TBB_LIB_PATH)
+  get_filename_component(_TBB_LIB_DIR ${_TBB_LIB_PATH} DIRECTORY)
+  link_directories(${_TBB_LIB_DIR})
+endif()
+
+message(Eigen: ${EIGEN3_INCLUDE_DIR})
+message(STATUS "PCL: ${PCL_INCLUDE_DIRS}")
+
+add_executable(frlio src/laser_mapping.cpp src/preprocess.cpp)
+target_include_directories(frlio PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${PCL_INCLUDE_DIRS}
+)
+target_link_libraries(frlio ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} Eigen3::Eigen TBB::tbb ikd_tree::ikd_tree)
+if(FR_LIO_ENABLE_LOOP_CLOSURE)
+  target_compile_definitions(frlio PRIVATE FR_LIO_ENABLE_LOOP_CLOSURE=1)
+  target_link_libraries(frlio gtsam)
+endif()
+target_include_directories(frlio PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+ament_target_dependencies(frlio ${dependencies})
+
+add_executable(lidar_accumulator src/lidar_accumulator.cpp)
+target_link_libraries(lidar_accumulator Python3::Python)
+ament_target_dependencies(lidar_accumulator rclcpp livox_ros_driver2)
+
+set(fr_lio_install_targets frlio lidar_accumulator)
+if(mocap4r2_msgs_FOUND)
+  add_executable(mocap_converter src/mocap_converter.cpp)
+  target_link_libraries(mocap_converter Python3::Python)
+  ament_target_dependencies(mocap_converter rclcpp nav_msgs geometry_msgs mocap4r2_msgs)
+  list(APPEND fr_lio_install_targets mocap_converter)
+else()
+  message(STATUS "mocap4r2_msgs not found: mocap_converter will not be built")
+endif()
+
+# ---------------- Install --------------- #
+install(TARGETS ${fr_lio_install_targets}
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY config launch rviz
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# ---------------- Tests --------------- #
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_map_correction
+    test/test_map_correction.cpp
+  )
+  target_include_directories(test_map_correction PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${PCL_INCLUDE_DIRS}
+  )
+  target_link_libraries(test_map_correction ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} Eigen3::Eigen ikd_tree::ikd_tree)
+  ament_target_dependencies(test_map_correction rclcpp sensor_msgs nav_msgs)
+
+  ament_add_gtest(test_high_rate_odom
+    test/test_high_rate_odom.cpp
+  )
+  target_include_directories(test_high_rate_odom PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_high_rate_odom Eigen3::Eigen)
+endif()
+
+ament_package()
