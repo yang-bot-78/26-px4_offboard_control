@@ -54,6 +54,9 @@ def generate_launch_description():
     ev_max_internal_velocity_difference_mps = LaunchConfiguration(
         "ev_max_internal_velocity_difference_mps"
     )
+    ev_velocity_comparison_window_s = LaunchConfiguration(
+        "ev_velocity_comparison_window_s"
+    )
     ev_anomaly_to_fault_s = LaunchConfiguration("ev_anomaly_to_fault_s")
     ev_recovery_healthy_s = LaunchConfiguration("ev_recovery_healthy_s")
     ev_message_timeout_s = LaunchConfiguration("ev_message_timeout_s")
@@ -127,6 +130,7 @@ def generate_launch_description():
                 "max_horizontal_velocity_difference_mps": ev_max_velocity_difference_mps,
                 "max_internal_velocity_difference_mps":
                     ev_max_internal_velocity_difference_mps,
+                "velocity_comparison_window_s": ev_velocity_comparison_window_s,
                 "max_internal_velocity_alignment_s": ev_max_internal_velocity_alignment_s,
                 "internal_velocity_history_s": ev_internal_velocity_history_s,
                 "anomaly_to_fault_s": ev_anomaly_to_fault_s,
@@ -322,6 +326,9 @@ def generate_launch_description():
             DeclareLaunchArgument("ev_max_velocity_difference_mps", default_value="0.45"),
             DeclareLaunchArgument(
                 "ev_max_internal_velocity_difference_mps", default_value="0.50"
+            ),
+            DeclareLaunchArgument(
+                "ev_velocity_comparison_window_s", default_value="0.15"
             ),
             DeclareLaunchArgument("ev_anomaly_to_fault_s", default_value="0.3"),
             DeclareLaunchArgument("ev_recovery_healthy_s", default_value="2.0"),

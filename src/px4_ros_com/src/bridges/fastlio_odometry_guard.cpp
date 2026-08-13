@@ -67,7 +67,7 @@ public:
 
 		publisher_ = create_publisher<Odometry>(output_topic_, 10);
 		subscription_ = create_subscription<Odometry>(
-			input_topic_, 10,
+			input_topic_, rclcpp::SensorDataQoS().keep_last(20),
 			std::bind(&FastlioOdometryGuard::odometry_callback, this, std::placeholders::_1));
 
 		RCLCPP_INFO(
