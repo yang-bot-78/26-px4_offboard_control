@@ -114,6 +114,9 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   node_->get_parameter("max_y", shared_bounds_y_max_);
   node_->get_parameter("min_height", shared_bounds_z_min_);
   node_->get_parameter("max_height", shared_bounds_z_max_);
+  configured_validation_flight_height_ = validation_flight_height_;
+  configured_shared_bounds_z_min_ = shared_bounds_z_min_;
+  configured_shared_bounds_z_max_ = shared_bounds_z_max_;
   if (shared_bounds_x_min_ >= shared_bounds_x_max_ ||
     shared_bounds_y_min_ >= shared_bounds_y_max_ ||
     shared_bounds_z_min_ >= shared_bounds_z_max_)
@@ -262,6 +265,13 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
     [this](const std::shared_ptr<const race_msgs::msg::LocalPathReference> & msg)
     {
       this->referencePathCallback(msg);
+    });
+  altitude_reference_sub_ =
+    node_->create_subscription<race_msgs::msg::FlightAltitudeReference>(
+    "/race/flight_altitude_reference", rclcpp::QoS(1).reliable().transient_local(),
+    [this](const std::shared_ptr<const race_msgs::msg::FlightAltitudeReference> & msg)
+    {
+      this->altitudeReferenceCallback(msg);
     });
   // std::bind(&EGOReplanFSM::odometryCallback, this, std::placeholders::_1));
 
@@ -432,9 +442,57 @@ void EGOReplanFSM::triggerCallback(
   init_pt_ = odom_pos_;
 }
 
+void EGOReplanFSM::altitudeReferenceCallback(
+  const std::shared_ptr<const race_msgs::msg::FlightAltitudeReference> & msg)
+{
+  if (!msg->valid) {
+    if (altitude_reference_valid_ && msg->flight_id == altitude_reference_flight_id_) {
+      altitude_reference_valid_ = false;
+      have_target_ = false;
+      have_latest_reference_path_ = false;
+      have_active_reference_path_ = false;
+      publishSafetyStatus("WAIT_ALTITUDE_REFERENCE");
+    }
+    return;
+  }
+  if (!std::isfinite(msg->ground_z_map) || !std::isfinite(msg->target_z_map) ||
+    !std::isfinite(msg->target_agl_m) || !std::isfinite(msg->min_agl_m) ||
+    !std::isfinite(msg->max_agl_m) ||
+    std::abs(msg->target_agl_m - configured_validation_flight_height_) > 1.0e-3 ||
+    std::abs(msg->min_agl_m - configured_shared_bounds_z_min_) > 1.0e-3 ||
+    std::abs(msg->max_agl_m - configured_shared_bounds_z_max_) > 1.0e-3 ||
+    std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3)
+  {
+    RCLCPP_ERROR(
+      node_->get_logger(), "[EGO_ALTITUDE_REFERENCE_REJECT] flight_id=%lu",
+      static_cast<unsigned long>(msg->flight_id));
+    return;
+  }
+  if (altitude_reference_valid_ && msg->flight_id < altitude_reference_flight_id_) {
+    return;
+  }
+  altitude_reference_flight_id_ = msg->flight_id;
+  validation_flight_height_ = msg->target_z_map;
+  shared_bounds_z_min_ = msg->ground_z_map + configured_shared_bounds_z_min_;
+  shared_bounds_z_max_ = msg->ground_z_map + configured_shared_bounds_z_max_;
+  altitude_reference_valid_ = true;
+  RCLCPP_WARN(
+    node_->get_logger(),
+    "[EGO_ALTITUDE_REFERENCE_ACCEPTED] flight_id=%lu ground_map=%.3f target_map=%.3f "
+    "bounds_z=[%.3f,%.3f]",
+    static_cast<unsigned long>(msg->flight_id), msg->ground_z_map,
+    validation_flight_height_, shared_bounds_z_min_, shared_bounds_z_max_);
+}
+
 void EGOReplanFSM::waypointCallback(
   const std::shared_ptr<const geometry_msgs::msg::PoseStamped> & msg)
 {
+  if (validation_flat_mode_ && !altitude_reference_valid_) {
+    RCLCPP_ERROR(
+      node_->get_logger(),
+      "[EGO_GOAL_REJECT] no valid /race/flight_altitude_reference for this flight");
+    return;
+  }
   if (msg->pose.position.z < -0.1) {
     return;
   }
@@ -587,6 +645,12 @@ void EGOReplanFSM::waypointCallback(
 void EGOReplanFSM::referencePathCallback(
   const std::shared_ptr<const race_msgs::msg::LocalPathReference> & msg)
 {
+  if (validation_flat_mode_ && !altitude_reference_valid_) {
+    RCLCPP_ERROR(
+      node_->get_logger(),
+      "[EGO_REFERENCE_PATH_REJECT] reason=missing_altitude_reference");
+    return;
+  }
   if (msg->header.frame_id != "map" || msg->points.size() < 2 ||
     !std::isfinite(msg->arc_length) || msg->arc_length <= 0.0)
   {

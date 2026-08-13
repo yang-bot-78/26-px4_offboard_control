@@ -53,11 +53,13 @@ def print_tuning_summary(context):
     effective = LaunchConfiguration('ego_map_source').perform(context)
     requested_backend = LaunchConfiguration('planner_backend').perform(context)
     effective_backend = EffectivePlannerBackend(
-        LaunchConfiguration('tuning_file'), LaunchConfiguration('planner_backend')).perform(context)
+        LaunchConfiguration('tuning_file'),
+        LaunchConfiguration('planner_backend')).perform(context)
     backend_line = (
         f'[PLANNER_BACKEND] requested={requested_backend} '
         f'effective={effective_backend} ego_enabled={tuning["ego_planner"]["enable"]}')
-    return [LogInfo(msg=backend_line)] + [LogInfo(msg=line) for line in summary(tuning, path, effective)]
+    tuning_lines = [LogInfo(msg=line) for line in summary(tuning, path, effective)]
+    return [LogInfo(msg=backend_line)] + tuning_lines
 
 
 class TuningEgoMapSource(Substitution):
@@ -345,7 +347,7 @@ def generate_launch_description():
         DeclareLaunchArgument('ego_local_map_z', default_value='1.25'),
         DeclareLaunchArgument('ego_flight_mode', default_value='flat'),
         DeclareLaunchArgument('ego_flight_height', default_value='0.78'),
-        DeclareLaunchArgument('ego_max_height', default_value='0.85'),
+        DeclareLaunchArgument('ego_max_height', default_value='0.90'),
         DeclareLaunchArgument(
             'map_file',
             default_value=os.path.join(

@@ -12,6 +12,7 @@
 #include "sensor_msgs/msg/imu.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "race_msgs/msg/local_path_reference.hpp"
+#include "race_msgs/msg/flight_altitude_reference.hpp"
 #include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/string.hpp"
 #include <vector>
@@ -103,11 +104,15 @@ namespace ego_planner
     double constrained_clearance_m_;
     double constrained_optimization_clearance_m_;
     double validation_flight_height_;
+    double configured_validation_flight_height_;
     double validation_sample_spacing_;
     double validation_map_timeout_sec_;
     double shared_bounds_x_min_, shared_bounds_x_max_;
     double shared_bounds_y_min_, shared_bounds_y_max_;
     double shared_bounds_z_min_, shared_bounds_z_max_;
+    double configured_shared_bounds_z_min_, configured_shared_bounds_z_max_;
+    uint64_t altitude_reference_flight_id_{0};
+    bool altitude_reference_valid_{false};
     double recovery_cooldown_sec_;
     double recovery_exhausted_backoff_sec_;
     double recovery_rejoin_search_distance_m_;
@@ -191,6 +196,8 @@ namespace ego_planner
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr waypoint_sub_;
     rclcpp::Subscription<race_msgs::msg::LocalPathReference>::SharedPtr
       reference_path_sub_;
+    rclcpp::Subscription<race_msgs::msg::FlightAltitudeReference>::SharedPtr
+      altitude_reference_sub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<traj_utils::msg::MultiBsplines>::SharedPtr swarm_trajs_sub_;
     rclcpp::Subscription<traj_utils::msg::Bspline>::SharedPtr broadcast_bspline_sub_;
@@ -244,6 +251,8 @@ namespace ego_planner
     void waypointCallback(const std::shared_ptr<const geometry_msgs::msg::PoseStamped> &msg);
     void referencePathCallback(
       const std::shared_ptr<const race_msgs::msg::LocalPathReference> & msg);
+    void altitudeReferenceCallback(
+      const std::shared_ptr<const race_msgs::msg::FlightAltitudeReference> & msg);
     void triggerCallback(const std::shared_ptr<const geometry_msgs::msg::PoseStamped> &msg);
     void odometryCallback(const std::shared_ptr<const nav_msgs::msg::Odometry> &msg);
     void swarmTrajsCallback(const std::shared_ptr<const traj_utils::msg::MultiBsplines> &msg);

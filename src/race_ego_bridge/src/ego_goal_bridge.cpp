@@ -3,11 +3,14 @@
 #include <string>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <mavros_msgs/msg/state.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <race_msgs/msg/flight_altitude_reference.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 
 #include "race_ego_bridge/frame_utils.hpp"
+#include "race_ego_bridge/safety_utils.hpp"
 
 class EgoGoalBridge : public rclcpp::Node
 {
@@ -38,7 +41,7 @@ public:
     flight_mode_ = declare_parameter<std::string>("flight_mode", "flat");
     flight_height_ = declare_parameter<double>("flight_height", 0.78);
     min_height_ = declare_parameter<double>("min_height", 0.50);
-    max_height_ = declare_parameter<double>("max_height", 0.85);
+    max_height_ = declare_parameter<double>("max_height", 0.90);
     min_x_ = declare_parameter<double>("min_x", -7.5);
     max_x_ = declare_parameter<double>("max_x", 7.5);
     min_y_ = declare_parameter<double>("min_y", -7.0);
@@ -51,7 +54,7 @@ public:
       min_height_ > max_height_)
     {
       throw std::runtime_error(
-        "EGO takeoff stability parameters are invalid: height range or limits");
+              "EGO takeoff stability parameters are invalid: height range or limits");
     }
 
     ego_publisher_ = create_publisher<geometry_msgs::msg::PoseStamped>(ego_topic_, 10);
@@ -60,12 +63,75 @@ public:
       input_topic_, 10, std::bind(&EgoGoalBridge::callback, this, std::placeholders::_1));
     odom_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
       odom_topic_, 10, std::bind(&EgoGoalBridge::odomCallback, this, std::placeholders::_1));
+    state_subscription_ = create_subscription<mavros_msgs::msg::State>(
+      "/mavros/state", rclcpp::SensorDataQoS(),
+      std::bind(&EgoGoalBridge::stateCallback, this, std::placeholders::_1));
+    altitude_reference_subscription_ =
+      create_subscription<race_msgs::msg::FlightAltitudeReference>(
+      "/race/flight_altitude_reference", rclcpp::QoS(1).reliable().transient_local(),
+      std::bind(&EgoGoalBridge::altitudeReferenceCallback, this, std::placeholders::_1));
     status_subscription_ = create_subscription<std_msgs::msg::String>(
       "/race/ego/status", rclcpp::QoS(1).reliable().transient_local(),
       std::bind(&EgoGoalBridge::statusCallback, this, std::placeholders::_1));
   }
 
 private:
+  double currentAgl() const
+  {
+    return altitude_reference_valid_ ? current_height_ - ground_z_map_ : current_height_;
+  }
+
+  double effectiveMinHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + min_height_;
+  }
+
+  double effectiveMaxHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + max_height_;
+  }
+
+  void altitudeReferenceCallback(
+    const race_msgs::msg::FlightAltitudeReference::SharedPtr msg)
+  {
+    if (!msg->valid) {
+      if (altitude_reference_valid_ && msg->flight_id == altitude_reference_flight_id_) {
+        altitude_reference_valid_ = false;
+        stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        have_pending_goal_ = false;
+        have_active_goal_ = false;
+        flight_handover_released_ = false;
+      }
+      return;
+    }
+    if (!std::isfinite(msg->ground_z_map) || !std::isfinite(msg->target_z_map) ||
+      !std::isfinite(msg->target_agl_m) || !std::isfinite(msg->min_agl_m) ||
+      !std::isfinite(msg->max_agl_m) ||
+      std::abs(msg->target_agl_m - flight_height_) > 1.0e-3 ||
+      std::abs(msg->min_agl_m - min_height_) > 1.0e-3 ||
+      std::abs(msg->max_agl_m - max_height_) > 1.0e-3 ||
+      std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3)
+    {
+      RCLCPP_ERROR(
+        get_logger(), "[GOAL_BRIDGE_ALTITUDE_REFERENCE_REJECT] flight_id=%lu",
+        static_cast<unsigned long>(msg->flight_id));
+      return;
+    }
+    if (altitude_reference_valid_ && msg->flight_id < altitude_reference_flight_id_) {
+      return;
+    }
+    altitude_reference_flight_id_ = msg->flight_id;
+    ground_z_map_ = msg->ground_z_map;
+    target_z_map_ = msg->target_z_map;
+    altitude_reference_valid_ = true;
+    stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    RCLCPP_WARN(
+      get_logger(),
+      "[GOAL_BRIDGE_ALTITUDE_REFERENCE_ACCEPTED] flight_id=%lu ground_map=%.3f "
+      "target_map=%.3f",
+      static_cast<unsigned long>(msg->flight_id), ground_z_map_, target_z_map_);
+  }
+
   void callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
     if (!msg->header.frame_id.empty() && msg->header.frame_id != frame_id_) {
@@ -78,12 +144,18 @@ private:
     output.header.stamp = now();
     output.header.frame_id = frame_id_;
     if (flight_mode_ == "flat") {
-      output.pose.position.z = flight_height_;
+      if (!altitude_reference_valid_) {
+        RCLCPP_ERROR(
+          get_logger(),
+          "[GOAL_BRIDGE_REJECT] no valid /race/flight_altitude_reference for this flight");
+        return;
+      }
+      output.pose.position.z = target_z_map_;
     }
     const race_ego_bridge::Vec3 goal{
       output.pose.position.x, output.pose.position.y, output.pose.position.z};
     if (!race_ego_bridge::insideGeofence(
-        goal, min_x_, max_x_, min_y_, max_y_, min_height_, max_height_))
+        goal, min_x_, max_x_, min_y_, max_y_, effectiveMinHeight(), effectiveMaxHeight()))
     {
       RCLCPP_ERROR(
         get_logger(), "OUT_OF_GEOFENCE goal=(%.2f,%.2f,%.2f)", goal.x, goal.y, goal.z);
@@ -120,9 +192,9 @@ private:
     ++pending_goal_seq_;
     have_pending_goal_ = true;
     RCLCPP_INFO(
-      get_logger(), "[GOAL_BRIDGE_TAKEOFF_GATE] goal_seq=%lu current_height=%.3f "
+      get_logger(), "[GOAL_BRIDGE_TAKEOFF_GATE] goal_seq=%lu current_agl=%.3f "
       "safety_height=[%.3f,%.3f] stable=%s cached=true",
-      static_cast<unsigned long>(pending_goal_seq_), current_height_, min_height_, max_height_,
+      static_cast<unsigned long>(pending_goal_seq_), currentAgl(), min_height_, max_height_,
       isVehicleStable() ? "true" : "false");
   }
 
@@ -133,19 +205,15 @@ private:
     }
     have_odom_ = true;
     current_height_ = msg->pose.pose.position.z;
-    if (current_height_ < release_height_) {
-      // A later takeoff must earn a new stable handover. Normal cruising at
-      // the fixed flight height never reaches this reset threshold.
-      flight_handover_released_ = false;
-    }
     current_horizontal_speed_ = std::hypot(
       msg->twist.twist.linear.x, msg->twist.twist.linear.y);
     current_vertical_speed_ = std::abs(msg->twist.twist.linear.z);
     // The handover gate accepts any stable altitude inside the configured
     // safety window.  flight_height_ remains the commanded altitude for flat
     // goals, but it must not be used to reject a manually established hover.
-    const bool stable_sample =
-      current_height_ >= min_height_ && current_height_ <= max_height_ &&
+    const double current_agl = currentAgl();
+    const bool stable_sample = altitude_reference_valid_ &&
+      current_agl >= min_height_ && current_agl <= max_height_ &&
       current_horizontal_speed_ <= stable_horizontal_speed_mps_ &&
       current_vertical_speed_ <= stable_vertical_speed_mps_;
     if (stable_sample) {
@@ -157,13 +225,27 @@ private:
     }
     if (have_pending_goal_ && isVehicleStable()) {
       RCLCPP_INFO(
-        get_logger(), "[GOAL_BRIDGE_RELEASE] goal_seq=%lu current_height=%.3f target=(%.3f,%.3f,%.3f) "
-        "reason=SAFETY_HEIGHT_RANGE_STABLE", static_cast<unsigned long>(pending_goal_seq_), current_height_,
-        pending_goal_.pose.position.x, pending_goal_.pose.position.y, pending_goal_.pose.position.z);
+        get_logger(), "[GOAL_BRIDGE_RELEASE] goal_seq=%lu current_agl=%.3f target=(%.3f,%.3f,%.3f) "
+        "reason=SAFETY_HEIGHT_RANGE_STABLE", static_cast<unsigned long>(pending_goal_seq_), current_agl,
+        pending_goal_.pose.position.x, pending_goal_.pose.position.y,
+        pending_goal_.pose.position.z);
       flight_handover_released_ = true;
       publishGoal(pending_goal_, "vehicle stable within safety height range");
       have_pending_goal_ = false;
     }
+  }
+
+  void stateCallback(const mavros_msgs::msg::State::SharedPtr msg)
+  {
+    if (race_ego_bridge::shouldResetFlightHandover(armed_, msg->armed)) {
+      flight_handover_released_ = false;
+      stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      have_pending_goal_ = false;
+      RCLCPP_WARN(
+        get_logger(),
+        "[GOAL_BRIDGE_HANDOVER_RESET] vehicle disarmed; next flight must pass the takeoff gate");
+    }
+    armed_ = msg->armed;
   }
 
   bool isVehicleStable() const
@@ -213,7 +295,7 @@ private:
   std::string flight_mode_;
   double flight_height_{0.78};
   double min_height_{0.50};
-  double max_height_{0.85};
+  double max_height_{0.90};
   double min_x_{-7.5};
   double max_x_{7.5};
   double min_y_{-7.0};
@@ -226,6 +308,9 @@ private:
   double ego_failure_retry_period_sec_{0.75};
   double duplicate_goal_position_tolerance_m_{0.03};
   double duplicate_goal_time_window_sec_{1.0};
+  uint64_t altitude_reference_flight_id_{0};
+  double ground_z_map_{0.0};
+  double target_z_map_{0.0};
   double current_height_{0.0};
   double current_horizontal_speed_{0.0};
   double current_vertical_speed_{0.0};
@@ -234,8 +319,10 @@ private:
   uint64_t pending_goal_seq_{0};
   bool have_active_goal_{false};
   bool flight_handover_released_{false};
+  bool armed_{false};
   bool retry_goal_on_ego_failure_{false};
   bool have_last_input_goal_{false};
+  bool altitude_reference_valid_{false};
   geometry_msgs::msg::PoseStamped pending_goal_;
   geometry_msgs::msg::PoseStamped active_goal_;
   geometry_msgs::msg::PoseStamped last_input_goal_;
@@ -246,6 +333,9 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr debug_publisher_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
+  rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_subscription_;
+  rclcpp::Subscription<race_msgs::msg::FlightAltitudeReference>::SharedPtr
+    altitude_reference_subscription_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr status_subscription_;
 };
 

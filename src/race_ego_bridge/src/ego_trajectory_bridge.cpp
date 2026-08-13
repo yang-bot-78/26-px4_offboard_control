@@ -14,6 +14,7 @@
 #include <mavros_msgs/msg/position_target.hpp>
 #include <mavros_msgs/msg/state.hpp>
 #include <quadrotor_msgs/msg/position_command.hpp>
+#include <race_msgs/msg/flight_altitude_reference.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -70,6 +71,17 @@ public:
       "dynamic_invalid_grace_sec", 0.75);
     replan_hold_timeout_sec_ = declare_parameter<double>("replan_hold_timeout_sec", 3.0);
     replan_hold_timeout_sec_ = std::max(0.10, replan_hold_timeout_sec_);
+    switch_position_tolerance_m_ = declare_parameter<double>(
+      "switch_position_tolerance_m", 0.05);
+    switch_velocity_tolerance_mps_ = declare_parameter<double>(
+      "switch_velocity_tolerance_mps", 0.10);
+    switch_acceleration_tolerance_mps2_ = declare_parameter<double>(
+      "switch_acceleration_tolerance_mps2", 0.20);
+    if (switch_position_tolerance_m_ <= 0.0 || switch_velocity_tolerance_mps_ <= 0.0 ||
+      switch_acceleration_tolerance_mps2_ <= 0.0)
+    {
+      throw std::runtime_error("trajectory switch tolerances must be > 0");
+    }
     rejection_clearance_ = declare_parameter<double>("obstacle_clearance", 0.30);
     if (!std::isfinite(rejection_clearance_) || rejection_clearance_ <= 0.0) {
       throw std::runtime_error("obstacle_clearance must be finite and > 0");
@@ -82,7 +94,7 @@ public:
       constrained_clearance_ >= rejection_clearance_)
     {
       throw std::runtime_error(
-        "constrained_clearance_m must be finite, > 0 and < obstacle_clearance");
+              "constrained_clearance_m must be finite, > 0 and < obstacle_clearance");
     }
     RCLCPP_INFO(
       get_logger(),
@@ -94,7 +106,7 @@ public:
     min_planning_height_ = declare_parameter<double>("min_planning_height", -0.15);
     min_height_ = declare_parameter<double>("min_height", 0.50);
     bootstrap_release_height_ = declare_parameter<double>("bootstrap_release_height", 0.58);
-    max_height_ = declare_parameter<double>("max_height", 0.85);
+    max_height_ = declare_parameter<double>("max_height", 0.90);
     min_x_ = declare_parameter<double>("min_x", -7.5);
     max_x_ = declare_parameter<double>("max_x", 7.5);
     min_y_ = declare_parameter<double>("min_y", -7.0);
@@ -179,6 +191,11 @@ public:
     health_subscription_ = create_subscription<mavros_msgs::msg::State>(
       "/mavros/state", rclcpp::SensorDataQoS(),
       std::bind(&EgoTrajectoryBridge::healthCallback, this, std::placeholders::_1));
+    altitude_reference_subscription_ =
+      create_subscription<race_msgs::msg::FlightAltitudeReference>(
+      "/race/flight_altitude_reference", rclcpp::QoS(1).reliable().transient_local(),
+      std::bind(
+        &EgoTrajectoryBridge::altitudeReferenceCallback, this, std::placeholders::_1));
 
     status_timer_ = create_wall_timer(
       std::chrono::milliseconds(100), std::bind(&EgoTrajectoryBridge::statusTimer, this));
@@ -186,6 +203,68 @@ public:
   }
 
 private:
+  double effectiveFlightHeight() const
+  {
+    return altitude_reference_valid_ ? target_z_map_ : flight_height_;
+  }
+
+  double effectiveMinHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + min_height_;
+  }
+
+  double effectiveMaxHeight() const
+  {
+    return (altitude_reference_valid_ ? ground_z_map_ : 0.0) + max_height_;
+  }
+
+  double currentAgl() const
+  {
+    return altitude_reference_valid_ ? current_position_.z - ground_z_map_ : current_position_.z;
+  }
+
+  void altitudeReferenceCallback(
+    const race_msgs::msg::FlightAltitudeReference::SharedPtr msg)
+  {
+    if (!msg->valid) {
+      if (altitude_reference_valid_ && msg->flight_id == altitude_reference_flight_id_) {
+        altitude_reference_valid_ = false;
+        have_goal_ = false;
+        have_trajectory_ = false;
+        have_bootstrap_setpoint_ = false;
+        planner_replan_hold_ = false;
+        have_last_valid_output_ = false;
+        validated_trajectory_id_ = -1;
+        setStatus("WAIT_ALTITUDE_REFERENCE");
+      }
+      return;
+    }
+    if (!std::isfinite(msg->ground_z_map) || !std::isfinite(msg->target_z_map) ||
+      !std::isfinite(msg->target_agl_m) || !std::isfinite(msg->min_agl_m) ||
+      !std::isfinite(msg->max_agl_m) ||
+      std::abs(msg->target_agl_m - flight_height_) > 1.0e-3 ||
+      std::abs(msg->min_agl_m - min_height_) > 1.0e-3 ||
+      std::abs(msg->max_agl_m - max_height_) > 1.0e-3 ||
+      std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3)
+    {
+      RCLCPP_ERROR(
+        get_logger(), "[BRIDGE_ALTITUDE_REFERENCE_REJECT] flight_id=%lu",
+        static_cast<unsigned long>(msg->flight_id));
+      return;
+    }
+    if (altitude_reference_valid_ && msg->flight_id < altitude_reference_flight_id_) {
+      return;
+    }
+    altitude_reference_flight_id_ = msg->flight_id;
+    ground_z_map_ = msg->ground_z_map;
+    target_z_map_ = msg->target_z_map;
+    altitude_reference_valid_ = true;
+    RCLCPP_WARN(
+      get_logger(),
+      "[BRIDGE_ALTITUDE_REFERENCE_ACCEPTED] flight_id=%lu ground_map=%.3f target_map=%.3f",
+      static_cast<unsigned long>(msg->flight_id), ground_z_map_, target_z_map_);
+  }
+
   void setStatus(const std::string & status)
   {
     if (status == status_) {
@@ -202,7 +281,7 @@ private:
     marker.id = 0;
     marker.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
     marker.action = visualization_msgs::msg::Marker::ADD;
-    marker.pose.position.z = max_height_ + 0.25;
+    marker.pose.position.z = effectiveMaxHeight() + 0.25;
     marker.scale.z = 0.18;
     marker.color.r = 1.0;
     marker.color.g = status_ == "TRACKING" || status_ == "SHADOW_TRACKING" ? 1.0 : 0.35;
@@ -248,7 +327,8 @@ private:
       }
     }
     if (have_bootstrap_setpoint_ && !pointCollisionFree(
-      bootstrap_point_, nullptr, nullptr, nullptr, active_rejection_clearance_)) {
+        bootstrap_point_, nullptr, nullptr, nullptr, active_rejection_clearance_))
+    {
       have_bootstrap_setpoint_ = false;
     }
     RCLCPP_INFO_THROTTLE(
@@ -299,10 +379,10 @@ private:
     // validated at flight_height_. Do not treat the local map's virtual
     // flight-band boundary as a vehicle collision before planar tracking.
     const bool position_collision_check_enabled =
-      flight_mode_ != "flat" || current_position_.z >= flight_height_ - 0.05;
+      flight_mode_ != "flat" || current_position_.z >= effectiveFlightHeight() - 0.05;
     auto occupancy_check_position = current_position_;
     if (flight_mode_ == "flat") {
-      occupancy_check_position.z = flight_height_;
+      occupancy_check_position.z = effectiveFlightHeight();
     }
     // Before the first validated EGO command the vehicle is still in the
     // Offboard takeoff transaction.  A map clearance check at that point must
@@ -325,6 +405,11 @@ private:
 
   void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
+    if (flight_mode_ == "flat" && !altitude_reference_valid_) {
+      have_goal_ = false;
+      setStatus("WAIT_ALTITUDE_REFERENCE");
+      return;
+    }
     if (!race_ego_bridge::frameMatches(msg->header.frame_id, frame_id_)) {
       goal_frame_valid_ = false;
       setStatus("FRAME_MISMATCH");
@@ -334,7 +419,7 @@ private:
       msg->pose.position.x, msg->pose.position.y, msg->pose.position.z};
     current_goal_ = point;
     goal_frame_valid_ = race_ego_bridge::insideGeofence(
-      point, min_x_, max_x_, min_y_, max_y_, min_height_, max_height_);
+      point, min_x_, max_x_, min_y_, max_y_, effectiveMinHeight(), effectiveMaxHeight());
     have_goal_ = goal_frame_valid_;
     if (have_goal_) {
       ++local_goal_seq_;
@@ -359,6 +444,13 @@ private:
 
   void bsplineCallback(const traj_utils::msg::Bspline::SharedPtr msg)
   {
+    if (validated_trajectory_id_ >= 0 && msg->traj_id <= validated_trajectory_id_) {
+      RCLCPP_WARN(
+        get_logger(),
+        "[BRIDGE_STALE_CANDIDATE] candidate_id=%ld active_id=%ld",
+        static_cast<int64_t>(msg->traj_id), validated_trajectory_id_);
+      return;
+    }
     if (msg->order < 2 || msg->pos_pts.size() <= static_cast<std::size_t>(msg->order) ||
       msg->knots.size() <= msg->pos_pts.size())
     {
@@ -415,12 +507,77 @@ private:
       return;
     }
 
+    // A trajectory can be collision-free and dynamically valid in isolation
+    // while still being unsafe to switch to.  Compare its state at "now" with
+    // the command currently owned by the bridge.  Large discontinuities were
+    // observed as 0.4--0.5 m position-target jumps and must enter the existing
+    // measured-position hold/replan path instead of reaching PX4.
+    const rclcpp::Time candidate_start(msg->start_time, get_clock()->get_clock_type());
+    const bool rebase_candidate_start = planner_replan_hold_;
+    if (have_last_valid_output_ && (have_trajectory_ || planner_replan_hold_)) {
+      auto velocity_trajectory = trajectory.getDerivative();
+      auto acceleration_trajectory = velocity_trajectory.getDerivative();
+      const double candidate_time = race_ego_bridge::trajectorySwitchEvaluationTime(
+        (now() - candidate_start).seconds(), duration, rebase_candidate_start);
+      const auto position_eigen = trajectory.evaluateDeBoorT(candidate_time);
+      const auto velocity_eigen = velocity_trajectory.evaluateDeBoorT(candidate_time);
+      const auto acceleration_eigen = acceleration_trajectory.evaluateDeBoorT(candidate_time);
+      race_ego_bridge::TrajectoryState previous{
+        {last_valid_output_.position.x, last_valid_output_.position.y,
+          last_valid_output_.position.z},
+        {last_valid_output_.velocity.x, last_valid_output_.velocity.y,
+          last_valid_output_.velocity.z},
+        {last_valid_output_.acceleration_or_force.x,
+          last_valid_output_.acceleration_or_force.y,
+          last_valid_output_.acceleration_or_force.z}};
+      race_ego_bridge::TrajectoryState candidate{
+        {position_eigen.x(), position_eigen.y(), position_eigen.z()},
+        {velocity_eigen.x(), velocity_eigen.y(), velocity_eigen.z()},
+        {acceleration_eigen.x(), acceleration_eigen.y(), acceleration_eigen.z()}};
+      if (flight_mode_ == "flat") {
+        candidate.position.z = effectiveFlightHeight();
+        candidate.velocity.z = 0.0;
+        candidate.acceleration.z = 0.0;
+      }
+      const auto transition = race_ego_bridge::transitionStateContinuous(
+        previous, candidate, switch_position_tolerance_m_,
+        switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
+      if (!transition.continuous) {
+        if (!planner_replan_hold_) {
+          planner_replan_hold_ = true;
+          planner_replan_hold_since_ = now();
+        }
+        RCLCPP_ERROR(
+          get_logger(),
+          "[BRIDGE_SWITCH_REJECTED] candidate_id=%ld active_id=%ld "
+          "errors=(position=%.3f velocity=%.3f acceleration=%.3f) "
+          "limits=(%.3f %.3f %.3f); hold measured position and replan",
+          static_cast<int64_t>(msg->traj_id), validated_trajectory_id_,
+          transition.position_error, transition.velocity_error,
+          transition.acceleration_error, switch_position_tolerance_m_,
+          switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
+        setStatus("REPLAN_SWITCH_DISCONTINUITY");
+        return;
+      }
+    }
+
     predicted_points_ = std::move(candidate_points);
     predicted_sample_times_ = std::move(candidate_sample_times);
     trajectory_id_ = msg->traj_id;
     validated_trajectory_id_ = msg->traj_id;
     validated_local_goal_seq_ = local_goal_seq_;
-    trajectory_stamp_ = rclcpp::Time(msg->start_time, get_clock()->get_clock_type());
+    auto validated_message = *msg;
+    if (rebase_candidate_start) {
+      validated_message.start_time = now();
+      RCLCPP_WARN(
+        get_logger(),
+        "[BRIDGE_TRAJECTORY_REBASED] trajectory_id=%ld old_start=%.3f new_start=%.3f "
+        "reason=measured_position_hold",
+        static_cast<int64_t>(msg->traj_id), candidate_start.seconds(),
+        rclcpp::Time(validated_message.start_time, get_clock()->get_clock_type()).seconds());
+    }
+    trajectory_stamp_ = rclcpp::Time(
+      validated_message.start_time, get_clock()->get_clock_type());
     last_trajectory_time_ = now();
     trajectory_collision_free_ = true;
     have_trajectory_ = true;
@@ -429,7 +586,7 @@ private:
     have_bootstrap_setpoint_ = prepareBootstrapSetpoint(candidate_clearance);
     publishPredictedPath();
     publishControlPoints(msg->pos_pts);
-    validated_bspline_publisher_->publish(*msg);
+    validated_bspline_publisher_->publish(validated_message);
     RCLCPP_INFO(
       get_logger(),
       "[BRIDGE_CANDIDATE_COMMIT] trajectory_id=%ld local_goal_seq=%lu output_topic=%s",
@@ -473,7 +630,7 @@ private:
     sample_times.clear();
     auto to_executed_point = [this](const Eigen::Vector3d & point) {
         return race_ego_bridge::Vec3{
-          point.x(), point.y(), flight_mode_ == "flat" ? flight_height_ : point.z()};
+        point.x(), point.y(), flight_mode_ == "flat" ? effectiveFlightHeight() : point.z()};
       };
 
     constexpr double base_time_step = 0.02;
@@ -489,7 +646,8 @@ private:
         distance, trajectory_sample_spacing_);
       for (std::size_t i = 1; i <= subdivisions; ++i) {
         const double ratio = static_cast<double>(i) / subdivisions;
-        points.push_back({
+        points.push_back(
+        {
           previous.x + (next.x - previous.x) * ratio,
           previous.y + (next.y - previous.y) * ratio,
           previous.z + (next.z - previous.z) * ratio});
@@ -507,7 +665,9 @@ private:
   {
     for (std::size_t i = 0; i < predicted_points_.size(); ++i) {
       const auto & point = predicted_points_[i];
-      if (point.z < min_height_ || !pointCollisionFree(point, nullptr, nullptr, nullptr, required_clearance)) {
+      if (point.z < effectiveMinHeight() ||
+        !pointCollisionFree(point, nullptr, nullptr, nullptr, required_clearance))
+      {
         continue;
       }
       double yaw_map = 0.0;
@@ -568,10 +728,12 @@ private:
       Eigen::Vector3d nearest;
       double distance = std::numeric_limits<double>::infinity();
       if (!raw_obstacle_distance_index_.nearest(
-          Eigen::Vector3d(point.x, point.y, point.z), nearest, distance)) return false;
-      if (nearest_obstacle != nullptr) *nearest_obstacle = {nearest.x(), nearest.y(), nearest.z()};
-      if (clearance != nullptr) *clearance = distance;
-      if (nearby_occupied != nullptr) *nearby_occupied = distance < effective_clearance ? 1 : 0;
+          Eigen::Vector3d(point.x, point.y, point.z), nearest, distance)) {return false;}
+      if (nearest_obstacle != nullptr) {
+        *nearest_obstacle = {nearest.x(), nearest.y(), nearest.z()};
+      }
+      if (clearance != nullptr) {*clearance = distance;}
+      if (nearby_occupied != nullptr) {*nearby_occupied = distance < effective_clearance ? 1 : 0;}
       return distance >= effective_clearance;
     }
     std::vector<int> indices;
@@ -651,7 +813,7 @@ private:
       const auto & point = points[i];
       if (!race_ego_bridge::finite(point) || point.x < min_x_ || point.x > max_x_ ||
         point.y < min_y_ || point.y > max_y_ || point.z < min_planning_height_ ||
-        point.z > max_height_)
+        point.z > effectiveMaxHeight())
       {
         collision_reason_ = "OUT_OF_GEOFENCE";
         collision_sample_index_ = i;
@@ -661,12 +823,12 @@ private:
       }
       // Offboard owns vertical takeoff and never follows EGO commands below
       // min_height_. Validate the actual flight segment, not the ground bootstrap.
-      if (point.z < min_height_) {
+      if (point.z < effectiveMinHeight()) {
         continue;
       }
       have_trackable_point = true;
       if (!pointCollisionFree(
-        point, &collision_nearest_obstacle_, &collision_clearance_,
+          point, &collision_nearest_obstacle_, &collision_clearance_,
           &collision_nearby_occupied_, required_clearance))
       {
         collision_sample_index_ = i;
@@ -715,7 +877,7 @@ private:
         "bounds=x=[%.3f,%.3f] y=[%.3f,%.3f] z=[%.3f,%.3f] frame=%s",
         logged_trajectory_id, local_goal_seq_, collision_sample_index_, collision_point_.x,
         collision_point_.y, collision_point_.z, min_x_, max_x_, min_y_, max_y_,
-        min_planning_height_, max_height_, frame_id_.c_str());
+        min_planning_height_, effectiveMaxHeight(), frame_id_.c_str());
       return;
     }
     if (collision_reason_ != "EGO_TRAJECTORY_COLLISION") {
@@ -750,6 +912,9 @@ private:
 
   bool prerequisitesReady()
   {
+    if (flight_mode_ == "flat" && !altitude_reference_valid_) {
+      setStatus("WAIT_ALTITUDE_REFERENCE"); return false;
+    }
     if (!have_map_) {setStatus("WAIT_MAP"); return false;}
     if (!have_odom_) {setStatus("WAIT_ODOM"); return false;}
     if (have_trajectory_ && !trajectory_collision_free_) {
@@ -809,12 +974,12 @@ private:
     race_ego_bridge::Vec3 acceleration{
       msg->acceleration.x, msg->acceleration.y, msg->acceleration.z};
     if (flight_mode_ == "flat") {
-      position.z = flight_height_;
+      position.z = effectiveFlightHeight();
       velocity.z = 0.0;
       acceleration.z = 0.0;
     }
     if (!race_ego_bridge::insideGeofence(
-        position, min_x_, max_x_, min_y_, max_y_, min_height_, max_height_))
+        position, min_x_, max_x_, min_y_, max_y_, effectiveMinHeight(), effectiveMaxHeight()))
     {
       RCLCPP_DEBUG_THROTTLE(
         get_logger(), *get_clock(), 1000, "Reject command outside flight band z=%.3f",
@@ -828,8 +993,7 @@ private:
       acceleration, max_acceleration_, feasibility_tolerance_);
     const bool yaw_valid = std::isfinite(msg->yaw);
     const bool yaw_rate_valid = std::isfinite(msg->yaw_dot);
-    if (!velocity_valid || !acceleration_valid || !yaw_valid || !yaw_rate_valid)
-    {
+    if (!velocity_valid || !acceleration_valid || !yaw_valid || !yaw_rate_valid) {
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "Reject command dynamics: speed=%.3f accel=%.3f limits=(%.3f,%.3f)x%.2f "
@@ -969,10 +1133,11 @@ private:
       }
       race_ego_bridge::Vec3 hold_point = current_position_;
       if (flight_mode_ == "flat") {
-        hold_point.z = flight_height_;
+        hold_point.z = effectiveFlightHeight();
       }
       if (!pointCollisionFree(
-        hold_point, nullptr, nullptr, nullptr, active_rejection_clearance_)) {
+          hold_point, nullptr, nullptr, nullptr, active_rejection_clearance_))
+      {
         planner_replan_hold_ = false;
         collision_point_ = hold_point;
         collision_reason_ = "EGO_TRAJECTORY_COLLISION";
@@ -1043,7 +1208,7 @@ private:
 
   bool bootstrapPrerequisitesReady()
   {
-    if (!have_bootstrap_setpoint_ || current_position_.z >= bootstrap_release_height_) {
+    if (!have_bootstrap_setpoint_ || currentAgl() >= bootstrap_release_height_) {
       return false;
     }
     if (!have_map_ || !have_odom_ || !have_goal_ || !map_frame_valid_ ||
@@ -1056,7 +1221,8 @@ private:
       return false;
     }
     if (!pointCollisionFree(
-      bootstrap_point_, nullptr, nullptr, nullptr, active_rejection_clearance_)) {
+        bootstrap_point_, nullptr, nullptr, nullptr, active_rejection_clearance_))
+    {
       have_bootstrap_setpoint_ = false;
       setStatus("NO_SAFE_TRAJECTORY");
       return false;
@@ -1159,6 +1325,9 @@ private:
   double feasibility_tolerance_{1.10};
   double dynamic_invalid_grace_sec_{0.75};
   double replan_hold_timeout_sec_{3.0};
+  double switch_position_tolerance_m_{0.05};
+  double switch_velocity_tolerance_mps_{0.10};
+  double switch_acceleration_tolerance_mps2_{0.20};
   double rejection_clearance_{0.30};
   bool constrained_clearance_enabled_{false};
   double constrained_clearance_{0.25};
@@ -1169,11 +1338,14 @@ private:
   double min_planning_height_{-0.15};
   double min_height_{0.50};
   double bootstrap_release_height_{0.58};
-  double max_height_{0.85};
+  double max_height_{0.90};
   double min_x_{-7.5};
   double max_x_{7.5};
   double min_y_{-7.0};
   double max_y_{7.0};
+  uint64_t altitude_reference_flight_id_{0};
+  double ground_z_map_{0.0};
+  double target_z_map_{0.0};
   bool publish_setpoint_{false};
   bool control_enabled_{false};
   bool require_strict_local_position_health_{false};
@@ -1189,6 +1361,7 @@ private:
   bool have_bootstrap_setpoint_{false};
   bool command_dynamics_valid_{true};
   bool planner_replan_hold_{false};
+  bool altitude_reference_valid_{false};
   int64_t trajectory_id_{0};
   rclcpp::Time trajectory_stamp_{0, 0, RCL_ROS_TIME};
   int64_t validated_trajectory_id_{-1};
@@ -1243,6 +1416,8 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_subscription_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr health_subscription_;
+  rclcpp::Subscription<race_msgs::msg::FlightAltitudeReference>::SharedPtr
+    altitude_reference_subscription_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 };
 

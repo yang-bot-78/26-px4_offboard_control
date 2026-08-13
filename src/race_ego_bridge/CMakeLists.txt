@@ -13,6 +13,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(mavros_msgs REQUIRED)
+find_package(race_msgs REQUIRED)
 find_package(quadrotor_msgs REQUIRED)
 find_package(traj_utils REQUIRED)
 find_package(bspline_opt REQUIRED)
@@ -37,12 +38,13 @@ ament_target_dependencies(
   tf2_sensor_msgs)
 
 add_executable(race_ego_goal_bridge src/ego_goal_bridge.cpp)
-ament_target_dependencies(race_ego_goal_bridge rclcpp geometry_msgs nav_msgs std_msgs)
+ament_target_dependencies(
+  race_ego_goal_bridge rclcpp geometry_msgs mavros_msgs nav_msgs race_msgs std_msgs)
 
 add_executable(race_ego_trajectory_bridge src/ego_trajectory_bridge.cpp)
 ament_target_dependencies(
   race_ego_trajectory_bridge rclcpp geometry_msgs nav_msgs sensor_msgs std_msgs
-  visualization_msgs mavros_msgs quadrotor_msgs traj_utils bspline_opt pcl_conversions)
+  visualization_msgs mavros_msgs race_msgs quadrotor_msgs traj_utils bspline_opt pcl_conversions)
 ament_target_dependencies(race_ego_trajectory_bridge plan_env)
 target_link_libraries(race_ego_trajectory_bridge ${PCL_LIBRARIES})
 

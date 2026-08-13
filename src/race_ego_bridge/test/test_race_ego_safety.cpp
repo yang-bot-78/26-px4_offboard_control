@@ -89,6 +89,21 @@ TEST(Trajectory, StartAndEndTime)
   EXPECT_DOUBLE_EQ(2.0, race_ego_bridge::clampTrajectoryTime(2.5, 2.0));
 }
 
+TEST(Trajectory, MeasuredHoldEvaluatesReplacementFromItsStart)
+{
+  EXPECT_DOUBLE_EQ(
+    0.0, race_ego_bridge::trajectorySwitchEvaluationTime(0.42, 2.0, true));
+  EXPECT_DOUBLE_EQ(
+    0.42, race_ego_bridge::trajectorySwitchEvaluationTime(0.42, 2.0, false));
+}
+
+TEST(TakeoffHandover, ResetsOnlyOnDisarmNotOnLowAltitude)
+{
+  EXPECT_TRUE(race_ego_bridge::shouldResetFlightHandover(true, false));
+  EXPECT_FALSE(race_ego_bridge::shouldResetFlightHandover(true, true));
+  EXPECT_FALSE(race_ego_bridge::shouldResetFlightHandover(false, false));
+}
+
 TEST(Trajectory, SetpointTimeout)
 {
   EXPECT_TRUE(race_ego_bridge::timedOut(0.21, 0.20));
@@ -173,6 +188,22 @@ TEST(Trajectory, ContinuousReplanSwitch)
     {1.0, 2.0, 0.78}, {1.02, 2.01, 0.78}, 0.05));
   EXPECT_FALSE(race_ego_bridge::transitionContinuous(
     {1.0, 2.0, 0.78}, {1.30, 2.0, 0.78}, 0.05));
+}
+
+TEST(Trajectory, FullStateReplanSwitch)
+{
+  const race_ego_bridge::TrajectoryState previous{
+    {1.0, 2.0, 0.78}, {0.20, 0.0, 0.0}, {0.05, 0.0, 0.0}};
+  const race_ego_bridge::TrajectoryState continuous{
+    {1.04, 2.0, 0.78}, {0.25, 0.0, 0.0}, {0.10, 0.0, 0.0}};
+  const race_ego_bridge::TrajectoryState position_jump{
+    {1.40, 2.0, 0.78}, {0.20, 0.0, 0.0}, {0.05, 0.0, 0.0}};
+  EXPECT_TRUE(race_ego_bridge::transitionStateContinuous(
+    previous, continuous, 0.05, 0.10, 0.20).continuous);
+  const auto rejected = race_ego_bridge::transitionStateContinuous(
+    previous, position_jump, 0.05, 0.10, 0.20);
+  EXPECT_FALSE(rejected.continuous);
+  EXPECT_NEAR(0.40, rejected.position_error, 1e-9);
 }
 
 TEST(Trajectory, SpatialSamplingNeverExceedsConfiguredSpacing)
