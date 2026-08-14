@@ -19,6 +19,7 @@
 #include <race_msgs/msg/global_planner_status.hpp>
 #include <race_msgs/msg/navigation_setpoint.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/u_int64.hpp>
 #include <std_srvs/srv/trigger.hpp>
@@ -125,16 +126,20 @@ public:
     map_local_alignment_max_yaw_spread_rad_ =
       declare_parameter<double>("map_local_alignment_max_yaw_spread_rad", 0.10);
     setpoint_timeout_sec_ = declare_parameter<double>("setpoint_timeout_sec", 0.8);
-    allow_dead_reckoning_takeoff_ = declare_parameter<bool>("allow_dead_reckoning_takeoff", true);
+    allow_dead_reckoning_takeoff_ = declare_parameter<bool>("allow_dead_reckoning_takeoff", false);
     require_strict_local_position_health_ =
-      declare_parameter<bool>("require_strict_local_position_health", false);
+      declare_parameter<bool>("require_strict_local_position_health", true);
     // External-vision health gate.  The simulation node had none; on the real
     // aircraft EKF2's position comes from FAST-LIO via MAVROS vision_pose.
     require_ev_health_ = declare_parameter<bool>("require_ev_health", true);
     ev_health_topic_ = declare_parameter<std::string>("ev_health_topic", "/ev_health/status");
+    ev_flight_ready_topic_ = declare_parameter<std::string>(
+      "ev_flight_ready_topic", "/ev_health/flight_ready");
     ev_health_required_s_ = declare_parameter<double>("ev_health_required_s", 7.5);
-    ev_health_freshness_s_ = declare_parameter<double>("ev_health_freshness_s", 1.0);
-    ev_health_.configure(ev_health_required_s_, ev_health_freshness_s_);
+    ev_health_freshness_s_ = declare_parameter<double>("ev_health_freshness_s", 0.5);
+    ev_fault_auto_land_ = declare_parameter<bool>("ev_fault_auto_land", true);
+    ev_health_.configure(0.0, ev_health_freshness_s_);
+    ev_flight_ready_.configure(ev_health_required_s_, ev_health_freshness_s_);
     local_origin_rebase_stabilization_sec_ =
       declare_parameter<double>("local_origin_rebase_stabilization_sec", 1.0);
     local_origin_rebase_max_spread_m_ =
@@ -145,13 +150,13 @@ public:
       local_origin_rebase_stabilization_sec_, local_origin_rebase_max_spread_m_,
       local_origin_rebase_max_speed_mps_);
     ekf_xy_wait_timeout_sec_ = declare_parameter<double>("ekf_xy_wait_timeout_sec", 3.0);
-    offboard_warmup_sec_ = declare_parameter<double>("offboard_warmup_sec", 1.0);
+    offboard_warmup_sec_ = declare_parameter<double>("offboard_warmup_sec", 2.0);
     manual_handover_ = declare_parameter<bool>("manual_handover", false);
     manual_handover_max_position_error_m_ =
       declare_parameter<double>("manual_handover_max_position_error_m", 0.15);
     manual_handover_max_speed_mps_ =
       declare_parameter<double>("manual_handover_max_speed_mps", 0.20);
-    preflight_stabilization_sec_ = declare_parameter<double>("preflight_stabilization_sec", 3.0);
+    preflight_stabilization_sec_ = declare_parameter<double>("preflight_stabilization_sec", 5.0);
     command_retry_period_sec_ = declare_parameter<double>("command_retry_period_sec", 1.0);
     cruise_altitude_m_ = declare_parameter<double>("cruise_altitude_m", 0.78);
     takeoff_complete_height_m_ = declare_parameter<double>("takeoff_complete_height_m", 0.55);
@@ -244,9 +249,13 @@ public:
     local_velocity_subscriber_ = create_subscription<geometry_msgs::msg::TwistStamped>(
       "/mavros/local_position/velocity_local", rclcpp::SensorDataQoS(),
       std::bind(&OffboardWaypointNode::localVelocityCallback, this, std::placeholders::_1));
+    const auto ev_latched_qos = rclcpp::QoS(1).reliable().transient_local();
     ev_health_subscriber_ = create_subscription<std_msgs::msg::String>(
-      ev_health_topic_, rclcpp::SensorDataQoS(),
+      ev_health_topic_, ev_latched_qos,
       std::bind(&OffboardWaypointNode::evHealthCallback, this, std::placeholders::_1));
+    ev_flight_ready_subscriber_ = create_subscription<std_msgs::msg::Bool>(
+      ev_flight_ready_topic_, ev_latched_qos,
+      std::bind(&OffboardWaypointNode::evFlightReadyCallback, this, std::placeholders::_1));
     vehicle_status_subscriber_ = create_subscription<mavros_msgs::msg::State>(
       "/mavros/state", rclcpp::SensorDataQoS(),
       std::bind(&OffboardWaypointNode::vehicleStatusCallback, this, std::placeholders::_1));
@@ -575,7 +584,7 @@ private:
     }
     if (require_map_local_alignment_ &&
       (armed_ || horizontalSpeed() > initial_position_max_speed_mps_ ||
-      !ev_health_.ready(now().nanoseconds())))
+      !ev_flight_ready_.ready(now().nanoseconds())))
     {
       return;
     }
@@ -643,10 +652,21 @@ private:
   void evHealthCallback(const std_msgs::msg::String::SharedPtr msg)
   {
     if (ev_health_.update(msg->data, now().nanoseconds())) {
-      RCLCPP_INFO(
-        get_logger(), "[EV_HEALTH] state=%s continuous_healthy=%.2fs",
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[EV_HEALTH] state=%s continuous_healthy=%.2fs",
         race_offboard::evHealthStateName(ev_health_.state()),
         ev_health_.healthyDurationS(now().nanoseconds()));
+    }
+  }
+
+  void evFlightReadyCallback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    const auto now_ns = now().nanoseconds();
+    if (ev_flight_ready_.update(msg->data ? "HEALTHY" : "SUSPECT", now_ns)) {
+      RCLCPP_INFO(
+        get_logger(), "[EV_FLIGHT_READY] ready=%d continuous_ready=%.2fs",
+        msg->data, ev_flight_ready_.healthyDurationS(now_ns));
     }
   }
 
@@ -1074,14 +1094,14 @@ private:
   bool groundReferenceLockAllowed(std::int64_t now_ns) const
   {
     return race_offboard::initialGroundReferenceLockAllowed(
-      armed_, require_ev_health_, ev_health_.ready(now_ns));
+      armed_, require_ev_health_, ev_flight_ready_.ready(now_ns));
   }
 
   bool localOriginRebaseAllowed(std::int64_t now_ns) const
   {
     return require_ev_health_ && race_offboard::localOriginRebaseAllowed(
       armed_, state_ == State::IDLE, control_state_ == ControlState::IDLE_HOLD,
-      ev_health_.ready(now_ns), hold_position_valid_);
+      ev_flight_ready_.ready(now_ns), hold_position_valid_);
   }
 
   void lockHoldPosition(float z_command, const std::string & reason)
@@ -1196,11 +1216,12 @@ private:
 
   bool manualHandoverReady()
   {
-    const bool ev_ready = !require_ev_health_ || ev_health_.ready(now().nanoseconds());
+    const bool ev_ready = !require_ev_health_ ||
+      ev_flight_ready_.ready(now().nanoseconds());
     return (!require_map_local_alignment_ || map_local_alignment_ready_) &&
            race_offboard::canAcceptManualHandover(
       manual_handover_, state_ == State::IDLE, armed_, offboard_mode_,
-      have_local_position_ && finiteCurrentPosition(), ev_ready,
+      localPositionSafe(), ev_ready,
       holdPositionError() <= manual_handover_max_position_error_m_,
       horizontalSpeed() <= manual_handover_max_speed_mps_, manualHandoverHeightSafe());
   }
@@ -1332,7 +1353,8 @@ private:
     const double current_height = currentHeightAgl();
     const double hold_height = heightAglForLocalNed(hold_z_);
     const bool position_valid = have_local_position_ && finiteCurrentPosition();
-    const bool ev_ready = !require_ev_health_ || ev_health_.ready(now().nanoseconds());
+    const bool ev_ready = !require_ev_health_ ||
+      ev_flight_ready_.ready(now().nanoseconds());
     const bool position_aligned = hold_position_valid_ &&
       hold_error <= manual_handover_max_position_error_m_;
     const bool speed_safe = horizontalSpeed() <= manual_handover_max_speed_mps_;
@@ -1430,7 +1452,8 @@ private:
       RCLCPP_WARN_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "[OFFBOARD_DEFERRED_TAKEOFF_EV] reason=%s; continuous_healthy=%.2fs required=%.2fs",
-        source, ev_health_.healthyDurationS(now().nanoseconds()), ev_health_.requiredS());
+        source, ev_flight_ready_.healthyDurationS(now().nanoseconds()),
+        ev_flight_ready_.requiredS());
       return;
     }
     if (!have_local_position_ || !finiteCurrentPosition()) {
@@ -1482,21 +1505,31 @@ private:
       publishControlDiagnostics("pilot_override");
       return;
     }
-    // In-flight EV guard, ahead of the state dispatch.  Only FAULT lands the
-    // aircraft: SUSPECT and status staleness are reported but do not by
-    // themselves descend, matching what minipc_mavros_offboard.py already flew.
+    // In-flight EV guard, ahead of the state dispatch.  A FAULT is always
+    // reported; AUTO.LAND is optional for procedures that require RC takeover.
+    // SUSPECT and status staleness do not by themselves descend, matching what
+    // minipc_mavros_offboard.py already flew.
     // The vehicle must be airborne for this to act -- FAULT while still on the
     // ground is handled by the pre-arm gate in runPreflight().
     if (require_ev_health_ && ev_health_.faulted() && armed_ &&
       state_ != State::LANDING && state_ != State::IDLE)
     {
-      if (!ev_fault_land_latched_) {
-        ev_fault_land_latched_ = true;
-        RCLCPP_ERROR(
-          get_logger(),
-          "[EV_HEALTH_FAULT] external vision reported FAULT in flight; requesting AUTO.LAND");
+      if (!ev_fault_report_latched_) {
+        ev_fault_report_latched_ = true;
+        if (ev_fault_auto_land_) {
+          RCLCPP_ERROR(
+            get_logger(),
+            "[EV_HEALTH_FAULT] external vision reported FAULT in flight; requesting AUTO.LAND");
+        } else {
+          RCLCPP_ERROR(
+            get_logger(),
+            "[EV_HEALTH_FAULT] external vision reported FAULT in flight; "
+            "AUTO.LAND disabled, pilot must take over immediately");
+        }
       }
-      state_ = State::LANDING;
+      if (ev_fault_auto_land_) {
+        state_ = State::LANDING;
+      }
     }
     if (manualHandoverReady()) {
       acceptManualHandover();
@@ -1542,7 +1575,8 @@ private:
           RCLCPP_INFO_THROTTLE(
             get_logger(), *get_clock(), 1000,
             "[EV_HOLD_WAIT] continuous_healthy=%.2fs required=%.2fs",
-            ev_health_.healthyDurationS(now().nanoseconds()), ev_health_.requiredS());
+            ev_flight_ready_.healthyDurationS(now().nanoseconds()),
+            ev_flight_ready_.requiredS());
           publishControlDiagnostics("waiting_for_ev_ground_reference");
           return;
         }
@@ -1660,14 +1694,14 @@ private:
     // disarmed is harmless, but arming on a degrading external-vision estimate
     // is what this guard exists to prevent.  Ported from the flown behaviour of
     // minipc_mavros_offboard.py.
-    if (require_ev_health_ && !ev_health_.ready(now().nanoseconds())) {
+    if (require_ev_health_ && !ev_flight_ready_.ready(now().nanoseconds())) {
       std::string reason;
-      ev_health_.unsafeReason(now().nanoseconds(), &reason);
+      ev_flight_ready_.unsafeReason(now().nanoseconds(), &reason);
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "[EV_HEALTH_WAIT] %s (continuous_healthy=%.2fs required=%.2fs)",
-        reason.c_str(), ev_health_.healthyDurationS(now().nanoseconds()),
-        ev_health_.requiredS());
+        reason.c_str(), ev_flight_ready_.healthyDurationS(now().nanoseconds()),
+        ev_flight_ready_.requiredS());
       return;
     }
     if (!armed_) {
@@ -2265,11 +2299,11 @@ private:
   double setpoint_timeout_sec_{0.8};
   double ego_setpoint_timeout_sec_{0.20};
   double ekf_xy_wait_timeout_sec_{3.0};
-  double offboard_warmup_sec_{1.0};
+  double offboard_warmup_sec_{2.0};
   bool manual_handover_{false};
   double manual_handover_max_position_error_m_{0.15};
   double manual_handover_max_speed_mps_{0.20};
-  double preflight_stabilization_sec_{3.0};
+  double preflight_stabilization_sec_{5.0};
   double command_retry_period_sec_{1.0};
   double cruise_altitude_m_{0.78};
   double takeoff_complete_height_m_{0.55};
@@ -2304,8 +2338,8 @@ private:
   double shared_bounds_y_max_{7.0};
   double shared_bounds_z_min_{0.50};
   double shared_bounds_z_max_{0.90};
-  bool allow_dead_reckoning_takeoff_{true};
-  bool require_strict_local_position_health_{false};
+  bool allow_dead_reckoning_takeoff_{false};
+  bool require_strict_local_position_health_{true};
   bool idle_hold_enabled_{true};
   bool require_global_planner_final_goal_{false};
 
@@ -2418,13 +2452,17 @@ private:
   bool have_trusted_position_stamp_{false};
   bool have_local_velocity_{false};
   race_offboard::EvHealthTracker ev_health_;
+  race_offboard::EvHealthTracker ev_flight_ready_;
   race_offboard::LocalOriginRebaseGuard local_origin_rebase_guard_;
   std::string ev_health_topic_;
+  std::string ev_flight_ready_topic_;
   bool require_ev_health_{true};
   double ev_health_required_s_{7.5};
-  double ev_health_freshness_s_{1.0};
-  bool ev_fault_land_latched_{false};
+  double ev_health_freshness_s_{0.5};
+  bool ev_fault_auto_land_{true};
+  bool ev_fault_report_latched_{false};
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr ev_health_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ev_flight_ready_subscriber_;
   bool arm_request_pending_{false};
   bool land_request_pending_{false};
   bool offboard_mode_{false};

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 FAST-LIO 里程计对齐到重定位地图，仅供无飞行规划验证。"""
+"""把 FR-LIO 里程计对齐到重定位地图，仅供无飞行规划验证。"""
 
 import copy
 import math
@@ -8,7 +8,9 @@ from typing import Optional, Tuple
 import rclpy
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from nav_msgs.msg import Odometry
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from tf2_ros import TransformBroadcaster
 
 Quaternion = Tuple[float, float, float, float]
@@ -103,13 +105,24 @@ class RelocalizationFrameBridge(Node):
         self.declare_parameter("publish_odom_body_tf", True)
 
         self._latest_odom: Optional[Odometry] = None
+        self._pending_relocalized_pose: Optional[PoseStamped] = None
         self._map_to_odom: Optional[Tuple[Vector3, Quaternion]] = None
         self._tf_broadcaster = TransformBroadcaster(self)
         self._odom_pub = self.create_publisher(
             Odometry, self.get_parameter("output_odom_topic").value, 20
         )
+        # Match FR-LIO's BEST_EFFORT publisher and retain only the newest frame
+        # so slow Python callbacks cannot accumulate stale odometry messages.
+        frlio_odom_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+        )
         self.create_subscription(
-            Odometry, self.get_parameter("odom_topic").value, self._odom_callback, 50
+            Odometry,
+            self.get_parameter("odom_topic").value,
+            self._odom_callback,
+            frlio_odom_qos,
         )
         self.create_subscription(
             PoseStamped,
@@ -118,11 +131,15 @@ class RelocalizationFrameBridge(Node):
             10,
         )
         self.get_logger().info(
-            "等待 FAST-LIO 里程计和重定位结果；成功后发布 /planning/odom。"
+            "等待 FR-LIO 里程计和重定位结果；成功后发布 /planning/odom。"
         )
 
     def _odom_callback(self, msg: Odometry) -> None:
         self._latest_odom = msg
+        if self._pending_relocalized_pose is not None:
+            pending_pose = self._pending_relocalized_pose
+            self._pending_relocalized_pose = None
+            self._apply_relocalized_pose(pending_pose)
         odom_translation, odom_rotation = pose_parts(msg.pose.pose)
         odom_frame = str(self.get_parameter("odom_frame").value)
         body_frame = str(self.get_parameter("body_frame").value)
@@ -176,7 +193,17 @@ class RelocalizationFrameBridge(Node):
 
     def _relocalized_pose_callback(self, msg: PoseStamped) -> None:
         if self._latest_odom is None:
-            self.get_logger().warning("收到重定位结果时还没有里程计，已忽略该结果。")
+            # One-shot relocalization must not be lost just because the first
+            # FR-LIO odometry message has not arrived yet.
+            self._pending_relocalized_pose = copy.deepcopy(msg)
+            self.get_logger().warning(
+                "收到重定位结果时尚无 FR-LIO 里程计；将等待首帧后应用。"
+            )
+            return
+        self._apply_relocalized_pose(msg)
+
+    def _apply_relocalized_pose(self, msg: PoseStamped) -> None:
+        if self._latest_odom is None:
             return
 
         map_to_body_translation, map_to_body_rotation = pose_parts(msg.pose)
@@ -225,7 +252,7 @@ def main() -> None:
     node = RelocalizationFrameBridge()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

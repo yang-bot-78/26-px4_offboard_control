@@ -17,23 +17,26 @@ offboard_waypoint_node:
     braking_max_acc: 0.50
     hold_replan_distance: 0.08
 
-    allow_dead_reckoning_takeoff: true
-    require_strict_local_position_health: false
+    allow_dead_reckoning_takeoff: false
+    require_strict_local_position_health: true
     # External-vision gate. EKF2's position comes from FAST-LIO through
     # /mavros/vision_pose/pose_cov, so arming requires a continuously healthy
-    # EV chain and an in-flight FAULT requests AUTO.LAND.
+    # EV chain and an in-flight FAULT normally requests AUTO.LAND. Individual
+    # flight procedures may disable that response but must keep RC takeover ready.
     require_ev_health: true
     ev_health_topic: /ev_health/status
+    ev_flight_ready_topic: /ev_health/flight_ready
     ev_health_required_s: 7.5
-    ev_health_freshness_s: 1.0
+    ev_health_freshness_s: 0.5
+    ev_fault_auto_land: true
     # A discontinuous PX4 local frame may be adopted only while disarmed and
     # IDLE, after the replacement frame remains still inside these limits.
     local_origin_rebase_stabilization_sec: 1.0
     local_origin_rebase_max_spread_m: 0.08
     local_origin_rebase_max_speed_mps: 0.20
     ekf_xy_wait_timeout_sec: 3.0
-    offboard_warmup_sec: 1.0
-    preflight_stabilization_sec: 3.0
+    offboard_warmup_sec: 2.0
+    preflight_stabilization_sec: 5.0
     command_retry_period_sec: 1.0
 
     cruise_altitude_m: 0.78

@@ -44,6 +44,7 @@
 #include <thread>
 #include <unordered_set>
 #include <fstream>
+#include <filesystem>
 #include <csignal>
 #include <chrono>
 #include <fr_lio/so3_math.hpp>
@@ -1178,7 +1179,7 @@ public:
         this->declare_parameter<bool>("high_rate_odom.enabled", true);
         this->declare_parameter<double>("high_rate_odom.warn_anchor_age_s", 0.15);
         this->declare_parameter<double>("high_rate_odom.max_anchor_age_s", 0.40);
-        this->declare_parameter<double>("high_rate_odom.imu_history_s", 2.0);
+        this->declare_parameter<double>("high_rate_odom.imu_history_s", 5.0);
         this->declare_parameter<double>("filter_size_corner", 0.5);
         this->declare_parameter<double>("filter_size_surf", 0.5);
         this->declare_parameter<double>("filter_size_map", 0.5);
@@ -1257,7 +1258,7 @@ public:
             "high_rate_odom.warn_anchor_age_s", warn_anchor_age_s_, 0.15);
         this->get_parameter_or<double>(
             "high_rate_odom.max_anchor_age_s", max_anchor_age_s_, 0.40);
-        this->get_parameter_or<double>("high_rate_odom.imu_history_s", imu_history_s_, 2.0);
+        this->get_parameter_or<double>("high_rate_odom.imu_history_s", imu_history_s_, 5.0);
         this->get_parameter_or<double>("filter_size_corner",filter_size_corner_min,0.5);
         this->get_parameter_or<double>("filter_size_surf",filter_size_surf_min,0.5);
         this->get_parameter_or<double>("filter_size_map",filter_size_map_min,0.5);
@@ -1452,18 +1453,39 @@ public:
         kf.init_dyn_share(get_f, df_dx, df_dw, h_share_model, NUM_MAX_ITERATIONS, epsi);
 
         /*** debug record ***/
-        // FILE *fp;
-        string pos_log_dir = root_dir + "/Log/pos_log.txt";
-        fp = fopen(pos_log_dir.c_str(),"w");
+        const std::filesystem::path log_dir =
+            std::filesystem::path(root_dir) / "Log";
+        std::error_code log_dir_error;
+        std::filesystem::create_directories(log_dir, log_dir_error);
+        if (log_dir_error) {
+            RCLCPP_WARN(
+                this->get_logger(),
+                "Unable to create FR-LIO log directory '%s': %s. Runtime position logging is disabled.",
+                log_dir.c_str(), log_dir_error.message().c_str());
+            runtime_pos_log = false;
+        }
+
+        const string pos_log_dir = (log_dir / "pos_log.txt").string();
+        fp = fopen(pos_log_dir.c_str(), "w");
+        if (fp == nullptr) {
+            RCLCPP_WARN(
+                this->get_logger(),
+                "Unable to open FR-LIO position log '%s'. Runtime position logging is disabled.",
+                pos_log_dir.c_str());
+            runtime_pos_log = false;
+        }
 
         // ofstream fout_pre, fout_out, fout_dbg;
         fout_pre.open(DEBUG_FILE_DIR("mat_pre.txt"),ios::out);
         fout_out.open(DEBUG_FILE_DIR("mat_out.txt"),ios::out);
         fout_dbg.open(DEBUG_FILE_DIR("dbg.txt"),ios::out);
-        if (fout_pre && fout_out)
+        if (fout_pre && fout_out && fout_dbg)
             cout << "~~~~"<<ROOT_DIR<<" file opened" << endl;
         else
-            cout << "~~~~"<<ROOT_DIR<<" doesn't exist" << endl;
+            RCLCPP_WARN(
+                this->get_logger(),
+                "One or more FR-LIO debug logs could not be opened under '%s'.",
+                log_dir.c_str());
 
         /*** ROS subscribe initialization ***/
         if (p_pre->lidar_type == AVIA)
@@ -1537,9 +1559,13 @@ public:
     ~LaserMappingNode()
     {
         lc_worker.stop();
+        fout_dbg.close();
         fout_out.close();
         fout_pre.close();
-        fclose(fp);
+        if (fp != nullptr) {
+            fclose(fp);
+            fp = nullptr;
+        }
 
         // Thesis metrics — one greppable summary block for log parsing.
         int gc = metric_gicp_count.load();
@@ -1633,12 +1659,14 @@ private:
 
     void publish_frame_body()
     {
-        int size = feats_undistort->points.size();
+        PointCloudXYZI::Ptr laserCloudFullRes(
+            dense_pub_en ? feats_undistort : feats_down_body);
+        int size = laserCloudFullRes->points.size();
         PointCloudXYZI::Ptr laserCloudIMUBody(new PointCloudXYZI(size, 1));
 
         for (int i = 0; i < size; i++)
         {
-            RGBpointBodyLidarToIMU(&feats_undistort->points[i],
+            RGBpointBodyLidarToIMU(&laserCloudFullRes->points[i],
                                 &laserCloudIMUBody->points[i]);
         }
 
@@ -2586,8 +2614,14 @@ private:
 
     void publish_high_rate_status(const std::string & status)
     {
-        if (status == last_high_rate_status_) return;
+        const auto now = std::chrono::steady_clock::now();
+        if (status == last_high_rate_status_ &&
+            last_high_rate_status_publish_time_ != std::chrono::steady_clock::time_point{} &&
+            now - last_high_rate_status_publish_time_ < std::chrono::milliseconds(250)) {
+            return;
+        }
         last_high_rate_status_ = status;
+        last_high_rate_status_publish_time_ = now;
         std_msgs::msg::String message;
         message.data = status;
         pubHighRateStatus_->publish(message);
@@ -2632,20 +2666,21 @@ private:
     double imu_unit_report_duration_s_ = 10.0;
     double warn_anchor_age_s_ = 0.15;
     double max_anchor_age_s_ = 0.40;
-    double imu_history_s_ = 2.0;
+    double imu_history_s_ = 5.0;
     double imu_acceleration_scale_ = 1.0;
     fr_lio::AccelerationUnit imu_acceleration_unit_ =
         fr_lio::AccelerationUnit::Unconfirmed;
     std::unique_ptr<fr_lio::AccelerationUnitReport> imu_unit_report_;
     std::unique_ptr<fr_lio::HighRateOdomPropagator> high_rate_propagator_;
     string last_high_rate_status_;
+    std::chrono::steady_clock::time_point last_high_rate_status_publish_time_{};
     bool effect_pub_en = false, map_pub_en = false;
     int effect_feat_num = 0, frame_num = 0;
     double deltaT, deltaR, aver_time_consu = 0, aver_time_icp = 0, aver_time_match = 0, aver_time_incre = 0, aver_time_solve = 0, aver_time_const_H_time = 0;
     bool flg_EKF_converged, EKF_stop_flg = 0;
     double epsi[23] = {0.001};
 
-    FILE *fp;
+    FILE *fp = nullptr;
     ofstream fout_pre, fout_out, fout_dbg;
 };
 

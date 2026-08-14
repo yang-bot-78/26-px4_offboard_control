@@ -10,21 +10,25 @@ implementation is versioned with this offboard-control workspace.
 The imported working tree includes the local high-rate odometry implementation
 and its tests. It deliberately excludes upstream Git metadata, build/install
 trees, Pixi environments, experiment outputs, simulation scripts, and media
-assets. The active PX4 external-vision path remains the guarded
+assets. The required `ikd_tree` library is vendored separately at the fixed
+upstream tag `v0.1.0`; see `third_party/ikd_tree/UPSTREAM.md`. The active PX4
+external-vision path remains the guarded
 `/Odometry -> /Odometry/healthy -> fastlio_mavros_vision_bridge` chain. FR-LIO
 is available through `LIO_BACKEND=fr_lio`, but high-rate promotion is not a
 flight authorization.
 
 ## Build prerequisites
 
-Build this workspace after sourcing ROS 2 Humble and a built `livox_ros_driver2`
-overlay. FR-LIO also requires the CMake package `ikd_tree`; install it through
-the upstream Pixi environment or provide it through `CMAKE_PREFIX_PATH`.
+Build this workspace after sourcing ROS 2 Humble and the existing
+`livox_ros_driver2` overlay. The fixed `ikd_tree` source is built with FR-LIO by
+default, so no external `ikd_tree` installation or `CMAKE_PREFIX_PATH` entry is
+required. An exact system package can be selected explicitly with
+`-DFR_LIO_USE_SYSTEM_IKD_TREE=ON`.
 
 ```bash
 source /opt/ros/humble/setup.bash
-source /path/to/livox_ws/install/setup.bash
-colcon build --packages-up-to fr_lio
+source ~/livox_mid360_env/ws_livox/install/setup.bash
+PYTHONNOUSERSITE=1 colcon build --base-paths src --packages-select fr_lio
 ```
 
 For a non-flight integration check, select the vendored package explicitly:

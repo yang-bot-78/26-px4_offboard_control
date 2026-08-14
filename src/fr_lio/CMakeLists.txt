@@ -3,6 +3,8 @@ project(fr_lio)
 
 option(FR_LIO_ENABLE_LOOP_CLOSURE
   "Build the optional GTSAM-based loop-closure pipeline" OFF)
+option(FR_LIO_USE_SYSTEM_IKD_TREE
+  "Use an externally installed ikd_tree instead of the vendored v0.1.0 source" OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
@@ -82,7 +84,28 @@ set(dependencies
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io)
 find_package(TBB REQUIRED)
-find_package(ikd_tree REQUIRED)
+if(FR_LIO_USE_SYSTEM_IKD_TREE)
+  find_package(ikd_tree 0.1.0 EXACT REQUIRED)
+else()
+  set(FR_LIO_VENDORED_IKD_TREE_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ikd_tree")
+  if(NOT EXISTS "${FR_LIO_VENDORED_IKD_TREE_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR
+      "Vendored ikd_tree v0.1.0 is missing from ${FR_LIO_VENDORED_IKD_TREE_DIR}")
+  endif()
+
+  # The upstream project uses the global BUILD_TESTING option. Keep FR-LIO's
+  # own tests enabled while avoiding a second copy of the dependency tests in
+  # this package build.
+  set(_FR_LIO_BUILD_TESTING "${BUILD_TESTING}")
+  set(BUILD_TESTING OFF)
+  add_subdirectory(
+    "${FR_LIO_VENDORED_IKD_TREE_DIR}"
+    "${CMAKE_CURRENT_BINARY_DIR}/third_party/ikd_tree"
+    EXCLUDE_FROM_ALL)
+  set(BUILD_TESTING "${_FR_LIO_BUILD_TESTING}")
+  unset(_FR_LIO_BUILD_TESTING)
+endif()
 if(FR_LIO_ENABLE_LOOP_CLOSURE)
   find_package(GTSAM REQUIRED)
 endif()
@@ -117,7 +140,11 @@ add_executable(lidar_accumulator src/lidar_accumulator.cpp)
 target_link_libraries(lidar_accumulator Python3::Python)
 ament_target_dependencies(lidar_accumulator rclcpp livox_ros_driver2)
 
-set(fr_lio_install_targets frlio lidar_accumulator)
+add_executable(lidar_validation_gate src/lidar_validation_gate.cpp)
+ament_target_dependencies(
+  lidar_validation_gate rclcpp livox_ros_driver2 std_msgs std_srvs)
+
+set(fr_lio_install_targets frlio lidar_accumulator lidar_validation_gate)
 if(mocap4r2_msgs_FOUND)
   add_executable(mocap_converter src/mocap_converter.cpp)
   target_link_libraries(mocap_converter Python3::Python)

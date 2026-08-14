@@ -2,6 +2,8 @@ fastlio_global_backend:
   ros__parameters:
     odom_topic: /Odometry
     cloud_topic: /cloud_registered
+    # FR-LIO's /Odometry and /cloud_registered are expressed in odom.
+    map_frame_id: odom
     cloud_is_world_frame: true
     keyframe_translation_thresh_m: 0.15
     keyframe_rotation_thresh_deg: 5.0

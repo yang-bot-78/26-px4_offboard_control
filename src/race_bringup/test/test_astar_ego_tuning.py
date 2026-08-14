@@ -177,6 +177,14 @@ class AstarEgoTuningTest(unittest.TestCase):
                 '/race/ego/cloud', '/race/ego/occupancy',
                 '/race/ego/occupancy_inflate', '/race/ego/predicted_path'):
             self.assertIn(topic, bag)
+        # Flight bags must retain enough upstream evidence to distinguish a
+        # MID-360 input interruption from FR-LIO/EV processing starvation.
+        for topic in (
+                '/livox/lidar', '/livox/imu',
+                '/frlio/high_rate_odom/status',
+                '/frlio/high_rate_odom/anchor_age',
+                '/Odometry', '/planning/odom', '/Odometry/healthy'):
+            self.assertIn(topic, bag)
         for name in ('race_click_planner.rviz', 'race_mission_click_planner.rviz'):
             rviz = (ROOT / 'src/race_bringup/rviz' / name).read_text(encoding='utf-8')
             self.assertIn('Value: /cloud_registered', rviz)

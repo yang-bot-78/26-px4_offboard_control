@@ -37,7 +37,10 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "fcu_url",
-                default_value="serial:///dev/ttyUSB0:921600?ids=255,190",
+                default_value=(
+                    "serial:///dev/serial/by-id/usb-1a86_USB_Serial-if00-port0:"
+                    "921600?ids=255,190"
+                ),
             ),
             DeclareLaunchArgument("tgt_system", default_value="1"),
             DeclareLaunchArgument("tgt_component", default_value="1"),

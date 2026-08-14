@@ -3,7 +3,7 @@
     odom_frame: "odom"
     body_frame: "body"
     feature_extract_enable: false
-    point_filter_num: 2
+    point_filter_num: 6
     max_iteration: 1
     filter_size_surf: 0.05
     filter_size_map: 0.1
@@ -21,7 +21,7 @@
       enabled: true
       warn_anchor_age_s: 0.15
       max_anchor_age_s: 0.40
-      imu_history_s: 2.0
+      imu_history_s: 5.0
     preprocess:
       lidar_type: 1
       scan_line: 4
@@ -35,7 +35,7 @@
       b_gyr_cov: 0.0001
       fov_degree: 360.0
       det_range: 15.0
-      extrinsic_est_en: true
+      extrinsic_est_en: false
       use_scan_to_scan_cov: false  # Config D: enable CRLB P_drift computation for LC edge noise
       use_perpoint_cov: false      # thesis Contribution 2: per-point Σ from k-NN
       point_range_noise_std: 0.05 # m, range noise floor; used only when use_perpoint_cov is true
@@ -73,9 +73,11 @@
       map_odom_topic: "/Odometry/map"
       path_en: true
       effect_map_en: false
-      map_en: true
+      # /Laser_map serializes the full accumulated map on the LiDAR executor.
+      # Keep it off in flight; dedicated mapping tools override this parameter.
+      map_en: false
       scan_publish_en: true
       dense_publish_en: false
-      scan_bodyframe_pub_en: false
+      scan_bodyframe_pub_en: true
       tf_en: true
       unfiltered_odom_en: false  # high-rate /Odometry is already unfiltered (6A)

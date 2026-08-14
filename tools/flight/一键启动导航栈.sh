@@ -10,8 +10,8 @@ set -euo pipefail
 #   ./tools/flight/一键启动导航栈.sh
 # 可选环境变量：MAP_FILE、NO_MAP_VALIDATION、MAP_AUTO_LOAD、
 # FCU_URL, WORLD_YAW_ALIGNMENT_RAD, ALLOW_UNVALIDATED_WORLD_YAW,
-# PLANNER_BACKEND, MISSION_ENABLED, RECOGNITION_ENABLED, RVIZ, ENABLE_OUTPUT,
-# MANUAL_HANDOVER, RELOCALIZATION_ENABLED, FASTLIO_GLOBAL_MAP_DIR,
+# PLANNER_BACKEND, NAVIGATION_ENABLED, MISSION_ENABLED, RECOGNITION_ENABLED, RVIZ, ENABLE_OUTPUT,
+# MANUAL_HANDOVER, EV_FAULT_AUTO_LAND, RELOCALIZATION_ENABLED, FRLIO_GLOBAL_MAP_DIR,
 # RECORD_BAG, READINESS_TIMEOUT_SEC, AUTO_STOP_AFTER_READY_SEC,
 # MID360_FASTLIO_DELAY_SEC, LIO_BACKEND, FRLIO_CONFIG,
 # COMPONENT_WINDOWS, COMPONENT_WINDOW_GEOMETRY,
@@ -23,10 +23,10 @@ project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
 autofix_launch="${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py"
 livox_env="${LIVOX_MID360_ENV:-${HOME}/livox_mid360_env}"
 livox_setup="${livox_env}/setup_mid360.bash"
-lio_backend="${LIO_BACKEND:-fast_lio}"
+lio_backend="${LIO_BACKEND:-fr_lio}"
 frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
 
-default_map_file="${project_root}/maps/fastlio_global_3d/GlobalMap.pcd"
+default_map_file="${project_root}/maps/main/GlobalMap.pcd"
 no_map_validation="${NO_MAP_VALIDATION:-false}"
 if [[ "${no_map_validation}" == true ]]; then
   if [[ -n "${MAP_FILE:-}" ]]; then
@@ -42,15 +42,17 @@ planner_backend="${PLANNER_BACKEND:-astar_ego}"
 effective_planner_backend="${planner_backend}"
 tuning_file="${TUNING_FILE:-${project_root}/src/race_bringup/config/astar_ego_tuning.yaml}"
 ego_enabled=""
+navigation_enabled="${NAVIGATION_ENABLED:-true}"
 mission_enabled="${MISSION_ENABLED:-true}"
 recognition_enabled="${RECOGNITION_ENABLED:-false}"
 rviz="${RVIZ:-true}"
 enable_output="${ENABLE_OUTPUT:-true}"
 manual_handover="${MANUAL_HANDOVER:-false}"
+ev_fault_auto_land="${EV_FAULT_AUTO_LAND:-true}"
 record_bag="${RECORD_BAG:-true}"
 readiness_timeout_sec="${READINESS_TIMEOUT_SEC:-90}"
 auto_stop_after_ready_sec="${AUTO_STOP_AFTER_READY_SEC:-0}"
-mid360_fastlio_delay_sec="${MID360_FASTLIO_DELAY_SEC:-4}"
+mid360_fastlio_delay_sec="${MID360_FRLIO_DELAY_SEC:-${MID360_FASTLIO_DELAY_SEC:-4}}"
 component_windows="${COMPONENT_WINDOWS:-true}"
 component_window_geometry="${COMPONENT_WINDOW_GEOMETRY:-110x30}"
 fcu_url="${FCU_URL:-serial:///dev/ttyUSB0:921600?ids=255,190}"
@@ -58,7 +60,7 @@ world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 allow_unvalidated_world_yaw="${ALLOW_UNVALIDATED_WORLD_YAW:-false}"
 skip_preflight_check="${SKIP_PREFLIGHT_CHECK:-0}"
 relocalization_enabled="${RELOCALIZATION_ENABLED:-false}"
-global_map_dir="${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps/fastlio_global_3d_20260810}"
+global_map_dir="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps/main}}"
 relocalization_backend_config="${RELOCALIZATION_BACKEND_CONFIG:-${project_root}/tools/fastlio/只重定位一次后端参数.yaml}"
 relocalization_bridge="${project_root}/tools/fastlio/重定位坐标桥.py"
 relocalization_fresh_scan_delay_sec="${RELOCALIZATION_FRESH_SCAN_DELAY_SEC:-3}"
@@ -120,6 +122,22 @@ require_executable() {
     log_error "Required file is not executable: ${path}"
     exit 1
   fi
+}
+
+prefer_workspace_px4_ros_com() {
+  # A terminal can retain a previously sourced workspace which also exports
+  # px4_ros_com.  Keep all of its other packages, but make this flight
+  # workspace's EV implementation and Python module win package resolution.
+  local px4_prefix="${project_root}/install/px4_ros_com"
+  local px4_python_site
+  export AMENT_PREFIX_PATH="${px4_prefix}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
+  for px4_python_site in \
+    "${px4_prefix}"/lib/python*/site-packages \
+    "${px4_prefix}"/local/lib/python*/dist-packages \
+    "${px4_prefix}"/local/lib/python*/site-packages; do
+    [[ -d "${px4_python_site}" ]] || continue
+    export PYTHONPATH="${px4_python_site}${PYTHONPATH:+:${PYTHONPATH}}"
+  done
 }
 
 require_boolean() {
@@ -434,10 +452,12 @@ validate_configuration() {
   require_file "${tuning_file}"
 
   require_boolean MISSION_ENABLED "${mission_enabled}"
+  require_boolean NAVIGATION_ENABLED "${navigation_enabled}"
   require_boolean RECOGNITION_ENABLED "${recognition_enabled}"
   require_boolean RVIZ "${rviz}"
   require_boolean ENABLE_OUTPUT "${enable_output}"
   require_boolean MANUAL_HANDOVER "${manual_handover}"
+  require_boolean EV_FAULT_AUTO_LAND "${ev_fault_auto_land}"
   require_boolean RECORD_BAG "${record_bag}"
   require_boolean NO_MAP_VALIDATION "${no_map_validation}"
   require_boolean MAP_AUTO_LOAD "${map_auto_load}"
@@ -575,6 +595,7 @@ prepare_run() {
   source "${lever_arm_config}"
   # Do not allow the FAST-LIO environment or an old workspace overlay to select
   # a legacy launch with a second PX4 external-vision writer.
+  prefer_workspace_px4_ros_com
   local resolved_px4_share expected_px4_share
   resolved_px4_share="$(python3 - <<'PY'
 from ament_index_python.packages import get_package_share_directory
@@ -613,7 +634,7 @@ PY
 
 print_configuration() {
   log_info "Flight run directory: ${flight_run_dir}"
-  log_info "Planner requested=${planner_backend}, effective=${effective_planner_backend}, ego_enabled=${ego_enabled}, mission=${mission_enabled}, output=${enable_output}, manual_handover=${manual_handover}, rviz=${rviz}"
+  log_info "Navigation=${navigation_enabled}; planner requested=${planner_backend}, effective=${effective_planner_backend}, ego_enabled=${ego_enabled}, mission=${mission_enabled}, output=${enable_output}, manual_handover=${manual_handover}, rviz=${rviz}"
   log_info "Recognition=${recognition_enabled}, rosbag=${record_bag}, readiness_timeout=${readiness_timeout_sec}s"
   log_info "LIO backend=${lio_backend}; MID-360 to LIO minimum startup delay=${mid360_fastlio_delay_sec}s"
   if [[ "${lio_backend}" == fr_lio ]]; then
@@ -633,35 +654,40 @@ print_configuration() {
 }
 
 start_stack() {
-  start_component "navigation stack (prewarm)" "navigation" \
-    env MAP_FILE="${map_file}" \
-    PLANNER_BACKEND="${effective_planner_backend}" \
-    TUNING_FILE="${tuning_file}" \
-    MISSION_ENABLED="${mission_enabled}" \
-    RECOGNITION_ENABLED="${recognition_enabled}" \
-    RVIZ="${rviz}" \
-    ENABLE_OUTPUT="${enable_output}" \
-    MANUAL_HANDOVER="${manual_handover}" \
-    BODY_TO_SENSOR_X_M="${MID360_BODY_TO_SENSOR_X_M}" \
-    BODY_TO_SENSOR_Y_M="${MID360_BODY_TO_SENSOR_Y_M}" \
-    BODY_TO_SENSOR_Z_M="${MID360_BODY_TO_SENSOR_Z_M}" \
-    BODY_TO_FASTLIO_YAW_RAD="${MID360_BODY_TO_FASTLIO_YAW_RAD}" \
-    WORLD_YAW_ALIGNMENT_RAD="${world_yaw_alignment_rad}" \
-    PUBLISH_FASTLIO_BRIDGE=true \
-    PUBLISH_CAMERA_INIT_TF="$([[ "${relocalization_enabled}" == true ]] && echo false || echo true)" \
-    MAP_FRAME_ID="map" \
-    FASTLIO_ODOM_TOPIC="$([[ "${relocalization_enabled}" == true ]] && echo /planning/odom || echo /Odometry)" \
-    REQUIRE_MAP_LOCAL_ALIGNMENT="${relocalization_enabled}" \
-    MAP_AUTO_LOAD="${map_auto_load}" \
-    "${navigation_script}"
-  wait_component_ready "navigation" message /race/control/status
-  if [[ -n "${map_file}" && "${map_auto_load}" == true ]]; then
-    wait_component_ready "navigation" topic /saved_map
+  if [[ "${navigation_enabled}" == true ]]; then
+    start_component "navigation stack (prewarm)" "navigation" \
+      env MAP_FILE="${map_file}" \
+      PLANNER_BACKEND="${effective_planner_backend}" \
+      TUNING_FILE="${tuning_file}" \
+      MISSION_ENABLED="${mission_enabled}" \
+      RECOGNITION_ENABLED="${recognition_enabled}" \
+      RVIZ="${rviz}" \
+      ENABLE_OUTPUT="${enable_output}" \
+      MANUAL_HANDOVER="${manual_handover}" \
+      EV_FAULT_AUTO_LAND="${ev_fault_auto_land}" \
+      BODY_TO_SENSOR_X_M="${MID360_BODY_TO_SENSOR_X_M}" \
+      BODY_TO_SENSOR_Y_M="${MID360_BODY_TO_SENSOR_Y_M}" \
+      BODY_TO_SENSOR_Z_M="${MID360_BODY_TO_SENSOR_Z_M}" \
+      BODY_TO_FASTLIO_YAW_RAD="${MID360_BODY_TO_FASTLIO_YAW_RAD}" \
+      WORLD_YAW_ALIGNMENT_RAD="${world_yaw_alignment_rad}" \
+      PUBLISH_FASTLIO_BRIDGE=true \
+      PUBLISH_CAMERA_INIT_TF="$([[ "${relocalization_enabled}" == true ]] && echo false || echo true)" \
+      MAP_FRAME_ID="map" \
+      FASTLIO_ODOM_TOPIC="$([[ "${relocalization_enabled}" == true ]] && echo /planning/odom || echo /Odometry)" \
+      REQUIRE_MAP_LOCAL_ALIGNMENT="${relocalization_enabled}" \
+      MAP_AUTO_LOAD="${map_auto_load}" \
+      "${navigation_script}"
+    wait_component_ready "navigation" message /race/control/status
+    if [[ -n "${map_file}" && "${map_auto_load}" == true ]]; then
+      wait_component_ready "navigation" topic /saved_map
+    else
+      log_warn "No map is loaded; skipping /saved_map readiness (validation mode only)."
+    fi
+    if [[ "${rviz}" == true ]]; then
+      wait_component_ready "navigation" node /rviz2
+    fi
   else
-    log_warn "No map is loaded; skipping /saved_map readiness (validation mode only)."
-  fi
-  if [[ "${rviz}" == true ]]; then
-    wait_component_ready "navigation" node /rviz2
+    log_info "NAVIGATION_ENABLED=false: skipping navigation and all Offboard-capable components."
   fi
 
   start_component "MID-360 driver" "mid360_driver" \
@@ -700,6 +726,7 @@ start_stack() {
     start_tf:=true \
     "world_yaw_alignment_rad:=${world_yaw_alignment_rad}" \
     "fastlio_odom_topic:=${ev_odom_topic}" \
+    "require_frlio_anchor_status:=$([[ "${lio_backend}" == fr_lio ]] && echo true || echo false)" \
     "body_to_sensor_x_m:=${MID360_BODY_TO_SENSOR_X_M}" \
     "body_to_sensor_y_m:=${MID360_BODY_TO_SENSOR_Y_M}" \
     "body_to_sensor_z_m:=${MID360_BODY_TO_SENSOR_Z_M}" \
@@ -707,7 +734,7 @@ start_stack() {
   wait_component_ready "px4_mavros" mavros_connected /mavros/state
   wait_component_ready "px4_mavros" message /mavros/local_position/odom
   wait_component_ready "px4_mavros" message /mavros/local_position/velocity_local
-  wait_component_ready "px4_mavros" healthy /ev_health/status
+  wait_component_ready "px4_mavros" flight_ready /ev_health/flight_ready
   wait_component_ready "px4_mavros" message /Odometry/healthy
   wait_component_ready "px4_mavros" message /mavros/vision_pose/pose_cov
   wait_component_ready "px4_mavros" message /mavros/vision_speed/speed_twist_cov
@@ -750,21 +777,25 @@ start_stack() {
       env FLIGHT_TIMESTAMP="${flight_timestamp}" FLIGHT_RUN_DIR="${flight_run_dir}" \
       "${bag_script}"
     wait_component_ready "rosbag_debug" node /rosbag2_recorder
-    wait_component_ready "px4_mavros" healthy /ev_health/status
+    wait_component_ready "px4_mavros" flight_ready /ev_health/flight_ready
     wait_component_ready "px4_mavros" message /Odometry/healthy
     wait_component_ready "px4_mavros" message /mavros/vision_pose/pose_cov
   else
     log_warn "RECORD_BAG=false: rosbag recording is disabled for this run."
   fi
 
-  wait_component_ready "navigation" message /race/odom
-  wait_component_ready "px4_mavros" healthy /ev_health/status
+  if [[ "${navigation_enabled}" == true ]]; then
+    wait_component_ready "navigation" message /race/odom
+  fi
+  wait_component_ready "px4_mavros" flight_ready /ev_health/flight_ready
   wait_component_ready "px4_mavros" message /mavros/vision_pose/pose_cov
-  if [[ "${effective_planner_backend}" != super && "${map_auto_load}" == true ]]; then
-    # static_live_px4 only publishes after both the static map and the real
-    # body cloud have been fused with a synchronized PX4 pose. This gate catches
-    # topic/remap mistakes before the pilot is ever invited to arm.
-    wait_component_ready "navigation" message /race/ego/cloud
+  if [[ "${navigation_enabled}" == true ]]; then
+    if [[ "${effective_planner_backend}" != super && "${map_auto_load}" == true ]]; then
+      # static_live_px4 only publishes after both the static map and the real
+      # body cloud have been fused with a synchronized PX4 pose. This gate catches
+      # topic/remap mistakes before the pilot is ever invited to arm.
+      wait_component_ready "navigation" message /race/ego/cloud
+    fi
   fi
 }
 
@@ -787,6 +818,11 @@ main() {
   set +u
   # shellcheck disable=SC1091
   source /opt/ros/humble/setup.bash
+  # FR-LIO directly subscribes to livox_ros_driver2/CustomMsg.  The MID-360
+  # driver sources this overlay for itself, but FR-LIO is launched by this
+  # parent process and therefore also needs its typesupport libraries here.
+  # shellcheck disable=SC1091
+  source "${livox_setup}"
   # shellcheck disable=SC1091
   source "${project_root}/install/setup.bash"
   set -u

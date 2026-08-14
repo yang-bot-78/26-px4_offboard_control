@@ -26,6 +26,10 @@ race_ego_goal_bridge:
     ego_topic: /race/ego/goal_input
     debug_topic: /race/ego/goal
     odom_topic: /race/ego/odom
+    # Use PX4 EKF velocity for the hover gate. FR-LIO high-rate propagated
+    # twist is intentionally not treated as a stationary-flight measurement.
+    velocity_topic: /mavros/local_position/odom
+    velocity_freshness_sec: 0.25
     frame_id: map
     release_height: 0.50
     retry_goal_on_ego_failure: false

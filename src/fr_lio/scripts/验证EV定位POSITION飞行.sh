@@ -6,19 +6,22 @@ set -Eeuo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 frlio_root="$(cd -- "${script_dir}/.." && pwd -P)"
-highodom_ws="$(cd -- "${frlio_root}/.." && pwd -P)"
-livox_ws="${LIVOX_WS:-/home/robot/livox_ws}"
-px4_root="${PX4_CONTROL_ROOT:-/home/robot/rong_ws/26-px4_offboard_control}"
+project_root="$(cd -- "${frlio_root}/../.." && pwd -P)"
+highodom_ws="${HIGH_ODOM_WS:-${project_root}}"
+livox_ws="${LIVOX_WS:-/home/robot/livox_mid360_env/ws_livox}"
+livox_env_setup="${LIVOX_ENV_SETUP:-/home/robot/livox_mid360_env/setup_mid360.bash}"
+px4_root="${PX4_CONTROL_ROOT:-${project_root}}"
 helper="${script_dir}/high_rate_validation_helper.py"
 cleanup_helper="${px4_root}/tools/flight/清理运行环境.sh"
 lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${px4_root}/src/px4_ros_com/config/mid360_lever_arm.conf}"
 livox_launch="${livox_ws}/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py"
 
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-26}"
-fcu_url="${FCU_URL:-serial:///dev/ttyUSB0:921600?ids=255,190}"
+fcu_url="${FCU_URL:-serial:///dev/serial/by-id/usb-1a86_USB_Serial-if00-port0:921600?ids=255,190}"
 stable_sec="${POSITION_STABLE_SEC:-10}"
 ready_timeout_sec="${POSITION_READY_TIMEOUT_SEC:-120}"
 stage_delay_sec="${STAGE_DELAY_SEC:-2}"
+mavros_state_timeout_sec="${MAVROS_STATE_TIMEOUT_SEC:-8}"
 dry_run="${DRY_RUN:-0}"
 session_stamp="${POSITION_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 session_root="${POSITION_RECORD_DIR:-${highodom_ws}/validation_records/ev_position_${session_stamp}}"
@@ -100,7 +103,8 @@ stop_process_group() {
 }
 
 latest_mavros_state() {
-  /usr/bin/python3 "${helper}" mavros-state --timeout 2 --wait-connected \
+  /usr/bin/python3 "${helper}" mavros-state --timeout "${mavros_state_timeout_sec}" \
+    --wait-connected \
     --output "$1" >/dev/null 2>&1
 }
 
@@ -157,14 +161,15 @@ wait_for_topic() {
 }
 
 wait_for_transient_status() {
-  local topic="$1" timeout_s="$2" pid="$3" deadline
+  local topic="$1" timeout_s="$2" pid="$3"
+  local message_type="${4:-std_msgs/msg/String}" deadline
   deadline=$((SECONDS + timeout_s))
   echo "[等待] ${topic} 锁存状态（最多 ${timeout_s}s）"
   while ((SECONDS < deadline)); do
     wait_process_alive "${pid}" "${topic} 的上游"
     if timeout 3 ros2 topic echo --once \
       --qos-reliability reliable --qos-durability transient_local \
-      "${topic}" std_msgs/msg/String >/dev/null 2>&1; then
+      "${topic}" "${message_type}" >/dev/null 2>&1; then
       echo "[就绪] ${topic}"
       return 0
     fi
@@ -263,6 +268,7 @@ mark() {
 }
 
 for required in /opt/ros/humble/setup.bash "${livox_ws}/install/setup.bash" \
+  "${livox_env_setup}" \
   "${highodom_ws}/install/setup.bash" "${px4_root}/install/setup.bash" \
   "${helper}" "${cleanup_helper}" "${lever_arm_config}" "${livox_launch}"; do
   require_file "${required}"
@@ -271,9 +277,11 @@ done
 [[ "${stable_sec}" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "POSITION_STABLE_SEC 必须是数字"
 [[ "${ready_timeout_sec}" =~ ^[0-9]+$ ]] || die "POSITION_READY_TIMEOUT_SEC 必须是整数"
 [[ "${stage_delay_sec}" =~ ^[0-9]+([.][0-9]+)?$ ]] || die "STAGE_DELAY_SEC 必须是数字"
+[[ "${mavros_state_timeout_sec}" =~ ^[0-9]+([.][0-9]+)?$ ]] || \
+  die "MAVROS_STATE_TIMEOUT_SEC 必须是数字"
 
 source_overlay /opt/ros/humble/setup.bash
-source_overlay "${livox_ws}/install/setup.bash"
+source_overlay "${livox_env_setup}"
 source_overlay "${highodom_ws}/install/setup.bash"
 source_overlay "${px4_root}/install/setup.bash"
 # shellcheck disable=SC1090
@@ -342,6 +350,7 @@ start_process "MAVROS 与 EV 健康链" "${log_dir}/03_mavros_ev.log" \
   ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py \
   fcu_url:="${fcu_url}" start_odom_guard:=true start_ev_health_monitor:=true \
   start_mavros_vision_bridge:=true start_tf:=true \
+  require_frlio_anchor_status:=true \
   body_to_sensor_x_m:="${MID360_BODY_TO_SENSOR_X_M}" \
   body_to_sensor_y_m:="${MID360_BODY_TO_SENSOR_Y_M}" \
   body_to_sensor_z_m:="${MID360_BODY_TO_SENSOR_Z_M}" \
@@ -352,6 +361,7 @@ assert_disarmed_non_offboard
 assert_no_control_publishers
 check_ekf2_ev_ctrl
 wait_for_topic /Odometry/healthy 30 "${mavros_pid}" best_effort
+wait_for_transient_status /ev_health/flight_ready 20 "${mavros_pid}" std_msgs/msg/Bool
 wait_for_topic /mavros/vision_pose/pose_cov 20 "${mavros_pid}" reliable
 wait_for_topic /mavros/local_position/pose 30 "${mavros_pid}" best_effort
 wait_for_topic /mavros/estimator_status 30 "${mavros_pid}" best_effort
@@ -366,6 +376,7 @@ bag_topics=(
   /frlio/high_rate_odom/anchor_age
   /ev_health/status
   /ev_health/fault
+  /ev_health/flight_ready
   /ev_health/diagnostics
   /ev_health/velocity_ned
   /mavros/state

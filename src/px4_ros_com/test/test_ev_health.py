@@ -22,6 +22,7 @@ def config(**overrides):
         max_input_age_s=0.25,
         max_position_jump_m=0.15,
         max_horizontal_velocity_difference_mps=0.45,
+        velocity_comparison_window_s=0.1,
         anomaly_to_fault_s=0.3,
         velocity_lowpass_cutoff_hz=0.0,
     )
@@ -142,6 +143,57 @@ def test_internal_velocity_is_averaged_over_position_interval():
     assert result.metrics.internal_velocity_difference_mps == pytest.approx(0.0)
 
 
+def test_150ms_window_rejects_single_lidar_correction_velocity_spike():
+    core = EvHealthMonitorCore(
+        config(
+            velocity_comparison_window_s=0.15,
+            max_internal_velocity_difference_mps=0.50,
+        )
+    )
+    result = None
+    for index in range(61):
+        stamp = 1.0 + index * 0.005
+        # A 3 mm LiDAR correction at one 200 Hz frame looks like 0.6 m/s with
+        # adjacent-sample differencing, but only 0.02 m/s over 150 ms.
+        position = 0.0 if index < 30 else 0.003
+        result = add_frame(
+            core,
+            stamp,
+            position,
+            px4_velocity_enu=(0.0, 0.0, 0.0),
+            internal_velocity_px4_ned=(0.0, 0.0, 0.0),
+        )
+        assert "velocity_mismatch" not in result.reason
+
+    assert result is not None
+    assert result.state == HealthState.HEALTHY
+    assert result.metrics.velocity_comparison_dt_s == pytest.approx(0.15)
+
+
+def test_150ms_window_still_detects_sustained_velocity_mismatch():
+    core = EvHealthMonitorCore(
+        config(
+            velocity_comparison_window_s=0.15,
+            max_internal_velocity_difference_mps=0.40,
+        )
+    )
+    result = None
+    for index in range(101):
+        stamp = 1.0 + index * 0.005
+        result = add_frame(
+            core,
+            stamp,
+            0.6 * (stamp - 1.0),
+            px4_velocity_enu=(0.6, 0.0, 0.0),
+            internal_velocity_px4_ned=(0.0, 0.0, 0.0),
+        )
+
+    assert result is not None
+    assert result.state == HealthState.FAULT
+    assert "internal_velocity_mismatch" in result.reason
+    assert result.metrics.raw_velocity_px4_ned[1] == pytest.approx(0.6)
+
+
 def test_vertical_internal_velocity_mismatch_is_diagnostic_only():
     core = EvHealthMonitorCore(config(max_internal_velocity_difference_mps=0.4))
     add_frame(
@@ -182,7 +234,7 @@ def test_px4_moves_backward_while_ev_drifts_forward_faults_after_0p3s():
     assert not result.publish
 
 
-def test_single_0p2m_jump_is_rejected_and_resynchronised():
+def test_single_0p2m_jump_cannot_become_the_new_trusted_baseline():
     core = EvHealthMonitorCore(config())
     add_frame(core, 1.0, 0.0)
     jump = add_frame(core, 1.1, 0.2)
@@ -191,8 +243,25 @@ def test_single_0p2m_jump_is_rejected_and_resynchronised():
     assert not jump.accepted
     assert not jump.publish
     assert "position_jump" in jump.reason
-    assert following.accepted
-    assert following.metrics.single_frame_displacement_m == pytest.approx(0.0)
+    assert not following.accepted
+    assert not following.publish
+    assert following.metrics.single_frame_displacement_m == pytest.approx(0.2)
+
+    returned = add_frame(core, 1.3, 0.0)
+    assert returned.accepted
+    assert returned.publish
+    assert returned.metrics.single_frame_displacement_m == pytest.approx(0.0)
+
+
+def test_persistent_position_jump_reaches_fault_without_following_bad_track():
+    core = EvHealthMonitorCore(config())
+    add_frame(core, 1.0, 0.0)
+
+    results = [add_frame(core, 1.1 + 0.1 * index, 0.2) for index in range(4)]
+
+    assert all(not result.publish for result in results)
+    assert results[-1].state == HealthState.FAULT
+    assert "position_jump" in results[-1].reason
 
 
 @pytest.mark.parametrize(
@@ -213,6 +282,23 @@ def test_zero_dt_timestamp_regression_and_nan_are_rejected(
     assert not result.accepted
     assert not result.publish
     assert reason in result.reason
+
+
+def test_positive_sub_millisecond_sample_is_dropped_without_health_recovery():
+    core = EvHealthMonitorCore(config(min_dt_s=0.001))
+    first = add_frame(core, 1.0, 0.0)
+    assert first.state == HealthState.HEALTHY
+
+    closely_spaced = add_frame(core, 1.0005, 0.0)
+    assert not closely_spaced.accepted
+    assert not closely_spaced.publish
+    assert closely_spaced.state == HealthState.HEALTHY
+    assert closely_spaced.reason == "ok"
+
+    following = add_frame(core, 1.1, 0.0)
+    assert following.accepted
+    assert following.publish
+    assert following.state == HealthState.HEALTHY
 
 
 def test_message_interruption_transitions_to_fault():

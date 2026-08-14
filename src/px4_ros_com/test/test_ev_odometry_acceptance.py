@@ -123,6 +123,23 @@ def test_internal_velocity_difference_threshold_is_launch_configurable():
     )
 
 
+def test_velocity_comparison_window_is_launch_configurable():
+    source = AUTOFIX_LAUNCH_PATH.read_text()
+    assert (
+        'ev_velocity_comparison_window_s = LaunchConfiguration(\n'
+        '        "ev_velocity_comparison_window_s"\n'
+        "    )"
+    ) in source
+    assert (
+        '"velocity_comparison_window_s": ev_velocity_comparison_window_s'
+        in source
+    )
+    assert (
+        '"ev_velocity_comparison_window_s", default_value="0.15"'
+        in source
+    )
+
+
 def test_one_click_stack_explicitly_selects_only_mavros_vision_path():
     source = STACK_PATH.read_text()
     assert "start_mavros_vision_bridge:=true" in source
@@ -383,12 +400,18 @@ def test_guard_rejects_duplicate_and_non_monotonic_samples():
         PACKAGE_ROOT / "src" / "bridges" / "fastlio_odometry_guard.cpp"
     ).read_text()
     # Duplicate or out-of-order frames must not advance the baseline.
-    assert "if (!(dt > min_dt_s_)) {" in source
+    assert "if (dt <= 0.0) {" in source
+    assert "if (dt <= min_dt_s_) {" in source
+    assert 'ss << "closely spaced dt "' in source
     assert "return MotionGateResult::Reject;" in source
     assert "Do not move the baseline backwards" in source
-    # A long gap resyncs instead of silently accepting a jump.
+    # A long gap may rebaseline only after the absolute jump checks pass.
     assert "if (dt > max_dt_s_) {" in source
-    assert "return MotionGateResult::RejectAndResync;" in source
+    assert "return MotionGateResult::RejectAndRebaseline;" in source
+    assert source.index("if (position_jump > max_position_jump_m_)") < source.index(
+        "if (dt > max_dt_s_)"
+    )
+    assert 'reason += "; resynced guard baseline"' not in source
 
 
 def test_vision_bridge_preserves_source_timestamp_by_default():
@@ -400,6 +423,18 @@ def test_vision_bridge_preserves_source_timestamp_by_default():
     # file supplies -- a bare `ros2 run` has to be correct too.
     assert 'declare_parameter<bool>("restamp_message", false)' in source
     assert "bool restamp_message_{false};" in source
+
+
+def test_vision_bridge_limits_the_complete_ev_pair_to_50_hz_by_default():
+    source = (
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_vision_bridge.cpp"
+    ).read_text()
+    launch = AUTOFIX_LAUNCH_PATH.read_text()
+    assert 'declare_parameter<double>("max_publish_rate_hz", 50.0)' in source
+    assert "std::chrono::steady_clock" in source
+    assert "publish_time - last_publish_time_ < min_publish_interval_" in source
+    assert 'DeclareLaunchArgument("ev_publish_rate_hz", default_value="50.0")' in launch
+    assert '"max_publish_rate_hz": ParameterValue(' in launch
 
 
 def test_health_gate_applies_covariance_floor_above_configurable_minimum():
@@ -446,7 +481,113 @@ def test_health_gate_preserves_internal_velocity_and_inflates_full_covariance():
     assert "output.twist.twist.linear.x =" not in source
     assert "for row in range(3):" in source
     assert "result.covariance_multiplier" in source
-    assert "if result.publish:" in source
+    assert "if result.publish and not frlio_block:" in source
+
+
+def test_realtime_odometry_chain_uses_sensor_qos_depth_five():
+    guard = (
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_odometry_guard.cpp"
+    ).read_text()
+    bridge = (
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_vision_bridge.cpp"
+    ).read_text()
+    monitor = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
+    assert "rclcpp::SensorDataQoS().keep_last(5)" in guard
+    assert "input_topic_, odom_qos" in guard
+    assert "input_topic_, odom_qos" in bridge
+    assert "depth=5" in monitor
+    assert "reliability=ReliabilityPolicy.BEST_EFFORT" in monitor
+    assert "Odometry, self.output_topic, odom_qos" in monitor
+
+
+def test_frlio_anchor_gate_rejects_unknown_and_stale_status():
+    module = load_health_node_module()
+    evaluate = module._evaluate_frlio_anchor_gate
+    common = dict(
+        required=True,
+        status_seen=True,
+        status_message_age_s=0.01,
+        anchor_message_age_s=0.01,
+        message_timeout_s=0.5,
+        max_anchor_age_s=0.40,
+    )
+    assert evaluate(status="HEALTHY", anchor_age_s=0.10, **common) == (None, False)
+    reason, blocked = evaluate(status="probe", anchor_age_s=0.10, **common)
+    assert reason == "frlio_status_probe"
+    assert blocked
+    reason, blocked = evaluate(status="HEALTHY", anchor_age_s=0.40, **common)
+    assert reason.startswith("frlio_anchor_stale")
+    assert blocked
+    reason, blocked = evaluate(
+        status="SUSPECT_STALE_LIDAR", anchor_age_s=0.20, **common
+    )
+    assert reason.startswith("frlio_anchor_suspect")
+    assert not blocked
+
+
+def test_frlio_soft_suspect_remains_diagnostic_only():
+    source = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
+    assert "_exposed_health_state" not in source
+    assert 'key="frlio_gate_reason"' in source
+
+
+def test_frlio_soft_suspect_does_not_feed_the_hard_fault_timer():
+    source = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
+    assert "if frlio_reason is not None and frlio_block:" in source
+    assert "A short LiDAR-anchor warning is diagnostic-only" in source
+    assert "output_covariance_multiplier = max(" not in source
+
+
+def test_flight_ready_keeps_raw_suspect_diagnostic_only():
+    module = load_health_node_module()
+    evaluate = module._evaluate_flight_ready
+    common = dict(
+        core_state=module.HealthState.SUSPECT,
+        frlio_reason="frlio_anchor_suspect age=0.200s",
+        frlio_block=False,
+        last_healthy_output_s=10.0,
+        healthy_output_timeout_s=0.10,
+    )
+
+    ready, reason = evaluate(now_s=10.0, **common)
+    assert ready
+    assert reason == "ready"
+
+    ready, reason = evaluate(
+        core_state=module.HealthState.FAULT,
+        now_s=10.01,
+        **{key: value for key, value in common.items() if key != "core_state"},
+    )
+    assert not ready
+    assert reason == "core_state_fault"
+
+
+def test_flight_ready_fails_closed_for_hard_gate_and_stale_output():
+    module = load_health_node_module()
+    evaluate = module._evaluate_flight_ready
+    common = dict(
+        core_state=module.HealthState.HEALTHY,
+        now_s=5.0,
+        healthy_output_timeout_s=0.10,
+    )
+
+    ready, reason = evaluate(
+        frlio_reason="frlio_anchor_stale age=0.400s",
+        frlio_block=True,
+        last_healthy_output_s=5.0,
+        **common,
+    )
+    assert not ready
+    assert reason.startswith("frlio_anchor_stale")
+
+    ready, reason = evaluate(
+        frlio_reason=None,
+        frlio_block=False,
+        last_healthy_output_s=4.89,
+        **common,
+    )
+    assert not ready
+    assert reason.startswith("healthy_odom_output_stale")
 
 
 def test_actual_fastlio_source_publishes_internal_velocity_before_message():

@@ -54,6 +54,9 @@ def generate_launch_description():
     ev_max_internal_velocity_difference_mps = LaunchConfiguration(
         "ev_max_internal_velocity_difference_mps"
     )
+    ev_velocity_comparison_window_s = LaunchConfiguration(
+        "ev_velocity_comparison_window_s"
+    )
     ev_anomaly_to_fault_s = LaunchConfiguration("ev_anomaly_to_fault_s")
     ev_recovery_healthy_s = LaunchConfiguration("ev_recovery_healthy_s")
     ev_message_timeout_s = LaunchConfiguration("ev_message_timeout_s")
@@ -75,6 +78,17 @@ def generate_launch_description():
     )
     ev_effective_points_timeout_s = LaunchConfiguration(
         "ev_effective_points_timeout_s"
+    )
+    ev_publish_rate_hz = LaunchConfiguration("ev_publish_rate_hz")
+    require_frlio_anchor_status = LaunchConfiguration(
+        "require_frlio_anchor_status"
+    )
+    frlio_anchor_status_timeout_s = LaunchConfiguration(
+        "frlio_anchor_status_timeout_s"
+    )
+    frlio_max_anchor_age_s = LaunchConfiguration("frlio_max_anchor_age_s")
+    flight_ready_output_timeout_s = LaunchConfiguration(
+        "flight_ready_output_timeout_s"
     )
     velocity_variance_floor_x_m2ps2 = LaunchConfiguration(
         "velocity_variance_floor_x_m2ps2"
@@ -127,6 +141,7 @@ def generate_launch_description():
                 "max_horizontal_velocity_difference_mps": ev_max_velocity_difference_mps,
                 "max_internal_velocity_difference_mps":
                     ev_max_internal_velocity_difference_mps,
+                "velocity_comparison_window_s": ev_velocity_comparison_window_s,
                 "max_internal_velocity_alignment_s": ev_max_internal_velocity_alignment_s,
                 "internal_velocity_history_s": ev_internal_velocity_history_s,
                 "anomaly_to_fault_s": ev_anomaly_to_fault_s,
@@ -137,6 +152,12 @@ def generate_launch_description():
                 "px4_velocity_max_input_age_s": ev_px4_velocity_max_input_age_s,
                 "effective_points_ok_topic": ev_effective_points_ok_topic,
                 "effective_points_timeout_s": ev_effective_points_timeout_s,
+                "require_frlio_anchor_status": ParameterValue(
+                    require_frlio_anchor_status, value_type=bool
+                ),
+                "frlio_anchor_status_timeout_s": frlio_anchor_status_timeout_s,
+                "frlio_max_anchor_age_s": frlio_max_anchor_age_s,
+                "flight_ready_output_timeout_s": flight_ready_output_timeout_s,
                 "healthy_position_variance_floor_m2": 0.01,
                 "healthy_orientation_variance_floor_rad2": 0.02,
                 "velocity_variance_m2ps2": 0.04,
@@ -206,6 +227,12 @@ def generate_launch_description():
                 # PX4 receives but does not fuse EV velocity unless explicitly
                 # changed later by the operator.
                 "publish_speed": True,
+                # Limit the complete MAVROS EV ingress pair (pose + optional
+                # velocity). This is deliberately independent of MAV_X_RATE,
+                # which limits only PX4's outbound MAVLink stream.
+                "max_publish_rate_hz": ParameterValue(
+                    ev_publish_rate_hz, value_type=float
+                ),
                 "world_yaw_alignment_rad": world_yaw_alignment_rad,
                 "body_to_sensor_x_m": body_to_sensor_x_m,
                 "body_to_sensor_y_m": body_to_sensor_y_m,
@@ -281,7 +308,10 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "fcu_url",
-                default_value="serial:///dev/ttyUSB0:921600?ids=255,190",
+                default_value=(
+                    "serial:///dev/serial/by-id/usb-1a86_USB_Serial-if00-port0:"
+                    "921600?ids=255,190"
+                ),
             ),
             DeclareLaunchArgument("tgt_system", default_value="1"),
             DeclareLaunchArgument("tgt_component", default_value="1"),
@@ -323,6 +353,9 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "ev_max_internal_velocity_difference_mps", default_value="0.50"
             ),
+            DeclareLaunchArgument(
+                "ev_velocity_comparison_window_s", default_value="0.15"
+            ),
             DeclareLaunchArgument("ev_anomaly_to_fault_s", default_value="0.3"),
             DeclareLaunchArgument("ev_recovery_healthy_s", default_value="2.0"),
             DeclareLaunchArgument("ev_message_timeout_s", default_value="0.5"),
@@ -341,6 +374,17 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "ev_effective_points_timeout_s", default_value="0.5"
             ),
+            DeclareLaunchArgument("ev_publish_rate_hz", default_value="50.0"),
+            DeclareLaunchArgument(
+                "require_frlio_anchor_status", default_value="false"
+            ),
+            DeclareLaunchArgument(
+                "frlio_anchor_status_timeout_s", default_value="0.5"
+            ),
+            DeclareLaunchArgument("frlio_max_anchor_age_s", default_value="0.40"),
+            DeclareLaunchArgument(
+                "flight_ready_output_timeout_s", default_value="0.10"
+            ),
             DeclareLaunchArgument(
                 "velocity_variance_floor_x_m2ps2", default_value="0.0016"
             ),
@@ -348,7 +392,11 @@ def generate_launch_description():
                 "velocity_variance_floor_y_m2ps2", default_value="0.0013"
             ),
             DeclareLaunchArgument(
-                "velocity_variance_floor_z_m2ps2", default_value="0.0"
+                # 2026-08-14 FR-LIO prop-off vertical calibration:
+                # static p95=0.0153 m/s; dynamic PX4 residual p95=0.0246 m/s.
+                # The evidence-derived 1.5-sigma variance is 4.43497e-4;
+                # round upward rather than understating the floor.
+                "velocity_variance_floor_z_m2ps2", default_value="0.00045"
             ),
             mavros_launch,
             fastlio_odometry_guard,

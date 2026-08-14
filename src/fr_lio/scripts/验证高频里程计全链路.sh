@@ -5,30 +5,34 @@ set -Eeuo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 frlio_root="$(cd -- "${script_dir}/.." && pwd -P)"
-highodom_ws="$(cd -- "${frlio_root}/.." && pwd -P)"
-livox_ws="${LIVOX_WS:-/home/robot/livox_ws}"
-px4_root="${PX4_CONTROL_ROOT:-/home/robot/rong_ws/26-px4_offboard_control}"
+project_root="$(cd -- "${frlio_root}/../.." && pwd -P)"
+highodom_ws="${HIGH_ODOM_WS:-${project_root}}"
+livox_ws="${LIVOX_WS:-/home/robot/livox_mid360_env/ws_livox}"
+livox_env_setup="${LIVOX_ENV_SETUP:-/home/robot/livox_mid360_env/setup_mid360.bash}"
+px4_root="${PX4_CONTROL_ROOT:-${project_root}}"
 helper="${script_dir}/high_rate_validation_helper.py"
 cleanup_helper="${px4_root}/tools/flight/清理运行环境.sh"
 lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${px4_root}/src/px4_ros_com/config/mid360_lever_arm.conf}"
 livox_launch="${livox_ws}/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py"
+fcu_url="${FCU_URL:-serial:///dev/serial/by-id/usb-1a86_USB_Serial-if00-port0:921600?ids=255,190}"
 
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-26}"
 validation_mode="${VALIDATION_MODE:-full}"
 baseline_duration_sec="${BASELINE_DURATION_SEC:-60}"
-static_duration_sec="${STATIC_DURATION_SEC:-600}"
+static_duration_sec="${STATIC_DURATION_SEC:-300}"
 cpu_load_workers="${CPU_LOAD_WORKERS:-4}"
 cpu_load_duty_percent="${CPU_LOAD_DUTY_PERCENT:-75}"
 record_livox_topics="${RECORD_LIVOX_TOPICS:-false}"
 stage_delay_sec="${STAGE_DELAY_SEC:-2}"
+mavros_state_timeout_sec="${MAVROS_STATE_TIMEOUT_SEC:-8}"
 dry_run="${DRY_RUN:-0}"
 
 session_stamp="${VALIDATION_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
-if [[ "${validation_mode}" == load_only ]]; then
-  default_session_root="${highodom_ws}/validation_records/high_rate_load_${session_stamp}"
-else
-  default_session_root="${highodom_ws}/validation_records/high_rate_odom_${session_stamp}"
-fi
+case "${validation_mode}" in
+  load_only) default_session_root="${highodom_ws}/validation_records/high_rate_load_${session_stamp}" ;;
+  fault_only) default_session_root="${highodom_ws}/validation_records/high_rate_fault_${session_stamp}" ;;
+  *) default_session_root="${highodom_ws}/validation_records/high_rate_odom_${session_stamp}" ;;
+esac
 session_root="${VALIDATION_DIR:-${default_session_root}}"
 bag_dir="${session_root}/rosbag"
 log_dir="${session_root}/logs"
@@ -127,7 +131,7 @@ cleanup() {
   local may_stop_chain=1 cleanup_state_file
   cleanup_state_file="${snapshot_dir}/mavros_state_cleanup.json"
   if [[ -n "${mavros_pid:-}" ]] && kill -0 "${mavros_pid}" 2>/dev/null; then
-    if ! /usr/bin/python3 "${helper}" mavros-state --timeout 2 \
+    if ! /usr/bin/python3 "${helper}" mavros-state --timeout "${mavros_state_timeout_sec}" \
       --wait-connected --output "${cleanup_state_file}" >/dev/null 2>&1 ||
       ! grep -Eq '"armed":[[:space:]]*false' "${cleanup_state_file}"; then
       may_stop_chain=0
@@ -220,7 +224,7 @@ wait_for_mavros_connected() {
   echo "[等待] MAVROS 与飞控建立连接（最多 ${timeout_s}s）"
   while ((SECONDS < deadline)); do
     [[ -z "${pid}" ]] || wait_process_alive "${pid}" "MAVROS 与 EV 健康链"
-    if /usr/bin/python3 "${helper}" mavros-state --timeout 2 \
+    if /usr/bin/python3 "${helper}" mavros-state --timeout "${mavros_state_timeout_sec}" \
       --wait-connected --output "${state_file}" >/dev/null 2>&1; then
       echo "[就绪] MAVROS connected=true"
       return 0
@@ -243,7 +247,7 @@ require_one_publisher() {
 
 assert_disarmed() {
   local state_file="${snapshot_dir}/mavros_state_disarmed_check.json"
-  if ! /usr/bin/python3 "${helper}" mavros-state --timeout 2 \
+  if ! /usr/bin/python3 "${helper}" mavros-state --timeout "${mavros_state_timeout_sec}" \
     --wait-connected --output "${state_file}" >/dev/null 2>&1; then
     die "MAVROS 未在新消息中明确报告 connected=true"
   fi
@@ -300,15 +304,15 @@ motion_phase() {
 }
 
 case "${validation_mode}" in
-  full|load_only) ;;
-  *) die "VALIDATION_MODE 仅支持 full 或 load_only，收到 '${validation_mode}'" ;;
+  full|load_only|fault_only) ;;
+  *) die "VALIDATION_MODE 仅支持 full、load_only 或 fault_only，收到 '${validation_mode}'" ;;
 esac
 case "${record_livox_topics}" in
   true|false) ;;
   *) die "RECORD_LIVOX_TOPICS 仅支持 true 或 false，收到 '${record_livox_topics}'" ;;
 esac
 
-for value in "${baseline_duration_sec}" "${static_duration_sec}" "${cpu_load_workers}" "${cpu_load_duty_percent}" "${stage_delay_sec}"; do
+for value in "${baseline_duration_sec}" "${static_duration_sec}" "${cpu_load_workers}" "${cpu_load_duty_percent}" "${stage_delay_sec}" "${mavros_state_timeout_sec}"; do
   is_positive_number "${value}" || die "时长、worker 数和负载占空比必须为正数，收到 '${value}'"
 done
 [[ "${cpu_load_workers}" =~ ^[0-9]+$ ]] || die "CPU_LOAD_WORKERS 必须是正整数"
@@ -319,6 +323,7 @@ awk -v duty="${cpu_load_duty_percent}" 'BEGIN { exit !(duty <= 100) }' ||
 
 require_file /opt/ros/humble/setup.bash
 require_file "${livox_ws}/install/setup.bash"
+require_file "${livox_env_setup}"
 require_file "${highodom_ws}/install/setup.bash"
 require_file "${px4_root}/install/setup.bash"
 require_file "${helper}"
@@ -327,7 +332,7 @@ require_file "${lever_arm_config}"
 require_file "${livox_launch}"
 
 source_overlay /opt/ros/humble/setup.bash
-source_overlay "${livox_ws}/install/setup.bash"
+source_overlay "${livox_env_setup}"
 source_overlay "${highodom_ws}/install/setup.bash"
 source_overlay "${px4_root}/install/setup.bash"
 # This is a repository-owned shell assignment file.
@@ -349,10 +354,14 @@ if [[ "${dry_run}" == 1 ]]; then
   echo "DRY_RUN=1：依赖与参数检查通过，不连接硬件、不启动节点。"
   echo "验证模式=${validation_mode}"
   echo "ROS_DOMAIN_ID=${ROS_DOMAIN_ID}"
+  echo "FCU_URL=${fcu_url}"
+  echo "MAVROS 状态采样超时=${mavros_state_timeout_sec}s"
   if [[ "${validation_mode}" == load_only ]]; then
     echo "无负载基线=${baseline_duration_sec}s，负载测试=${static_duration_sec}s"
     echo "CPU workers=${cpu_load_workers}，duty=${cpu_load_duty_percent}%"
     echo "录制 Livox 点云=${record_livox_topics}"
+  elif [[ "${validation_mode}" == fault_only ]]; then
+    echo "仅执行 LiDAR 故障注入、里程计门控和恢复检查"
   else
     echo "静置=${static_duration_sec}s，CPU workers=${cpu_load_workers}，duty=${cpu_load_duty_percent}%"
   fi
@@ -374,6 +383,16 @@ if [[ "${validation_mode}" == load_only ]]; then
 4. 本模式不要求移动机体，也不进行 LiDAR 断流测试。
 ================================================
 EOF
+elif [[ "${validation_mode}" == fault_only ]]; then
+  cat <<'EOF'
+
+=================== 安全边界 ===================
+1. 必须拆除全部螺旋桨，并将机体牢固固定。
+2. 测试期间飞控必须始终 armed=false，且不得进入 OFFBOARD。
+3. 脚本不发送运动指令、setpoint 或解锁命令。
+4. 本模式仅暂停约 1 秒 LiDAR 转发，不移动机体、不做 CPU 负载。
+================================================
+EOF
 else
   cat <<'EOF'
 
@@ -385,7 +404,7 @@ else
 ================================================
 EOF
 fi
-read -r -p "确认后请输入“我已拆桨并上锁”：" safety_confirmation
+read -r -p "确认后请输入 我已拆桨并上锁：" safety_confirmation
 [[ "${safety_confirmation}" == "我已拆桨并上锁" ]] || die "未得到完整安全确认"
 
 echo "[清理] 检查并清理上次运行残留；该脚本在 armed 状态不明时会拒绝清理。"
@@ -415,7 +434,7 @@ sleep "${stage_delay_sec}"
 
 # 2. Test-only LiDAR gate. IMU bypasses this process.
 start_process "LiDAR 测试门控" "${log_dir}/02_lidar_gate.log" \
-  /usr/bin/python3 "${helper}" gate
+  ros2 run fr_lio lidar_validation_gate
 gate_pid="${STARTED_PID}"
 wait_for_service /frlio_validation/lidar_gate 15 "${gate_pid}"
 wait_for_topic_message /validation/livox/lidar 15 "${gate_pid}" best_effort
@@ -435,8 +454,10 @@ sleep "${stage_delay_sec}"
 # 4. MAVROS + odometry guard + EV health monitor + vision bridge. No Offboard node.
 start_process "MAVROS 与 EV 健康链" "${log_dir}/04_mavros_ev.log" \
   ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py \
+    fcu_url:="${fcu_url}" \
     start_odom_guard:=true start_ev_health_monitor:=true \
     start_mavros_vision_bridge:=true start_tf:=true \
+    require_frlio_anchor_status:=true \
     body_to_sensor_x_m:="${MID360_BODY_TO_SENSOR_X_M}" \
     body_to_sensor_y_m:="${MID360_BODY_TO_SENSOR_Y_M}" \
     body_to_sensor_z_m:="${MID360_BODY_TO_SENSOR_Z_M}" \
@@ -445,8 +466,8 @@ mavros_pid="${STARTED_PID}"
 wait_for_mavros_connected 45 "${mavros_pid}"
 assert_disarmed
 assert_no_control_publishers
-wait_for_topic_message /Odometry/guarded 20 "${mavros_pid}" reliable
-wait_for_topic_message /Odometry/healthy 30 "${mavros_pid}" reliable
+wait_for_topic_message /Odometry/guarded 20 "${mavros_pid}" best_effort
+wait_for_topic_message /Odometry/healthy 30 "${mavros_pid}" best_effort
 wait_for_topic_message /mavros/vision_pose/pose_cov 20 "${mavros_pid}" reliable
 require_one_publisher /Odometry/healthy
 require_one_publisher /mavros/vision_pose/pose_cov
@@ -506,6 +527,32 @@ bag_pid="${STARTED_PID}"
 sleep 4
 wait_process_alive "${bag_pid}" rosbag
 mark SESSION_BEGIN
+
+if [[ "${validation_mode}" == fault_only ]]; then
+  echo
+  echo "故障注入链路已就绪：暂停 LiDAR 转发约 1 秒，IMU 和原始 LiDAR 保持运行。"
+  echo "预期：HEALTHY -> SUSPECT_STALE_LIDAR -> FAULT_STALE_LIDAR -> HEALTHY。"
+  prompt_enter "确认机体已固定且飞控仍为 armed=false，按 Enter 开始："
+  assert_disarmed
+  mark LIDAR_FAULT_TEST_BEGIN
+  set +e
+  /usr/bin/python3 "${helper}" fault-test \
+    --pause-seconds 1.0 \
+    --output "${result_dir}/lidar_fault_test.json" \
+    2>&1 | tee "${log_dir}/06_lidar_fault_test.log"
+  fault_test_rc=${PIPESTATUS[0]}
+  set -e
+  mark LIDAR_FAULT_TEST_END
+  wait_for_status /frlio/high_rate_odom/status HEALTHY 15 "${frlio_pid}"
+  assert_disarmed
+  mark SESSION_END
+  if ((fault_test_rc == 0)); then
+    echo "LiDAR 故障注入、里程计门控与恢复检查通过。"
+  else
+    echo "LiDAR 故障注入检查未通过，详见 lidar_fault_test.json。" >&2
+  fi
+  exit "${fault_test_rc}"
+fi
 
 if [[ "${validation_mode}" == load_only ]]; then
   echo

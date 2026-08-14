@@ -162,7 +162,7 @@ public:
 
   HighRateOdomPropagator(
     HighRateOdomNoise noise = {}, double warn_anchor_age_s = 0.15,
-    double max_anchor_age_s = 0.40, double history_duration_s = 2.0)
+    double max_anchor_age_s = 0.40, double history_duration_s = 5.0)
   : noise_(noise),
     warn_anchor_age_s_(warn_anchor_age_s),
     max_anchor_age_s_(max_anchor_age_s),
@@ -463,7 +463,7 @@ private:
   HighRateOdomNoise noise_;
   double warn_anchor_age_s_{0.15};
   double max_anchor_age_s_{0.40};
-  double history_duration_s_{2.0};
+  double history_duration_s_{5.0};
   mutable std::mutex mutex_;
   std::deque<HighRateImuSample, Eigen::aligned_allocator<HighRateImuSample>> history_;
   HighRateOdomState state_;

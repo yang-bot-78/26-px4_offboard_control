@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gate FAST-LIO external vision using timestamp and PX4 velocity consistency."""
+"""Gate external vision using timestamp and PX4 velocity consistency."""
 
 from __future__ import annotations
 
@@ -13,8 +13,13 @@ from nav_msgs.msg import Odometry
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
-from std_msgs.msg import Bool, String
+from rclpy.qos import (
+    DurabilityPolicy,
+    HistoryPolicy,
+    QoSProfile,
+    ReliabilityPolicy,
+)
+from std_msgs.msg import Bool, Float64, String
 
 from px4_ros_com.ev_health import (
     covariance_3x3_is_symmetric_psd,
@@ -36,6 +41,72 @@ def _vector_text(values: Iterable[float]) -> str:
     return ",".join("nan" if not math.isfinite(value) else f"{value:.6f}" for value in values)
 
 
+def _evaluate_frlio_anchor_gate(
+    *,
+    required: bool,
+    status,
+    status_seen: bool,
+    status_message_age_s: float,
+    anchor_age_s: float,
+    anchor_message_age_s: float,
+    message_timeout_s: float,
+    max_anchor_age_s: float,
+):
+    """Return ``(reason, block_output)`` for the optional FR-LIO safety gate."""
+    if not required:
+        return None, False
+    if not status_seen:
+        return "frlio_status_missing", True
+    if status_message_age_s < 0.0 or status_message_age_s > message_timeout_s:
+        return f"frlio_status_timeout age={status_message_age_s:.3f}s", True
+    if not math.isfinite(anchor_message_age_s):
+        return "frlio_anchor_age_missing", True
+    if anchor_message_age_s < 0.0 or anchor_message_age_s > message_timeout_s:
+        return f"frlio_anchor_age_timeout age={anchor_message_age_s:.3f}s", True
+    if not math.isfinite(anchor_age_s) or anchor_age_s < 0.0:
+        return "frlio_anchor_age_invalid", True
+    if anchor_age_s >= max_anchor_age_s:
+        return f"frlio_anchor_stale age={anchor_age_s:.3f}s", True
+    if status == "SUSPECT_STALE_LIDAR":
+        return f"frlio_anchor_suspect age={anchor_age_s:.3f}s", False
+    if status != "HEALTHY":
+        return f"frlio_status_{status or 'empty'}", True
+    return None, False
+
+
+def _evaluate_flight_ready(
+    *,
+    core_state,
+    frlio_reason,
+    frlio_block: bool,
+    now_s: float,
+    last_healthy_output_s,
+    healthy_output_timeout_s: float,
+):
+    """Return ``(ready, reason)`` for the actual flight-safety gate.
+
+    ``/ev_health/status`` and FR-LIO's high-rate status are raw diagnostic
+    state machines.  In particular, the IMU/LiDAR boundary can produce a
+    millisecond-scale SUSPECT pulse while the accepted EV stream remains
+    continuous.  Do not make that pulse restart the pre-arm continuity timer.
+    FAULT, an expired healthy-output stream, and the hard FR-LIO anchor gate
+    still fail closed immediately.
+    """
+    if core_state == HealthState.FAULT:
+        return False, f"core_state_{core_state.value.lower()}"
+    if frlio_block:
+        return False, frlio_reason or "frlio_hard_block"
+    if last_healthy_output_s is None:
+        return False, "healthy_odom_output_missing"
+    output_age_s = now_s - last_healthy_output_s
+    if output_age_s < 0.0 or output_age_s > healthy_output_timeout_s:
+        return (
+            False,
+            f"healthy_odom_output_stale age={output_age_s:.3f}s",
+        )
+    return True, "ready"
+
+
 class FastlioEvHealthMonitor(Node):
     def __init__(self) -> None:
         super().__init__("fastlio_ev_health_monitor")
@@ -55,6 +126,9 @@ class FastlioEvHealthMonitor(Node):
         )
         self.status_topic = self.declare_parameter("status_topic", "/ev_health/status").value
         self.fault_topic = self.declare_parameter("fault_topic", "/ev_health/fault").value
+        self.flight_ready_topic = self.declare_parameter(
+            "flight_ready_topic", "/ev_health/flight_ready"
+        ).value
         self.diagnostic_topic = self.declare_parameter(
             "diagnostic_topic", "/ev_health/diagnostics"
         ).value
@@ -64,6 +138,20 @@ class FastlioEvHealthMonitor(Node):
         self.effective_points_ok_topic = self.declare_parameter(
             "effective_points_ok_topic", ""
         ).value
+        self.require_frlio_anchor_status = bool(
+            self.declare_parameter("require_frlio_anchor_status", False).value
+        )
+        self.frlio_status_topic = self.declare_parameter(
+            "frlio_status_topic", "/frlio/high_rate_odom/status"
+        ).value
+        self.frlio_anchor_age_topic = self.declare_parameter(
+            "frlio_anchor_age_topic", "/frlio/high_rate_odom/anchor_age"
+        ).value
+        self.flight_ready_output_timeout_s = float(
+            self.declare_parameter("flight_ready_output_timeout_s", 0.10).value
+        )
+        if self.flight_ready_output_timeout_s <= 0.0:
+            raise ValueError("flight_ready_output_timeout_s must be positive")
 
         config = HealthConfig(
             position_yaw_offset_rad=float(
@@ -89,6 +177,9 @@ class FastlioEvHealthMonitor(Node):
                 self.declare_parameter(
                     "max_internal_velocity_difference_mps", 0.50
                 ).value
+            ),
+            velocity_comparison_window_s=float(
+                self.declare_parameter("velocity_comparison_window_s", 0.15).value
             ),
             velocity_difference_min_speed_mps=float(
                 self.declare_parameter("velocity_difference_min_speed_mps", 0.05).value
@@ -160,7 +251,18 @@ class FastlioEvHealthMonitor(Node):
             effective_points_timeout_s=float(
                 self.declare_parameter("effective_points_timeout_s", 0.5).value
             ),
+            require_frlio_anchor_status=self.require_frlio_anchor_status,
+            frlio_anchor_status_timeout_s=float(
+                self.declare_parameter("frlio_anchor_status_timeout_s", 0.5).value
+            ),
+            frlio_max_anchor_age_s=float(
+                self.declare_parameter("frlio_max_anchor_age_s", 0.40).value
+            ),
         )
+        if config.frlio_anchor_status_timeout_s <= 0.0:
+            raise ValueError("frlio_anchor_status_timeout_s must be positive")
+        if config.frlio_max_anchor_age_s <= 0.0:
+            raise ValueError("frlio_max_anchor_age_s must be positive")
         self.core = EvHealthMonitorCore(config)
         self._last_velocity_topic_receive_s = -math.inf
         self._last_output_covariance = (math.nan, math.nan, math.nan, math.nan)
@@ -173,11 +275,40 @@ class FastlioEvHealthMonitor(Node):
             (math.nan, math.nan, math.nan),
         )
         self._last_covariance_multiplier = math.nan
-        self._last_logged_state = None
+        self._last_logged_health_key = None
+        self._frlio_status = None
+        self._frlio_status_receive_s = None
+        self._frlio_anchor_age_s = math.nan
+        self._frlio_anchor_age_receive_s = None
+        self._frlio_gate_reason = None
+        self._frlio_gate_block = False
+        self._last_healthy_output_publish_s = None
+        self._flight_ready = False
+        self._flight_ready_reason = "initializing"
+        self._last_logged_flight_ready = None
 
-        self.healthy_publisher = self.create_publisher(Odometry, self.output_topic, 10)
-        self.status_publisher = self.create_publisher(String, self.status_topic, 10)
-        self.fault_publisher = self.create_publisher(Bool, self.fault_topic, 10)
+        odom_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=5,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE,
+        )
+        status_qos = QoSProfile(
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        self.healthy_publisher = self.create_publisher(
+            Odometry, self.output_topic, odom_qos
+        )
+        self.status_publisher = self.create_publisher(
+            String, self.status_topic, status_qos
+        )
+        self.fault_publisher = self.create_publisher(Bool, self.fault_topic, status_qos)
+        self.flight_ready_publisher = self.create_publisher(
+            Bool, self.flight_ready_topic, status_qos
+        )
         self.diagnostic_publisher = self.create_publisher(
             DiagnosticArray, self.diagnostic_topic, 10
         )
@@ -185,13 +316,13 @@ class FastlioEvHealthMonitor(Node):
             TwistWithCovarianceStamped, self.velocity_diagnostic_topic, 10
         )
         self.ev_subscription = self.create_subscription(
-            Odometry, self.input_topic, self._ev_callback, 20
+            Odometry, self.input_topic, self._ev_callback, odom_qos
         )
         self.velocity_subscription = self.create_subscription(
             TwistStamped,
             self.px4_velocity_topic,
             self._px4_velocity_callback,
-            qos_profile_sensor_data,
+            odom_qos,
         )
         self.local_odom_subscription = None
         if self.use_local_odom_velocity_fallback:
@@ -199,7 +330,7 @@ class FastlioEvHealthMonitor(Node):
                 Odometry,
                 self.px4_local_odom_topic,
                 self._px4_local_odom_callback,
-                qos_profile_sensor_data,
+                odom_qos,
             )
         self.effective_points_subscription = None
         if self.effective_points_ok_topic:
@@ -210,6 +341,21 @@ class FastlioEvHealthMonitor(Node):
                     msg.data, self._now_seconds()
                 ),
                 10,
+            )
+        self.frlio_status_subscription = None
+        self.frlio_anchor_age_subscription = None
+        if self.require_frlio_anchor_status:
+            self.frlio_status_subscription = self.create_subscription(
+                String,
+                self.frlio_status_topic,
+                self._frlio_status_callback,
+                status_qos,
+            )
+            self.frlio_anchor_age_subscription = self.create_subscription(
+                Float64,
+                self.frlio_anchor_age_topic,
+                self._frlio_anchor_age_callback,
+                odom_qos,
             )
 
         self.timer = self.create_timer(0.1, self._timer_callback)
@@ -227,6 +373,36 @@ class FastlioEvHealthMonitor(Node):
 
     def _now_seconds(self) -> float:
         return self.get_clock().now().nanoseconds * 1e-9
+
+    def _frlio_status_callback(self, msg: String) -> None:
+        self._frlio_status = str(msg.data).strip()
+        self._frlio_status_receive_s = self._now_seconds()
+
+    def _frlio_anchor_age_callback(self, msg: Float64) -> None:
+        self._frlio_anchor_age_s = float(msg.data)
+        self._frlio_anchor_age_receive_s = self._now_seconds()
+
+    def _frlio_anchor_gate(self, now_s: float):
+        anchor_message_age_s = (
+            math.inf
+            if self._frlio_anchor_age_receive_s is None
+            else now_s - self._frlio_anchor_age_receive_s
+        )
+        status_message_age_s = (
+            math.inf
+            if self._frlio_status_receive_s is None
+            else now_s - self._frlio_status_receive_s
+        )
+        return _evaluate_frlio_anchor_gate(
+            required=self.require_frlio_anchor_status,
+            status=self._frlio_status,
+            status_seen=self._frlio_status_receive_s is not None,
+            status_message_age_s=status_message_age_s,
+            anchor_age_s=self._frlio_anchor_age_s,
+            anchor_message_age_s=anchor_message_age_s,
+            message_timeout_s=self.core.config.frlio_anchor_status_timeout_s,
+            max_anchor_age_s=self.core.config.frlio_max_anchor_age_s,
+        )
 
     def _px4_velocity_callback(self, msg: TwistStamped) -> None:
         now_s = self._now_seconds()
@@ -341,9 +517,19 @@ class FastlioEvHealthMonitor(Node):
             ),
             finite_payload=self._message_is_finite(msg),
         )
-        self._last_covariance_multiplier = result.covariance_multiplier
+        frlio_reason, frlio_block = self._frlio_anchor_gate(now_s)
+        self._frlio_gate_reason = frlio_reason
+        self._frlio_gate_block = frlio_block
+        if frlio_reason is not None and frlio_block:
+            result = self.core.report_external_anomaly(
+                now_s, frlio_reason, accepted=result.accepted
+            )
+        # A short LiDAR-anchor warning is diagnostic-only: it must neither
+        # poison core recovery nor change the EV measurement covariance.
+        output_covariance_multiplier = result.covariance_multiplier
+        self._last_covariance_multiplier = output_covariance_multiplier
 
-        if result.publish:
+        if result.publish and not frlio_block:
             output = copy.deepcopy(msg)
             for index in (0, 7, 14):
                 source_variance = max(
@@ -351,7 +537,7 @@ class FastlioEvHealthMonitor(Node):
                     self.core.config.min_position_variance,
                 )
                 output.pose.covariance[index] = (
-                    source_variance * result.covariance_multiplier
+                    source_variance * output_covariance_multiplier
                 )
             # EV yaw is fused with EKF2_EV_CTRL=11, so degraded position health
             # must not leave attitude/yaw at the raw near-zero covariance.
@@ -361,7 +547,7 @@ class FastlioEvHealthMonitor(Node):
                     self.core.config.min_orientation_variance,
                 )
                 output.pose.covariance[index] = (
-                    source_variance * result.covariance_multiplier
+                    source_variance * output_covariance_multiplier
                 )
             self._last_output_covariance = (
                 output.pose.covariance[0],
@@ -379,11 +565,12 @@ class FastlioEvHealthMonitor(Node):
                     index = row * 6 + column
                     output.twist.covariance[index] = (
                         linear_covariance_body[row][column]
-                        * result.covariance_multiplier
+                        * output_covariance_multiplier
                     )
             # Preserve the original measurement stamp.  Downstream must not turn
             # an old measurement into an apparently current one.
             self.healthy_publisher.publish(output)
+            self._last_healthy_output_publish_s = now_s
 
         if result.accepted and all(
             math.isfinite(value)
@@ -405,13 +592,34 @@ class FastlioEvHealthMonitor(Node):
         self.velocity_publisher.publish(velocity)
 
     def _timer_callback(self) -> None:
-        self.core.check_timeout(self._now_seconds())
+        now_s = self._now_seconds()
+        self.core.check_timeout(now_s)
+        frlio_reason, frlio_block = self._frlio_anchor_gate(now_s)
+        self._frlio_gate_reason = frlio_reason
+        self._frlio_gate_block = frlio_block
+        if frlio_reason is not None and frlio_block:
+            self.core.report_external_anomaly(now_s, frlio_reason)
         self._publish_status_and_diagnostics()
 
     def _publish_status_and_diagnostics(self) -> None:
-        state = self.core.state
+        # Keep raw EV and FR-LIO state separate.  FR-LIO's soft SUSPECT is a
+        # diagnostic event, not an alternate EV health state.
+        state, reason = self.core.state, self.core.reason
         self.status_publisher.publish(String(data=state.value))
         self.fault_publisher.publish(Bool(data=state == HealthState.FAULT))
+        now_s = self._now_seconds()
+        (
+            self._flight_ready,
+            self._flight_ready_reason,
+        ) = _evaluate_flight_ready(
+            core_state=self.core.state,
+            frlio_reason=self._frlio_gate_reason,
+            frlio_block=self._frlio_gate_block,
+            now_s=now_s,
+            last_healthy_output_s=self._last_healthy_output_publish_s,
+            healthy_output_timeout_s=self.flight_ready_output_timeout_s,
+        )
+        self.flight_ready_publisher.publish(Bool(data=self._flight_ready))
 
         diagnostic = DiagnosticArray()
         diagnostic.header.stamp = self.get_clock().now().to_msg()
@@ -423,11 +631,34 @@ class FastlioEvHealthMonitor(Node):
             HealthState.SUSPECT: DiagnosticStatus.WARN,
             HealthState.FAULT: DiagnosticStatus.ERROR,
         }[state]
-        status.message = self.core.reason
+        status.message = reason
         metrics = self.core.metrics
         status.values = [
             KeyValue(key="state", value=state.value),
-            KeyValue(key="reason", value=self.core.reason),
+            KeyValue(key="reason", value=reason),
+            KeyValue(key="flight_ready", value=str(self._flight_ready).lower()),
+            KeyValue(key="flight_ready_reason", value=self._flight_ready_reason),
+            KeyValue(
+                key="frlio_anchor_gate_required",
+                value=str(self.require_frlio_anchor_status).lower(),
+            ),
+            KeyValue(key="frlio_status", value=str(self._frlio_status)),
+            KeyValue(
+                key="frlio_gate_reason",
+                value=str(self._frlio_gate_reason),
+            ),
+            KeyValue(
+                key="frlio_gate_block",
+                value=str(self._frlio_gate_block).lower(),
+            ),
+            KeyValue(
+                key="frlio_anchor_age_s",
+                value=(
+                    "nan"
+                    if not math.isfinite(self._frlio_anchor_age_s)
+                    else f"{self._frlio_anchor_age_s:.6f}"
+                ),
+            ),
             KeyValue(key="comparison_frame", value="PX4 local NED"),
             KeyValue(key="ev_raw_position_enu_m", value=_vector_text(metrics.raw_position_enu)),
             KeyValue(key="ev_position_px4_ned_m", value=_vector_text(metrics.position_px4_ned)),
@@ -480,6 +711,10 @@ class FastlioEvHealthMonitor(Node):
                 value=f"{metrics.single_frame_displacement_m:.6f}",
             ),
             KeyValue(key="measurement_dt_s", value=f"{metrics.dt_s:.6f}"),
+            KeyValue(
+                key="velocity_comparison_dt_s",
+                value=f"{metrics.velocity_comparison_dt_s:.6f}",
+            ),
             KeyValue(key="input_age_s", value=f"{metrics.input_age_s:.6f}"),
             KeyValue(
                 key="velocity_alignment_s",
@@ -502,13 +737,27 @@ class FastlioEvHealthMonitor(Node):
         diagnostic.status = [status]
         self.diagnostic_publisher.publish(diagnostic)
 
-        if state != self._last_logged_state:
-            message = f"EV health state={state.value}: {self.core.reason}"
+        # Do not turn the raw ~10 ms FR-LIO warning sawtooth into a logging
+        # feedback load. The full raw FR-LIO state remains in diagnostics;
+        # log only core transitions or entry/exit of a hard FR-LIO block.
+        health_log_key = (self.core.state, self._frlio_gate_block)
+        if health_log_key != self._last_logged_health_key:
+            message = f"EV health state={state.value}: {reason}"
             if state == HealthState.HEALTHY:
                 self.get_logger().info(message)
             else:
                 self.get_logger().warning(message)
-            self._last_logged_state = state
+            self._last_logged_health_key = health_log_key
+        if self._flight_ready != self._last_logged_flight_ready:
+            message = (
+                f"EV flight_ready={str(self._flight_ready).lower()}: "
+                f"{self._flight_ready_reason}"
+            )
+            if self._flight_ready:
+                self.get_logger().info(message)
+            else:
+                self.get_logger().warning(message)
+            self._last_logged_flight_ready = self._flight_ready
 
 
 def main(args=None) -> None:

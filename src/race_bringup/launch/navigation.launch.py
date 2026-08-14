@@ -90,6 +90,7 @@ def generate_launch_description():
     rviz = LaunchConfiguration('rviz')
     enable_output = LaunchConfiguration('enable_output')
     require_strict_health = LaunchConfiguration('require_strict_local_position_health')
+    ev_fault_auto_land = LaunchConfiguration('ev_fault_auto_land')
     map_file = LaunchConfiguration('map_file')
     map_auto_load = LaunchConfiguration('map_auto_load')
     planner_config = LaunchConfiguration('planner_config')
@@ -137,6 +138,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'config_file': offboard_config,
             'require_strict_local_position_health': require_strict_health,
+            'ev_fault_auto_land': ev_fault_auto_land,
             'control_source': PythonExpression([
                 "'ego' if '", planner_backend,
                 "' in ['ego', 'astar_ego'] else 'navigation'"
@@ -375,6 +377,7 @@ def generate_launch_description():
                 'navigation.yaml',
             ]),
         ),
+        DeclareLaunchArgument('ev_fault_auto_land', default_value='true'),
         OpaqueFunction(function=print_tuning_summary),
         offboard_launch,
         mapping_launch,

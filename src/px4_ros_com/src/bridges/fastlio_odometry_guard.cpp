@@ -38,7 +38,7 @@ enum class MotionGateResult
 {
 	Accept,
 	Reject,
-	RejectAndResync,
+	RejectAndRebaseline,
 };
 
 } // namespace
@@ -65,9 +65,10 @@ public:
 		max_quaternion_norm_ = declare_parameter<double>("max_quaternion_norm", 1.5);
 		reject_log_period_s_ = declare_parameter<double>("reject_log_period_s", 1.0);
 
-		publisher_ = create_publisher<Odometry>(output_topic_, 10);
+		const auto odom_qos = rclcpp::SensorDataQoS().keep_last(5);
+		publisher_ = create_publisher<Odometry>(output_topic_, odom_qos);
 		subscription_ = create_subscription<Odometry>(
-			input_topic_, 10,
+			input_topic_, odom_qos,
 			std::bind(&FastlioOdometryGuard::odometry_callback, this, std::placeholders::_1));
 
 		RCLCPP_INFO(
@@ -188,19 +189,21 @@ private:
 		const double previous_time_s = stamp_to_seconds(prev.header.stamp);
 		const double dt = current_time_s - previous_time_s;
 
-		if (!(dt > min_dt_s_)) {
+		if (dt <= 0.0) {
 			std::ostringstream ss;
-			ss << "bad dt " << dt << " s";
+			ss << "non-monotonic dt " << dt << " s";
 			reason = ss.str();
 			// Do not move the baseline backwards for duplicate or out-of-order data.
 			return MotionGateResult::Reject;
 		}
 
-		if (dt > max_dt_s_) {
+		if (dt <= min_dt_s_) {
 			std::ostringstream ss;
-			ss << "large dt " << dt << " s; reset guard baseline";
+			ss << "closely spaced dt " << dt << " s";
 			reason = ss.str();
-			return MotionGateResult::RejectAndResync;
+			// Positive sub-threshold samples are benign burst jitter. Drop the frame
+			// without moving the baseline; the health monitor does not enter recovery.
+			return MotionGateResult::Reject;
 		}
 
 		const auto &p = msg.pose.pose.position;
@@ -217,35 +220,42 @@ private:
 			std::ostringstream ss;
 			ss << "position jump " << position_jump << " m";
 			reason = ss.str();
-			return MotionGateResult::RejectAndResync;
+			return MotionGateResult::Reject;
 		}
 
 		if (xy_jump > max_xy_jump_m_) {
 			std::ostringstream ss;
 			ss << "xy jump " << xy_jump << " m";
 			reason = ss.str();
-			return MotionGateResult::RejectAndResync;
+			return MotionGateResult::Reject;
 		}
 
 		if (std::fabs(dz) > max_z_jump_m_) {
 			std::ostringstream ss;
 			ss << "z jump " << dz << " m";
 			reason = ss.str();
-			return MotionGateResult::RejectAndResync;
+			return MotionGateResult::Reject;
+		}
+
+		if (dt > max_dt_s_) {
+			std::ostringstream ss;
+			ss << "large dt " << dt << " s; safely rebaseline near last accepted pose";
+			reason = ss.str();
+			return MotionGateResult::RejectAndRebaseline;
 		}
 
 		if (computed_speed > max_computed_speed_mps_) {
 			std::ostringstream ss;
 			ss << "computed speed " << computed_speed << " m/s";
 			reason = ss.str();
-			return MotionGateResult::RejectAndResync;
+			return MotionGateResult::Reject;
 		}
 
 		if (computed_z_speed > max_computed_z_speed_mps_) {
 			std::ostringstream ss;
 			ss << "computed z speed " << computed_z_speed << " m/s";
 			reason = ss.str();
-			return MotionGateResult::RejectAndResync;
+			return MotionGateResult::Reject;
 		}
 
 		return MotionGateResult::Accept;
@@ -279,9 +289,8 @@ private:
 		const MotionGateResult gate_result = check_motion_gate(*msg, reason);
 		if (gate_result != MotionGateResult::Accept) {
 			++rejected_count_;
-			if (gate_result == MotionGateResult::RejectAndResync) {
+			if (gate_result == MotionGateResult::RejectAndRebaseline) {
 				last_accepted_ = *msg;
-				reason += "; resynced guard baseline";
 			}
 			log_reject(reason);
 			return;

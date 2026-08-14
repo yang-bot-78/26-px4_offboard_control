@@ -81,6 +81,7 @@ def main():
         '-p', 'input_topic:=/test/takeoff_gate/local_goal',
         '-p', 'ego_topic:=/test/takeoff_gate/ego_goal',
         '-p', 'odom_topic:=/test/takeoff_gate/odom',
+        '-p', 'velocity_topic:=/test/takeoff_gate/velocity_odom',
         '-p', 'release_height:=0.50',
         '-p', 'flight_height:=0.78',
         '-p', 'stable_duration_sec:=0.15',
@@ -90,6 +91,8 @@ def main():
     released = []
     goals = node.create_publisher(PoseStamped, '/test/takeoff_gate/local_goal', 10)
     odoms = node.create_publisher(Odometry, '/test/takeoff_gate/odom', 10)
+    velocity_odoms = node.create_publisher(
+        Odometry, '/test/takeoff_gate/velocity_odom', 10)
     states = node.create_publisher(State, '/mavros/state', 10)
     reference_qos = QoSProfile(
         depth=1,
@@ -105,10 +108,17 @@ def main():
             raise AssertionError('real Goal Bridge did not subscribe')
         if not spin_until(node, lambda: references.get_subscription_count() >= 1, 5.0):
             raise AssertionError('real Goal Bridge did not subscribe to altitude reference')
+        if not spin_until(node, lambda: velocity_odoms.get_subscription_count() >= 1, 5.0):
+            raise AssertionError('real Goal Bridge did not subscribe to PX4 velocity odometry')
+
+        def publish_kinematics(pose_odom, velocity_odom=None):
+            odoms.publish(pose_odom)
+            velocity_odoms.publish(velocity_odom or pose_odom)
+
         references.publish(altitude_reference(1))
         spin_until(node, lambda: False, 0.1)
         states.publish(vehicle_state(True))
-        odoms.publish(odom(0.0))
+        publish_kinematics(odom(0.0))
         goals.publish(pose(1.0))
         time.sleep(0.1)
         goals.publish(pose(2.0))
@@ -125,16 +135,18 @@ def main():
             spin_until(node, lambda: False, 0.1)
             references.publish(altitude_reference(index + 1))
             states.publish(vehicle_state(True))
-            odoms.publish(odom(0.49))
+            publish_kinematics(odom(0.49))
             spin_until(node, lambda: False, 0.1)
             goal_x = 2.0 + index
             goals.publish(pose(goal_x))
             spin_until(node, lambda: False, 0.1)
-            odoms.publish(odom(height))
+            # High-rate FR-LIO propagated twist may be noisy while PX4's EKF
+            # velocity correctly reports a stable hover.
+            publish_kinematics(odom(height, vertical_speed=0.50), odom(height))
             spin_until(node, lambda: False, 0.1)
-            odoms.publish(odom(height))
+            publish_kinematics(odom(height, vertical_speed=0.50), odom(height))
             spin_until(node, lambda: False, 0.1)
-            odoms.publish(odom(height))
+            publish_kinematics(odom(height, vertical_speed=0.50), odom(height))
             if not spin_until(node, lambda: len(released) == index, 3.0):
                 raise AssertionError(
                     f'Goal Bridge did not release a stable {height:.2f} m local_goal')
@@ -151,14 +163,14 @@ def main():
         spin_until(node, lambda: False, 0.1)
         references.publish(altitude_reference(5))
         states.publish(vehicle_state(True))
-        odoms.publish(odom(0.49))
+        publish_kinematics(odom(0.49))
         spin_until(node, lambda: False, 0.1)
         goals.publish(pose(6.0))
-        odoms.publish(odom(0.49))
+        publish_kinematics(odom(0.49))
         spin_until(node, lambda: False, 0.3)
         if len(released) != 3:
             raise AssertionError('Goal Bridge released below the safety height range')
-        odoms.publish(odom(0.86))
+        publish_kinematics(odom(0.86))
         spin_until(node, lambda: False, 0.3)
         if len(released) != 3:
             raise AssertionError('Goal Bridge released above the safety height range')
@@ -169,18 +181,20 @@ def main():
         spin_until(node, lambda: False, 0.1)
         references.publish(altitude_reference(6))
         states.publish(vehicle_state(True))
-        odoms.publish(odom(0.49))
+        publish_kinematics(odom(0.49))
         spin_until(node, lambda: False, 0.1)
         goals.publish(pose(7.0))
-        odoms.publish(odom(0.65, horizontal_speed=0.09))
+        publish_kinematics(odom(0.65), odom(0.65, horizontal_speed=0.09))
         spin_until(node, lambda: False, 0.3)
         if len(released) != 3:
             raise AssertionError('Goal Bridge released with excessive horizontal speed')
-        odoms.publish(odom(0.65))
+        publish_kinematics(odom(0.65))
         spin_until(node, lambda: False, 0.1)
-        odoms.publish(odom(0.65))
+        publish_kinematics(odom(0.65))
         spin_until(node, lambda: False, 0.1)
-        odoms.publish(odom(0.65))
+        publish_kinematics(odom(0.65))
+        spin_until(node, lambda: False, 0.1)
+        publish_kinematics(odom(0.65))
         if not spin_until(node, lambda: len(released) == 4, 3.0):
             raise AssertionError('Goal Bridge did not release after speed became safe')
 

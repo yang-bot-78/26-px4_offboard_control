@@ -39,6 +39,7 @@ rviz="${RVIZ:-true}"
 recognition_enabled="${RECOGNITION_ENABLED:-false}"
 enable_output="${ENABLE_OUTPUT:-true}"
 manual_handover="${MANUAL_HANDOVER:-false}"
+ev_fault_auto_land="${EV_FAULT_AUTO_LAND:-true}"
 body_to_sensor_x_m="${BODY_TO_SENSOR_X_M:-0.0}"
 body_to_sensor_y_m="${BODY_TO_SENSOR_Y_M:-0.0}"
 body_to_sensor_z_m="${BODY_TO_SENSOR_Z_M:-0.08}"
@@ -50,7 +51,7 @@ map_frame_id="${MAP_FRAME_ID:-map}"
 fast_lio_odom_topic="${FASTLIO_ODOM_TOPIC:-/Odometry}"
 require_map_local_alignment="${REQUIRE_MAP_LOCAL_ALIGNMENT:-false}"
 
-for boolean_name in mission_enabled rviz recognition_enabled enable_output map_auto_load manual_handover; do
+for boolean_name in mission_enabled rviz recognition_enabled enable_output map_auto_load manual_handover ev_fault_auto_land; do
   boolean_value="${!boolean_name}"
   if [[ "${boolean_value}" != true && "${boolean_value}" != false ]]; then
     echo "${boolean_name^^} must be true or false; got: ${boolean_value}" >&2
@@ -97,6 +98,7 @@ launch_args=(
   "recognition_enabled:=${recognition_enabled}"
   "enable_output:=${enable_output}"
   "manual_handover:=${manual_handover}"
+  "ev_fault_auto_land:=${ev_fault_auto_land}"
   "body_to_sensor_x_m:=${body_to_sensor_x_m}"
   "body_to_sensor_y_m:=${body_to_sensor_y_m}"
   "body_to_sensor_z_m:=${body_to_sensor_z_m}"
@@ -128,5 +130,6 @@ echo "地图自动加载：${map_auto_load}"
 echo "Recognition:        ${recognition_enabled}"
 echo "导航输出：    ${enable_output}"
 echo "人工接管：    ${manual_handover}"
+echo "EV 故障自动降落：${ev_fault_auto_land}"
 
 exec ros2 launch race_bringup navigation.launch.py "${launch_args[@]}"
