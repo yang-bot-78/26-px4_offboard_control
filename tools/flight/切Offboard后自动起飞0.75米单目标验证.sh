@@ -30,12 +30,13 @@ find_unique_file_by_suffix() {
 }
 
 stack_script="${script_dir}/一键启动导航栈.sh"
+frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
 lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${project_root}/src/px4_ros_com/config/mid360_lever_arm.conf}"
 lever_arm_validator="${project_root}/tools/fastlio/校验杆臂配置.sh"
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 target_altitude_m="0.75"
 default_map_dir="${project_root}/maps/main"
-global_map_source_dir="${FASTLIO_GLOBAL_MAP_DIR:-${default_map_dir}}"
+global_map_source_dir="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${default_map_dir}}}"
 map_file="${MAP_FILE:-}"
 if [[ -z "${map_file}" ]]; then
   map_file="$(find_unique_file_by_suffix "${default_map_dir}" pcd "规划地图")"
@@ -54,7 +55,28 @@ stack_ready_file="${flight_run_dir}/snapshot/stack_ready.state"
 tuning_file="${flight_run_dir}/snapshot/astar_ego_tuning_0.75m.yaml"
 
 state_text() {
-  timeout 5 ros2 topic echo --once /mavros/state 2>/dev/null || true
+  local state="" raw=""
+  local attempts_remaining=3
+  while ((attempts_remaining > 0)); do
+    raw="$(timeout 3 ros2 topic echo --once \
+      --qos-history keep_last \
+      --qos-depth 1 \
+      --qos-reliability reliable \
+      --qos-durability transient_local \
+      /mavros/state 2>/dev/null || true)"
+    # ros2 topic echo may print "A message was lost!!!" even when the command
+    # exits successfully.  Accept only a complete State payload; otherwise a
+    # transport diagnostic must not be mistaken for armed=false/true data.
+    if grep -Eq '^connected:[[:space:]]*(true|false)$' <<<"${raw}" &&
+       grep -Eq '^armed:[[:space:]]*(true|false)$' <<<"${raw}" &&
+       grep -Eq '^mode:[[:space:]]*[^[:space:]]+' <<<"${raw}"; then
+      state="${raw}"
+      printf '%s\n' "${state}"
+      return 0
+    fi
+    attempts_remaining=$((attempts_remaining - 1))
+    sleep 0.2
+  done
 }
 
 cleanup() {
@@ -63,21 +85,16 @@ cleanup() {
   trap - EXIT
   trap '' INT TERM HUP
   if [[ -n "${child_pid}" ]] && kill -0 "${child_pid}" 2>/dev/null; then
-    state="$(state_text)"
-    if grep -Eq 'armed:[[:space:]]*true' <<<"${state}" &&
-       grep -Eq "mode:[[:space:]]+['\"]?OFFBOARD['\"]?" <<<"${state}"; then
-      echo
-      echo "[停止等待] 飞机仍已解锁且处于 OFFBOARD。" >&2
-      echo "[必须操作] 请先用遥控器切回 POSITION/STABILIZED 接管；检测到接管后才停止导航栈。" >&2
-      while kill -0 "${child_pid}" 2>/dev/null; do
-        state="$(state_text)"
-        if ! grep -Eq 'armed:[[:space:]]*true' <<<"${state}" ||
-           ! grep -Eq "mode:[[:space:]]+['\"]?OFFBOARD['\"]?" <<<"${state}"; then
-          break
-        fi
-        sleep 1
-      done
-    fi
+    echo
+    echo "[停止等待] 只有明确确认 armed=false 才允许停止导航栈、EV 健康桥和外部视觉链路。" >&2
+    echo "[必须操作] 请先降落并上锁；状态读取失败时同样保持整条链路。" >&2
+    while kill -0 "${child_pid}" 2>/dev/null; do
+      state="$(state_text)"
+      if [[ -n "${state}" ]] && grep -Eq 'armed:[[:space:]]*false' <<<"${state}"; then
+        break
+      fi
+      sleep 1
+    done
     kill -TERM "${child_pid}" 2>/dev/null || true
     wait "${child_pid}" 2>/dev/null || true
   fi
@@ -90,6 +107,7 @@ trap 'exit 143' TERM HUP
 
 [[ -x "${stack_script}" ]] || { echo "[错误] 缺少启动脚本：${stack_script}" >&2; exit 2; }
 [[ -f "${lever_arm_config}" ]] || { echo "[错误] 缺少坐标配置：${lever_arm_config}" >&2; exit 2; }
+[[ -f "${frlio_config}" ]] || { echo "[错误] 缺少 FR-LIO 配置：${frlio_config}" >&2; exit 2; }
 [[ -x "${lever_arm_validator}" ]] || { echo "[错误] 缺少坐标配置校验器：${lever_arm_validator}" >&2; exit 2; }
 [[ -s "${map_file}" ]] || { echo "[错误] 地图不存在或为空：${map_file}" >&2; exit 2; }
 [[ -s "${metadata_file}" ]] || { echo "[错误] 重定位 CSV 不存在或为空：${metadata_file}" >&2; exit 2; }
@@ -183,20 +201,24 @@ control_status_text() {
   timeout 5 ros2 topic echo --once /race/control/status --field data 2>/dev/null || true
 }
 
-ev_health_state() {
-  timeout 5 ros2 topic echo --once /ev_health/status --field data 2>/dev/null |
-    sed -n '/^[[:space:]]*---[[:space:]]*$/d; /^[[:space:]]*$/d; 1p' |
-    sed -E 's/^[[:space:]]*data:[[:space:]]*//; s/["'\'']//g'
+health_ok() {
+  [[ "$(ev_flight_ready_state)" == "true" ]]
 }
 
-health_ok() {
-  [[ "$(ev_health_state)" == "HEALTHY" ]]
+ev_flight_ready_state() {
+  timeout 5 ros2 topic echo --once /ev_health/flight_ready --field data 2>/dev/null |
+    sed -n '/^[[:space:]]*---[[:space:]]*$/d; /^[[:space:]]*$/d; 1p' |
+    sed -E 's/^[[:space:]]*data:[[:space:]]*//; s/["'\'']//g'
 }
 
 require_state() {
   local expected="$1"
   local state
   state="$(state_text)"
+  if [[ -z "${state}" ]]; then
+    echo "[错误] 连续 3 次未收到 /mavros/state，无法确认飞控状态。" >&2
+    return 1
+  fi
   if ! grep -Eq "${expected}" <<<"${state}"; then
     echo "[错误] 当前飞控状态不满足要求：" >&2
     printf '%s\n' "${state}" >&2
@@ -207,27 +229,8 @@ require_state() {
 wait_ev_healthy_stable() {
   local timeout_sec="${1:-30}"
   local stable_sec="${2:-3}"
-  local deadline=$((SECONDS + timeout_sec))
-  local healthy_since=0
-  local state=""
-
-  echo "[检查] 等待 EV 连续 ${stable_sec} 秒保持 HEALTHY。"
-  while ((SECONDS < deadline)); do
-    state="$(ev_health_state)"
-    [[ "${state}" != "FAULT" ]] || { echo "[错误] EV 已进入 FAULT。" >&2; return 1; }
-    if [[ "${state}" == "HEALTHY" ]]; then
-      ((healthy_since > 0)) || healthy_since=${SECONDS}
-      if ((SECONDS - healthy_since >= stable_sec)); then
-        echo "[就绪] EV 已连续 ${stable_sec} 秒保持 HEALTHY。"
-        return 0
-      fi
-    else
-      healthy_since=0
-    fi
-    sleep 0.2
-  done
-  echo "[错误] EV 未在 ${timeout_sec} 秒内连续健康，最后状态=${state:-无数据}。" >&2
-  return 1
+  python3 "${script_dir}/等待flight_ready稳定.py" \
+    --timeout-s "${timeout_sec}" --stable-s "${stable_sec}"
 }
 
 wait_stack_ready() {
@@ -329,15 +332,17 @@ from mavros_msgs.msg import State
 from nav_msgs.msg import Odometry
 from race_msgs.msg import FlightAltitudeReference
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
-from std_msgs.msg import String
+from std_msgs.msg import Bool
 
 target = float(os.environ["TARGET_ALTITUDE_M"])
+min_stable_agl_m = 0.55
+max_stable_agl_m = 0.80
 rclpy.init()
 node = rclpy.create_node("wait_auto_takeoff_075")
 latest = {
     "state": None, "state_time": 0.0,
     "odom": None, "odom_time": 0.0,
-    "health": None, "health_time": 0.0,
+    "flight_ready": None, "flight_ready_time": 0.0,
     "reference": None, "reference_time": 0.0,
 }
 node.create_subscription(
@@ -349,8 +354,8 @@ node.create_subscription(
     lambda msg: latest.update(odom=msg, odom_time=time.monotonic()),
     qos_profile_sensor_data)
 node.create_subscription(
-    String, "/ev_health/status",
-    lambda msg: latest.update(health=msg.data, health_time=time.monotonic()),
+    Bool, "/ev_health/flight_ready",
+    lambda msg: latest.update(flight_ready=bool(msg.data), flight_ready_time=time.monotonic()),
     qos_profile_sensor_data)
 node.create_subscription(
     FlightAltitudeReference, "/race/flight_altitude_reference",
@@ -371,11 +376,11 @@ result = 1
 try:
     while rclpy.ok() and time.monotonic() < deadline:
         rclpy.spin_once(node, timeout_sec=0.1)
-        state, odom, health = latest["state"], latest["odom"], latest["health"]
+        state, odom, flight_ready = latest["state"], latest["odom"], latest["flight_ready"]
         reference = latest["reference"]
         now = time.monotonic()
-        if health == "FAULT":
-            print("[错误] 起飞中 EV 进入 FAULT；请立即遥控接管。", file=sys.stderr, flush=True)
+        if flight_ready is False:
+            print("[错误] 起飞中 flight_ready=false；请查看 /ev_health/diagnostics 并立即遥控接管。", file=sys.stderr, flush=True)
             break
         if state is None or odom is None or reference is None:
             continue
@@ -405,18 +410,18 @@ try:
         previous_pose = (now, position.z)
         inputs_fresh = all(
             now - latest[key] <= 1.0
-            for key in ("state_time", "odom_time", "health_time")
+            for key in ("state_time", "odom_time", "flight_ready_time")
         )
         reference_ok = (
             reference.valid and math.isfinite(reference.target_agl_m) and
             abs(reference.target_agl_m - target) <= 0.001
         )
-        height_ok = math.isfinite(height) and abs(height - target) <= 0.07
+        height_ok = math.isfinite(height) and min_stable_agl_m <= height <= max_stable_agl_m
         horizontal_speed_ok = horizontal_speed <= 0.20
         vertical_speed_ok = vertical_speed <= 0.10
         good = (
             inputs_fresh and state.connected and state.armed and state.mode == "OFFBOARD" and
-            health == "HEALTHY" and reference_ok and height_ok and
+            flight_ready is True and reference_ok and height_ok and
             horizontal_speed_ok and vertical_speed_ok
         )
         if good:
@@ -425,7 +430,7 @@ try:
                 print(
                     f"[就绪] 自动起飞完成并稳定 3 秒："
                     f"height={height:.3f}m horizontal_speed={horizontal_speed:.3f}m/s "
-                    f"vertical_speed={vertical_speed:.3f}m/s EV={health}",
+                    f"vertical_speed={vertical_speed:.3f}m/s flight_ready={flight_ready}",
                     flush=True,
                 )
                 result = 0
@@ -434,8 +439,9 @@ try:
             stable_since = None
         if now >= next_report:
             print(
-                f"[起飞检查] armed={int(state.armed)} mode={state.mode} EV={health or '无数据'} "
-                f"AGL={height:.3f}/{target:.2f}m reference_ok={int(reference_ok)} "
+                f"[起飞检查] armed={int(state.armed)} mode={state.mode} flight_ready={flight_ready} "
+                f"AGL={height:.3f}/{min_stable_agl_m:.2f}-{max_stable_agl_m:.2f}m "
+                f"target={target:.2f}m reference_ok={int(reference_ok)} "
                 f"height_ok={int(height_ok)} horizontal_speed={horizontal_speed:.3f}m/s "
                 f"horizontal_speed_ok={int(horizontal_speed_ok)} "
                 f"vertical_speed={vertical_speed:.3f}m/s vertical_speed_ok={int(vertical_speed_ok)} "
@@ -487,7 +493,7 @@ cat <<EOF
 ============================================================
        地面 OFFBOARD -> 自动起飞 0.75m -> 单目标
 ============================================================
-本脚本会启动导航、MID-360、FAST-LIO、全局重定位、MAVROS/EV、RViz 和 rosbag。
+本脚本会启动导航、MID-360、项目内 FR-LIO、全局重定位、MAVROS/EV、RViz 和 rosbag。
 第二次回车后，只有全部地面门禁通过，程序才会调用起飞服务，
 然后自动解锁、垂直起飞并定高 ${target_altitude_m}m。
 
@@ -517,7 +523,9 @@ env \
   MID360_BODY_TO_FASTLIO_YAW_RAD="${MID360_BODY_TO_FASTLIO_YAW_RAD}" \
   WORLD_YAW_ALIGNMENT_RAD="${world_yaw_alignment_rad}" \
   MAP_FILE="${map_file}" \
-  FASTLIO_GLOBAL_MAP_DIR="${global_map_dir}" \
+  FRLIO_GLOBAL_MAP_DIR="${global_map_dir}" \
+  LIO_BACKEND=fr_lio \
+  FRLIO_CONFIG="${frlio_config}" \
   RELOCALIZATION_ENABLED=true \
   PLANNER_BACKEND="${effective_planner_backend}" \
   TUNING_FILE="${tuning_file}" \
@@ -526,8 +534,9 @@ env \
   RVIZ=true \
   ENABLE_OUTPUT=true \
   MANUAL_HANDOVER=false \
+  EV_FAULT_AUTO_LAND=false \
   RECORD_BAG=true \
-  RECORD_EGO_DIAGNOSTICS=true \
+  RECORD_EGO_DIAGNOSTICS=false \
   COMPONENT_WINDOWS=false \
   "${stack_script}" &
 child_pid=$!
@@ -576,6 +585,6 @@ wait_tracking || exit 6
 echo "[已开始] 单目标已进入 TRACKING。全程保持遥控器接管准备。"
 echo "[结束] 任务后请手动切回 POSITION/STABILIZED，降落并上锁，然后在本终端按 Ctrl+C。"
 while kill -0 "${child_pid}" 2>/dev/null; do
-  health_ok || echo "[警告] EV 状态不是 HEALTHY，请立即人工接管。" >&2
+  health_ok || echo "[警告] flight_ready=false；请查看 /ev_health/diagnostics 并立即人工接管。" >&2
   sleep 2
 done

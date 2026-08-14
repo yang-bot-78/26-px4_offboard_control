@@ -66,6 +66,9 @@ class HealthConfig:
     velocity_variance_floor_z_m2ps2: float = 0.0
     require_effective_points_status: bool = False
     effective_points_timeout_s: float = 0.5
+    require_frlio_anchor_status: bool = False
+    frlio_anchor_status_timeout_s: float = 0.5
+    frlio_max_anchor_age_s: float = 0.40
 
 
 @dataclass
@@ -276,10 +279,10 @@ class EvHealthMonitorCore:
     """
     Timestamp-aware EV/PX4 consistency monitor.
 
-    Invalid frames are never accepted or published.  A jump or large time gap
-    re-synchronises the derivative baseline to avoid permanently classifying all
-    subsequent data as a jump.  FAULT never emits a position sample; notably,
-    this class has no mechanism that can repeat the last good position.
+    Invalid frames are never accepted or published.  A discontinuous position
+    never becomes the new derivative baseline: recovery requires data to return
+    close to the last trusted pose.  FAULT never emits a position sample;
+    notably, this class has no mechanism that can repeat the last good position.
     """
 
     def __init__(self, config: Optional[HealthConfig] = None) -> None:
@@ -373,6 +376,14 @@ class EvHealthMonitorCore:
     def update_effective_points(self, ok: bool, receive_time_s: float) -> None:
         self._effective_points_ok = bool(ok)
         self._effective_points_receive_s = float(receive_time_s)
+
+    def report_external_anomaly(
+        self, receive_time_s: float, reason: str, *, accepted: bool = False
+    ) -> FrameResult:
+        """Apply a node-owned safety gate to the common health state machine."""
+        now_s = float(receive_time_s)
+        self._set_anomaly(now_s, str(reason))
+        return self._result(accepted, now_s)
 
     def _effective_points_reason(self, now_s: float) -> Optional[str]:
         if not self.config.require_effective_points_status:
@@ -502,19 +513,24 @@ class EvHealthMonitorCore:
         if self._last_stamp_s is not None:
             source_dt = float(stamp_s) - self._last_stamp_s
             self.metrics.dt_s = source_dt
-            if source_dt <= self.config.min_dt_s:
+            if source_dt <= 0.0:
                 self._set_anomaly(
                     now_s, f"non_monotonic_stamp dt={source_dt:.6f}s"
                 )
                 # Never move a derivative baseline backwards.
+                return self._result(False, now_s)
+            if source_dt <= self.config.min_dt_s:
+                # A positive but closely spaced source stamp is scheduler or
+                # sensor burst jitter, not a clock regression.  Drop it without
+                # moving the derivative baseline or poisoning health recovery.
                 return self._result(False, now_s)
 
         input_age_s = now_s - float(stamp_s)
         self.metrics.input_age_s = input_age_s
         if input_age_s > self.config.max_input_age_s:
             self._set_anomaly(now_s, f"stale_input age={input_age_s:.3f}s")
-            # Re-synchronise the derivative baseline but do not publish stale data.
-            self._resync(float(stamp_s), now_s, raw)
+            # A delayed queue must never drag the trusted baseline along an old
+            # trajectory one frame at a time.
             return self._result(False, now_s)
         if input_age_s < -self.config.max_future_stamp_s:
             self._set_anomaly(now_s, f"future_input age={input_age_s:.3f}s")
@@ -544,17 +560,19 @@ class EvHealthMonitorCore:
 
         dt = float(stamp_s) - self._last_stamp_s
         self.metrics.dt_s = dt
-        if dt > self.config.max_dt_s:
-            self._set_anomaly(now_s, f"invalid_dt dt={dt:.3f}s")
-            self._resync(float(stamp_s), now_s, raw)
-            return self._result(False, now_s)
-
         delta = _subtract(position_ned, self._last_position_ned)
         displacement = _norm(delta)
         self.metrics.single_frame_displacement_m = displacement
+        if dt > self.config.max_dt_s:
+            self._set_anomaly(now_s, f"invalid_dt dt={dt:.3f}s")
+            # A fresh stream may resume after a scheduling gap, but rebaseline
+            # only when it is still spatially continuous with the trusted pose.
+            if displacement <= self.config.max_position_jump_m:
+                self._resync(float(stamp_s), now_s, raw)
+            return self._result(False, now_s)
+
         if displacement > self.config.max_position_jump_m:
             self._set_anomaly(now_s, f"position_jump displacement={displacement:.3f}m")
-            self._resync(float(stamp_s), now_s, raw)
             return self._result(False, now_s)
 
         self._last_stamp_s = float(stamp_s)

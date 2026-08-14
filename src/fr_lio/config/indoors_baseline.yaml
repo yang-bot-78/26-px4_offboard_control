@@ -3,7 +3,7 @@
     odom_frame: "odom"
     body_frame: "body"
     feature_extract_enable: false
-    point_filter_num: 3
+    point_filter_num: 6
     max_iteration: 3
     filter_size_surf: 0.5
     filter_size_map: 0.5
@@ -22,7 +22,7 @@
       enabled: true
       warn_anchor_age_s: 0.15
       max_anchor_age_s: 0.40
-      imu_history_s: 2.0
+      imu_history_s: 5.0
     preprocess:
       lidar_type: 1
       scan_line: 4
@@ -36,7 +36,7 @@
       b_gyr_cov: 0.0001
       fov_degree: 360.0
       det_range: 15.0
-      extrinsic_est_en: true
+      extrinsic_est_en: false
       use_scan_to_scan_cov: false
       use_perpoint_cov: false
       enable_shadow_map: false

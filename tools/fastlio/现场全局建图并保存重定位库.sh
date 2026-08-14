@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 生成 FAST-LIO 全局重定位数据库，并提供手飞建图所需的定位链路。
-# 启动：MID-360、FAST-LIO、全局后端、MAVROS 和 EV vision_pose 链路。
+# 生成 FR-LIO 全局重定位数据库，并提供手飞建图所需的定位链路。
+# 启动：MID-360、项目内 FR-LIO、全局后端、MAVROS 和 EV vision_pose 链路。
 # 不启动：Offboard、导航控制、解锁、模式切换或任何 setpoint 发布器。
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || "${1:-}" == "--帮助" ]]; then
@@ -11,14 +11,15 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || "${1:-}" == "--帮助" ]]; the
   ./tools/fastlio/现场全局建图并保存重定位库.sh
 
 默认保存目录：
-  maps/fastlio_global_3d_<保存时间戳>
+  maps/frlio_global_3d_<保存时间戳>
 
 可选环境变量：
-  FASTLIO_GLOBAL_MAP_DIR=/绝对路径/地图父目录
-  MID360_FASTLIO_DELAY_SEC=4
+  FRLIO_GLOBAL_MAP_DIR=/绝对路径/地图父目录
+  FRLIO_CONFIG=/绝对路径/indoors.yaml
+  MID360_FRLIO_DELAY_SEC=4
   GLOBAL_MAP_WAIT_TIMEOUT=90
-  FASTLIO_GLOBAL_MAP_RESOLUTION=0.15
-  FASTLIO_GLOBAL_MAP_MAX_Z=2.5
+  FRLIO_GLOBAL_MAP_RESOLUTION=0.15
+  FRLIO_GLOBAL_MAP_MAX_Z=2.5
   FCU_URL=serial:///dev/ttyUSB0:921600?ids=255,190
   MAVROS_STABLE_SEC=10
 EOF
@@ -36,31 +37,31 @@ fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
 livox_env="${LIVOX_MID360_ENV:-${HOME}/livox_mid360_env}"
-fastlio_config="${livox_env}/ws_fastlio/src/fast_lio/config/mid360.yaml"
+frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
 backend_config="${script_dir}/三关键帧测试后端参数.yaml"
 rviz_config="${project_root}/Lin_shi/fastlio_global_slam/config/fastlio_global_slam.rviz"
 autofix_launch="${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py"
 wait_timeout="${GLOBAL_MAP_WAIT_TIMEOUT:-90}"
-driver_delay="${MID360_FASTLIO_DELAY_SEC:-4}"
-resolution="${FASTLIO_GLOBAL_MAP_RESOLUTION:-0.15}"
+driver_delay="${MID360_FRLIO_DELAY_SEC:-${MID360_FASTLIO_DELAY_SEC:-4}}"
+resolution="${FRLIO_GLOBAL_MAP_RESOLUTION:-${FASTLIO_GLOBAL_MAP_RESOLUTION:-0.15}}"
 fcu_url="${FCU_URL:-serial:///dev/ttyUSB0:921600?ids=255,190}"
 mavros_stable_sec="${MAVROS_STABLE_SEC:-10}"
 timestamp="$(date +%Y%m%d_%H%M%S)"
-map_parent="${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps}"
-map_dir="${map_parent%/}/fastlio_global_3d_${timestamp}"
-max_z="${FASTLIO_GLOBAL_MAP_MAX_Z:-2.5}"
+map_parent="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps}}"
+map_dir="${map_parent%/}/frlio_global_3d_${timestamp}"
+max_z="${FRLIO_GLOBAL_MAP_MAX_Z:-${FASTLIO_GLOBAL_MAP_MAX_Z:-2.5}}"
 log_dir="${project_root}/runtime/全局建图_${timestamp}"
 
-[[ "${map_parent}" == /* ]] || { echo "[错误] FASTLIO_GLOBAL_MAP_DIR 必须是绝对路径。" >&2; exit 2; }
+[[ "${map_parent}" == /* ]] || { echo "[错误] FRLIO_GLOBAL_MAP_DIR 必须是绝对路径。" >&2; exit 2; }
 if [[ ! "${wait_timeout}" =~ ^[0-9]+$ ]] || ((wait_timeout < 10)); then
   echo "[错误] GLOBAL_MAP_WAIT_TIMEOUT 必须是不小于 10 的整数。" >&2
   exit 2
 fi
 [[ "${resolution}" =~ ^([0-9]+([.][0-9]*)?|[.][0-9]+)$ ]] || {
-  echo "[错误] FASTLIO_GLOBAL_MAP_RESOLUTION 必须是正数。" >&2; exit 2;
+  echo "[错误] FRLIO_GLOBAL_MAP_RESOLUTION 必须是正数。" >&2; exit 2;
 }
 [[ "${max_z}" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || {
-  echo "[错误] FASTLIO_GLOBAL_MAP_MAX_Z 必须是数字，例如 3.0。" >&2; exit 2;
+  echo "[错误] FRLIO_GLOBAL_MAP_MAX_Z 必须是数字，例如 3.0。" >&2; exit 2;
 }
 [[ "${mavros_stable_sec}" =~ ^[0-9]+$ ]] || {
   echo "[错误] MAVROS_STABLE_SEC 必须是正整数。" >&2; exit 2;
@@ -70,8 +71,8 @@ fi
 }
 for required in \
   "${livox_env}/run_mid360_driver.sh" \
-  "${livox_env}/setup_fastlio.bash" \
-  "${fastlio_config}" \
+  "${livox_env}/setup_mid360.bash" \
+  "${frlio_config}" \
   "${backend_config}" \
   "${rviz_config}" \
   "${project_root}/install/setup.bash" \
@@ -94,11 +95,11 @@ cat <<EOF
 保存目录：${map_dir}
 日志目录：${log_dir}
 
-本流程启动：雷达、FAST-LIO、全局关键帧后端、MAVROS 和 EV vision_pose 链路。
+本流程启动：雷达、项目内 FR-LIO、全局关键帧后端、MAVROS 和 EV vision_pose 链路。
 本流程不会启动：Offboard、导航、解锁、模式切换或任何 setpoint 发布器。
 
 开始前确认：
-  1. 当前没有其他雷达、FAST-LIO、MAVROS 或 EV 实例；
+  1. 当前没有其他雷达、FR-LIO、MAVROS 或 EV 实例；
   2. 飞手已确认遥控器可接管，起飞区域无人员；
   3. 先等待脚本报告 EV 链路连续稳定，再手动解锁并切 Position；
   4. 建图完成后先手动降落、上锁，再在脚本中保存并退出。
@@ -115,9 +116,12 @@ cd "${project_root}"
 set +u
 # shellcheck disable=SC1091
 source /opt/ros/humble/setup.bash
+# FR-LIO directly subscribes to livox_ros_driver2/CustomMsg, so the parent
+# process must expose the MID-360 message typesupport before loading this
+# workspace overlay.
 # shellcheck disable=SC1091
-source "${livox_env}/setup_fastlio.bash"
-set +u
+source "${livox_env}/setup_mid360.bash"
+# shellcheck disable=SC1091
 export AMENT_TRACE_SETUP_FILES="${AMENT_TRACE_SETUP_FILES:-}"
 export COLCON_TRACE="${COLCON_TRACE:-}"
 # shellcheck disable=SC1091
@@ -127,8 +131,17 @@ export PYTHONNOUSERSITE=1
 # shellcheck disable=SC1091
 source "${project_root}/src/px4_ros_com/config/mid360_lever_arm.conf"
 
-# The FAST-LIO environment may contain an older overlay with another copy of
-# this launch file.  Verify the package index before starting any FCU process.
+# Verify the package index before starting any FCU process so an older overlay
+# cannot select an outdated EV launch file.
+expected_px4_prefix="${project_root}/install/px4_ros_com"
+export AMENT_PREFIX_PATH="${expected_px4_prefix}${AMENT_PREFIX_PATH:+:${AMENT_PREFIX_PATH}}"
+for px4_python_site in \
+  "${expected_px4_prefix}"/lib/python*/site-packages \
+  "${expected_px4_prefix}"/local/lib/python*/dist-packages \
+  "${expected_px4_prefix}"/local/lib/python*/site-packages; do
+  [[ -d "${px4_python_site}" ]] || continue
+  export PYTHONPATH="${px4_python_site}${PYTHONPATH:+:${PYTHONPATH}}"
+done
 resolved_px4_share="$(python3 - <<'PY'
 from ament_index_python.packages import get_package_share_directory
 print(get_package_share_directory("px4_ros_com"))
@@ -147,6 +160,10 @@ if grep -Eq 'DeclareLaunchArgument\("start_(bridge|px4_ev_bridge)' "${autofix_la
 fi
 
 "${project_root}/tools/flight/清理运行环境.sh" offboard ev rviz sensor mavros
+# livox_ros_driver2 may need a short interval to release its SDK UDP workers
+# after the cleanup script had to terminate an old driver instance.
+echo "[等待] 等待 MID-360 驱动 UDP 接收端口释放。"
+sleep 5
 
 declare -a names=() pids=() pgids=()
 stopping=false
@@ -166,18 +183,30 @@ running() {
   done
   return 1
 }
+
+# This process group contains MAVROS, the EV health monitor, and the external
+# vision bridge.  Never tear it down while the aircraft state is unknown or
+# armed; the operator must land and disarm first.
+flight_state_allows_shutdown() {
+  local state
+  command -v ros2 >/dev/null 2>&1 || return 1
+  state="$(timeout 8 ros2 topic echo --once /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
+  [[ -n "${state}" ]] && grep -Eq '^armed:[[:space:]]+false$' <<<"${state}"
+}
+
+wait_until_disarmed_for_shutdown() {
+  while ! flight_state_allows_shutdown; do
+    echo "[安全] 未明确确认 armed=false；保留 EV 健康桥和外部视觉链路。请先降落并上锁。" >&2
+    sleep 2
+  done
+}
+
 stop_all() {
   [[ "${stopping}" == false ]] || return
+  ((${#pgids[@]} > 0)) || return
   # Do not disconnect a live aircraft.  The operator must land and disarm first.
-  if pgrep -f mavros_node >/dev/null 2>&1; then
-    local state
-    state="$(timeout 8 ros2 topic echo --once /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
-    if [[ -z "${state}" ]] || ! grep -Eq '^armed:[[:space:]]+false$' <<<"${state}"; then
-      echo "[安全] MAVROS 未明确报告 armed=false；保留全部组件，不断开飞控链路。" >&2
-      echo "[安全] 请手动降落并上锁后，再重新运行清理脚本。" >&2
-      return
-    fi
-  fi
+  trap '' INT TERM HUP
+  wait_until_disarmed_for_shutdown
   stopping=true; trap - EXIT INT TERM HUP; set +e
   echo "[停止] 按逆序停止全局建图组件。"
   local i pgid
@@ -218,6 +247,27 @@ wait_service() {
   return 1
 }
 
+wait_backend_sync() {
+  local start="${SECONDS}"
+  local status=""
+  echo "[等待] 全局后端收到 FR-LIO 同步里程计和点云。"
+  while ((SECONDS-start < wait_timeout)); do
+    running "全局关键帧后端" || {
+      echo "[错误] 全局关键帧后端已退出，请查看 ${log_dir}/全局后端.log。" >&2
+      return 1
+    }
+    status="$(timeout 5 ros2 topic echo --once /fastlio_global/backend_status --field data 2>/dev/null || true)"
+    if grep -Eq 'synced_callbacks=[1-9][0-9]*' <<<"${status}"; then
+      echo "[就绪] 全局后端已同步：${status}"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "[错误] 全局后端未收到 FR-LIO 的同步 /Odometry + /cloud_registered。" >&2
+  echo "[错误] 最近状态：${status:-无数据}" >&2
+  return 1
+}
+
 wait_mavros_stable() {
   local start="${SECONDS}" stable_since=0 state estimator
   echo "[等待] MAVROS/EV 定位链路连续稳定 ${mavros_stable_sec} 秒。"
@@ -226,6 +276,15 @@ wait_mavros_stable() {
       echo "[错误] MAVROS + EV 定位链已退出，请查看 ${log_dir}/MAVROS+EV.log。" >&2
       return 1
     }
+    # A launch process remains alive when a child node crashes.  Detect the
+    # required health gate explicitly so an import error cannot masquerade as
+    # a permanently-not-ready flight controller.
+    if ((SECONDS - start >= 10)) &&
+       ! ros2 node list 2>/dev/null | grep -Fxq /fastlio_ev_health_monitor; then
+      echo "[错误] EV 健康监控节点没有运行，请查看 ${log_dir}/MAVROS+EV.log。" >&2
+      tail -80 "${log_dir}/MAVROS+EV.log" >&2 || true
+      return 1
+    fi
     state="$(timeout 5 ros2 topic echo --once /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
     estimator="$(timeout 5 ros2 topic echo --once /mavros/estimator_status mavros_msgs/msg/EstimatorStatus 2>/dev/null || true)"
     if grep -Eq '^armed:[[:space:]]+true$' <<<"${state}" ||
@@ -234,7 +293,7 @@ wait_mavros_stable() {
       return 1
     fi
     if grep -q 'connected: true' <<<"${state}" &&
-       grep -q 'data: HEALTHY' < <(timeout 5 ros2 topic echo --once /ev_health/status std_msgs/msg/String 2>/dev/null || true) &&
+       grep -q 'data: true' < <(timeout 5 ros2 topic echo --once /ev_health/flight_ready std_msgs/msg/Bool 2>/dev/null || true) &&
        grep -q 'pos_horiz_rel_status_flag: true' <<<"${estimator}" &&
        grep -q 'pos_vert_abs_status_flag: true' <<<"${estimator}" &&
        timeout 5 ros2 topic echo --once --qos-reliability best_effort /Odometry/healthy >/dev/null 2>&1 &&
@@ -242,13 +301,13 @@ wait_mavros_stable() {
        timeout 5 ros2 topic echo --once /mavros/local_position/pose >/dev/null 2>&1; then
       ((stable_since == 0)) && stable_since="${SECONDS}"
       if ((SECONDS-stable_since >= mavros_stable_sec)); then
-        echo "[就绪] MAVROS 已连接，EV=HEALTHY，PX4 水平/垂直位置有效，连续稳定 ${mavros_stable_sec} 秒。"
+        echo "[就绪] MAVROS 已连接，flight_ready=true，PX4 水平/垂直位置有效，连续稳定 ${mavros_stable_sec} 秒。"
         return 0
       fi
       echo "[等待] 定位链路稳定中：$((SECONDS-stable_since))/${mavros_stable_sec}s。"
     else
       stable_since=0
-      echo "[等待] MAVROS/EV 尚未满足稳定门（connected、HEALTHY、水平位置、视觉位姿）。"
+      echo "[等待] MAVROS/EV 尚未满足稳定门（connected、flight_ready、水平位置、视觉位姿）。"
     fi
     sleep 1
   done
@@ -259,21 +318,21 @@ wait_mavros_stable() {
 start_component "MID-360 雷达驱动" "${log_dir}/雷达驱动.log" "${livox_env}/run_mid360_driver.sh"
 wait_topic /livox/imu "MID-360 雷达驱动"
 wait_topic /livox/lidar "MID-360 雷达驱动"
-echo "[等待] 雷达数据就绪，${driver_delay} 秒后启动 FAST-LIO。"
+echo "[等待] 雷达数据就绪，${driver_delay} 秒后启动项目内 FR-LIO。"
 sleep "${driver_delay}"
 
-start_component "全局建图 FAST-LIO" "${log_dir}/FAST-LIO.log" \
-  ros2 run fast_lio fastlio_mapping --ros-args \
-  --params-file "${fastlio_config}" -p use_sim_time:=false \
-  -p publish.scan_publish_en:=true -p publish.dense_publish_en:=false \
-  -p publish.scan_bodyframe_pub_en:=false
-wait_topic /Odometry "全局建图 FAST-LIO"
-wait_topic /cloud_registered "全局建图 FAST-LIO"
+start_component "全局建图 FR-LIO" "${log_dir}/FR-LIO.log" \
+  ros2 launch fr_lio lio.launch.py "config_file:=${frlio_config}" \
+  rviz:=false lidar_accumulator:=false
+wait_topic /Odometry "全局建图 FR-LIO"
+wait_topic /cloud_registered "全局建图 FR-LIO"
+wait_topic /frlio/high_rate_odom/status "全局建图 FR-LIO"
 
 start_component "全局关键帧后端" "${log_dir}/全局后端.log" \
   ros2 launch fastlio_global_slam fastlio_global_slam.launch.py \
   start_fastlio:=false rviz:=false backend_config:="${backend_config}"
 wait_service /fastlio_global_backend/save_map "全局关键帧后端"
+wait_backend_sync
 
 start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   ros2 launch "${autofix_launch}" \
@@ -282,6 +341,7 @@ start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   start_odom_guard:=true \
   start_ev_health_monitor:=true \
   start_tf:=true \
+  require_frlio_anchor_status:=true \
   world_yaw_alignment_rad:=0.0 \
   "body_to_sensor_x_m:=${MID360_BODY_TO_SENSOR_X_M}" \
   "body_to_sensor_y_m:=${MID360_BODY_TO_SENSOR_Y_M}" \
@@ -296,7 +356,7 @@ running "全局建图 RViz" || { echo "[错误] RViz 启动失败，请查看 ${
 cat <<EOF
 
 ============================================================
-全局建图和 MAVROS/EV 定位链路已经开始，后端正在接收 /Odometry + /cloud_registered，RViz 正在实时显示。
+FR-LIO 全局建图和 MAVROS/EV 定位链路已经开始，后端正在接收 /Odometry + /cloud_registered，RViz 正在实时显示。
 
 定位稳定门已通过。现在可以由飞手手动解锁、起飞并切换到 Position 进行手飞建图。
 脚本不会发送任何解锁、模式切换或飞行控制命令。若 Position 无法定点，立即切回 Stabilized。

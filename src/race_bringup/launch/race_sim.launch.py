@@ -28,6 +28,7 @@ def launch_setup(context):
             {
                 'require_strict_local_position_health': LaunchConfiguration(
                     'require_strict_local_position_health'),
+                'ev_fault_auto_land': LaunchConfiguration('ev_fault_auto_land'),
                 'control_source': LaunchConfiguration('control_source'),
                 'require_global_planner_final_goal': LaunchConfiguration(
                     'require_global_planner_final_goal'),
@@ -50,6 +51,7 @@ def generate_launch_description():
             ]),
         ),
         DeclareLaunchArgument('require_strict_local_position_health', default_value='false'),
+        DeclareLaunchArgument('ev_fault_auto_land', default_value='true'),
         DeclareLaunchArgument('control_source', default_value='navigation'),
         DeclareLaunchArgument('require_global_planner_final_goal', default_value='false'),
         DeclareLaunchArgument('manual_handover', default_value='false'),

@@ -234,7 +234,7 @@ def test_px4_moves_backward_while_ev_drifts_forward_faults_after_0p3s():
     assert not result.publish
 
 
-def test_single_0p2m_jump_is_rejected_and_resynchronised():
+def test_single_0p2m_jump_cannot_become_the_new_trusted_baseline():
     core = EvHealthMonitorCore(config())
     add_frame(core, 1.0, 0.0)
     jump = add_frame(core, 1.1, 0.2)
@@ -243,8 +243,25 @@ def test_single_0p2m_jump_is_rejected_and_resynchronised():
     assert not jump.accepted
     assert not jump.publish
     assert "position_jump" in jump.reason
-    assert following.accepted
-    assert following.metrics.single_frame_displacement_m == pytest.approx(0.0)
+    assert not following.accepted
+    assert not following.publish
+    assert following.metrics.single_frame_displacement_m == pytest.approx(0.2)
+
+    returned = add_frame(core, 1.3, 0.0)
+    assert returned.accepted
+    assert returned.publish
+    assert returned.metrics.single_frame_displacement_m == pytest.approx(0.0)
+
+
+def test_persistent_position_jump_reaches_fault_without_following_bad_track():
+    core = EvHealthMonitorCore(config())
+    add_frame(core, 1.0, 0.0)
+
+    results = [add_frame(core, 1.1 + 0.1 * index, 0.2) for index in range(4)]
+
+    assert all(not result.publish for result in results)
+    assert results[-1].state == HealthState.FAULT
+    assert "position_jump" in results[-1].reason
 
 
 @pytest.mark.parametrize(
@@ -265,6 +282,23 @@ def test_zero_dt_timestamp_regression_and_nan_are_rejected(
     assert not result.accepted
     assert not result.publish
     assert reason in result.reason
+
+
+def test_positive_sub_millisecond_sample_is_dropped_without_health_recovery():
+    core = EvHealthMonitorCore(config(min_dt_s=0.001))
+    first = add_frame(core, 1.0, 0.0)
+    assert first.state == HealthState.HEALTHY
+
+    closely_spaced = add_frame(core, 1.0005, 0.0)
+    assert not closely_spaced.accepted
+    assert not closely_spaced.publish
+    assert closely_spaced.state == HealthState.HEALTHY
+    assert closely_spaced.reason == "ok"
+
+    following = add_frame(core, 1.1, 0.0)
+    assert following.accepted
+    assert following.publish
+    assert following.state == HealthState.HEALTHY
 
 
 def test_message_interruption_transitions_to_fault():

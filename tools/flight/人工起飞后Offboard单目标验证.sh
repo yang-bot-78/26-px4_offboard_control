@@ -29,11 +29,12 @@ find_unique_file_by_suffix() {
 }
 
 stack_script="${script_dir}/一键启动导航栈.sh"
+frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
 lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${project_root}/src/px4_ros_com/config/mid360_lever_arm.conf}"
 lever_arm_validator="${project_root}/tools/fastlio/校验杆臂配置.sh"
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 default_map_dir="${project_root}/maps/main"
-global_map_source_dir="${FASTLIO_GLOBAL_MAP_DIR:-${default_map_dir}}"
+global_map_source_dir="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${default_map_dir}}}"
 map_file="${MAP_FILE:-}"
 if [[ -z "${map_file}" ]]; then
   map_file="$(find_unique_file_by_suffix "${default_map_dir}" pcd "规划地图")"
@@ -72,6 +73,7 @@ trap cleanup EXIT INT TERM HUP
 
 [[ -x "${stack_script}" ]] || { echo "[错误] 缺少启动脚本：${stack_script}" >&2; exit 2; }
 [[ -f "${lever_arm_config}" ]] || { echo "[错误] 缺少坐标配置：${lever_arm_config}" >&2; exit 2; }
+[[ -f "${frlio_config}" ]] || { echo "[错误] 缺少 FR-LIO 配置：${frlio_config}" >&2; exit 2; }
 [[ -x "${lever_arm_validator}" ]] || { echo "[错误] 缺少坐标配置校验器：${lever_arm_validator}" >&2; exit 2; }
 [[ -s "${map_file}" ]] || { echo "[错误] 地图不存在或为空：${map_file}" >&2; exit 2; }
 [[ -s "${metadata_file}" ]] || { echo "[错误] 重定位 CSV 不存在或为空：${metadata_file}" >&2; exit 2; }
@@ -244,16 +246,14 @@ wait_handover_gate() {
 wait_handover_accepted() {
   local deadline=$((SECONDS + 10))
   local status
-  local health_state
   while ((SECONDS < deadline)); do
     status="$(control_status_text)"
     if grep -Eq 'handover_accepted=1' <<<"${status}"; then
       echo "[就绪] 控制节点已经接受 OFFBOARD 人工交接。"
       return 0
     fi
-    health_state="$(ev_health_state)"
-    if [[ "${health_state}" == "FAULT" ]]; then
-      echo "[错误] OFFBOARD 交接期间 EV 进入 FAULT，请立即切回 POSITION。" >&2
+    if ! health_ok; then
+      echo "[错误] OFFBOARD 交接期间 flight_ready=false；请查看 /ev_health/diagnostics 并立即切回 POSITION。" >&2
       return 1
     fi
     sleep 1
@@ -268,11 +268,11 @@ state_text() {
 }
 
 health_ok() {
-  [[ "$(ev_health_state)" == "HEALTHY" ]]
+  [[ "$(ev_flight_ready_state)" == "true" ]]
 }
 
-ev_health_state() {
-  timeout 5 ros2 topic echo --once /ev_health/status --field data 2>/dev/null |
+ev_flight_ready_state() {
+  timeout 5 ros2 topic echo --once /ev_health/flight_ready --field data 2>/dev/null |
     sed -n '/^[[:space:]]*---[[:space:]]*$/d; /^[[:space:]]*$/d; 1p' |
     sed -E 's/^[[:space:]]*data:[[:space:]]*//; s/["'\'']//g'
 }
@@ -280,32 +280,8 @@ ev_health_state() {
 wait_ev_healthy_stable() {
   local timeout_sec="${1:-30}"
   local stable_sec="${2:-3}"
-  local deadline=$((SECONDS + timeout_sec))
-  local healthy_since=0
-  local state=""
-
-  echo "[检查] 等待 EV 连续 ${stable_sec} 秒保持 HEALTHY（短暂 SUSPECT 会等待恢复）。"
-  while ((SECONDS < deadline)); do
-    state="$(ev_health_state)"
-    if [[ "${state}" == "FAULT" ]]; then
-      echo "[错误] EV 已进入 FAULT，禁止继续。" >&2
-      return 1
-    fi
-    if [[ "${state}" == "HEALTHY" ]]; then
-      if ((healthy_since == 0)); then
-        healthy_since=${SECONDS}
-      fi
-      if ((SECONDS - healthy_since >= stable_sec)); then
-        echo "[就绪] EV 已连续 ${stable_sec} 秒保持 HEALTHY。"
-        return 0
-      fi
-    else
-      healthy_since=0
-    fi
-    sleep 0.2
-  done
-  echo "[错误] EV 在 ${timeout_sec} 秒内未能连续 ${stable_sec} 秒保持 HEALTHY，最后状态=${state:-无数据}。" >&2
-  return 1
+  python3 "${script_dir}/等待flight_ready稳定.py" \
+    --timeout-s "${timeout_sec}" --stable-s "${stable_sec}"
 }
 
 require_state() {
@@ -323,7 +299,7 @@ cat <<EOF
 ============================================================
        人工起飞 -> POSITION -> OFFBOARD 单目标实飞验证
 ============================================================
-本脚本会启动：导航、MID-360、FAST-LIO、MAVROS/EV、RViz、rosbag。
+本脚本会启动：导航、MID-360、项目内 FR-LIO、MAVROS/EV、RViz、rosbag。
 在 MAVROS/EV 和人工起飞步骤前，必须完成 Scan Context + ICP 全局重定位。
 本脚本不会：解锁、起飞、切 POSITION、切 OFFBOARD、自动执行任务航点。
 
@@ -357,7 +333,9 @@ env \
   MID360_BODY_TO_FASTLIO_YAW_RAD="${MID360_BODY_TO_FASTLIO_YAW_RAD}" \
   WORLD_YAW_ALIGNMENT_RAD="${world_yaw_alignment_rad}" \
   MAP_FILE="${map_file}" \
-  FASTLIO_GLOBAL_MAP_DIR="${global_map_dir}" \
+  FRLIO_GLOBAL_MAP_DIR="${global_map_dir}" \
+  LIO_BACKEND=fr_lio \
+  FRLIO_CONFIG="${frlio_config}" \
   RELOCALIZATION_ENABLED=true \
   PLANNER_BACKEND="${effective_planner_backend}" \
   TUNING_FILE="${tuning_file}" \
@@ -423,6 +401,6 @@ else
 fi
 echo "[结束] 请手动切回 STABILIZED 并降落、上锁；然后在本终端按 Ctrl+C。"
 while kill -0 "${child_pid}" 2>/dev/null; do
-  health_ok || echo "[警告] EV 状态不是 HEALTHY，请立即人工接管。" >&2
+  health_ok || echo "[警告] flight_ready=false；请查看 /ev_health/diagnostics 并立即人工接管。" >&2
   sleep 2
 done

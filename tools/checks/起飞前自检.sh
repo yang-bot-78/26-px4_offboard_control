@@ -69,7 +69,13 @@ require_executable "${project_root}/tools/rosbag/停止录包.sh"
 require_executable "${project_root}/tools/rosbag/刷新录包状态.sh"
 require_file "${project_root}/tools/rosbag/ws_offboard_rosbag_shutdown.service"
 require_executable "${HOME}/livox_mid360_env/run_mid360_driver.sh"
-require_executable "${HOME}/livox_mid360_env/run_fastlio_mid360.sh"
+lio_backend="${LIO_BACKEND:-fr_lio}"
+frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
+case "${lio_backend}" in
+  fr_lio) require_file "${frlio_config}" ;;
+  fast_lio) require_executable "${HOME}/livox_mid360_env/run_fastlio_mid360.sh" ;;
+  *) echo "LIO_BACKEND 必须是 fr_lio 或 fast_lio：${lio_backend}" >&2; exit 1 ;;
+esac
 
 launch_source="${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py"
 stack_script="${project_root}/tools/flight/一键启动起飞栈.sh"
@@ -114,7 +120,7 @@ for required_token in \
   'wait_component_ready "fastlio" message /Odometry' \
   'wait_component_ready "px4_mavros" message /mavros/local_position/odom' \
   'wait_component_ready "px4_mavros" message /mavros/local_position/velocity_local' \
-  'wait_component_ready "px4_mavros" healthy /ev_health/status' \
+  'wait_component_ready "px4_mavros" flight_ready /ev_health/flight_ready' \
   'wait_component_ready "px4_mavros" message /Odometry/healthy' \
   'wait_component_ready "px4_mavros" message /mavros/vision_pose/pose_cov' \
   'wait_component_ready "navigation" message /race/odom'; do
@@ -137,6 +143,7 @@ require_ros_executable px4_ros_com fastlio_odometry_guard
 require_ros_executable px4_ros_com fastlio_ev_health_monitor.py
 require_ros_executable px4_ros_com fastlio_mavros_vision_bridge
 require_ros_executable px4_ros_com check_fastlio_vision_yaw.py
+require_ros_executable fr_lio frlio
 
 # 导航栈。offboard_waypoint_node 已取代 minipc_mavros_offboard.py，成为
 # /mavros/setpoint_raw/local 的唯一发布者。

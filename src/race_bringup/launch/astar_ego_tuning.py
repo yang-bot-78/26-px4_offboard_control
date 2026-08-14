@@ -76,14 +76,18 @@ def load_tuning(path):
     if not math.isfinite(required_center_clearance) or required_center_clearance <= 0.0:
         raise TuningError(
             'shared_safety.required_center_clearance must be finite and > 0')
-    bounds = _require(shared, 'geofence', dict, 'shared_safety')
+    bounds = _require(shared, 'fault_envelope', dict, 'shared_safety')
     for axis in ('x', 'y', 'z'):
-        lower = _number(bounds, f'{axis}_min', 'shared_safety.geofence')
-        upper = _number(bounds, f'{axis}_max', 'shared_safety.geofence')
+        lower = _number(bounds, f'{axis}_min', 'shared_safety.fault_envelope')
+        upper = _number(bounds, f'{axis}_max', 'shared_safety.fault_envelope')
         if lower >= upper:
             raise TuningError(
-                f'shared_safety.geofence.{axis}_min must be < {axis}_max')
-    _non_negative(bounds, 'boundary_margin_m', 'shared_safety.geofence')
+                f'shared_safety.fault_envelope.{axis}_min must be < {axis}_max')
+    for key in ('position_max_speed_mps', 'position_jump_allowance_m',
+                'planning_grid_padding_m',
+                'mission_corridor_max_error_m'):
+        if _non_negative(bounds, key, 'shared_safety.fault_envelope') <= 0.0:
+            raise TuningError(f'shared_safety.fault_envelope.{key} must be > 0')
 
     global_planner = tuning['global_planner']
     for key in (
@@ -378,23 +382,19 @@ def load_tuning(path):
     if ego['occupancy_publish_max_height'] < z_max:
         raise TuningError(
             'ego_planner.occupancy_publish_max_height must cover shared z_max')
-    if ego['occupancy_map_size_x'] / 2.0 < bounds['x_max']:
-        raise TuningError(
-            'ego_planner.occupancy_map_size_x must cover shared x_max')
-    if ego['occupancy_map_size_y'] / 2.0 < max(abs(bounds['y_min']), abs(bounds['y_max'])):
-        raise TuningError(
-            'ego_planner.occupancy_map_size_y must cover shared y bounds')
     for name, value in (
             ('ego_planner.fixed_flight_height', ego['fixed_flight_height']),
             ('offboard.fixed_flight_height_m', offboard['fixed_flight_height_m']),
             ('offboard.takeoff_height_m', offboard['takeoff_height_m']),
             ('offboard.ego_goal_release_height_m', offboard['ego_goal_release_height_m'])):
         if not z_min <= value <= z_max:
-            raise TuningError(f'{name} must be inside shared_safety.geofence.z_min/z_max')
+            raise TuningError(
+                f'{name} must be inside shared_safety.fault_envelope.z_min/z_max')
     if offboard['ego_goal_release_height_m'] > offboard['fixed_flight_height_m']:
         raise TuningError('offboard.ego_goal_release_height_m must be <= fixed_flight_height_m')
     if offboard['max_safe_height_m'] > z_max:
-        raise TuningError('offboard.max_safe_height_m must be <= shared_safety.geofence.z_max')
+        raise TuningError(
+            'offboard.max_safe_height_m must be <= shared_safety.fault_envelope.z_max')
     for key in ('trusted_position_max_speed_mps', 'trusted_position_jump_allowance_m',
                 'ego_setpoint_max_lead_m', 'ego_yaw_rate_limit_rad_s',
                 'initial_position_stabilization_sec', 'initial_position_max_spread_m',
@@ -410,7 +410,7 @@ def load_tuning(path):
 
 def node_parameter_overlays(tuning):
     """Return the exact node parameter overrides built from the one YAML source."""
-    bounds = tuning['shared_safety']['geofence']
+    bounds = tuning['shared_safety']['fault_envelope']
     required_center_clearance = tuning['shared_safety']['required_center_clearance']
     global_planner = tuning['global_planner']
     ego = tuning['ego_planner']
@@ -431,7 +431,10 @@ def node_parameter_overlays(tuning):
             'shared_bounds/x_min': bounds['x_min'], 'shared_bounds/x_max': bounds['x_max'],
             'shared_bounds/y_min': bounds['y_min'], 'shared_bounds/y_max': bounds['y_max'],
             'shared_bounds/z_min': bounds['z_min'], 'shared_bounds/z_max': bounds['z_max'],
-            'shared_bounds/boundary_margin_m': bounds['boundary_margin_m'],
+            'fault_envelope/max_speed_mps': bounds['position_max_speed_mps'],
+            'fault_envelope/jump_allowance_m': bounds['position_jump_allowance_m'],
+            'fault_envelope/planning_grid_padding_m': bounds['planning_grid_padding_m'],
+            'mission_corridor_max_error_m': bounds['mission_corridor_max_error_m'],
             'world_frame': tuning['shared_safety']['frame_id'],
             'fixed_flight_height': ego['fixed_flight_height'],
             'min_safe_height': bounds['z_min'], 'max_safe_height': bounds['z_max'],
@@ -602,7 +605,7 @@ def node_parameter_overlays(tuning):
 
 
 def summary(tuning, path, effective_ego_map_source=None):
-    bounds = tuning['shared_safety']['geofence']
+    bounds = tuning['shared_safety']['fault_envelope']
     # Report the source that is actually in effect. When --ego-map-source
     # overrides the YAML for one run, printing only the YAML value would send
     # every later diagnostic reading the wrong way.
@@ -617,9 +620,12 @@ def summary(tuning, path, effective_ego_map_source=None):
         '[TUNING_FILE]', f'path={path}', f"schema_version={tuning['schema_version']}",
         '[EGO_MAP_SOURCE]', map_source_line,
         '[EGO_MAP_TUNING]', str(tuning['ego_map']),
-        '[SHARED_BOUNDS]',
+        '[FAULT_ENVELOPE]',
         f"x=[{bounds['x_min']},{bounds['x_max']}] y=[{bounds['y_min']},{bounds['y_max']}] "
-        f"z=[{bounds['z_min']},{bounds['z_max']}] margin={bounds['boundary_margin_m']}",
+        f"z=[{bounds['z_min']},{bounds['z_max']}] jump=max_speed*dt+"
+        f"{bounds['position_jump_allowance_m']}m grid_padding="
+        f"{bounds['planning_grid_padding_m']}m corridor="
+        f"{bounds['mission_corridor_max_error_m']}m",
         '[GLOBAL_PLANNER_TUNING]', str(tuning['global_planner']),
         '[EGO_TUNING]', str(tuning['ego_planner']),
         '[BRIDGE_TUNING]', str(tuning['trajectory_bridge']),

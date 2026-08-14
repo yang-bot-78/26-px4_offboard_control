@@ -71,7 +71,7 @@ schema_version: 1
 # 被遮挡处）在 EGO 眼中不存在。原因是 grid_map 的 cloudCallback
 # （plan_env/src/grid_map.cpp:865）只按点云膨胀、不做 raycasting 清除，
 # 未知栅格一律当自由。好处是柱子一进视野立刻算障碍、反应快；
-# 代价是越界与静态障碍的保护改由全局路线和 geofence 承担。
+# 代价是明显坐标故障与静态障碍的保护改由全局路线和 fault_envelope 承担。
 # 无点云时 trajectory_bridge 会按 occupancy_timeout_sec 失效保护刹停，
 # 而不是盲飞。
 #
@@ -150,39 +150,32 @@ shared_safety:
   # ------------------------------------------------------------------------
   required_center_clearance: 0.29
 
-  geofence:
-    # 共享有限飞行边界，单位：m；所有节点读取同一组值。
+  fault_envelope:
+    # 异常保护包络，单位：m，map 系；它不是赛场围栏，也不用于定义正常赛场。
+    # 正常目标仍由静态地图、实时点云、机体净空、动力学复检和 EGO 局部避障决定。
+    # 只有坐标明显错误、飞出基准地图的极大合理范围时才触发故障保持。
     #
-    # 【它是什么】飞机中心允许到达的绝对坐标范围（map 系）。Super 拒绝范围外的
-    #   目标，EGO 发布前全曲线采样复检，Bridge 独立复检，Offboard 最终限幅。
-    #
-    # 【当前值怎么来的】以 3C-5 的 PCD/map <-> Gazebo world 墙角标定为依据：
-    # 以下是外墙内侧扣除机体、跟踪和栅格安全包络后的中心允许范围；
-    # 不改变任何障碍膨胀或碰撞阈值。
-    #
-    # [调大] 只扩大合法路线范围，不会降低任何 obstacle inflation。
-    #        但超出实际墙体就等于允许撞墙 —— 必须有标定证据。
-    # [调小] 会提前拒绝合法目标，也会压缩绕障可用空间。
-    #        注意：绕柱子需要横向空间，边界太紧会让绕行方案无处可去。
+    # 这 60m x 60m 范围比旧的 13m x 16m 校准硬框大得多，故意容忍 map/local
+    # 的小到中等平移误差，避免把仍在赛场中央的飞机误判为越界。它不修复坐标
+    # 对齐本身；重定位 map->odom 仍须另行标定。
     # 修改后完整重启。
-    x_min: -0.85
-    x_max: 11.90
-    # 本次 FAST-LIO 重定位后的现场起点约为 y=-2.85m，边界必须覆盖该起点。
-    y_min: -3.20
-    y_max: 12.40
-    # 高度边界，单位：m；必须包住 fixed_flight_height、takeoff 和 EGO release 高度。
-    # [调大] 不代表允许飞越障碍物顶部（本系统是 flat 定高飞行，见
-    #        ego_planner.fixed_flight_height），只是放宽硬限。
-    # [调小] 会触发硬安全拒绝，低于 fixed_flight_height 直接启动失败。
-    # 修改后完整重启。
+    x_min: -30.0
+    x_max: 30.0
+    y_min: -30.0
+    y_max: 30.0
+    # 高度仍是正常飞行合同，必须包住 fixed_flight_height、takeoff 和 EGO release。
     z_min: 0.50
     z_max: 0.90
-    # 规划路径外的保留边界，单位：m；当前为 grid_resolution 一个体素。
-    # 【它是什么】在上面 6 个硬边界之内再留的一圈缓冲，供 Super 判定路线合法性。
-    # [调大] 需要地图覆盖证据。
-    # [调小] 会降低边界误差余量。
-    # 修改后完整重启。
-    boundary_margin_m: 0.15
+    # 位置相邻两帧允许的最大位移 = max_speed * dt + jump_allowance。
+    # 超过它是定位瞬跳，立即刹停并锁存，不再继续规划。
+    position_max_speed_mps: 4.0
+    position_jump_allowance_m: 0.40
+    # Super 搜索栅格只包住“当前点到目标点”再外扩这段距离，不会因 60m 故障
+    # 包络而变成 60m 全图搜索；它不是第二道赛场围栏。
+    planning_grid_padding_m: 3.0
+    # 飞机到当前 Super 全局路径的最大横向距离。超过 1.5m 视为明显偏离任务
+    # 走廊而非普通 EGO 绕障，立即刹停并锁存，不自动重规划。
+    mission_corridor_max_error_m: 1.50
 
 
 # ============================================================================
@@ -221,6 +214,7 @@ global_planner:
   # Super 跟踪前视距离，单位：m。
   # [调大] 更平滑但转角切弦风险增加。[调小] 更保守但可能抖动。完整重启。
   tracking_lookahead_distance: 0.30
+  # 任务走廊异常阈值来自 shared_safety.fault_envelope；这里不重复配置。
   # Super 到 EGO 的 rolling local goal 最大弧长，单位：m。
   # 【它是什么】Super 每次只把全局路线前方这么长的一段交给 EGO 去精细规划。
   # [约束] 不得超过 ego_planner.planning_horizon，否则启动失败
@@ -269,20 +263,18 @@ ego_planner:
   local_update_range_x: 6.0
   local_update_range_y: 6.0
   local_update_range_z: 1.25
-  # EGO GridMap is centered at map x=0. 24m gives [-12, 12], covering the
-  # full calibrated shared range through x=11.90 without making it unbounded.
-  # [约束] occupancy_map_size_x / 2 必须 >= geofence.x_max（astar_ego_tuning.py:214）。
+  # EGO GridMap is centered at map x=0. 这是局部避障地图尺寸，不需要覆盖 60m
+  # 的故障包络；故障包络只负责发现明显错误的位置，不能拿来扩大局部占据图。
   occupancy_map_size_x: 24.0
   # The map is also centered at y=0. 26m gives [-13, 13], covering the full
-  # shared y range through 12.40. The former 14m upstream default ended at
-  # y=7.0 and rejected an otherwise free trajectory at y=7.001.
-  # [约束] occupancy_map_size_y / 2 必须 >= max(|y_min|, |y_max|)（同上:217）。
+  # normal operating area. The former 14m upstream default ended at y=7.0
+  # and rejected an otherwise free trajectory at y=7.001.
   occupancy_map_size_y: 26.0
   # /race/ego/occupancy_inflate is consumed by the trajectory safety bridge,
   # not only RViz. It must include the full local map height; a negative
   # upstream default filters every flight-height voxel and makes all tracks
   # fail closed as an empty occupancy map.
-  # [约束] 必须 >= geofence.z_max，否则启动失败（astar_ego_tuning.py:211）。
+  # [约束] 必须 >= fault_envelope.z_max，否则启动失败（astar_ego_tuning.py:211）。
   # [注意] 这不只是显示参数。调错会让 Bridge 收到空占据图并全部拒绝轨迹。
   occupancy_publish_max_height: 2.5
   # EGO 最大速度/加速度，单位：m/s、m/s^2。
@@ -363,13 +355,14 @@ ego_planner:
   # [调大] 少发生无谓重置。[调太大] 真正偏离很久才会重新接轨。
   replan_start_position_error_m: 0.25
   # 两条局部轨迹切换时允许的数值衔接误差。不是防撞距离；每条新轨迹仍逐点检查 0.29m 净空。
-  # 本次实测安全候选的拼接位置误差为 1.4~5.2mm，旧 1mm 门会把它们全部误拒绝。
+  # 本次飞行还测到 10.7~14.3mm 的正常衔接误差；15mm 以下允许切换，
+  # 17.4mm 及以上仍会拒绝并重新规划。
   # [约束] 位置/速度 <= 0.02，加速度 <= 0.05。保持远小于飞行器防撞距离和正常跟踪误差。
-  handover_position_tolerance_m: 0.01
+  handover_position_tolerance_m: 0.015
   handover_velocity_tolerance_mps: 0.005
   handover_acceleration_tolerance_mps2: 0.01
   # flat 模式实际执行高度，单位：m。本系统是定高飞行，不做垂直避障。
-  # [约束] 必须在 geofence z 范围内。
+  # [约束] 必须在 fault_envelope z 范围内。
   # [安全合同] 禁止用它绕飞墙顶。完整重启。
   fixed_flight_height: 0.78
 
@@ -507,27 +500,27 @@ trajectory_bridge:
 # ============================================================================
 offboard:
   # 起飞完成高度，单位：m；达到后等待 EGO 轨迹。
-  # [约束] 必须在 geofence z 范围内。完整重启。
+  # [约束] 必须在 fault_envelope z 范围内。完整重启。
   takeoff_height_m: 0.55
   # 释放 EGO rolling goal 的高度，单位：m。到这个高度 Goal Bridge 才放行目标。
-  # [约束] 不得高于 fixed_flight_height_m，且必须在 geofence z 内
+  # [约束] 不得高于 fixed_flight_height_m，且必须在 fault_envelope z 内
   #        （astar_ego_tuning.py:227）。完整重启。
   ego_goal_release_height_m: 0.50
   # EGO starts only after the vehicle remains inside the shared safety height
-  # window (shared_safety.geofence.z_min..z_max) with low horizontal/vertical
+  # window (shared_safety.fault_envelope.z_min..z_max) with low horizontal/vertical
   # velocity for this continuous duration. The legacy tolerance value remains
   # for launch-file compatibility and is no longer used as a fixed-height gate.
   # All four active conditions must hold for ego_goal_stable_duration_sec.
   ego_goal_stable_height_tolerance_m: 0.05
   ego_goal_stable_horizontal_speed_mps: 0.08
-  ego_goal_stable_vertical_speed_mps: 0.05
+  ego_goal_stable_vertical_speed_mps: 0.30
   ego_goal_stable_duration_sec: 0.50
   # Offboard 固定巡航高度，单位：m。
-  # [约束] 必须与 ego_planner.fixed_flight_height 一致并处于 geofence z 内。
+  # [约束] 必须与 ego_planner.fixed_flight_height 一致并处于 fault_envelope z 内。
   # 完整重启。
   fixed_flight_height_m: 0.78
   # Offboard 最大安全高度，单位：m。硬限幅，超过就拉回。
-  # [约束] 不得高于 geofence.z_max（astar_ego_tuning.py:229）。完整重启。
+  # [约束] 不得高于 fault_envelope.z_max（astar_ego_tuning.py:229）。完整重启。
   max_safe_height_m: 0.90
   # 最终目标 XY 容差，单位：m。到此范围内且速度够低即判定到达。
   # [调大] 可能过早到达。[调小] 可能在目标附近抖动不判定到达。完整重启。

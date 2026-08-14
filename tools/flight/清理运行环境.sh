@@ -69,6 +69,8 @@ patterns_sensor=(
   run_fastlio_mid360.sh
   frlio
   'fr_lio lio.launch.py'
+  lidar_validation_gate
+  'high_rate_validation_helper.py (gate|fault-test|observe|load)'
 )
 patterns_mavros=(
   mavros_node

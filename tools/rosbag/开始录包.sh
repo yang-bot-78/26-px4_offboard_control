@@ -196,6 +196,15 @@ echo "在本终端按 Ctrl+C 停止录包。"
 
 bag_topics=(
   /velocity_calibration/marker
+  # FR-LIO 输入与高频锚点健康：用于区分 MID-360 输入断流和
+  # FR-LIO 处理/调度卡顿。它们是自动起飞、悬停和导航飞行的常规证据，
+  # 不依赖 RECORD_POINTCLOUD。
+  /livox/lidar
+  /livox/imu
+  /frlio/high_rate_odom/status
+  /frlio/high_rate_odom/anchor_age
+  # 高频原始、规划和经 EV 门控后的里程计，三者必须一起保存，才能对齐
+  # 输入断档、重定位桥和 MAVROS/PX4 视觉输出。
   /Odometry
   /Odometry/guarded
   /Odometry/healthy
