@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 生成 FR-LIO 全局重定位数据库，并提供手飞建图所需的定位链路。
-# 启动：MID-360、项目内 FR-LIO、全局后端、MAVROS 和 EV vision_pose 链路。
+# 启动：MID-360、项目内 FR-LIO、全局后端、MAVROS、MAVLink ODOMETRY EV 链路和诊断 rosbag。
 # 不启动：Offboard、导航控制、解锁、模式切换或任何 setpoint 发布器。
 
 if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || "${1:-}" == "--帮助" ]]; then
@@ -22,6 +22,7 @@ if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || "${1:-}" == "--帮助" ]]; the
   FRLIO_GLOBAL_MAP_MAX_Z=2.5
   FCU_URL=serial:///dev/ttyUSB0:921600?ids=255,190
   MAVROS_STABLE_SEC=10
+  RECORD_BAG=true
 EOF
   exit 0
 fi
@@ -45,8 +46,13 @@ wait_timeout="${GLOBAL_MAP_WAIT_TIMEOUT:-90}"
 driver_delay="${MID360_FRLIO_DELAY_SEC:-${MID360_FASTLIO_DELAY_SEC:-4}}"
 resolution="${FRLIO_GLOBAL_MAP_RESOLUTION:-${FASTLIO_GLOBAL_MAP_RESOLUTION:-0.15}}"
 fcu_url="${FCU_URL:-serial:///dev/ttyUSB0:921600?ids=255,190}"
+odometry_stability_gate="${project_root}/tools/flight/等待flight_ready稳定.py"
+bag_script="${project_root}/tools/rosbag/开始录包.sh"
 mavros_stable_sec="${MAVROS_STABLE_SEC:-10}"
+record_bag="${RECORD_BAG:-true}"
 timestamp="$(date +%Y%m%d_%H%M%S)"
+flight_date="${timestamp%%_*}"
+flight_run_dir="${project_root}/flight_records/${flight_date}/flight_${timestamp}"
 map_parent="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps}}"
 map_dir="${map_parent%/}/frlio_global_3d_${timestamp}"
 max_z="${FRLIO_GLOBAL_MAP_MAX_Z:-${FASTLIO_GLOBAL_MAP_MAX_Z:-2.5}}"
@@ -69,6 +75,10 @@ fi
 ((mavros_stable_sec >= 3)) || {
   echo "[错误] MAVROS_STABLE_SEC 不能小于 3 秒。" >&2; exit 2;
 }
+case "${record_bag}" in
+  true|false) ;;
+  *) echo "[错误] RECORD_BAG 必须是 true 或 false。" >&2; exit 2 ;;
+esac
 for required in \
   "${livox_env}/run_mid360_driver.sh" \
   "${livox_env}/setup_mid360.bash" \
@@ -78,6 +88,8 @@ for required in \
   "${project_root}/install/setup.bash" \
   "${project_root}/tools/flight/清理运行环境.sh" \
   "${autofix_launch}" \
+  "${odometry_stability_gate}" \
+  "${bag_script}" \
   "${project_root}/src/px4_ros_com/config/mid360_lever_arm.conf" \
   "$(command -v pcl_passthrough_filter 2>/dev/null || printf '%s' /missing/pcl_passthrough_filter)"; do
   [[ -f "${required}" ]] || { echo "[错误] 缺少文件：${required}" >&2; exit 2; }
@@ -94,8 +106,9 @@ cat <<EOF
 ============================================================
 保存目录：${map_dir}
 日志目录：${log_dir}
+飞行诊断目录：${flight_run_dir}
 
-本流程启动：雷达、项目内 FR-LIO、全局关键帧后端、MAVROS 和 EV vision_pose 链路。
+本流程启动：雷达、项目内 FR-LIO、全局关键帧后端、MAVROS、MAVLink ODOMETRY EV 链路和诊断 rosbag。
 本流程不会启动：Offboard、导航、解锁、模式切换或任何 setpoint 发布器。
 
 开始前确认：
@@ -159,7 +172,7 @@ if grep -Eq 'DeclareLaunchArgument\("start_(bridge|px4_ev_bridge)' "${autofix_la
   exit 2
 fi
 
-"${project_root}/tools/flight/清理运行环境.sh" offboard ev rviz sensor mavros
+"${project_root}/tools/flight/清理运行环境.sh" offboard rosbag ev rviz sensor mavros
 # livox_ros_driver2 may need a short interval to release its SDK UDP workers
 # after the cleanup script had to terminate an old driver instance.
 echo "[等待] 等待 MID-360 驱动 UDP 接收端口释放。"
@@ -201,6 +214,46 @@ wait_until_disarmed_for_shutdown() {
   done
 }
 
+stop_named_component() {
+  local target_name="$1" timeout_s="$2"
+  local i deadline pgid pid
+  for ((i=0; i<${#names[@]}; i++)); do
+    [[ "${names[i]}" == "${target_name}" ]] || continue
+    pgid="${pgids[i]}"
+    pid="${pids[i]}"
+    if ! kill -0 "${pid}" 2>/dev/null && ! kill -0 -- "-${pgid}" 2>/dev/null; then
+      wait "${pid}" 2>/dev/null || true
+      return 0
+    fi
+    echo "[停止] ${target_name}：发送 SIGINT 并等待完成落盘。"
+    kill -INT -- "-${pgid}" 2>/dev/null || true
+    deadline=$((SECONDS + timeout_s))
+    while ((SECONDS < deadline)); do
+      if ! kill -0 "${pid}" 2>/dev/null && ! kill -0 -- "-${pgid}" 2>/dev/null; then
+        wait "${pid}" 2>/dev/null || true
+        echo "[停止] ${target_name} 已干净退出。"
+        return 0
+      fi
+      sleep 1
+    done
+    echo "[警告] ${target_name} 在 ${timeout_s}s 内未退出，发送 SIGTERM。" >&2
+    kill -TERM -- "-${pgid}" 2>/dev/null || true
+    deadline=$((SECONDS + 5))
+    while ((SECONDS < deadline)); do
+      if ! kill -0 "${pid}" 2>/dev/null && ! kill -0 -- "-${pgid}" 2>/dev/null; then
+        wait "${pid}" 2>/dev/null || true
+        return 1
+      fi
+      sleep 1
+    done
+    echo "[警告] ${target_name} 仍未退出，强制回收该录包进程组。" >&2
+    kill -KILL -- "-${pgid}" 2>/dev/null || true
+    wait "${pid}" 2>/dev/null || true
+    return 1
+  done
+  return 0
+}
+
 stop_all() {
   [[ "${stopping}" == false ]] || return
   ((${#pgids[@]} > 0)) || return
@@ -208,13 +261,27 @@ stop_all() {
   trap '' INT TERM HUP
   wait_until_disarmed_for_shutdown
   stopping=true; trap - EXIT INT TERM HUP; set +e
-  echo "[停止] 按逆序停止全局建图组件。"
+  if [[ "${record_bag}" == true ]]; then
+    stop_named_component "诊断 rosbag" 20 || true
+  fi
+  echo "[停止] 按逆序停止其余全局建图组件。"
   local i pgid
-  for ((i=${#pgids[@]}-1; i>=0; i--)); do kill -INT -- "-${pgids[i]}" 2>/dev/null || true; done
+  for ((i=${#pgids[@]}-1; i>=0; i--)); do
+    [[ "${names[i]}" == "诊断 rosbag" ]] && continue
+    kill -INT -- "-${pgids[i]}" 2>/dev/null || true
+  done
   sleep 5
-  for pgid in "${pgids[@]}"; do kill -TERM -- "-${pgid}" 2>/dev/null || true; done
+  for ((i=${#pgids[@]}-1; i>=0; i--)); do
+    [[ "${names[i]}" == "诊断 rosbag" ]] && continue
+    pgid="${pgids[i]}"
+    kill -TERM -- "-${pgid}" 2>/dev/null || true
+  done
   sleep 2
-  for pgid in "${pgids[@]}"; do kill -KILL -- "-${pgid}" 2>/dev/null || true; done
+  for ((i=${#pgids[@]}-1; i>=0; i--)); do
+    [[ "${names[i]}" == "诊断 rosbag" ]] && continue
+    pgid="${pgids[i]}"
+    kill -KILL -- "-${pgid}" 2>/dev/null || true
+  done
   for i in "${pids[@]}"; do wait "${i}" 2>/dev/null || true; done
 }
 trap stop_all EXIT
@@ -247,6 +314,21 @@ wait_service() {
   return 1
 }
 
+wait_node() {
+  local node="$1" name="$2" start="${SECONDS}"
+  echo "[等待] ${node} 节点。"
+  while ((SECONDS-start < wait_timeout)); do
+    running "${name}" || { echo "[错误] ${name} 已退出，请查看日志。" >&2; return 1; }
+    if ros2 node list 2>/dev/null | grep -Fxq "${node}"; then
+      echo "[就绪] ${node}"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "[错误] 等待 ${node} 超时。" >&2
+  return 1
+}
+
 wait_backend_sync() {
   local start="${SECONDS}"
   local status=""
@@ -269,49 +351,16 @@ wait_backend_sync() {
 }
 
 wait_mavros_stable() {
-  local start="${SECONDS}" stable_since=0 state estimator
   echo "[等待] MAVROS/EV 定位链路连续稳定 ${mavros_stable_sec} 秒。"
-  while ((SECONDS-start < wait_timeout)); do
-    running "MAVROS + EV 定位链" || {
-      echo "[错误] MAVROS + EV 定位链已退出，请查看 ${log_dir}/MAVROS+EV.log。" >&2
-      return 1
-    }
-    # A launch process remains alive when a child node crashes.  Detect the
-    # required health gate explicitly so an import error cannot masquerade as
-    # a permanently-not-ready flight controller.
-    if ((SECONDS - start >= 10)) &&
-       ! ros2 node list 2>/dev/null | grep -Fxq /fastlio_ev_health_monitor; then
-      echo "[错误] EV 健康监控节点没有运行，请查看 ${log_dir}/MAVROS+EV.log。" >&2
-      tail -80 "${log_dir}/MAVROS+EV.log" >&2 || true
-      return 1
-    fi
-    state="$(timeout 5 ros2 topic echo --once /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
-    estimator="$(timeout 5 ros2 topic echo --once /mavros/estimator_status mavros_msgs/msg/EstimatorStatus 2>/dev/null || true)"
-    if grep -Eq '^armed:[[:space:]]+true$' <<<"${state}" ||
-       grep -Eq "^mode:[[:space:]]+['\"]?OFFBOARD['\"]?$" <<<"${state}"; then
-      echo "[错误] 拒绝进入手飞建图：飞机已解锁或处于 OFFBOARD。" >&2
-      return 1
-    fi
-    if grep -q 'connected: true' <<<"${state}" &&
-       grep -q 'data: true' < <(timeout 5 ros2 topic echo --once /ev_health/flight_ready std_msgs/msg/Bool 2>/dev/null || true) &&
-       grep -q 'pos_horiz_rel_status_flag: true' <<<"${estimator}" &&
-       grep -q 'pos_vert_abs_status_flag: true' <<<"${estimator}" &&
-       timeout 5 ros2 topic echo --once --qos-reliability best_effort /Odometry/healthy >/dev/null 2>&1 &&
-       timeout 5 ros2 topic echo --once /mavros/vision_pose/pose_cov >/dev/null 2>&1 &&
-       timeout 5 ros2 topic echo --once /mavros/local_position/pose >/dev/null 2>&1; then
-      ((stable_since == 0)) && stable_since="${SECONDS}"
-      if ((SECONDS-stable_since >= mavros_stable_sec)); then
-        echo "[就绪] MAVROS 已连接，flight_ready=true，PX4 水平/垂直位置有效，连续稳定 ${mavros_stable_sec} 秒。"
-        return 0
-      fi
-      echo "[等待] 定位链路稳定中：$((SECONDS-stable_since))/${mavros_stable_sec}s。"
-    else
-      stable_since=0
-      echo "[等待] MAVROS/EV 尚未满足稳定门（connected、flight_ready、水平位置、视觉位姿）。"
-    fi
-    sleep 1
-  done
-  echo "[错误] MAVROS/EV 定位链路在 ${wait_timeout}s 内未连续稳定。" >&2
+  if python3 "${odometry_stability_gate}" \
+      --timeout-s "${wait_timeout}" \
+      --stable-s "${mavros_stable_sec}" \
+      --require-disarmed \
+      --reject-offboard; then
+    return 0
+  fi
+  echo "[错误] MAVROS/EV 定位链路未通过 MAVLink ODOMETRY 速度稳定门。" >&2
+  tail -80 "${log_dir}/MAVROS+EV.log" >&2 || true
   return 1
 }
 
@@ -337,7 +386,7 @@ wait_backend_sync
 start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   ros2 launch "${autofix_launch}" \
   "fcu_url:=${fcu_url}" \
-  start_mavros_vision_bridge:=true \
+  start_mavros_odometry_bridge:=true \
   start_odom_guard:=true \
   start_ev_health_monitor:=true \
   start_tf:=true \
@@ -349,6 +398,16 @@ start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   "body_to_fastlio_yaw_rad:=${MID360_BODY_TO_FASTLIO_YAW_RAD}"
 wait_mavros_stable
 
+if [[ "${record_bag}" == true ]]; then
+  start_component "诊断 rosbag" "${log_dir}/rosbag.log" \
+    env FLIGHT_TIMESTAMP="${timestamp}" FLIGHT_RUN_DIR="${flight_run_dir}" \
+      RECORD_POINTCLOUD=false RECORD_EGO_DIAGNOSTICS=false \
+      "${bag_script}"
+  wait_node /rosbag2_recorder "诊断 rosbag"
+else
+  echo "[警告] RECORD_BAG=false：本次 Position 建图不会生成链路诊断 rosbag。" >&2
+fi
+
 start_component "全局建图 RViz" "${log_dir}/RViz.log" rviz2 -d "${rviz_config}"
 sleep 3
 running "全局建图 RViz" || { echo "[错误] RViz 启动失败，请查看 ${log_dir}/RViz.log。" >&2; exit 3; }
@@ -357,6 +416,7 @@ cat <<EOF
 
 ============================================================
 FR-LIO 全局建图和 MAVROS/EV 定位链路已经开始，后端正在接收 /Odometry + /cloud_registered，RViz 正在实时显示。
+诊断 rosbag：$([[ "${record_bag}" == true ]] && printf '%s' "${flight_run_dir}/rosbag" || printf '%s' '<已禁用>')
 
 定位稳定门已通过。现在可以由飞手手动解锁、起飞并切换到 Position 进行手飞建图。
 脚本不会发送任何解锁、模式切换或飞行控制命令。若 Position 无法定点，立即切回 Stabilized。
@@ -423,6 +483,9 @@ while true; do
 done
 
 echo "[成功] 重定位库已保存：${map_dir}（${keyframe_count} 个关键帧）"
+if [[ "${record_bag}" == true ]]; then
+  echo "[证据] 退出脚本时会先干净保存诊断 rosbag：${flight_run_dir}/rosbag"
+fi
 if ((keyframe_count < 10)); then
   echo "[警告] 当前只有 ${keyframe_count} 个关键帧，仅用于开局单次重定位和规划线测试，不能作为实飞重定位库。"
 fi

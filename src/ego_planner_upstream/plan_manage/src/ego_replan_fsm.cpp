@@ -313,6 +313,12 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   bspline_pub_ = node_->create_publisher<traj_utils::msg::Bspline>("planning/bspline", 10);
   safety_status_pub_ = node_->create_publisher<std_msgs::msg::String>(
     "/race/ego/planner_safety_status", rclcpp::QoS(1).reliable().transient_local());
+  replan_ready_sub_ = node_->create_subscription<std_msgs::msg::UInt64>(
+    "/race/ego/replan_ready", rclcpp::QoS(1).reliable().transient_local(),
+    [this](const std::shared_ptr<const std_msgs::msg::UInt64> & msg)
+    {
+      this->replanReadyCallback(msg);
+    });
   data_disp_pub_ = node_->create_publisher<traj_utils::msg::DataDisp>("planning/data_display", 100);
 
   if (target_type_ == TARGET_TYPE::MANUAL_TARGET) {
@@ -1061,6 +1067,9 @@ void EGOReplanFSM::execFSMCallback()
         {
           goto force_return;
         }
+        if (awaiting_bridge_replan_ready_) {
+          goto force_return;
+        }
         if (shadow_mode_ && (end_pt_ - odom_pos_).norm() <= no_replan_thresh_) {
           RCLCPP_INFO(
             node_->get_logger(),
@@ -1073,7 +1082,11 @@ void EGOReplanFSM::execFSMCallback()
           break;
         }
 
-        if (planFromCurrentTraj(replan_candidate_trials_)) {
+        const bool success = bridge_replan_ready_received_ ?
+          planFromGlobalTraj(replan_candidate_trials_) :
+          planFromCurrentTraj(replan_candidate_trials_);
+        bridge_replan_ready_received_ = false;
+        if (success) {
           next_replan_retry_time_ = rclcpp::Time(0, 0, node_->get_clock()->get_clock_type());
           changeFSMExecState(EXEC_TRAJ, "FSM");
           publishSwarmTrajs(false);
@@ -1196,6 +1209,9 @@ bool EGOReplanFSM::planFromGlobalTraj(const int trial_times /*=1*/)   // zx-todo
 
 bool EGOReplanFSM::planFromCurrentTraj(const int trial_times /*=1*/)
 {
+  if (awaiting_bridge_replan_ready_) {
+    return false;
+  }
   if (force_new_global_path_session_) {
     return planFromGlobalTraj(trial_times);
   }
@@ -2544,10 +2560,42 @@ void EGOReplanFSM::scheduleReplanRetry(const std::string & reason, const double 
 
 void EGOReplanFSM::publishSafetyStatus(const std::string & status)
 {
+  if (status == "EGO_REPLAN_REANCHOR_RETRY") {
+    awaiting_bridge_replan_ready_ = true;
+    bridge_replan_ready_received_ = false;
+  }
   logFailureSemantics(status);
   std_msgs::msg::String message;
   message.data = status;
   safety_status_pub_->publish(message);
+}
+
+void EGOReplanFSM::replanReadyCallback(
+  const std::shared_ptr<const std_msgs::msg::UInt64> & msg)
+{
+  if (msg->data <= last_bridge_replan_ready_token_) {
+    return;
+  }
+  last_bridge_replan_ready_token_ = msg->data;
+  const bool planner_reanchor_requested = awaiting_bridge_replan_ready_;
+  const bool bridge_requested_replan = have_target_ &&
+    (exec_state_ == EXEC_TRAJ || exec_state_ == REPLAN_TRAJ);
+  if (!planner_reanchor_requested && !bridge_requested_replan) {
+    return;
+  }
+
+  awaiting_bridge_replan_ready_ = false;
+  bridge_replan_ready_received_ = true;
+  force_new_global_path_session_ = true;
+  next_replan_retry_time_ = rclcpp::Time(0, 0, node_->get_clock()->get_clock_type());
+  if (exec_state_ == EXEC_TRAJ) {
+    changeFSMExecState(REPLAN_TRAJ, "BRIDGE_READY");
+  }
+  RCLCPP_WARN(
+    node_->get_logger(),
+    "[EGO_REPLAN_READY_ACCEPTED] token=%lu source=%s start=latest_odom",
+    static_cast<unsigned long>(msg->data), planner_reanchor_requested ?
+    "planner_reanchor" : "bridge_switch");
 }
 
 void EGOReplanFSM::publishPendingValidationFailure(bool immediate)

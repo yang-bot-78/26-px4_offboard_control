@@ -1521,18 +1521,18 @@ private:
       publishControlDiagnostics("pilot_override");
       return;
     }
-    // In-flight EV guard, ahead of the state dispatch.  A FAULT is always
-    // reported; AUTO.LAND is optional for procedures that require RC takeover.
-    // SUSPECT and status staleness do not by themselves descend, matching what
-    // minipc_mavros_offboard.py already flew.
-    // The vehicle must be airborne for this to act -- FAULT while still on the
-    // ground is handled by the pre-arm gate in runPreflight().
+    // EV FAULT is always reported, but AUTO.LAND is allowed only after the
+    // vertical takeoff reaches ACTIVE.  Takeoff velocity and handover
+    // transients are expected; the pilot must take over if health degrades in
+    // that phase. SUSPECT and status staleness do not by themselves descend.
     if (require_ev_health_ && ev_health_.faulted() && armed_ &&
       state_ != State::LANDING && state_ != State::IDLE)
     {
+      const bool auto_land_for_fault = race_offboard::shouldAutoLandForEvFault(
+        ev_fault_auto_land_, armed_, state_ == State::ACTIVE, state_ == State::LANDING);
       if (!ev_fault_report_latched_) {
         ev_fault_report_latched_ = true;
-        if (ev_fault_auto_land_) {
+        if (auto_land_for_fault) {
           RCLCPP_ERROR(
             get_logger(),
             "[EV_HEALTH_FAULT] external vision reported FAULT in flight; requesting AUTO.LAND");
@@ -1540,10 +1540,10 @@ private:
           RCLCPP_ERROR(
             get_logger(),
             "[EV_HEALTH_FAULT] external vision reported FAULT in flight; "
-            "AUTO.LAND disabled, pilot must take over immediately");
+            "AUTO.LAND withheld during takeoff; pilot must take over immediately");
         }
       }
-      if (ev_fault_auto_land_) {
+      if (auto_land_for_fault) {
         state_ = State::LANDING;
       }
     }

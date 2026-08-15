@@ -15,6 +15,7 @@
 #include "race_msgs/msg/flight_altitude_reference.hpp"
 #include "std_msgs/msg/empty.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/u_int64.hpp"
 #include <vector>
 #include "visualization_msgs/msg/marker.hpp"
 
@@ -161,6 +162,9 @@ namespace ego_planner
     bool have_latest_reference_path_{false};
     bool have_active_reference_path_{false};
     bool force_new_global_path_session_{false};
+    bool awaiting_bridge_replan_ready_{false};
+    bool bridge_replan_ready_received_{false};
+    uint64_t last_bridge_replan_ready_token_{0};
     std::vector<Eigen::Vector3d> wps_;
     int current_wp_;
 
@@ -202,6 +206,7 @@ namespace ego_planner
     rclcpp::Subscription<traj_utils::msg::MultiBsplines>::SharedPtr swarm_trajs_sub_;
     rclcpp::Subscription<traj_utils::msg::Bspline>::SharedPtr broadcast_bspline_sub_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr trigger_sub_;
+    rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr replan_ready_sub_;
 
     // rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr replan_pub_;
     // rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr new_pub_;
@@ -219,6 +224,7 @@ namespace ego_planner
     bool validateTrajectoryForPublish(LocalTrajData & candidate);
     bool validateTrajectoryGeofenceForPublish(LocalTrajData & candidate);
     void publishSafetyStatus(const std::string &status);
+    void replanReadyCallback(const std::shared_ptr<const std_msgs::msg::UInt64> & msg);
     void publishPendingValidationFailure(bool immediate);
     bool callEmergencyStop(Eigen::Vector3d stop_pos);                          // front-end and back-end method
     bool planFromGlobalTraj(const int trial_times = 1);

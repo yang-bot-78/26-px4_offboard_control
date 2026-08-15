@@ -76,6 +76,9 @@ struct MeasureGroup     // Lidar data and imu dates for the curent process
     double lidar_end_time;
     PointCloudXYZI::Ptr lidar;
     std::deque<sensor_msgs::msg::Imu::ConstSharedPtr> imu;
+    // One entry per imu message; rejected samples retain their timestamp and
+    // use this multiplier for the acceleration process-noise block.
+    std::deque<double> imu_process_noise_scale;
 };
 
 struct StatesGroup

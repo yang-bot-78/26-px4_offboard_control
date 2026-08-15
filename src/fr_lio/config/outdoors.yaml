@@ -22,11 +22,20 @@
     imu:
       acceleration_unit: "g"
       unit_report_duration_s: 10.0
+      rejected_accel_process_noise_scale: 10.0
     high_rate_odom:
       enabled: true
       warn_anchor_age_s: 0.15
       max_anchor_age_s: 0.40
       imu_history_s: 5.0
+      correction_smoothing_s: 0.25
+      correction_diagnostics: true
+      accel_filter:
+        enabled: true
+        window_size: 21
+        min_samples: 7
+        max_deviation_mps2: 5.0
+        max_norm_mps2: 19.62
 
     preprocess:
       lidar_type: 1
@@ -36,6 +45,7 @@
       scan_rate: 10
 
     mapping:
+      update_diagnostics: true
       acc_cov: 0.1
       gyr_cov: 0.1
       b_acc_cov: 0.0001

@@ -44,7 +44,7 @@ from ultralytics import YOLO
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
-DEFAULT_MODEL_PATH = SCRIPT_DIR / "best.pt"
+DEFAULT_MODEL_PATH = SCRIPT_DIR / "l250v8.pt"
 # DEFAULT_MODEL_PATH = SCRIPT_DIR / "v8-200.pt"
 # DEFAULT_MODEL_PATH = SCRIPT_DIR / "v11-200.pt"
 # DEFAULT_MODEL_PATH = SCRIPT_DIR / "v8-350.pt"

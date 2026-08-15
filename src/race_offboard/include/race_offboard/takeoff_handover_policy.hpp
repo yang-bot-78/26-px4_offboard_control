@@ -58,6 +58,18 @@ inline bool canHandoverToEgo(
   return takeoff_height_reached && fresh_ego_setpoint && !planner_failed;
 }
 
+// An EV fault may request AUTO.LAND only after the vertical takeoff has
+// completed. Takeoff velocity and the short handover transient are expected
+// to be non-zero; keep the pilot in charge during that phase instead.
+inline bool shouldAutoLandForEvFault(
+  const bool auto_land_enabled,
+  const bool armed,
+  const bool takeoff_complete,
+  const bool already_landing)
+{
+  return auto_land_enabled && armed && takeoff_complete && !already_landing;
+}
+
 // A new final goal invalidates the previous EGO command before the planner can
 // publish the first command for the new transaction.  This remains a planning
 // wait until an explicit planner failure is reported.  It must not be folded

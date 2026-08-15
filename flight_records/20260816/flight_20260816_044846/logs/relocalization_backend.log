@@ -1,0 +1,12 @@
+[FAST-LIO global relocalization] starting
+[FAST-LIO global relocalization] command: ros2 launch fastlio_global_slam fastlio_global_slam.launch.py start_fastlio:=false rviz:=false backend_config:=/home/robot/rong_ws/ws_offboard_control/tools/fastlio/只重定位一次后端参数.yaml
+[FAST-LIO global relocalization] pid=30157 pgid=30157 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846/logs/relocalization_backend.log
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-16-04-49-14-192520-robot-30157
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [fastlio_global_backend-1]: process started with pid [30193]
+[fastlio_global_backend-1] [WARN] [1786826954.384235520] [fastlio_global_backend]: GTSAM requested but not found at build time. Running without factor graph optimization.
+[fastlio_global_backend-1] [INFO] [1786826954.384569524] [fastlio_global_backend]: Global mapping backend listening on odom=/Odometry cloud=/cloud_registered with BEST_EFFORT sensor QoS
+[fastlio_global_backend-1] [INFO] [1786826965.460625651] [fastlio_global_backend]: Relocalization attempt started: loaded_keyframes=79 latest_scan_points=2288
+[fastlio_global_backend-1] [INFO] [1786826965.818427785] [fastlio_global_backend]: Relocalization candidate: index=60 similarity=0.961 sector_shift=33 coarse_yaw=-162.000 deg source_points=2288 target_points=4260
+[fastlio_global_backend-1] [INFO] [1786826965.927438477] [fastlio_global_backend]: ICP relocalization accepted: fitness=0.195018 target_from_source_xyz=(0.041, -0.108, -0.306) target_from_source_yaw=-160.971 deg
+[fastlio_global_backend-1] [INFO] [1786826965.929413062] [fastlio_global_backend]: Relocalization succeeded. candidate=60 similarity=0.961 sector_shift=33 coarse_yaw_deg=-162.000 refined_yaw_deg=-160.971 fitness=0.1950 elapsed=0.47 s

@@ -306,6 +306,7 @@ def load_tuning(path):
             'active_recheck_history_sec',
             'dynamic_invalid_grace_sec', 'collision_sample_spacing_m',
             'replan_hold_timeout_sec',
+            'replan_reanchor_max_horizontal_speed_mps', 'replan_reanchor_stable_sec',
             'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
             'switch_acceleration_tolerance_mps2',
             'dynamic_limit_margin', 'max_yaw_rate_rad_s',
@@ -325,6 +326,14 @@ def load_tuning(path):
     if not 0.50 <= bridge['replan_hold_timeout_sec'] <= 3.0:
         raise TuningError(
             'trajectory_bridge.replan_hold_timeout_sec must be in [0.50, 3.0]')
+    if not 0.01 <= bridge['replan_reanchor_max_horizontal_speed_mps'] <= 0.10:
+        raise TuningError(
+            'trajectory_bridge.replan_reanchor_max_horizontal_speed_mps must be in [0.01, 0.10]')
+    if not 0.10 <= bridge['replan_reanchor_stable_sec'] <= \
+            bridge['replan_hold_timeout_sec']:
+        raise TuningError(
+            'trajectory_bridge.replan_reanchor_stable_sec must be in '
+            '[0.10, replan_hold_timeout_sec]')
     if bridge['switch_position_tolerance_m'] > 0.10:
         raise TuningError(
             'trajectory_bridge.switch_position_tolerance_m must be <= 0.10')
@@ -555,6 +564,10 @@ def node_parameter_overlays(tuning):
                               'bspline_timeout_sec': bridge['bspline_timeout_sec'],
                               'dynamic_invalid_grace_sec': bridge['dynamic_invalid_grace_sec'],
                               'replan_hold_timeout_sec': bridge['replan_hold_timeout_sec'],
+                              'replan_reanchor_max_horizontal_speed_mps':
+                                  bridge['replan_reanchor_max_horizontal_speed_mps'],
+                              'replan_reanchor_stable_sec':
+                                  bridge['replan_reanchor_stable_sec'],
                               'switch_position_tolerance_m':
                                   bridge['switch_position_tolerance_m'],
                               'switch_velocity_tolerance_mps':

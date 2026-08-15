@@ -1,0 +1,761 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-14-02-13-38-119131-robot-15300
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [15327]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [15329]
+[INFO] [fastlio_ev_health_monitor.py-3]: process started with pid [15331]
+[INFO] [fix_mavros_odometry_frames.py-4]: process started with pid [15333]
+[INFO] [fastlio_mavros_vision_bridge-5]: process started with pid [15336]
+[INFO] [static_transform_publisher-6]: process started with pid [15338]
+[INFO] [static_transform_publisher-7]: process started with pid [15340]
+[INFO] [static_transform_publisher-8]: process started with pid [15342]
+[fastlio_odometry_guard-2] [INFO] [1786644818.637213150] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.30m, xy=0.20m, z=0.10m, speed=1.20m/s, unknown angular variance>=100000)
+[static_transform_publisher-6] [INFO] [1786644818.667301236] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.080000')
+[static_transform_publisher-6] rotation: ('0.000000', '0.000000', '-0.000000', '1.000000')
+[static_transform_publisher-6] from 'base_link' to 'body'
+[mavros_node-1] [INFO] [1786644818.669912577] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1786644818.670203273] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1786644818.670219422] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1786644818.670226293] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1786644818.670233604] [mavros.mavros_node]: Starting mavros router node
+[static_transform_publisher-8] [INFO] [1786644818.670485093] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-8] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] from 'body' to 'body_frd'
+[static_transform_publisher-7] [INFO] [1786644818.686359491] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'camera_init' to 'camera_init_ned'
+[fastlio_mavros_vision_bridge-5] [INFO] [1786644818.701021148] [fastlio_mavros_vision_bridge]: Bridging /Odometry/healthy -> /mavros/vision_pose/pose_cov + vision_speed for MAVROS vision input; body->FAST-LIO origin in body FLU=(0.0000, 0.0000, 0.0800) m, R_FASTLIO_body yaw=0.000000 rad, world yaw alignment=0.000000 rad
+[mavros_node-1] [INFO] [1786644818.729553853] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786644818.729609600] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786644818.729622798] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786644818.729628145] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1786644818.729750400] [mavros.mavros_node]: Starting mavros uas node
+[mavros_node-1] [INFO] [1786644818.889066648] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1786644818.889137585] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1786644818.890955136] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1786644818.891109912] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1786644818.891183800] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1786644818.894724697] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1786644818.898942404] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1786644818.899940871] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1786644818.899991716] [mavros.mavros]: Plugin actuator_control ignored
+[mavros_node-1] [INFO] [1786644818.900088114] [mavros.mavros]: Plugin adsb ignored
+[mavros_node-1] [INFO] [1786644818.900102942] [mavros.mavros]: Plugin altitude ignored
+[mavros_node-1] [INFO] [1786644818.900114356] [mavros.mavros]: Plugin cam_imu_sync ignored
+[mavros_node-1] [INFO] [1786644818.900125336] [mavros.mavros]: Plugin camera ignored
+[mavros_node-1] [INFO] [1786644818.900136383] [mavros.mavros]: Plugin cellular_status ignored
+[mavros_node-1] [INFO] [1786644819.015177297] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1786644819.015621035] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1786644819.015681665] [mavros.mavros]: Plugin companion_process_status ignored
+[mavros_node-1] [INFO] [1786644819.015696739] [mavros.mavros]: Plugin debug_value ignored
+[mavros_node-1] [INFO] [1786644819.015708842] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1786644819.015723196] [mavros.mavros]: Plugin esc_status ignored
+[mavros_node-1] [INFO] [1786644819.015734692] [mavros.mavros]: Plugin esc_telemetry ignored
+[mavros_node-1] [INFO] [1786644819.015749257] [mavros.mavros]: Plugin fake_gps ignored
+[mavros_node-1] [INFO] [1786644819.015761137] [mavros.mavros]: Plugin ftp ignored
+[mavros_node-1] [INFO] [1786644819.015772864] [mavros.mavros]: Plugin geofence ignored
+[mavros_node-1] [INFO] [1786644819.015788305] [mavros.mavros]: Plugin gimbal_control ignored
+[mavros_node-1] [INFO] [1786644819.015799675] [mavros.mavros]: Plugin global_position ignored
+[mavros_node-1] [INFO] [1786644819.015814828] [mavros.mavros]: Plugin gps_input ignored
+[mavros_node-1] [INFO] [1786644819.015826179] [mavros.mavros]: Plugin gps_rtk ignored
+[mavros_node-1] [INFO] [1786644819.015836250] [mavros.mavros]: Plugin gps_status ignored
+[mavros_node-1] [INFO] [1786644819.015851179] [mavros.mavros]: Plugin guided_target ignored
+[mavros_node-1] [INFO] [1786644819.015862191] [mavros.mavros]: Plugin hil ignored
+[mavros_node-1] [INFO] [1786644819.015873102] [mavros.mavros]: Plugin home_position ignored
+[mavros_node-1] [INFO] [1786644819.074398519] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1786644819.074561996] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1786644819.074591744] [mavros.mavros]: Plugin landing_target ignored
+[mavros_node-1] [INFO] [1786644819.140444907] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1786644819.140673757] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1786644819.140697217] [mavros.mavros]: Plugin log_transfer ignored
+[mavros_node-1] [INFO] [1786644819.140704644] [mavros.mavros]: Plugin mag_calibration_status ignored
+[mavros_node-1] [INFO] [1786644819.140710686] [mavros.mavros]: Plugin manual_control ignored
+[mavros_node-1] [INFO] [1786644819.140832419] [mavros.mavros]: Plugin mocap_pose_estimate ignored
+[mavros_node-1] [INFO] [1786644819.140850502] [mavros.mavros]: Plugin mount_control ignored
+[mavros_node-1] [INFO] [1786644819.140859707] [mavros.mavros]: Plugin nav_controller_output ignored
+[mavros_node-1] [INFO] [1786644819.140866677] [mavros.mavros]: Plugin obstacle_distance ignored
+[mavros_node-1] [INFO] [1786644819.140875785] [mavros.mavros]: Plugin obstacle_distance_3d ignored
+[fix_mavros_odometry_frames.py-4] [INFO] [1786644819.167581681] [fix_mavros_odometry_frames]: Waiting for /mavros/odometry parameter service...
+[mavros_node-1] [INFO] [1786644819.214306006] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1786644819.214505831] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1786644819.214543982] [mavros.mavros]: Plugin onboard_computer_status ignored
+[mavros_node-1] [INFO] [1786644819.214563414] [mavros.mavros]: Plugin open_drone_id ignored
+[mavros_node-1] [INFO] [1786644819.214579291] [mavros.mavros]: Plugin optical_flow ignored
+[mavros_node-1] [INFO] [1786644819.256971245] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1786644819.257078927] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1786644819.257093175] [mavros.mavros]: Plugin play_tune ignored
+[mavros_node-1] [INFO] [1786644819.257100531] [mavros.mavros]: Plugin px4flow ignored
+[mavros_node-1] [INFO] [1786644819.257107079] [mavros.mavros]: Plugin rallypoint ignored
+[mavros_node-1] [INFO] [1786644819.257113748] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1786644819.257121201] [mavros.mavros]: Plugin rc_io ignored
+[mavros_node-1] [INFO] [1786644819.257127408] [mavros.mavros]: Plugin setpoint_accel ignored
+[mavros_node-1] [INFO] [1786644819.257133726] [mavros.mavros]: Plugin setpoint_attitude ignored
+[mavros_node-1] [INFO] [1786644819.257140914] [mavros.mavros]: Plugin setpoint_position ignored
+[mavros_node-1] [INFO] [1786644819.309839137] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1786644819.310158645] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1786644819.310201770] [mavros.mavros]: Plugin setpoint_trajectory ignored
+[mavros_node-1] [INFO] [1786644819.310218907] [mavros.mavros]: Plugin setpoint_velocity ignored
+[mavros_node-1] [INFO] [1786644819.310247743] [mavros.mavros]: Plugin sim_state ignored
+[fix_mavros_odometry_frames.py-4] [INFO] [1786644819.420061260] [fix_mavros_odometry_frames]: Setting MAVROS odometry target frames to odom/base_link.
+[mavros_node-1] [INFO] [1786644819.425265573] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1786644819.425472720] [mavros.mavros]: Plugin sys_status initialized
+[fix_mavros_odometry_frames.py-4] [INFO] [1786644819.429233633] [fix_mavros_odometry_frames]: MAVROS odometry frame targets updated successfully.
+[mavros_node-1] [INFO] [1786644819.462037695] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1786644819.470089035] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1786644819.470322714] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1786644819.470370247] [mavros.mavros]: Plugin tdr_radio ignored
+[mavros_node-1] [INFO] [1786644819.470387321] [mavros.mavros]: Plugin terrain ignored
+[mavros_node-1] [INFO] [1786644819.470402349] [mavros.mavros]: Plugin trajectory ignored
+[mavros_node-1] [INFO] [1786644819.470415282] [mavros.mavros]: Plugin tunnel ignored
+[mavros_node-1] [INFO] [1786644819.470428633] [mavros.mavros]: Plugin vfr_hud ignored
+[mavros_node-1] [INFO] [1786644819.470440804] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1786644819.528418922] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1786644819.528503609] [mavros.mavros]: Plugin vision_pose initialized
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644819.578583300] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644819.594389540] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_status_missing
+[mavros_node-1] [INFO] [1786644819.608538282] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1786644819.608702928] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1786644819.608727998] [mavros.mavros]: Plugin waypoint ignored
+[mavros_node-1] [INFO] [1786644819.608739613] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1786644819.608749847] [mavros.mavros]: Plugin wind_estimation ignored
+[mavros_node-1] [INFO] [1786644819.613639018] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786644819.613804435] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786644819.613820191] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786644819.613872332] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1786644819.614793735] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [INFO] [1786644819.626053630] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786644819.634547015] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[INFO] [fix_mavros_odometry_frames.py-4]: process has finished cleanly [pid 15333]
+[mavros_node-1] [WARN] [1786644819.889174750] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-131-191-1-128-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644819.889586686] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644819.889929446] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644819.890109629] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644819.890174996] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644819.890239385] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644819.890632564] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644820.439785021] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [INFO] [1786644820.545192937] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1786644820.550656155] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1786644820.560625819] [mavros.imu]: IMU: High resolution IMU detected!
+[fastlio_odometry_guard-2] [WARN] [1786644821.257556594] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000110865 s (accepted=523 rejected=1)
+[mavros_node-1] [WARN] [1786644821.985919121] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-16-1-0-0-0-0-199-191-127-128-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644821.986203454] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644821.986484096] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644821.986561977] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644821.986617891] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644821.986797913] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644822.550065454] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[fastlio_odometry_guard-2] [WARN] [1786644822.681864834] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000430346 s (accepted=808 rejected=2)
+[mavros_node-1] [WARN] [1786644823.555939724] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [ERROR] [1786644824.569075604] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786644824.569600005] [mavros.sys]: VER: unicast request timeout, retries left 2
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644824.698319767] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644824.708487302] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644824.717173367] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644824.803267181] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644824.817494319] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644825.008085624] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644825.039191487] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644825.209562291] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644825.213937163] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[mavros_node-1] [ERROR] [1786644825.566020850] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786644825.566428648] [mavros.sys]: VER: unicast request timeout, retries left 1
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644825.708403727] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644825.721209861] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644825.803828351] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.146s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644825.830459802] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644826.305037493] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644826.311128618] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644826.405457120] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.134s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644826.419376780] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[mavros_node-1] [ERROR] [1786644826.568711202] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786644826.568932912] [mavros.sys]: VER: unicast request timeout, retries left 0
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644826.610556258] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644826.623188648] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644826.712886244] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644826.724840699] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644826.914683787] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644826.932461086] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.008826824] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.143s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.022585556] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.206178300] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.223013915] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.309549858] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.320191540] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.408982198] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.425873248] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[mavros_node-1] [ERROR] [1786644827.576608052] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786644827.577022595] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.607048607] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.629264228] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.709012338] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.727679482] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644827.813407814] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644827.829719479] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644828.006262526] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644828.029964957] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644828.218253180] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644828.237646913] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644828.315751910] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644828.332224488] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644828.708059736] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644828.718789504] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644828.910546360] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644828.924199032] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644829.012419704] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644829.058265284] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644829.111291959] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644829.126726899] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644829.210565864] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644829.224110643] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644829.704383235] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.136s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644829.716688890] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644829.812596006] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644829.830868646] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.015399467] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.029007975] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.101484102] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.116267043] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.206184799] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.155s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.224860813] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.408731977] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.419131105] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.707340096] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.726337384] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.811103092] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.830616518] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644830.909960631] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644830.926735130] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.009133378] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.059509999] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.204715931] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.227491158] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.313114492] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.320946214] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.415760294] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.438276456] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.611178741] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.143s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.623570699] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.718602477] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.725840787] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644831.807573160] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644831.822928040] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644832.004094819] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644832.034436123] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644832.107062677] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.155s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644832.116810988] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644832.306440922] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644832.317722879] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644833.012785497] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644833.042389088] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644833.205879287] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644833.216954724] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644833.311887858] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644833.329664785] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644833.413371314] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644833.426728589] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644833.613612716] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644833.625398891] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644833.653154981] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.00057292 s (accepted=3001 rejected=3)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644833.678394999] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000573s
+[mavros_node-1] [WARN] [1786644834.080243951] [mavros.cmd]: CMD: Unexpected command 512, result 2
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644835.692089007] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644835.710470263] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644835.719703935] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644835.811064224] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644835.821907838] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644835.908124110] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644835.925346082] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644836.007979906] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644836.031406676] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644836.164083768] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 7.82013e-05 s (accepted=3502 rejected=4)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644836.172570669] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000078s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.181652604] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644838.207796233] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.218541213] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644838.313175845] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.324027081] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644838.412575268] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.423476876] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644838.508765811] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.517564188] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644838.607628593] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.614055381] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644838.914927768] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644838.919664195] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.005543177] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.035929395] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.309992787] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.320699733] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.424414283] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.451253645] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.609083191] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.134s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.619977630] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.710483313] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.721431958] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.804477833] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.135s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.821539178] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644839.905868310] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644839.928917233] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644840.013541888] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644840.043308618] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644840.209501548] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644840.218510361] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644840.909685067] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.146s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644840.915781350] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644841.006481545] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644841.028815745] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644841.109129569] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644841.123323379] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644841.201775105] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644841.213490235] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644841.309348035] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644841.322482461] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644841.407970826] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644841.419650437] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644841.506041837] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644841.515900099] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644842.013568570] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644842.021904288] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644842.113574849] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644842.130149799] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644842.208300514] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644842.227569995] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644842.312570160] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644842.334120281] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644842.411948470] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644842.431083719] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644842.806100616] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644842.815137228] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644843.012821951] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644843.056509294] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644843.415978628] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644843.423091446] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644843.500884983] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000779152 s (accepted=4969 rejected=5)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644843.525639060] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000779s
+[fastlio_odometry_guard-2] [WARN] [1786644844.610729341] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.68312 m/s; resynced guard baseline (accepted=5190 rejected=6)
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644845.535705983] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644845.612944796] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.135s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644845.636246561] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644845.707377736] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644845.725844690] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644845.811443385] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644845.822460186] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644845.913024417] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644845.925444341] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644846.013289121] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644846.031653123] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644846.316162067] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644846.333061825] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644846.504948153] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644846.562186536] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644846.607808917] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644846.628562886] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644846.704648201] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644846.730535788] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644847.016941467] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.141s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644847.058606105] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644847.205851149] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644847.214455594] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644847.609417208] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644847.640174240] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644847.708507299] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644847.718509783] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644847.911887117] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644847.925497708] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644848.015011912] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644848.056833472] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644848.115408631] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644848.129843963] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644848.209045287] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644848.223975812] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644848.314057420] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644848.331030334] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644848.505729737] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644848.528773258] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644848.569003622] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 4.60148e-05 s (accepted=5979 rejected=7)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644848.594384068] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000046s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644850.737877824] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644850.911681568] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644850.928018384] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.005699554] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.061521118] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644851.081698140] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000905275 s (accepted=6481 rejected=9)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.207088241] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.137s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.216616692] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.311696335] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.146s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.316945728] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.411389594] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.427556883] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.614738904] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.623397786] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.709950661] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.146s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.722039243] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644851.819917421] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644851.831609182] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644852.012322278] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644852.056433850] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644852.207980912] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644852.223351450] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644852.310005417] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644852.335780911] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644852.414101709] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644852.429591838] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644852.501648748] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.00014472 s (accepted=6764 rejected=10)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644852.528567522] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000145s
+[mavros_node-1] [WARN] [1786644853.194606945] [mavros.cmd]: CMD: Unexpected command 512, result 2
+[fastlio_odometry_guard-2] [WARN] [1786644853.691612199] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000989914 s (accepted=7001 rejected=11)
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644855.724570088] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644855.803102071] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644855.820159356] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644856.006259446] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644856.038325180] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644856.106069812] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644856.119297036] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644856.208568436] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644856.215733352] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644856.296742765] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644856.310185755] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644856.810107766] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644856.828840958] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644857.009797959] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644857.062157848] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644857.305719492] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.137s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644857.316241321] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644857.407730237] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644857.417157577] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644857.507402560] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644857.521305695] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644857.596075359] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000987291 s (accepted=7780 rejected=12)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644858.008494920] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644858.061688541] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644858.414926023] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644858.430591470] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644858.709655122] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644858.715135542] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644858.913347089] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644858.934526548] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644859.015165590] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644859.071473224] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644859.201579295] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000732899 s (accepted=8101 rejected=13)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644859.212767631] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644859.223905850] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644859.307071328] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644859.324276879] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644859.410579180] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644859.424967419] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644859.814666137] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644859.826782392] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644860.013198767] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644860.067312645] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644860.111411755] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644860.128781832] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644860.311805970] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644860.333159146] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644860.502845951] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.135s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644860.517822399] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644860.917581863] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644860.942234118] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644861.005488130] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644861.064176264] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644861.099179813] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.130s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644861.118989876] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644861.215694847] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644861.276295472] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644861.512158679] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644861.529921330] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644861.910344411] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644861.924502116] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644862.036981682] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644862.076787191] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644862.207977160] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644862.228695432] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644862.308590458] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644862.315403738] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644862.414303589] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644862.439628922] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644862.513253033] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644862.525784423] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644863.009271509] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.147s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644863.048622654] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644863.208611931] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644863.226282992] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644863.311336904] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644863.319136384] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644863.506101960] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.150s
+[fastlio_odometry_guard-2] [WARN] [1786644863.521411458] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000347376 s (accepted=8964 rejected=14)
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644863.523947380] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644863.537344076] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000347s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644865.544398920] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644865.702110587] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.134s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644865.723160920] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644865.914444410] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.141s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644865.923992052] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.011548791] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.061942411] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.200773721] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.228372303] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.419865972] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.150s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.431599607] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.518330268] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.533438836] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.609545640] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.628874313] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.717219007] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.740888177] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.810600927] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.842758453] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644866.907819004] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644866.917522688] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644867.010503796] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644867.071795730] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644867.121217392] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644867.134840157] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644867.202398915] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644867.225873273] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644867.517027112] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644867.530631683] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644867.724598373] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644867.743510108] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644867.784465530] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000854731 s (accepted=9815 rejected=15)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644867.810509090] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000855s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644869.817910930] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644869.910894644] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644869.928171899] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644870.011496733] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644870.057073792] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644870.501263286] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644870.513993677] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644870.612197913] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644870.625421330] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644870.708008518] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644870.733055152] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644870.809180138] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644870.836709762] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644870.905209293] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644870.927417236] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.015725149] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.074799859] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.118769999] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.150s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.131848299] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.210863472] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.221240084] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.312659255] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.318714067] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644871.381058490] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000593424 s (accepted=10534 rejected=16)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.512494660] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.136s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.522774499] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.611468583] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.621493990] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.703778366] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.717620534] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.809854033] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.816337310] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644871.907948572] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644871.920011851] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644872.011626243] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644872.066986274] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644872.115927583] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644872.123578961] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644872.206124415] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644872.218710065] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644872.309055942] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644872.322493273] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644872.409799422] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644873.057007799] [fastlio_ev_health_monitor]: EV health state=FAULT: frlio_anchor_stale age=0.809s
+[mavros_node-1] [WARN] [1786644873.310389452] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-199-191-5-128-199-191-5-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644873.311841103] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644873.312016133] [mavros.sys]: FCU: EVENT 13835193 with args -56-0-122-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644873.312142550] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644873.312417267] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644873.312502782] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644873.314431465] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1786644874.409633152] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: large dt 1.77 s; reset guard baseline; resynced guard baseline (accepted=10785 rejected=17)
+[mavros_node-1] [WARN] [1786644875.399304152] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-16-1-0-0-0-0-199-191-127-128-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644875.399740297] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644875.399966322] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644875.400175993] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644875.400348078] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644875.400701795] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1786644876.503207952] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.88285 m/s; resynced guard baseline (accepted=11202 rejected=19)
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644877.205085872] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644877.409896902] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644877.420078625] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[mavros_node-1] [WARN] [1786644877.430330815] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-18-1-0-0-0-0-131-191-1-128-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644877.430640998] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644877.431012143] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644877.431782815] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644877.432513067] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644877.432721053] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644877.432908372] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644877.510994694] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644877.520290967] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644877.607665420] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644877.621954338] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644877.812312701] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644877.835706560] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644878.015070015] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644878.062305883] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644878.115838891] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644878.133503229] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644878.410240574] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644878.427556378] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786644878.470717187] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: bad dt 0.000959873 s (accepted=11594 rejected=21)
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644878.497140737] [fastlio_ev_health_monitor]: EV health state=SUSPECT: non_monotonic_stamp dt=0.000960s
+[mavros_node-1] [WARN] [1786644879.509613731] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-16-1-0-0-0-0-199-191-127-128-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644879.509929516] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786644879.510030977] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644879.510269108] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786644879.511955736] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786644879.512638543] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644880.507278594] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644880.518526878] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.143s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644880.530273232] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644880.609536499] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644880.623844194] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644880.705832578] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.143s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644880.711248420] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644881.015918289] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.150s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644881.056278226] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644881.212930766] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644881.224300559] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644881.300855461] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.155s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644881.313410066] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644881.416887174] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644881.425728612] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644881.906996562] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644881.924668979] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644882.011774273] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644882.086447655] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644882.111293141] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644882.146841634] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644882.312599854] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644882.323801705] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644882.505526309] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644882.546745717] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644882.618931304] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644882.638520891] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644882.710088004] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644882.719250233] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644883.002498186] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.137s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644883.132253701] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644883.204496198] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644883.235302382] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644883.408354090] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644883.425113570] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644883.612184913] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644883.623681854] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644884.004481820] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.137s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644884.056666087] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644884.110867382] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644884.131452742] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644884.202349458] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644884.210109439] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644884.317974976] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.150s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644884.323599959] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644884.600269765] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.135s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644884.605562579] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644884.908793377] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644884.922775441] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.016084049] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.059654646] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.104303497] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.120814762] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.212863882] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.221017197] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.307074898] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.320617433] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.412756263] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.429473711] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.611693554] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.642128352] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.814811942] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.840166926] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644885.912285255] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644885.929568913] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.020341812] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.098809072] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.112133417] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.146s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.158254178] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.308906188] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.325437016] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.615841290] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.625854531] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.712623938] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.723767693] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.814345910] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.838680315] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644886.907178126] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644886.947772546] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.009731510] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.097934158] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.113074509] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.142885556] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.303209993] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.141s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.341865136] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.407484556] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.140s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.434134673] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.508649780] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.525716038] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.617310646] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.637718042] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.713975688] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.731308947] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.807026381] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.823002235] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644887.910447133] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.142s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644887.920385058] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644888.012709829] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644888.074494047] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644888.112180003] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644888.124575134] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644888.405775802] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.152s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644888.426090735] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644888.923533477] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644888.944304387] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.003137831] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.137s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.092177373] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.116383708] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.161459068] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.201986398] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.137s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.216867450] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.304462444] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.323854555] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.507099044] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.154s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.538111255] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.608121873] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.618432408] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.703921686] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.138s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.724032252] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644889.807489631] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644889.824025860] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644890.013025228] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.139s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644890.067604454] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644890.105065351] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.150s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644890.124297431] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644890.204894727] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644890.221278012] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644890.309744158] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.148s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644890.325610552] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644890.410024517] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.149s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644890.417128429] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644890.909051615] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.144s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786644890.918816799] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786644891.005818183] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_anchor_suspect age=0.145s
+[fastlio_odometry_guard-2] [WARN] [1786644891.703183741] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.22873 m/s; resynced guard baseline (accepted=14193 rejected=22)
+[static_transform_publisher-6] [INFO] [1786644891.975219083] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-7] [INFO] [1786644891.975224771] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_odometry_guard-2] [INFO] [1786644891.975246100] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[mavros_node-1] [INFO] [1786644891.975255379] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_mavros_vision_bridge-5] [INFO] [1786644891.975320294] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-8] [INFO] [1786644891.976193295] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[mavros_node-1] [WARN] [1786644891.984787068] [mavros.mavros]: UAS Executor terminated
+[INFO] [fastlio_odometry_guard-2]: process has finished cleanly [pid 15329]
+[INFO] [fastlio_mavros_vision_bridge-5]: process has finished cleanly [pid 15336]
+[INFO] [static_transform_publisher-8]: process has finished cleanly [pid 15342]
+[INFO] [static_transform_publisher-7]: process has finished cleanly [pid 15340]
+[INFO] [static_transform_publisher-6]: process has finished cleanly [pid 15338]
+[INFO] [mavros_node-1]: process has finished cleanly [pid 15327]
+[INFO] [fastlio_ev_health_monitor.py-3]: process has finished cleanly [pid 15331]

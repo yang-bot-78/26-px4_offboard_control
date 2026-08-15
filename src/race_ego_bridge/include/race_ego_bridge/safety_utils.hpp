@@ -41,6 +41,22 @@ inline double trajectorySwitchEvaluationTime(
   return measured_position_hold ? 0.0 : clampTrajectoryTime(elapsed, duration);
 }
 
+inline bool replanHoldReadyToReanchor(
+  double horizontal_speed, double stable_age_sec,
+  double maximum_horizontal_speed, double required_stable_sec)
+{
+  return std::isfinite(horizontal_speed) && std::isfinite(stable_age_sec) &&
+    std::isfinite(maximum_horizontal_speed) && std::isfinite(required_stable_sec) &&
+    horizontal_speed <= maximum_horizontal_speed && stable_age_sec >= required_stable_sec;
+}
+
+inline bool candidateStartsAfterReplanReady(
+  double candidate_start_sec, double replan_ready_sec)
+{
+  return std::isfinite(candidate_start_sec) && std::isfinite(replan_ready_sec) &&
+    candidate_start_sec >= replan_ready_sec;
+}
+
 inline bool shouldResetFlightHandover(bool was_armed, bool armed)
 {
   return was_armed && !armed;

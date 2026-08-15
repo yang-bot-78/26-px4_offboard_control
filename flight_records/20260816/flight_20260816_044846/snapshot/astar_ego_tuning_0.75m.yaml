@@ -1,0 +1,124 @@
+# Generated for this flight; canonical source: /home/robot/rong_ws/ws_offboard_control/src/race_bringup/config/astar_ego_tuning.yaml
+schema_version: 1
+ego_map_source: static_live_px4
+ego_map:
+  live_topic: /cloud_registered
+  body_topic: /cloud_registered_body
+  pose_topic: /race/pose
+  live_obstacle_memory_sec: 1.0
+  live_obstacle_voxel_size_m: 0.1
+  live_obstacle_min_observations: 2
+  minimum_reliable_detection_range_m: 0.725
+  pose_sync_max_skew_sec: 0.3
+  pose_buffer_duration_sec: 1.0
+shared_safety:
+  frame_id: map
+  required_center_clearance: 0.29
+  fault_envelope:
+    x_min: -30.0
+    x_max: 30.0
+    y_min: -30.0
+    y_max: 30.0
+    z_min: 0.5
+    z_max: 0.9
+    position_max_speed_mps: 4.0
+    position_jump_allowance_m: 0.4
+    planning_grid_padding_m: 3.0
+    mission_corridor_max_error_m: 1.5
+global_planner:
+  grid_resolution: 0.15
+  planning_resolution: 0.05
+  hard_inflation_radius: 0.28
+  min_planning_inflation_radius: 0.28
+  soft_obstacle_cost_radius: 0.54
+  clearance_cost_weight: 3.0
+  tracking_lookahead_distance: 0.3
+  max_local_goal_distance: 1.7
+  trajectory_prefetch_sec: 1.5
+  trajectory_stall_timeout_sec: 1.0
+  trajectory_recovery_confirmation_sec: 0.5
+  smoothing_min_clearance: 0.1
+  allow_direct_path: false
+  enable_path_shortcut: false
+ego_planner:
+  enable: true
+  planning_horizon: 5.0
+  local_update_range_x: 6.0
+  local_update_range_y: 6.0
+  local_update_range_z: 1.25
+  occupancy_map_size_x: 24.0
+  occupancy_map_size_y: 26.0
+  occupancy_publish_max_height: 2.5
+  max_velocity: 0.6
+  max_acceleration: 0.8
+  control_point_spacing: 0.25
+  planning_clearance_m: 0.34
+  constrained_clearance_enable: false
+  constrained_clearance_m: 0.24
+  constrained_optimization_clearance_m: 0.3
+  far_end_clearance_extra_m: 0.06
+  optimization_clearance_m: 0.42
+  max_reference_deviation_m: 0.8
+  use_distinctive_trajectories: true
+  replan_start_position_error_m: 0.25
+  handover_position_tolerance_m: 0.02
+  handover_velocity_tolerance_mps: 0.02
+  handover_acceleration_tolerance_mps2: 0.05
+  fixed_flight_height: 0.75
+ego_recovery:
+  enable: true
+  diagnostic_only: false
+  reference_path_topic: /race/ego/local_path_reference
+  rejoin_search_distance_m: 0.6
+  minimum_forward_progress_m: 0.15
+  extra_clearance_m: 0.06
+  max_reference_deviation_m: 0.78
+  max_lateral_offset_m: 0.75
+  lateral_offset_step_m: 0.15
+  max_recovery_attempts: 2
+  cooldown_sec: 0.5
+  exhausted_backoff_sec: 2.0
+  active_preplan_lookahead_m: 0.65
+ego_diagnostics:
+  enable: false
+trajectory_bridge:
+  occupancy_timeout_sec: 1.0
+  active_recheck_history_sec: 0.5
+  bspline_timeout_sec: 0.2
+  command_timeout_sec: 0.2
+  dynamic_invalid_grace_sec: 0.75
+  replan_hold_timeout_sec: 3.0
+  replan_reanchor_max_horizontal_speed_mps: 0.08
+  replan_reanchor_stable_sec: 0.5
+  switch_position_tolerance_m: 0.1
+  switch_velocity_tolerance_mps: 0.1
+  switch_acceleration_tolerance_mps2: 0.2
+  collision_sample_spacing_m: 0.04
+  braking_deceleration_mps2: 0.8
+  reaction_time_sec: 0.15
+  dynamic_limit_margin: 1.1
+  max_yaw_rate_rad_s: 0.8
+offboard:
+  takeoff_height_m: 0.55
+  ego_goal_release_height_m: 0.5
+  ego_goal_stable_height_tolerance_m: 0.05
+  ego_goal_stable_horizontal_speed_mps: 0.08
+  ego_goal_stable_vertical_speed_mps: 0.3
+  ego_goal_stable_duration_sec: 0.5
+  fixed_flight_height_m: 0.75
+  max_safe_height_m: 0.9
+  goal_tolerance_xy_m: 0.1
+  goal_tolerance_z_m: 0.05
+  setpoint_rate_hz: 20.0
+  trusted_position_max_speed_mps: 4.0
+  trusted_position_jump_allowance_m: 0.4
+  ego_setpoint_max_lead_m: 2.0
+  ego_setpoint_timeout_sec: 2.5
+  same_goal_retry_on_safety_latch: true
+  ego_yaw_rate_limit_rad_s: 0.8
+  initial_position_stabilization_sec: 0.5
+  initial_position_max_spread_m: 0.08
+  initial_position_max_speed_mps: 0.2
+diagnostics:
+  print_effective_tuning: true
+  tuning_summary_rate_hz: 1.0

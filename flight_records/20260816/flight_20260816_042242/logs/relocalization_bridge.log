@@ -1,0 +1,30 @@
+[relocalization frame bridge] starting
+[relocalization frame bridge] command: python3 /home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py --ros-args -p odom_topic:=/Odometry -p output_odom_topic:=/planning/odom -p map_frame:=map -p odom_frame:=camera_init -p body_frame:=body -p publish_odom_body_tf:=false
+[relocalization frame bridge] pid=5172 pgid=5172 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_042242/logs/relocalization_bridge.log
+[INFO] [1786825382.233771507] [planning_relocalization_frame_bridge]: 等待 FR-LIO 里程计和重定位结果；成功后发布 /planning/odom。
+[INFO] [1786825392.740039926] [planning_relocalization_frame_bridge]: 重定位坐标对齐完成，开始发布 map -> camera_init 和 /planning/odom。
+Traceback (most recent call last):
+  File "/home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py", line 264, in <module>
+    main()
+  File "/home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py", line 254, in main
+    rclpy.spin(node)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+    executor.spin_once()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 805, in _spin_once_impl
+    raise handler.exception()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/task.py", line 272, in _execute_coroutine_step
+    result = coro.send(None)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 488, in handler
+    await call_coroutine(entity, arg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 407, in _execute_subscription
+    await await_or_execute(sub.callback, msg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 110, in await_or_execute
+    return callback(*args)
+  File "/home/robot/rong_ws/ws_offboard_control/tools/fastlio/重定位坐标桥.py", line 184, in _odom_callback
+    self._odom_pub.publish(output)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 70, in publish
+    self.__publisher.publish(msg)
+rclpy._rclpy_pybind11.RCLError: Failed to publish: publisher's context is invalid, at ./src/rcl/publisher.c:389
+[relocalization frame bridge] 已退出，状态码 1

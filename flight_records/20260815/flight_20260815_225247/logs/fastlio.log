@@ -1,0 +1,194 @@
+[FR-LIO] starting
+[FR-LIO] command: ros2 launch fr_lio lio.launch.py config_file:=/home/robot/rong_ws/ws_offboard_control/src/fr_lio/config/indoors.yaml rviz:=false lidar_accumulator:=false
+[FR-LIO] pid=12519 pgid=12519 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260815/flight_20260815_225247/logs/fastlio.log
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-15-22-53-00-963231-robot-12519
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [frlio-1]: process started with pid [12548]
+[frlio-1] [INFO] [1786805581.143231346] [laser_mapping]: === FAST-LIO Parameters ===
+[frlio-1] [INFO] [1786805581.143589459] [laser_mapping]: common.lid_topic: /livox/lidar
+[frlio-1] [INFO] [1786805581.143603133] [laser_mapping]: common.imu_topic: /livox/imu
+[frlio-1] [INFO] [1786805581.143608502] [laser_mapping]: common.time_sync_en: 0
+[frlio-1] [INFO] [1786805581.143615494] [laser_mapping]: common.time_offset_lidar_to_imu: 0.000000
+[frlio-1] [INFO] [1786805581.143630215] [laser_mapping]: imu.acceleration_unit: g
+[frlio-1] [INFO] [1786805581.143634560] [laser_mapping]: high_rate_odom.enabled: 1
+[frlio-1] [INFO] [1786805581.143639313] [laser_mapping]: high_rate_odom.publish_enabled: 1
+[frlio-1] [INFO] [1786805581.143644315] [laser_mapping]: high_rate_odom.warn_anchor_age_s: 0.150
+[frlio-1] [INFO] [1786805581.143651221] [laser_mapping]: high_rate_odom.max_anchor_age_s: 0.400
+[frlio-1] [INFO] [1786805581.143654808] [laser_mapping]: high_rate_odom.correction_smoothing_s: 0.250
+[frlio-1] [INFO] [1786805581.143660195] [laser_mapping]: high_rate_odom.accel_filter: enabled=1 window=21 min_samples=7 max_deviation=5.000 m/s^2 max_norm=19.620 m/s^2
+[frlio-1] [INFO] [1786805581.143669623] [laser_mapping]: preprocess.lidar_type: 1
+[frlio-1] [INFO] [1786805581.143674027] [laser_mapping]: preprocess.scan_line: 4
+[frlio-1] [INFO] [1786805581.143678010] [laser_mapping]: preprocess.blind: 0.300000
+[frlio-1] [INFO] [1786805581.143682794] [laser_mapping]: preprocess.timestamp_unit: 3
+[frlio-1] [INFO] [1786805581.143687081] [laser_mapping]: preprocess.scan_rate: 10
+[frlio-1] [INFO] [1786805581.143693089] [laser_mapping]: point_filter_num: 6
+[frlio-1] [INFO] [1786805581.143697741] [laser_mapping]: feature_extract_enable: 0
+[frlio-1] [INFO] [1786805581.143704621] [laser_mapping]: max_iteration: 1
+[frlio-1] [INFO] [1786805581.143709051] [laser_mapping]: filter_size_surf: 0.050000
+[frlio-1] [INFO] [1786805581.143714363] [laser_mapping]: filter_size_map: 0.100000
+[frlio-1] [INFO] [1786805581.143718743] [laser_mapping]: cube_side_length: 100.000000
+[frlio-1] [INFO] [1786805581.143724123] [laser_mapping]: mapping.det_range: 15.000000
+[frlio-1] [INFO] [1786805581.143729446] [laser_mapping]: mapping.fov_degree: 360.000000
+[frlio-1] [INFO] [1786805581.143734807] [laser_mapping]: mapping.gyr_cov: 0.100000
+[frlio-1] [INFO] [1786805581.143741335] [laser_mapping]: mapping.acc_cov: 0.100000
+[frlio-1] [INFO] [1786805581.143746092] [laser_mapping]: mapping.b_gyr_cov: 0.000100
+[frlio-1] [INFO] [1786805581.143752826] [laser_mapping]: mapping.b_acc_cov: 0.000100
+[frlio-1] [INFO] [1786805581.143757944] [laser_mapping]: mapping.extrinsic_est_en: 0
+[frlio-1] [INFO] [1786805581.143764527] [laser_mapping]: mapping.use_scan_to_scan_cov: 0
+[frlio-1] [INFO] [1786805581.143770707] [laser_mapping]: mapping.use_perpoint_cov: 0
+[frlio-1] [INFO] [1786805581.143774944] [laser_mapping]: mapping.point_range_noise_std: 0.050000
+[frlio-1] [INFO] [1786805581.143779901] [laser_mapping]: mapping.huber_k: 3.000000
+[frlio-1] [INFO] [1786805581.143785035] [laser_mapping]: mapping.enable_shadow_map: 0
+[frlio-1] [INFO] [1786805581.143790251] [laser_mapping]: mapping.shadow_voxel_size: 0.200000
+[frlio-1] [INFO] [1786805581.143795901] [laser_mapping]: mapping.enable_map_correction: 0
+[frlio-1] [INFO] [1786805581.143803281] [laser_mapping]: mapping.correct_working_tree: 0
+[frlio-1] [INFO] [1786805581.143808077] [laser_mapping]: map_frame: map
+[frlio-1] [INFO] [1786805581.143813724] [laser_mapping]: lc.enable: 0
+[frlio-1] [INFO] [1786805581.143818770] [laser_mapping]: lc.keyframe_every_scans: 5
+[frlio-1] [INFO] [1786805581.143823229] [laser_mapping]: lc.keyframe_min_dist: 0.500000
+[frlio-1] [INFO] [1786805581.143827770] [laser_mapping]: lc.max_queue_size: 32
+[frlio-1] [INFO] [1786805581.143831846] [laser_mapping]: lc.radius: 3.000000
+[frlio-1] [INFO] [1786805581.143836384] [laser_mapping]: lc.min_time_gap: 30.000000
+[frlio-1] [INFO] [1786805581.143843352] [laser_mapping]: lc.min_spacing: 30.000000
+[frlio-1] [INFO] [1786805581.143849038] [laser_mapping]: lc.icp_max_dist: 1.000000
+[frlio-1] [INFO] [1786805581.143855271] [laser_mapping]: lc.icp_fitness_thresh: 0.500000
+[frlio-1] [INFO] [1786805581.143861001] [laser_mapping]: lc.icp_max_iter: 30
+[frlio-1] [INFO] [1786805581.143864415] [laser_mapping]: lc.max_rel_t_m: 2.000000
+[frlio-1] [INFO] [1786805581.143867714] [laser_mapping]: mapping.extrinsic_T: [-0.011000, -0.023290, 0.044120]
+[frlio-1] [INFO] [1786805581.143873072] [laser_mapping]: publish.path_en: 1
+[frlio-1] [INFO] [1786805581.143876762] [laser_mapping]: publish.scan_publish_en: 1
+[frlio-1] [INFO] [1786805581.143879219] [laser_mapping]: publish.dense_publish_en: 0
+[frlio-1] [INFO] [1786805581.143931969] [laser_mapping]: publish.scan_bodyframe_pub_en: 1
+[frlio-1] [INFO] [1786805581.143934913] [laser_mapping]: publish.odom_topic: /Odometry
+[frlio-1] [INFO] [1786805581.143939161] [laser_mapping]: odom frame contract: odom -> body (ENU/FLU)
+[frlio-1] [INFO] [1786805581.143944096] [laser_mapping]: runtime_pos_log_enable: 0
+[frlio-1] [INFO] [1786805581.143947676] [laser_mapping]: ===========================
+[frlio-1] ~~~~/home/robot/rong_ws/ws_offboard_control/src/fr_lio/ file opened
+[frlio-1] [INFO] [1786805581.160110300] [laser_mapping]: Node init finished.
+[frlio-1] [WARN] [1786805581.340351797] [laser_mapping]: No point, skip this scan!
+[frlio-1] 
+[frlio-1] [WARN] [1786805581.440032168] [laser_mapping]: No point, skip this scan!
+[frlio-1] 
+[frlio-1] [WARN] [1786805581.540683327] [laser_mapping]: No point, skip this scan!
+[frlio-1] 
+[frlio-1] [WARN] [1786805581.650045480] [laser_mapping]: No point, skip this scan!
+[frlio-1] 
+[frlio-1] IMU Initial Done
+[frlio-1] [WARN] [1786805581.741762796] [laser_mapping]: No point, skip this scan!
+[frlio-1] 
+[frlio-1] [INFO] [1786805581.843999936] [laser_mapping]: Initialize the map kdtree
+[frlio-1] [INFO] [1786805581.950602876] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.02,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805583.951381573] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.02,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805586.041583005] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.02,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805588.050755725] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805590.150615092] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.02,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805592.150868630] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.02,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805594.250396575] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805596.350645089] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.02,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805598.441565662] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805600.442464017] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805602.450367537] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805604.450663045] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805606.550810400] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805608.650383246] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805610.650984908] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805612.750577207] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805614.750685413] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805616.850364753] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805618.850404546] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805620.950688383] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805623.050515869] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805625.150783470] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805627.251051394] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805629.350631282] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805631.441515784] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805633.540812697] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805635.541222383] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805637.641131388] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805639.650688922] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805641.741554121] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805643.741712969] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805645.750479017] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805647.840550534] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805649.841795507] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805651.850354929] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805653.850373213] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805655.850628533] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805657.950667530] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805660.050360378] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805662.050638450] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805664.150754924] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805666.250774009] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805668.250856355] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805670.350404903] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805672.350606524] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805674.440545411] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805676.450849986] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805678.540281042] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805680.540539044] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805682.651230396] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805684.750796536] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805686.850602843] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.05,0.54] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805688.940578630] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.07,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805691.040935670] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.06,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805693.140690513] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.06,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805695.141043387] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.07,0.61] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805697.150863914] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.07,0.61] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805699.250671607] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.08,0.61] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805701.251913444] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.08,0.61] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805703.350442538] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.08,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [WARN] [1786805704.674860139] [laser_mapping]: High-rate IMU acceleration spike rejected: raw_norm=15.081 m/s^2 deviation=6.828 m/s^2 norm_gate=0 deviation_gate=1 consecutive=1 total=1
+[frlio-1] [INFO] [1786805705.350555342] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805707.350712602] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805709.351149859] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805711.450456912] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805713.450591381] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805715.550340204] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805717.550497605] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805719.550528370] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805721.550626482] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805723.650460785] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805725.750362715] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805727.750706197] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805729.850364262] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.03,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805731.850684753] [laser_mapping]: fov_segment: pos_LiD=[0.00,-0.05,0.18] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805733.950337339] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.09,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805735.950740975] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.08,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805738.050617869] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805740.050835219] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.07,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805742.140550004] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.08,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805744.140595079] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.08,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805746.140972003] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.09,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805748.240583897] [laser_mapping]: fov_segment: pos_LiD=[0.00,-0.08,0.30] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [WARN] [1786805749.044127416] [laser_mapping]: High-rate IMU acceleration spike rejected: raw_norm=13.649 m/s^2 deviation=5.407 m/s^2 norm_gate=0 deviation_gate=1 consecutive=1 total=4
+[frlio-1] [INFO] [1786805750.240812198] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805752.250392701] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805754.340999377] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805756.440558646] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805758.440682775] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805760.450416366] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805762.540829183] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805764.550771733] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805766.641147947] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805768.641447792] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805770.742140248] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805772.840981729] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805774.850882412] [laser_mapping]: fov_segment: pos_LiD=[-0.00,-0.04,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805776.940843078] [laser_mapping]: fov_segment: pos_LiD=[-0.02,-0.09,0.34] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805778.950620198] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.11,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805781.050365003] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.10,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805783.150366938] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.10,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805785.150581767] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.10,0.60] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805787.250594315] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.10,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805789.350564979] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.10,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805791.450358610] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.11,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805793.450535062] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.11,0.59] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805795.550401355] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.10,0.45] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805797.650549009] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805799.650593191] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805801.750372079] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805803.850616099] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805805.950585560] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[frlio-1] [INFO] [1786805807.950597184] [laser_mapping]: fov_segment: pos_LiD=[-0.01,-0.07,0.04] cube=[-50.0,-50.0,-50.0]..[50.0,50.0,50.0] need_move=0
+[FR-LIO] 正在停止进程组 12519
+[FR-LIO] 已退出，状态码 143

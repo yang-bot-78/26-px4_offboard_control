@@ -17,6 +17,7 @@ run_root="${base_run_root}"
 snapshot_dir="${run_root}/snapshot"
 bag_dir="${run_root}/rosbag"
 runtime_dir="${project_root}/runtime"
+px4_ulog_check="${project_root}/tools/flight/检查PX4视觉ULog.sh"
 pid_file="${runtime_dir}/takeoff_debug_bag.pid"
 run_dir_file="${runtime_dir}/takeoff_debug_bag_run_dir.txt"
 status_file="${runtime_dir}/last_rosbag_status.txt"
@@ -24,6 +25,7 @@ history_file="${runtime_dir}/last_rosbag_status_history.log"
 run_status_file="${snapshot_dir}/rosbag_status.txt"
 param_snapshot_enabled="${PARAM_SNAPSHOT_ENABLED:-false}"
 record_ego_diagnostics="${RECORD_EGO_DIAGNOSTICS:-false}"
+record_px4_dds_out="${RECORD_PX4_DDS_OUT:-false}"
 
 if [[ "${param_snapshot_enabled}" != true && "${param_snapshot_enabled}" != false ]]; then
   echo "PARAM_SNAPSHOT_ENABLED 必须是 true 或 false" >&2
@@ -31,6 +33,10 @@ if [[ "${param_snapshot_enabled}" != true && "${param_snapshot_enabled}" != fals
 fi
 if [[ "${record_ego_diagnostics}" != true && "${record_ego_diagnostics}" != false ]]; then
   echo "RECORD_EGO_DIAGNOSTICS 必须是 true 或 false" >&2
+  exit 1
+fi
+if [[ "${record_px4_dds_out}" != true && "${record_px4_dds_out}" != false ]]; then
+  echo "RECORD_PX4_DDS_OUT 必须是 true 或 false" >&2
   exit 1
 fi
 
@@ -139,6 +145,10 @@ copy_optional "${project_root}/tools/flight/一键启动起飞栈.sh" \
   "${snapshot_dir}/一键启动起飞栈.sh"
 copy_optional "${project_root}/tools/flight/一键启动导航栈.sh" \
   "${snapshot_dir}/一键启动导航栈.sh"
+copy_optional "${px4_ulog_check}" \
+  "${snapshot_dir}/检查PX4视觉ULog.sh"
+copy_optional "${project_root}/tools/flight/切Offboard后自动起飞0.75米单目标验证.sh" \
+  "${snapshot_dir}/切Offboard后自动起飞0.75米单目标验证.sh"
 copy_optional "${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py" \
   "${snapshot_dir}/fastlio_mavros_autofix.launch.py"
 copy_optional "${project_root}/src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp" \
@@ -192,7 +202,18 @@ echo "参数快照目录：${snapshot_dir}"
 echo "录包输出目录：${bag_dir}"
 echo "是否录制完整配准点云：${RECORD_POINTCLOUD:-false}"
 echo "是否录制 EGO 障碍诊断：${record_ego_diagnostics}"
+echo "是否录制 PX4 DDS /fmu/out 镜像：${record_px4_dds_out}"
 echo "在本终端按 Ctrl+C 停止录包。"
+
+if [[ ! -x "${px4_ulog_check}" ]]; then
+  write_status "blocked" "PX4 ULog check is missing or not executable"
+  echo "缺少可执行的 PX4 ULog 检查脚本：${px4_ulog_check}" >&2
+  exit 1
+fi
+if ! "${px4_ulog_check}" "${snapshot_dir}/px4_ulog_profile.txt"; then
+  write_status "blocked" "SDLOG_PROFILE does not guarantee vehicle_visual_odometry logging"
+  exit 1
+fi
 
 bag_topics=(
   /velocity_calibration/marker
@@ -203,15 +224,20 @@ bag_topics=(
   /livox/imu
   /frlio/high_rate_odom/status
   /frlio/high_rate_odom/anchor_age
+  /frlio/high_rate_odom/accel_spike_rejections
   # 高频原始、规划和经 EV 门控后的里程计，三者必须一起保存，才能对齐
   # 输入断档、重定位桥和 MAVROS/PX4 视觉输出。
   /Odometry
   /Odometry/guarded
   /Odometry/healthy
+  # MAVROS ODOMETRY 插件的实际输入；与 PX4 ULog 中的
+  # vehicle_visual_odometry 对齐后可定位丢帧发生在 MAVROS 前还是 PX4 内部。
+  /mavros/odometry/out
   /planning/odom
   /fastlio_global/relocalized_pose
   /ev_health/status
   /ev_health/fault
+  /ev_health/flight_ready
   /ev_health/diagnostics
   /ev_health/velocity_ned
   /path
@@ -220,11 +246,9 @@ bag_topics=(
   #   /Odometry.twist              FAST-LIO child/body FLU 原始速度
   #   /mavros/vision_speed/...     桥接后送入 MAVROS 的世界 ENU 视觉速度
   #   /mavros/local_position/...   PX4 EKF 输出的本地速度
-  #   /fmu/out/...                 PX4 原生 uORB 镜像（若当前 XRCE-DDS 已发布）
+  #   /fmu/out/...                 PX4 原生 uORB 镜像（默认不录，避免混入
+  #                                未确认来源的 DDS 状态）
   /mavros/estimator_status
-  /fmu/out/estimator_status_flags
-  /fmu/out/vehicle_local_position_v1
-  /fmu/out/vehicle_local_position
   /mavros/local_position/pose
   /mavros/local_position/odom
   /mavros/local_position/velocity_local
@@ -261,6 +285,14 @@ bag_topics=(
   /tf
   /tf_static
 )
+
+if [[ "${record_px4_dds_out}" == true ]]; then
+  bag_topics+=(
+    /fmu/out/estimator_status_flags
+    /fmu/out/vehicle_local_position_v1
+    /fmu/out/vehicle_local_position
+  )
+fi
 
 if [[ "${record_ego_diagnostics}" == true ]]; then
   # These are the actual obstacle inputs and collision volume used by EGO.

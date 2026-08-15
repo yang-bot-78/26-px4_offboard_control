@@ -71,8 +71,12 @@ public:
       "dynamic_invalid_grace_sec", 0.75);
     replan_hold_timeout_sec_ = declare_parameter<double>("replan_hold_timeout_sec", 3.0);
     replan_hold_timeout_sec_ = std::max(0.10, replan_hold_timeout_sec_);
+    replan_reanchor_max_horizontal_speed_mps_ = declare_parameter<double>(
+      "replan_reanchor_max_horizontal_speed_mps", 0.08);
+    replan_reanchor_stable_sec_ = declare_parameter<double>(
+      "replan_reanchor_stable_sec", 0.50);
     switch_position_tolerance_m_ = declare_parameter<double>(
-      "switch_position_tolerance_m", 0.05);
+      "switch_position_tolerance_m", 0.10);
     switch_velocity_tolerance_mps_ = declare_parameter<double>(
       "switch_velocity_tolerance_mps", 0.10);
     switch_acceleration_tolerance_mps2_ = declare_parameter<double>(
@@ -81,6 +85,13 @@ public:
       switch_acceleration_tolerance_mps2_ <= 0.0)
     {
       throw std::runtime_error("trajectory switch tolerances must be > 0");
+    }
+    if (replan_reanchor_max_horizontal_speed_mps_ <= 0.0 ||
+      replan_reanchor_stable_sec_ <= 0.0 ||
+      replan_reanchor_stable_sec_ > replan_hold_timeout_sec_)
+    {
+      throw std::runtime_error(
+              "replan reanchor speed/duration must be > 0 and fit inside the hold timeout");
     }
     rejection_clearance_ = declare_parameter<double>("obstacle_clearance", 0.30);
     if (!std::isfinite(rejection_clearance_) || rejection_clearance_ <= 0.0) {
@@ -151,6 +162,8 @@ public:
       output_topic_, rclcpp::SensorDataQoS());
     command_goal_seq_publisher_ = create_publisher<std_msgs::msg::UInt64>(
       "/race/ego/command_local_goal_seq", rclcpp::SensorDataQoS());
+    replan_ready_publisher_ = create_publisher<std_msgs::msg::UInt64>(
+      "/race/ego/replan_ready", rclcpp::QoS(1).reliable().transient_local());
     validated_bspline_publisher_ = create_publisher<traj_utils::msg::Bspline>(
       validated_bspline_topic_, rclcpp::QoS(10).reliable());
     const auto latched_qos = rclcpp::QoS(1).reliable().transient_local();
@@ -223,6 +236,42 @@ private:
     return altitude_reference_valid_ ? current_position_.z - ground_z_map_ : current_position_.z;
   }
 
+  void beginPlannerReplanHold()
+  {
+    if (planner_replan_hold_) {
+      return;
+    }
+    planner_replan_hold_ = true;
+    ++replan_token_;
+    planner_replan_hold_since_ = now();
+    replan_hold_stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    replan_ready_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    replan_ready_token_ = 0;
+    replan_hold_reanchored_ = false;
+  }
+
+  void clearPlannerReplanHold()
+  {
+    if (replan_ready_token_ != 0) {
+      std_msgs::msg::UInt64 reset;
+      reset.data = 0;
+      replan_ready_publisher_->publish(reset);
+    }
+    planner_replan_hold_ = false;
+    replan_hold_stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    replan_ready_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    replan_ready_token_ = 0;
+    replan_hold_reanchored_ = false;
+  }
+
+  double currentHorizontalSpeed() const
+  {
+    if (!race_ego_bridge::finite(current_velocity_)) {
+      return std::numeric_limits<double>::infinity();
+    }
+    return std::hypot(current_velocity_.x, current_velocity_.y);
+  }
+
   void altitudeReferenceCallback(
     const race_msgs::msg::FlightAltitudeReference::SharedPtr msg)
   {
@@ -232,7 +281,7 @@ private:
         have_goal_ = false;
         have_trajectory_ = false;
         have_bootstrap_setpoint_ = false;
-        planner_replan_hold_ = false;
+        clearPlannerReplanHold();
         have_last_valid_output_ = false;
         validated_trajectory_id_ = -1;
         setStatus("WAIT_ALTITUDE_REFERENCE");
@@ -340,9 +389,11 @@ private:
   void plannerSafetyCallback(const std_msgs::msg::String::SharedPtr msg)
   {
     if (msg->data == "EGO_REPLAN_REANCHOR_RETRY") {
-      if (!planner_replan_hold_) {
-        planner_replan_hold_ = true;
-        planner_replan_hold_since_ = now();
+      if (!planner_replan_hold_ || replan_hold_reanchored_) {
+        if (planner_replan_hold_) {
+          clearPlannerReplanHold();
+        }
+        beginPlannerReplanHold();
         RCLCPP_WARN(
           get_logger(),
           "[EGO_REPLAN_HOLD] reason=reanchor_retry timeout_sec=%.3f",
@@ -357,7 +408,7 @@ private:
       trajectory_collision_free_ = false;
       have_trajectory_ = false;
       have_bootstrap_setpoint_ = false;
-      planner_replan_hold_ = false;
+      clearPlannerReplanHold();
       setStatus(msg->data);
     }
   }
@@ -374,6 +425,8 @@ private:
     last_odom_time_ = now();
     current_position_ = {
       msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z};
+    current_velocity_ = {
+      msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z};
     appendActualPath(current_position_);
     // During vertical takeoff Offboard owns XY/Z and the EGO trajectory is
     // validated at flight_height_. Do not treat the local map's virtual
@@ -426,7 +479,7 @@ private:
     }
     if (!goal_frame_valid_) {
       have_trajectory_ = false;
-      planner_replan_hold_ = false;
+      clearPlannerReplanHold();
       trajectory_collision_free_ = false;
       validated_trajectory_id_ = -1;
       have_bootstrap_setpoint_ = false;
@@ -507,12 +560,38 @@ private:
       return;
     }
 
+    // During a replan hold, statusTimer owns the setpoint until the vehicle
+    // has settled at its measured position.  Do not accept a replacement
+    // generated while the aircraft is still braking.
+    if (planner_replan_hold_ && !replan_hold_reanchored_) {
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 500,
+        "[BRIDGE_REANCHOR_WAIT] candidate_id=%ld horizontal_speed=%.3f limit=%.3f",
+        static_cast<int64_t>(msg->traj_id), currentHorizontalSpeed(),
+        replan_reanchor_max_horizontal_speed_mps_);
+      setStatus("PLANNING_HOLD");
+      return;
+    }
+
+    const rclcpp::Time candidate_start(msg->start_time, get_clock()->get_clock_type());
+    if (planner_replan_hold_ && replan_hold_reanchored_ &&
+      !race_ego_bridge::candidateStartsAfterReplanReady(
+        candidate_start.seconds(), replan_ready_time_.seconds()))
+    {
+      RCLCPP_WARN(
+        get_logger(),
+        "[BRIDGE_REPLAN_STALE_CANDIDATE] candidate_id=%ld start=%.3f ready=%.3f token=%lu",
+        static_cast<int64_t>(msg->traj_id), candidate_start.seconds(),
+        replan_ready_time_.seconds(), static_cast<unsigned long>(replan_ready_token_));
+      setStatus("PLANNING_HOLD");
+      return;
+    }
+
     // A trajectory can be collision-free and dynamically valid in isolation
     // while still being unsafe to switch to.  Compare its state at "now" with
     // the command currently owned by the bridge.  Large discontinuities were
     // observed as 0.4--0.5 m position-target jumps and must enter the existing
     // measured-position hold/replan path instead of reaching PX4.
-    const rclcpp::Time candidate_start(msg->start_time, get_clock()->get_clock_type());
     const bool rebase_candidate_start = planner_replan_hold_;
     if (have_last_valid_output_ && (have_trajectory_ || planner_replan_hold_)) {
       auto velocity_trajectory = trajectory.getDerivative();
@@ -543,10 +622,7 @@ private:
         previous, candidate, switch_position_tolerance_m_,
         switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
       if (!transition.continuous) {
-        if (!planner_replan_hold_) {
-          planner_replan_hold_ = true;
-          planner_replan_hold_since_ = now();
-        }
+        beginPlannerReplanHold();
         RCLCPP_ERROR(
           get_logger(),
           "[BRIDGE_SWITCH_REJECTED] candidate_id=%ld active_id=%ld "
@@ -581,7 +657,7 @@ private:
     last_trajectory_time_ = now();
     trajectory_collision_free_ = true;
     have_trajectory_ = true;
-    planner_replan_hold_ = false;
+    clearPlannerReplanHold();
     active_rejection_clearance_ = candidate_clearance;
     have_bootstrap_setpoint_ = prepareBootstrapSetpoint(candidate_clearance);
     publishPredictedPath();
@@ -963,6 +1039,12 @@ private:
         msg->trajectory_id, validated_trajectory_id_);
       return;
     }
+    // Keep the measured-position hold authoritative.  Otherwise commands
+    // from the stale validated trajectory overwrite the hold output before a
+    // stopped vehicle can be re-anchored to a replacement trajectory.
+    if (planner_replan_hold_) {
+      return;
+    }
     if (!prerequisitesReady()) {
       return;
     }
@@ -1127,7 +1209,7 @@ private:
         race_ego_bridge::timedOut(occupancyMapAge(), occupancy_timeout_sec_) ||
         hold_age > replan_hold_timeout_sec_)
       {
-        planner_replan_hold_ = false;
+        clearPlannerReplanHold();
         setStatus("TRAJECTORY_TIMEOUT");
         return;
       }
@@ -1138,7 +1220,7 @@ private:
       if (!pointCollisionFree(
           hold_point, nullptr, nullptr, nullptr, active_rejection_clearance_))
       {
-        planner_replan_hold_ = false;
+        clearPlannerReplanHold();
         collision_point_ = hold_point;
         collision_reason_ = "EGO_TRAJECTORY_COLLISION";
         logTrajectoryCollision();
@@ -1167,6 +1249,37 @@ private:
       last_valid_output_time_ = now();
       last_valid_output_ = output;
       have_last_valid_output_ = true;
+      const double horizontal_speed = currentHorizontalSpeed();
+      if (horizontal_speed > replan_reanchor_max_horizontal_speed_mps_) {
+        replan_hold_stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      } else if (replan_hold_stable_since_.nanoseconds() == 0) {
+        replan_hold_stable_since_ = now();
+      }
+      const double stable_age = replan_hold_stable_since_.nanoseconds() == 0 ? 0.0 :
+        (now() - replan_hold_stable_since_).seconds();
+      if (!replan_hold_reanchored_ && race_ego_bridge::replanHoldReadyToReanchor(
+          horizontal_speed, stable_age, replan_reanchor_max_horizontal_speed_mps_,
+          replan_reanchor_stable_sec_))
+      {
+        // New candidates are still collision checked and must satisfy the
+        // normal P/V/A splice limits against this zero-velocity hold output.
+        // The old trajectory is no longer permitted to resume.
+        have_trajectory_ = false;
+        have_bootstrap_setpoint_ = false;
+        trajectory_collision_free_ = false;
+        replan_hold_reanchored_ = true;
+        replan_ready_time_ = now();
+        replan_ready_token_ = replan_token_;
+        std_msgs::msg::UInt64 ready;
+        ready.data = replan_ready_token_;
+        replan_ready_publisher_->publish(ready);
+        RCLCPP_WARN(
+          get_logger(),
+          "[BRIDGE_REPLAN_READY] token=%lu position=(%.3f,%.3f,%.3f) "
+          "horizontal_speed=%.3f stable_sec=%.3f",
+          static_cast<unsigned long>(replan_ready_token_), hold_point.x, hold_point.y,
+          hold_point.z, horizontal_speed, stable_age);
+      }
       publishSetpoint(hold_point);
       setStatus("PLANNING_HOLD");
       return;
@@ -1325,7 +1438,9 @@ private:
   double feasibility_tolerance_{1.10};
   double dynamic_invalid_grace_sec_{0.75};
   double replan_hold_timeout_sec_{3.0};
-  double switch_position_tolerance_m_{0.05};
+  double replan_reanchor_max_horizontal_speed_mps_{0.08};
+  double replan_reanchor_stable_sec_{0.50};
+  double switch_position_tolerance_m_{0.10};
   double switch_velocity_tolerance_mps_{0.10};
   double switch_acceleration_tolerance_mps2_{0.20};
   double rejection_clearance_{0.30};
@@ -1361,6 +1476,7 @@ private:
   bool have_bootstrap_setpoint_{false};
   bool command_dynamics_valid_{true};
   bool planner_replan_hold_{false};
+  bool replan_hold_reanchored_{false};
   bool altitude_reference_valid_{false};
   int64_t trajectory_id_{0};
   rclcpp::Time trajectory_stamp_{0, 0, RCL_ROS_TIME};
@@ -1369,6 +1485,8 @@ private:
   int64_t dynamic_invalid_trajectory_id_{-1};
   int64_t last_logged_collision_trajectory_id_{-1};
   uint64_t local_goal_seq_{0};
+  uint64_t replan_token_{0};
+  uint64_t replan_ready_token_{0};
   std::string status_;
   std::string collision_reason_;
   std::size_t collision_sample_index_{0};
@@ -1385,6 +1503,8 @@ private:
   rclcpp::Time last_valid_output_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time dynamic_invalid_since_{0, 0, RCL_ROS_TIME};
   rclcpp::Time planner_replan_hold_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time replan_hold_stable_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time replan_ready_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_map_receive_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_map_source_time_{0, 0, RCL_ROS_TIME};
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_;
@@ -1394,6 +1514,7 @@ private:
   std::vector<double> predicted_sample_times_;
   nav_msgs::msg::Path actual_path_;
   race_ego_bridge::Vec3 current_position_;
+  race_ego_bridge::Vec3 current_velocity_;
   race_ego_bridge::Vec3 current_goal_;
   race_ego_bridge::Vec3 bootstrap_point_;
   mavros_msgs::msg::PositionTarget bootstrap_setpoint_;
@@ -1401,6 +1522,7 @@ private:
   bool have_last_valid_output_{false};
   rclcpp::Publisher<mavros_msgs::msg::PositionTarget>::SharedPtr output_publisher_;
   rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr command_goal_seq_publisher_;
+  rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr replan_ready_publisher_;
   rclcpp::Publisher<traj_utils::msg::Bspline>::SharedPtr validated_bspline_publisher_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;

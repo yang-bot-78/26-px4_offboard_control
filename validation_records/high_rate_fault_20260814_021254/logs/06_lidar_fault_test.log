@@ -1,0 +1,79 @@
+[状态] t=0.136s HEALTHY, anchor_age=None
+[状态] t=0.598s SUSPECT_STALE_LIDAR, anchor_age=0.14406871795654297
+[状态] t=0.743s HEALTHY, anchor_age=0.10875129699707031
+[状态] t=2.302s SUSPECT_STALE_LIDAR, anchor_age=0.11438655853271484
+[状态] t=2.538s HEALTHY, anchor_age=0.11532902717590332
+[故障测试] 暂停门控 LiDAR；IMU 和原始 LiDAR 保持运行。
+[状态] t=4.800s SUSPECT_STALE_LIDAR, anchor_age=0.12841343879699707
+[故障测试] LiDAR forwarding paused; forwarded=687
+[状态] t=5.015s FAULT_STALE_LIDAR, anchor_age=0.11460757255554199
+[故障测试] LiDAR forwarding enabled; forwarded=687
+[状态] t=6.709s HEALTHY, anchor_age=1.8045213222503662
+{
+  "passed": false,
+  "checks": {
+    "saw_suspect": true,
+    "saw_fault": true,
+    "anchor_crossed_0_15_s": true,
+    "anchor_crossed_0_40_s": true,
+    "odom_quiet_after_fault": true,
+    "imu_continued": false,
+    "raw_lidar_continued": true,
+    "gated_lidar_quiet": false,
+    "recovered_healthy": true
+  },
+  "status_events": [
+    {
+      "elapsed_s": 0.13579919900007553,
+      "status": "HEALTHY",
+      "anchor_age_s": null
+    },
+    {
+      "elapsed_s": 0.5980619330000536,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14406871795654297
+    },
+    {
+      "elapsed_s": 0.7434879100001126,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.10875129699707031
+    },
+    {
+      "elapsed_s": 2.301667911000095,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.11438655853271484
+    },
+    {
+      "elapsed_s": 2.537862480000058,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.11532902717590332
+    },
+    {
+      "elapsed_s": 4.800030308000032,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.12841343879699707
+    },
+    {
+      "elapsed_s": 5.0146070509999845,
+      "status": "FAULT_STALE_LIDAR",
+      "anchor_age_s": 0.11460757255554199
+    },
+    {
+      "elapsed_s": 6.708579077000195,
+      "status": "HEALTHY",
+      "anchor_age_s": 1.8045213222503662
+    }
+  ],
+  "counts_during_pause": {
+    "odom": 7,
+    "imu": 7,
+    "raw_lidar": 8,
+    "gated_lidar": 8
+  },
+  "odom_quiet_s": 0.2563162139999804,
+  "odom_quiet_required_s": 0.2,
+  "odom_quiet_timeout_s": 2.0,
+  "gated_lidar_quiet_s": 0.003818954000053054,
+  "first_anchor_at_or_above_0_15_s": 0.15415263175964355,
+  "first_anchor_at_or_above_0_40_s": 0.6985857486724854
+}

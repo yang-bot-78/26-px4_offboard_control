@@ -13,7 +13,6 @@ import threading
 import time
 
 import rclpy
-from geometry_msgs.msg import TwistWithCovarianceStamped
 from mavros_msgs.msg import State
 from nav_msgs.msg import Odometry
 from rclpy.executors import SingleThreadedExecutor
@@ -40,17 +39,15 @@ class CalibrationNode(Node):
         self.marker_publisher = self.create_publisher(String, MARKER_TOPIC, reliable)
         self.create_subscription(State, "/mavros/state", self._state_callback, reliable)
         self.create_subscription(String, "/ev_health/status", self._health_callback, reliable)
-        self.create_subscription(Odometry, "/Odometry", self._odom_callback, reliable)
+        sensor_data = QoSProfile(depth=5, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.create_subscription(Odometry, "/Odometry", self._odom_callback, sensor_data)
         self.create_subscription(
-            TwistWithCovarianceStamped,
-            "/mavros/vision_speed/speed_twist_cov",
-            self._speed_callback,
-            reliable,
+            Odometry, "/mavros/odometry/out", self._ev_output_callback, reliable
         )
         self.state = None
         self.health = None
         self.last_odom_monotonic = None
-        self.last_speed_monotonic = None
+        self.last_ev_output_monotonic = None
         self._last_health_warning = None
 
     def _state_callback(self, message):
@@ -62,8 +59,22 @@ class CalibrationNode(Node):
     def _odom_callback(self, _message):
         self.last_odom_monotonic = time.monotonic()
 
-    def _speed_callback(self, _message):
-        self.last_speed_monotonic = time.monotonic()
+    def _ev_output_callback(self, _message):
+        self.last_ev_output_monotonic = time.monotonic()
+
+    def readiness_gaps(self):
+        gaps = []
+        if self.state is None:
+            gaps.append("/mavros/state")
+        if self.health is None:
+            gaps.append("/ev_health/status")
+        if self.last_odom_monotonic is None:
+            gaps.append("/Odometry")
+        if self.last_ev_output_monotonic is None:
+            gaps.append("/mavros/odometry/out")
+        if self.marker_publisher.get_subscription_count() == 0:
+            gaps.append("rosbag:/velocity_calibration/marker")
+        return gaps
 
     def known_offboard_publishers(self):
         publishers = []
@@ -93,8 +104,8 @@ class CalibrationNode(Node):
             self._last_health_warning = self.health
         if self.last_odom_monotonic is None or now - self.last_odom_monotonic > 0.5:
             raise TestAborted("/Odometry 已超过 0.5 秒没有新消息")
-        if self.last_speed_monotonic is None or now - self.last_speed_monotonic > 0.5:
-            raise TestAborted("vision_speed 已超过 0.5 秒没有新消息")
+        if self.last_ev_output_monotonic is None or now - self.last_ev_output_monotonic > 0.5:
+            raise TestAborted("/mavros/odometry/out 已超过 0.5 秒没有新消息")
 
 
 def parse_args():
@@ -153,15 +164,15 @@ def wait_until_ready(node, timeout_s=15.0):
             node.state is not None
             and node.health is not None
             and node.last_odom_monotonic is not None
-            and node.last_speed_monotonic is not None
+            and node.last_ev_output_monotonic is not None
             and node.marker_publisher.get_subscription_count() > 0
         ):
             node.check_runtime(require_healthy=True)
             return
         time.sleep(0.1)
-    raise TestAborted(
-        "等待 MAVROS、EV、Odometry、vision_speed 或 rosbag 标记订阅者超时"
-    )
+    gaps = node.readiness_gaps()
+    detail = "、".join(gaps) if gaps else "话题已收到但运行状态未通过"
+    raise TestAborted(f"前置链路就绪超时；未就绪：{detail}")
 
 
 def ask(prompt):

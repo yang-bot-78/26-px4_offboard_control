@@ -55,6 +55,7 @@
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/u_int64.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -161,6 +162,7 @@ vector<double>       extrinR(9, 0.0);
 deque<double>                     time_buffer;
 deque<PointCloudXYZI::Ptr>        lidar_buffer;
 deque<sensor_msgs::msg::Imu::ConstSharedPtr> imu_buffer;
+deque<double> imu_process_noise_scale_buffer;
 
 PointCloudXYZI::Ptr featsFromMap(new PointCloudXYZI());
 PointCloudXYZI::Ptr feats_undistort(new PointCloudXYZI());
@@ -717,12 +719,19 @@ bool sync_packages(MeasureGroup &meas)
     /*** push imu data, and pop from imu buffer ***/
     double imu_time = get_time_sec(imu_buffer.front()->header.stamp);
     meas.imu.clear();
+    meas.imu_process_noise_scale.clear();
     while ((!imu_buffer.empty()) && (imu_time < lidar_end_time))
     {
         imu_time = get_time_sec(imu_buffer.front()->header.stamp);
         if(imu_time > lidar_end_time) break;
         meas.imu.push_back(imu_buffer.front());
+        meas.imu_process_noise_scale.push_back(
+            imu_process_noise_scale_buffer.empty() ? 1.0 :
+            imu_process_noise_scale_buffer.front());
         imu_buffer.pop_front();
+        if (!imu_process_noise_scale_buffer.empty()) {
+            imu_process_noise_scale_buffer.pop_front();
+        }
     }
 
     lidar_buffer.pop_front();
@@ -1150,6 +1159,24 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
     solve_time += omp_get_wtime() - solve_start_;
 }
 
+double lidar_residual_rms()
+{
+    if (effct_feat_num <= 0) {
+        return 0.0;
+    }
+
+    double squared_sum = 0.0;
+    int finite_count = 0;
+    for (int index = 0; index < effct_feat_num; ++index) {
+        const double residual = corr_normvect->points[index].intensity;
+        if (std::isfinite(residual)) {
+            squared_sum += residual * residual;
+            ++finite_count;
+        }
+    }
+    return finite_count > 0 ? std::sqrt(squared_sum / finite_count) : 0.0;
+}
+
 class LaserMappingNode : public rclcpp::Node
 {
 public:
@@ -1176,10 +1203,22 @@ public:
         this->declare_parameter<double>("common.time_offset_lidar_to_imu", 0.0);
         this->declare_parameter<string>("imu.acceleration_unit", "unconfirmed");
         this->declare_parameter<double>("imu.unit_report_duration_s", 10.0);
+        this->declare_parameter<double>("imu.rejected_accel_process_noise_scale", 10.0);
         this->declare_parameter<bool>("high_rate_odom.enabled", true);
         this->declare_parameter<double>("high_rate_odom.warn_anchor_age_s", 0.15);
         this->declare_parameter<double>("high_rate_odom.max_anchor_age_s", 0.40);
         this->declare_parameter<double>("high_rate_odom.imu_history_s", 5.0);
+        this->declare_parameter<double>("high_rate_odom.correction_smoothing_s", 0.25);
+        this->declare_parameter<bool>("high_rate_odom.accel_filter.enabled", true);
+        this->declare_parameter<int>("high_rate_odom.accel_filter.window_size", 21);
+        this->declare_parameter<int>("high_rate_odom.accel_filter.min_samples", 7);
+        this->declare_parameter<double>(
+            "high_rate_odom.accel_filter.max_deviation_mps2", 5.0);
+        this->declare_parameter<double>(
+            "high_rate_odom.accel_filter.max_norm_mps2", 19.62);
+        this->declare_parameter<bool>(
+            "high_rate_odom.correction_diagnostics", true);
+        this->declare_parameter<bool>("mapping.update_diagnostics", true);
         this->declare_parameter<double>("filter_size_corner", 0.5);
         this->declare_parameter<double>("filter_size_surf", 0.5);
         this->declare_parameter<double>("filter_size_map", 0.5);
@@ -1253,12 +1292,31 @@ public:
         this->get_parameter_or<double>("common.time_offset_lidar_to_imu", time_diff_lidar_to_imu, 0.0);
         this->get_parameter_or<string>("imu.acceleration_unit", imu_acceleration_unit_name_, "unconfirmed");
         this->get_parameter_or<double>("imu.unit_report_duration_s", imu_unit_report_duration_s_, 10.0);
+        this->get_parameter_or<double>(
+            "imu.rejected_accel_process_noise_scale", rejected_accel_process_noise_scale_, 10.0);
         this->get_parameter_or<bool>("high_rate_odom.enabled", high_rate_odom_enabled_, true);
         this->get_parameter_or<double>(
             "high_rate_odom.warn_anchor_age_s", warn_anchor_age_s_, 0.15);
         this->get_parameter_or<double>(
             "high_rate_odom.max_anchor_age_s", max_anchor_age_s_, 0.40);
         this->get_parameter_or<double>("high_rate_odom.imu_history_s", imu_history_s_, 5.0);
+        this->get_parameter_or<double>(
+            "high_rate_odom.correction_smoothing_s", correction_smoothing_s_, 0.25);
+        this->get_parameter_or<bool>(
+            "high_rate_odom.accel_filter.enabled", accel_filter_enabled_, true);
+        this->get_parameter_or<int>(
+            "high_rate_odom.accel_filter.window_size", accel_filter_window_size_, 21);
+        this->get_parameter_or<int>(
+            "high_rate_odom.accel_filter.min_samples", accel_filter_min_samples_, 7);
+        this->get_parameter_or<double>(
+            "high_rate_odom.accel_filter.max_deviation_mps2",
+            accel_filter_max_deviation_mps2_, 5.0);
+        this->get_parameter_or<double>(
+            "high_rate_odom.accel_filter.max_norm_mps2", accel_filter_max_norm_mps2_, 19.62);
+        this->get_parameter_or<bool>(
+            "high_rate_odom.correction_diagnostics", correction_diagnostics_, true);
+        this->get_parameter_or<bool>(
+            "mapping.update_diagnostics", update_diagnostics_, true);
         this->get_parameter_or<double>("filter_size_corner",filter_size_corner_min,0.5);
         this->get_parameter_or<double>("filter_size_surf",filter_size_surf_min,0.5);
         this->get_parameter_or<double>("filter_size_map",filter_size_map_min,0.5);
@@ -1281,13 +1339,38 @@ public:
             throw std::invalid_argument(
                 "high_rate_odom requires 0 < warn_anchor_age_s < max_anchor_age_s < imu_history_s");
         }
+        if (correction_smoothing_s_ < 0.0) {
+            throw std::invalid_argument(
+                "high_rate_odom.correction_smoothing_s must be non-negative");
+        }
+        if (rejected_accel_process_noise_scale_ < 1.0) {
+            throw std::invalid_argument(
+                "imu.rejected_accel_process_noise_scale must be >= 1.0");
+        }
+        if (accel_filter_enabled_ &&
+            (accel_filter_window_size_ < 3 || accel_filter_window_size_ % 2 == 0 ||
+            accel_filter_min_samples_ < 1 ||
+            accel_filter_min_samples_ > accel_filter_window_size_ ||
+            accel_filter_max_deviation_mps2_ <= 0.0 || accel_filter_max_norm_mps2_ <= 0.0)) {
+            throw std::invalid_argument(
+                "high_rate_odom.accel_filter requires an odd window_size >= 3, "
+                "1 <= min_samples <= window_size, and positive acceleration limits");
+        }
         fr_lio::HighRateOdomNoise propagation_noise;
         propagation_noise.gyro_variance = gyr_cov;
         propagation_noise.accel_variance = acc_cov;
         propagation_noise.gyro_bias_variance = b_gyr_cov;
         propagation_noise.accel_bias_variance = b_acc_cov;
+        fr_lio::HighRateAccelFilterConfig accel_filter;
+        accel_filter.enabled = accel_filter_enabled_;
+        accel_filter.window_size = static_cast<std::size_t>(accel_filter_window_size_);
+        accel_filter.min_samples = static_cast<std::size_t>(accel_filter_min_samples_);
+        accel_filter.max_deviation_mps2 = accel_filter_max_deviation_mps2_;
+        accel_filter.max_norm_mps2 = accel_filter_max_norm_mps2_;
+        imu_preprocessor_ = std::make_unique<fr_lio::HighRateImuPreprocessor>(accel_filter);
         high_rate_propagator_ = std::make_unique<fr_lio::HighRateOdomPropagator>(
-            propagation_noise, warn_anchor_age_s_, max_anchor_age_s_, imu_history_s_);
+            propagation_noise, warn_anchor_age_s_, max_anchor_age_s_, imu_history_s_,
+            accel_filter, correction_smoothing_s_);
         imu_unit_report_ = std::make_unique<fr_lio::AccelerationUnitReport>(
             imu_unit_report_duration_s_);
         high_rate_publish_enabled_ =
@@ -1364,6 +1447,21 @@ public:
         RCLCPP_INFO(this->get_logger(), "high_rate_odom.publish_enabled: %d", high_rate_publish_enabled_);
         RCLCPP_INFO(this->get_logger(), "high_rate_odom.warn_anchor_age_s: %.3f", warn_anchor_age_s_);
         RCLCPP_INFO(this->get_logger(), "high_rate_odom.max_anchor_age_s: %.3f", max_anchor_age_s_);
+        RCLCPP_INFO(
+            this->get_logger(), "high_rate_odom.correction_smoothing_s: %.3f",
+            correction_smoothing_s_);
+        RCLCPP_INFO(this->get_logger(),
+            "high_rate_odom.accel_filter: enabled=%d window=%d min_samples=%d "
+            "max_deviation=%.3f m/s^2 max_norm=%.3f m/s^2",
+            accel_filter_enabled_, accel_filter_window_size_, accel_filter_min_samples_,
+            accel_filter_max_deviation_mps2_, accel_filter_max_norm_mps2_);
+        RCLCPP_INFO(this->get_logger(),
+            "imu.rejected_accel_process_noise_scale: %.2f",
+            rejected_accel_process_noise_scale_);
+        RCLCPP_INFO(this->get_logger(),
+            "high_rate_odom.correction_diagnostics: %d", correction_diagnostics_);
+        RCLCPP_INFO(this->get_logger(),
+            "mapping.update_diagnostics: %d", update_diagnostics_);
         RCLCPP_INFO(this->get_logger(), "preprocess.lidar_type: %d", p_pre->lidar_type);
         RCLCPP_INFO(this->get_logger(), "preprocess.scan_line: %d", p_pre->N_SCANS);
         RCLCPP_INFO(this->get_logger(), "preprocess.blind: %f", p_pre->blind);
@@ -1521,6 +1619,12 @@ public:
             rclcpp::QoS(1).reliable().transient_local());
         pubAnchorAge_ = this->create_publisher<std_msgs::msg::Float64>(
             "/frlio/high_rate_odom/anchor_age", odom_qos);
+        pubAccelSpikeRejections_ = this->create_publisher<std_msgs::msg::UInt64>(
+            "/frlio/high_rate_odom/accel_spike_rejections",
+            rclcpp::QoS(1).reliable().transient_local());
+        std_msgs::msg::UInt64 initial_rejection_count;
+        initial_rejection_count.data = 0;
+        pubAccelSpikeRejections_->publish(initial_rejection_count);
         publish_high_rate_status(
             !high_rate_odom_enabled_ ? "DISABLED" :
             (high_rate_publish_enabled_ ? "WAITING_FOR_LIDAR" : "UNIT_UNCONFIRMED"));
@@ -1814,15 +1918,62 @@ private:
             // by 1/sqrt(R_i), so the effective measurement noise covariance the filter
             // should use is the identity. Otherwise keep the historical scalar R.
             const double R_for_filter = use_perpoint_cov ? 1.0 : LASER_POINT_COV;
+            const state_ikfom lidar_prior = kf.get_x();
+            const auto covariance_prior = kf.get_P();
             kf.update_iterated_dyn_share_modified(R_for_filter, solve_H_time);
 
             state_point = kf.get_x();
+            const auto covariance_posterior = kf.get_P();
             euler_cur = SO3ToEuler(state_point.rot);
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
             geoQuat.x = state_point.rot.coeffs()[0];
             geoQuat.y = state_point.rot.coeffs()[1];
             geoQuat.z = state_point.rot.coeffs()[2];
             geoQuat.w = state_point.rot.coeffs()[3];
+
+            if (update_diagnostics_) {
+                constexpr int kPositionIndex = 0;
+                constexpr int kAttitudeIndex = 3;
+                constexpr int kVelocityIndex = 12;
+                constexpr int kAccelBiasIndex = 18;
+                constexpr int kVelocityZIndex = kVelocityIndex + 2;
+                const V3D prior_euler_deg = SO3ToEuler(lidar_prior.rot);
+                const V3D delta_euler_deg = euler_cur - prior_euler_deg;
+                const double effective_ratio = feats_down_size > 0 ?
+                    static_cast<double>(effct_feat_num) / feats_down_size : 0.0;
+                const double pre_pvp_z = covariance_prior.block<1,3>(
+                    kVelocityZIndex, kPositionIndex).norm();
+                const double post_pvp_z = covariance_posterior.block<1,3>(
+                    kVelocityZIndex, kPositionIndex).norm();
+                const double pre_pvtheta_z = covariance_prior.block<1,3>(
+                    kVelocityZIndex, kAttitudeIndex).norm();
+                const double post_pvtheta_z = covariance_posterior.block<1,3>(
+                    kVelocityZIndex, kAttitudeIndex).norm();
+                const double pre_pvba_z = covariance_prior.block<1,3>(
+                    kVelocityZIndex, kAccelBiasIndex).norm();
+                const double post_pvba_z = covariance_posterior.block<1,3>(
+                    kVelocityZIndex, kAccelBiasIndex).norm();
+                RCLCPP_WARN(this->get_logger(),
+                    "LIDAR_UPDATE anchor=%.6f pre_vz=%.9f post_vz=%.9f delta_vz=%.9f "
+                    "pre_Pvv_z=%.9e post_Pvv_z=%.9e residual_rms=%.9f "
+                    "effective_points=%d effective_ratio=%.6f delta_pos_z=%.9f "
+                    "delta_pitch_deg=%.9f delta_roll_deg=%.9f delta_ba_z=%.9f "
+                    "pre_Pvp_z=%.9e post_Pvp_z=%.9e "
+                    "pre_Pvtheta_z=%.9e post_Pvtheta_z=%.9e "
+                    "pre_Pvba_z=%.9e post_Pvba_z=%.9e",
+                    lidar_end_time,
+                    lidar_prior.vel(2), state_point.vel(2),
+                    state_point.vel(2) - lidar_prior.vel(2),
+                    covariance_prior(kVelocityZIndex, kVelocityZIndex),
+                    covariance_posterior(kVelocityZIndex, kVelocityZIndex),
+                    lidar_residual_rms(), effct_feat_num, effective_ratio,
+                    state_point.pos(2) - lidar_prior.pos(2),
+                    delta_euler_deg(1), delta_euler_deg(0),
+                    state_point.ba(2) - lidar_prior.ba(2),
+                    pre_pvp_z, post_pvp_z,
+                    pre_pvtheta_z, post_pvtheta_z,
+                    pre_pvba_z, post_pvba_z);
+            }
 
             if (use_scan_to_scan_cov && flg_EKF_inited) {
                 M3D R_curr = state_point.rot.toRotationMatrix();
@@ -1939,11 +2090,44 @@ private:
                     rotation_world_body.transpose() * P_drift.block<3,3>(3,3) *
                     rotation_world_body;
             }
-            if (high_rate_publish_enabled_ &&
-                !high_rate_propagator_->reset_from_lidar(corrected_state)) {
-                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-                    "Rejected non-monotonic or invalid LiDAR correction at %.6f",
-                    lidar_end_time);
+            if (high_rate_publish_enabled_) {
+                const bool correction_accepted =
+                    high_rate_propagator_->reset_from_lidar(corrected_state);
+                if (!correction_accepted) {
+                    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+                        "Rejected non-monotonic or invalid LiDAR correction at %.6f",
+                        lidar_end_time);
+                } else if (correction_diagnostics_) {
+                    const auto diagnostic =
+                        high_rate_propagator_->take_last_correction_diagnostic();
+                    if (diagnostic) {
+                        const auto &d = *diagnostic;
+                        RCLCPP_WARN(this->get_logger(),
+                            "HIGH_RATE_CORRECTION anchor=%.6f propagated_t=%.6f "
+                            "propagated_v=(%.6f,%.6f,%.6f) "
+                            "anchor_posterior_v=(%.6f,%.6f,%.6f) "
+                            "posterior_v=(%.6f,%.6f,%.6f) "
+                            "output_before_v=(%.6f,%.6f,%.6f) "
+                            "output_after_v=(%.6f,%.6f,%.6f) "
+                            "offset_v=(%.6f,%.6f,%.6f) "
+                            "smoothing=%d elapsed_before=%.6f duration=%.6f",
+                            d.anchor_timestamp, d.propagated_timestamp,
+                            d.propagated_velocity.x(), d.propagated_velocity.y(),
+                            d.propagated_velocity.z(),
+                            d.anchor_posterior_velocity.x(), d.anchor_posterior_velocity.y(),
+                            d.anchor_posterior_velocity.z(),
+                            d.posterior_velocity.x(), d.posterior_velocity.y(),
+                            d.posterior_velocity.z(),
+                            d.output_velocity_before.x(), d.output_velocity_before.y(),
+                            d.output_velocity_before.z(),
+                            d.output_velocity_after.x(), d.output_velocity_after.y(),
+                            d.output_velocity_after.z(),
+                            d.correction_offset_velocity.x(), d.correction_offset_velocity.y(),
+                            d.correction_offset_velocity.z(),
+                            d.smoothing_enabled, d.smoothing_elapsed_before,
+                            d.smoothing_duration);
+                    }
+                }
             }
 
             /*** add the feature points to map kdtree ***/
@@ -2444,6 +2628,7 @@ private:
         {
             std::cerr << "IMU timestamp loop back, clear buffer and high-rate state" << std::endl;
             imu_buffer.clear();
+            imu_process_noise_scale_buffer.clear();
             timestamp_rollback = true;
         }
         last_timestamp_imu = timestamp;
@@ -2461,9 +2646,24 @@ private:
             msg->angular_velocity.z);
         if (timestamp_rollback) {
             high_rate_propagator_->invalidate();
+            if (imu_preprocessor_) imu_preprocessor_->reset();
         }
+        const auto used_sample = imu_preprocessor_ ?
+            imu_preprocessor_->process(sample) : sample;
+        msg->linear_acceleration.x = used_sample.acceleration.x();
+        msg->linear_acceleration.y = used_sample.acceleration.y();
+        msg->linear_acceleration.z = used_sample.acceleration.z();
+        const double process_noise_scale = used_sample.accel_spike_rejected ?
+            rejected_accel_process_noise_scale_ : 1.0;
+        RCLCPP_DEBUG(this->get_logger(),
+            "IMU_PREPROCESS t=%.9f raw=(%.6f,%.6f,%.6f) used=(%.6f,%.6f,%.6f) "
+            "rejected=%d q_scale=%.2f",
+            timestamp, used_sample.raw_acceleration.x(), used_sample.raw_acceleration.y(),
+            used_sample.raw_acceleration.z(), used_sample.acceleration.x(),
+            used_sample.acceleration.y(), used_sample.acceleration.z(),
+            used_sample.accel_spike_rejected, process_noise_scale);
         const auto result = high_rate_publish_enabled_ ?
-            high_rate_propagator_->add_imu(sample) :
+            high_rate_propagator_->add_filtered_imu(used_sample) :
             std::optional<fr_lio::HighRateOdomResult>();
 
         // Expose the sample to LiDAR synchronization only after it is in the
@@ -2471,6 +2671,7 @@ private:
         // IMU that it already consumed from imu_buffer.
         mtx_buffer.lock();
         imu_buffer.push_back(msg);
+        imu_process_noise_scale_buffer.push_back(process_noise_scale);
         mtx_buffer.unlock();
         sig_buffer.notify_all();
 
@@ -2480,6 +2681,21 @@ private:
         std_msgs::msg::Float64 anchor_age;
         anchor_age.data = result->lidar_anchor_age_s;
         pubAnchorAge_->publish(anchor_age);
+        if (result->accel_spike_rejected) {
+            std_msgs::msg::UInt64 rejection_count;
+            rejection_count.data = result->accel_spike_rejection_count;
+            pubAccelSpikeRejections_->publish(rejection_count);
+            RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                "High-rate IMU acceleration spike rejected: raw_norm=%.3f m/s^2 "
+                "deviation=%.3f m/s^2 norm_gate=%d deviation_gate=%d "
+                "consecutive=%zu total=%zu",
+                result->raw_acceleration_norm_mps2,
+                result->acceleration_deviation_mps2,
+                result->accel_norm_limit_exceeded,
+                result->accel_deviation_limit_exceeded,
+                result->consecutive_accel_spike_rejections,
+                result->accel_spike_rejection_count);
+        }
         if (result->health == fr_lio::HighRateOdomHealth::StaleLidar) {
             publish_high_rate_status("FAULT_STALE_LIDAR");
             RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
@@ -2637,6 +2853,7 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pubHighRateStatus_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubAnchorAge_;
+    rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr pubAccelSpikeRejections_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
     rclcpp::CallbackGroup::SharedPtr imu_cb_group_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_pcl_pc_;
@@ -2664,13 +2881,23 @@ private:
     bool high_rate_publish_enabled_ = false;
     bool imu_unit_report_published_ = false;
     double imu_unit_report_duration_s_ = 10.0;
+    double rejected_accel_process_noise_scale_ = 10.0;
     double warn_anchor_age_s_ = 0.15;
     double max_anchor_age_s_ = 0.40;
     double imu_history_s_ = 5.0;
+    double correction_smoothing_s_ = 0.25;
+    bool accel_filter_enabled_ = true;
+    int accel_filter_window_size_ = 21;
+    int accel_filter_min_samples_ = 7;
+    double accel_filter_max_deviation_mps2_ = 5.0;
+    double accel_filter_max_norm_mps2_ = 19.62;
+    bool correction_diagnostics_ = true;
+    bool update_diagnostics_ = true;
     double imu_acceleration_scale_ = 1.0;
     fr_lio::AccelerationUnit imu_acceleration_unit_ =
         fr_lio::AccelerationUnit::Unconfirmed;
     std::unique_ptr<fr_lio::AccelerationUnitReport> imu_unit_report_;
+    std::unique_ptr<fr_lio::HighRateImuPreprocessor> imu_preprocessor_;
     std::unique_ptr<fr_lio::HighRateOdomPropagator> high_rate_propagator_;
     string last_high_rate_status_;
     std::chrono::steady_clock::time_point last_high_rate_status_publish_time_{};

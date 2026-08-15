@@ -97,6 +97,22 @@ TEST(Trajectory, MeasuredHoldEvaluatesReplacementFromItsStart)
     0.42, race_ego_bridge::trajectorySwitchEvaluationTime(0.42, 2.0, false));
 }
 
+TEST(Trajectory, ReplanHoldRequiresAStableMeasuredStopBeforeReanchor)
+{
+  EXPECT_FALSE(race_ego_bridge::replanHoldReadyToReanchor(0.09, 0.60, 0.08, 0.50));
+  EXPECT_FALSE(race_ego_bridge::replanHoldReadyToReanchor(0.07, 0.49, 0.08, 0.50));
+  EXPECT_TRUE(race_ego_bridge::replanHoldReadyToReanchor(0.08, 0.50, 0.08, 0.50));
+}
+
+TEST(Trajectory, ReplanHoldRejectsCandidatesGeneratedBeforeReady)
+{
+  EXPECT_FALSE(race_ego_bridge::candidateStartsAfterReplanReady(41.999, 42.0));
+  EXPECT_TRUE(race_ego_bridge::candidateStartsAfterReplanReady(42.0, 42.0));
+  EXPECT_TRUE(race_ego_bridge::candidateStartsAfterReplanReady(42.001, 42.0));
+  EXPECT_FALSE(race_ego_bridge::candidateStartsAfterReplanReady(
+      std::numeric_limits<double>::quiet_NaN(), 42.0));
+}
+
 TEST(TakeoffHandover, ResetsOnlyOnDisarmNotOnLowAltitude)
 {
   EXPECT_TRUE(race_ego_bridge::shouldResetFlightHandover(true, false));
@@ -188,6 +204,8 @@ TEST(Trajectory, ContinuousReplanSwitch)
     {1.0, 2.0, 0.78}, {1.02, 2.01, 0.78}, 0.05));
   EXPECT_FALSE(race_ego_bridge::transitionContinuous(
     {1.0, 2.0, 0.78}, {1.30, 2.0, 0.78}, 0.05));
+  EXPECT_TRUE(race_ego_bridge::transitionContinuous(
+    {1.0, 2.0, 0.78}, {1.09, 2.0, 0.78}, 0.10));
 }
 
 TEST(Trajectory, FullStateReplanSwitch)

@@ -183,6 +183,7 @@ class AstarEgoTuningTest(unittest.TestCase):
                 '/livox/lidar', '/livox/imu',
                 '/frlio/high_rate_odom/status',
                 '/frlio/high_rate_odom/anchor_age',
+                '/frlio/high_rate_odom/accel_spike_rejections',
                 '/Odometry', '/planning/odom', '/Odometry/healthy'):
             self.assertIn(topic, bag)
         for name in ('race_click_planner.rviz', 'race_mission_click_planner.rviz'):
@@ -412,6 +413,21 @@ class AstarEgoTuningTest(unittest.TestCase):
         bad = copy.deepcopy(self.tuning)
         bad['offboard']['ego_setpoint_max_lead_m'] = 0.0
         with self.assertRaisesRegex(TuningError, 'ego_setpoint_max_lead_m'):
+            self._validate(bad)
+
+    def test_replan_hold_reanchors_only_after_a_bounded_stable_stop(self):
+        bridge = self.tuning['trajectory_bridge']
+        overlays = node_parameter_overlays(self.tuning)
+        self.assertEqual(0.10, bridge['switch_position_tolerance_m'])
+        self.assertEqual(
+            bridge['replan_reanchor_max_horizontal_speed_mps'],
+            overlays['trajectory_bridge']['replan_reanchor_max_horizontal_speed_mps'])
+        self.assertEqual(
+            bridge['replan_reanchor_stable_sec'],
+            overlays['trajectory_bridge']['replan_reanchor_stable_sec'])
+        bad = copy.deepcopy(self.tuning)
+        bad['trajectory_bridge']['replan_reanchor_stable_sec'] = 3.1
+        with self.assertRaisesRegex(TuningError, 'replan_reanchor_stable_sec'):
             self._validate(bad)
 
     def test_ego_occupancy_output_covers_the_flight_band(self):

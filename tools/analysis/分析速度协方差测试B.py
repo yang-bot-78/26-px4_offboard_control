@@ -4,7 +4,7 @@
 输入由 ``tools/flight/速度协方差测试B.py`` 产生。报告会明确区分：
 
 * FAST-LIO /Odometry.twist：child/body FLU；先以同一条 odom 的姿态转到世界 ENU；
-* MAVROS vision_speed：世界 ENU；上移时 z 应为正；
+* MAVROS ODOMETRY 输出：twist 为 base_link FLU，用同消息姿态转到世界 ENU；
 * PX4 VehicleLocalPosition：原生 NED；上移时 vz 应为负。
 
 协方差建议取静态标准差和动态 PX4 残差中较大的量，再保守放大；不会把协方差
@@ -36,6 +36,8 @@ PX4_TOPICS = (
     "/ev_health/velocity_ned",
 )
 AXES = ("x", "y", "z")
+CURRENT_EV_OUTPUT_TOPIC = "/mavros/odometry/out"
+LEGACY_EV_OUTPUT_TOPIC = "/mavros/vision_speed/speed_twist_cov"
 
 
 def percentile(values: np.ndarray, q: float) -> float:
@@ -150,18 +152,33 @@ def selected_px4_topic(types: dict[str, str]) -> str:
     raise RuntimeError("rosbag 缺少 PX4 local velocity；需要 " + "、".join(PX4_TOPICS))
 
 
+def selected_ev_output_topic(types: dict[str, str]) -> str:
+    if CURRENT_EV_OUTPUT_TOPIC in types:
+        return CURRENT_EV_OUTPUT_TOPIC
+    if LEGACY_EV_OUTPUT_TOPIC in types:
+        return LEGACY_EV_OUTPUT_TOPIC
+    raise RuntimeError(
+        "rosbag 缺少 EV 桥接输出；需要 "
+        f"{CURRENT_EV_OUTPUT_TOPIC} 或旧版 {LEGACY_EV_OUTPUT_TOPIC}"
+    )
+
+
 def read_bag(bag: Path) -> dict:
     reader = rosbag2_py.SequentialReader()
     reader.open(rosbag2_py.StorageOptions(uri=str(bag), storage_id="sqlite3"), rosbag2_py.ConverterOptions("", ""))
     types = {item.name: item.type for item in reader.get_all_topics_and_types()}
-    required = {"/velocity_calibration/marker", "/Odometry", "/mavros/vision_speed/speed_twist_cov"}
+    required = {"/velocity_calibration/marker", "/Odometry"}
     missing = sorted(required - types.keys())
     if missing:
         raise RuntimeError("rosbag 缺少话题: " + ", ".join(missing))
     px4_topic = selected_px4_topic(types)
-    wanted = required | {px4_topic}
+    ev_output_topic = selected_ev_output_topic(types)
+    wanted = required | {px4_topic, ev_output_topic}
     classes = {topic: get_message(types[topic]) for topic in wanted}
-    rows = {"markers": [], "odom": [], "vision": [], "px4": [], "px4_topic": px4_topic}
+    rows = {
+        "markers": [], "odom": [], "vision": [], "px4": [],
+        "px4_topic": px4_topic, "ev_output_topic": ev_output_topic,
+    }
     while reader.has_next():
         topic, payload, bag_ns = reader.read_next()
         if topic not in wanted:
@@ -173,7 +190,22 @@ def read_bag(bag: Path) -> dict:
         elif topic == "/Odometry":
             linear, orientation = msg.twist.twist.linear, msg.pose.pose.orientation
             rows["odom"].append((bag_time, linear.x, linear.y, linear.z, orientation.x, orientation.y, orientation.z, orientation.w))
-        elif topic == "/mavros/vision_speed/speed_twist_cov":
+        elif topic == CURRENT_EV_OUTPUT_TOPIC:
+            linear = msg.twist.twist.linear
+            orientation = msg.pose.pose.orientation
+            rotation = rotation_matrix_xyzw(np.array((
+                orientation.x, orientation.y, orientation.z, orientation.w
+            )))
+            world_velocity = rotation @ np.array((linear.x, linear.y, linear.z))
+            body_covariance = np.array([
+                [msg.twist.covariance[row * 6 + column] for column in range(3)]
+                for row in range(3)
+            ])
+            world_covariance = rotation @ body_covariance @ rotation.T
+            rows["vision"].append((
+                bag_time, *world_velocity, *np.diag(world_covariance)
+            ))
+        elif topic == LEGACY_EV_OUTPUT_TOPIC:
             linear = msg.twist.twist.linear
             rows["vision"].append((bag_time, linear.x, linear.y, linear.z, msg.twist.covariance[0], msg.twist.covariance[7], msg.twist.covariance[14]))
         elif topic.startswith("/fmu/out/vehicle_local_position"):
@@ -255,7 +287,7 @@ def analyse(data: dict, world_yaw_alignment_rad: float = 0.0, axes: tuple[str, .
     raw_world = np.asarray([rotation_matrix_xyzw(q) @ v for q, v in zip(quaternions, child_v)])
     if not math.isfinite(world_yaw_alignment_rad):
         raise ValueError("world_yaw_alignment_rad 必须为有限数")
-    # 必须复现 bridge 在发布 vision_speed 前施加的世界 yaw 对齐，不能只旋转 child->world。
+    # 必须复现 bridge 在发布 EV ODOMETRY 前施加的世界 yaw 对齐，不能只旋转 child->world。
     c, s = math.cos(world_yaw_alignment_rad), math.sin(world_yaw_alignment_rad)
     raw_world[:, :2] = raw_world[:, :2] @ np.array(((c, s), (-s, c)))
     pt, pv = px4_ned[:, 0], enu_from_ned(px4_ned[:, 1:4])
@@ -263,7 +295,7 @@ def analyse(data: dict, world_yaw_alignment_rad: float = 0.0, axes: tuple[str, .
     for segment in movement:
         dynamic |= (vt >= segment["start"]) & (vt <= segment["end"])
     if np.count_nonzero(dynamic) < 20:
-        raise RuntimeError("移动段中的 vision_speed 样本不足")
+        raise RuntimeError("移动段中的 EV ODOMETRY 速度样本不足")
 
     lag = find_best_lag(vt[dynamic], vv[dynamic], pt, pv)
     px4_valid = valid_interp_mask(pt, vt + lag)
@@ -325,7 +357,8 @@ def analyse(data: dict, world_yaw_alignment_rad: float = 0.0, axes: tuple[str, .
     return {
         "coordinate_convention": {
             "frlio_odometry_twist": "child/body FLU, rotated to world ENU before comparison",
-            "vision_speed": "world ENU; upward vz > 0",
+            "ev_bridge_output": "converted to world ENU; upward vz > 0",
+            "ev_bridge_output_topic": data["ev_output_topic"],
             "px4_local_velocity": "PX4 NED; upward vz < 0; converted to ENU only for residuals",
             "px4_source_topic": data["px4_topic"],
             "world_yaw_alignment_rad": world_yaw_alignment_rad,

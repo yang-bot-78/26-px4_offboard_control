@@ -1,0 +1,63 @@
+[debug rosbag] starting
+[debug rosbag] command: env FLIGHT_TIMESTAMP=20260816_044846 FLIGHT_RUN_DIR=/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846 /home/robot/rong_ws/ws_offboard_control/tools/rosbag/开始录包.sh
+[debug rosbag] pid=32420 pgid=32420 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846/logs/rosbag_debug.log
+本场次目录：/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846
+参数快照目录：/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846/snapshot
+录包输出目录：/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846/rosbag
+是否录制完整配准点云：false
+是否录制 EGO 障碍诊断：false
+是否录制 PX4 DDS /fmu/out 镜像：false
+在本终端按 Ctrl+C 停止录包。
+[ULog] 检查 PX4 SDLOG_PROFILE 是否包含视觉与避障位（bit 7）...
+[ULog] PASS: SDLOG_PROFILE=129，vehicle_visual_odometry 将以约 33 Hz 写入 ULog。
+stdin is not a terminal device. Keyboard handling disabled.[INFO] [1786827005.900092561] [rosbag2_recorder]: Press SPACE for pausing/resuming
+[INFO] [1786827005.903020485] [rosbag2_storage]: Opened database '/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_044846/rosbag/rosbag_0.db3' for READ_WRITE.
+[INFO] [1786827005.905274425] [rosbag2_recorder]: Listening for topics...
+[INFO] [1786827005.905321711] [rosbag2_recorder]: Event publisher thread: Starting
+[INFO] [1786827005.905664446] [rosbag2_recorder]: Recording...
+[INFO] [1786827006.245178823] [rosbag2_recorder]: Subscribed to topic '/livox/imu'
+[INFO] [1786827006.253778238] [rosbag2_recorder]: Subscribed to topic '/livox/lidar'
+[INFO] [1786827006.273675535] [rosbag2_recorder]: Subscribed to topic '/planning/odom'
+[INFO] [1786827006.286536526] [rosbag2_recorder]: Subscribed to topic '/race/ego/position_command'
+[INFO] [1786827006.293405168] [rosbag2_recorder]: Subscribed to topic '/tf_static'
+[INFO] [1786827006.300579005] [rosbag2_recorder]: Subscribed to topic '/tf'
+[INFO] [1786827006.409191913] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/pose'
+[INFO] [1786827006.413252921] [rosbag2_recorder]: Subscribed to topic '/mavros/estimator_status'
+[INFO] [1786827006.416674020] [rosbag2_recorder]: Subscribed to topic '/ev_health/status'
+[INFO] [1786827006.420031958] [rosbag2_recorder]: Subscribed to topic '/race/ego/bspline'
+[INFO] [1786827006.425575093] [rosbag2_recorder]: Subscribed to topic '/fastlio_global/relocalized_pose'
+[INFO] [1786827006.430645423] [rosbag2_recorder]: Subscribed to topic '/race/ego/odom'
+[INFO] [1786827006.434147874] [rosbag2_recorder]: Subscribed to topic '/mavros/state'
+[INFO] [1786827006.435729125] [rosbag2_recorder]: Subscribed to topic '/mavros/odometry/out'
+[INFO] [1786827006.437526440] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/velocity_local'
+[INFO] [1786827006.445617861] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/velocity_body'
+[INFO] [1786827006.451858278] [rosbag2_recorder]: Subscribed to topic '/mavros/setpoint_raw/target_local'
+[INFO] [1786827006.458644695] [rosbag2_recorder]: Subscribed to topic '/Odometry/healthy'
+[INFO] [1786827006.462230919] [rosbag2_recorder]: Subscribed to topic '/ev_health/fault'
+[INFO] [1786827006.465547549] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/odom'
+[INFO] [1786827006.470633642] [rosbag2_recorder]: Subscribed to topic '/ev_health/diagnostics'
+[INFO] [1786827006.473192203] [rosbag2_recorder]: Subscribed to topic '/ev_health/flight_ready'
+[INFO] [1786827006.476124066] [rosbag2_recorder]: Subscribed to topic '/ev_health/velocity_ned'
+[INFO] [1786827006.480181536] [rosbag2_recorder]: Subscribed to topic '/goal_pose'
+[INFO] [1786827006.920679958] [rosbag2_recorder]: Subscribed to topic '/race/control/status'
+[INFO] [1786827006.925236795] [rosbag2_recorder]: Subscribed to topic '/race/super_planner/raw_path'
+[INFO] [1786827006.930890238] [rosbag2_recorder]: Subscribed to topic '/race/global_path'
+[INFO] [1786827006.934140224] [rosbag2_recorder]: Subscribed to topic '/mavros/setpoint_raw/local'
+[INFO] [1786827006.937420784] [rosbag2_recorder]: Subscribed to topic '/race/odom'
+[INFO] [1786827006.942789260] [rosbag2_recorder]: Subscribed to topic '/Odometry'
+[INFO] [1786827006.949665870] [rosbag2_recorder]: Subscribed to topic '/Odometry/guarded'
+[INFO] [1786827006.952984662] [rosbag2_recorder]: Subscribed to topic '/race/pose'
+[INFO] [1786827006.956585493] [rosbag2_recorder]: Subscribed to topic '/race/global_planner/status'
+[INFO] [1786827006.960833448] [rosbag2_recorder]: Subscribed to topic '/race/ego/local_goal'
+[INFO] [1786827006.971457940] [rosbag2_recorder]: Subscribed to topic '/race/ego/command_local_goal_seq'
+[INFO] [1786827006.980242050] [rosbag2_recorder]: Subscribed to topic '/path'
+[INFO] [1786827006.986369298] [rosbag2_recorder]: Subscribed to topic '/race/ego/predicted_path'
+[INFO] [1786827006.989043160] [rosbag2_recorder]: Subscribed to topic '/frlio/high_rate_odom/anchor_age'
+[INFO] [1786827006.991587254] [rosbag2_recorder]: Subscribed to topic '/race/planner/status'
+[INFO] [1786827006.994383458] [rosbag2_recorder]: Subscribed to topic '/frlio/high_rate_odom/accel_spike_rejections'
+[INFO] [1786827006.998380490] [rosbag2_recorder]: Subscribed to topic '/race/ego/trajectory_setpoint'
+[INFO] [1786827007.004809006] [rosbag2_recorder]: Subscribed to topic '/race/ego/status'
+[INFO] [1786827007.010124032] [rosbag2_recorder]: Subscribed to topic '/frlio/high_rate_odom/status'
+[INFO] [1786827007.017849468] [rosbag2_recorder]: Subscribed to topic '/race/flight_altitude_reference'
+[INFO] [1786827007.024635714] [rosbag2_recorder]: Subscribed to topic '/race/ego/local_path_reference'
+[INFO] [1786827007.031308431] [rosbag2_recorder]: Subscribed to topic '/race/ego/validated_bspline'

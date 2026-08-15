@@ -1,0 +1,406 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-14-03-18-46-792036-robot-6983
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [7001]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [7003]
+[INFO] [fastlio_ev_health_monitor.py-3]: process started with pid [7005]
+[INFO] [fix_mavros_odometry_frames.py-4]: process started with pid [7007]
+[INFO] [fastlio_mavros_vision_bridge-5]: process started with pid [7009]
+[INFO] [static_transform_publisher-6]: process started with pid [7011]
+[INFO] [static_transform_publisher-7]: process started with pid [7013]
+[INFO] [static_transform_publisher-8]: process started with pid [7015]
+[static_transform_publisher-8] [INFO] [1786648727.263884773] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-8] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] from 'body' to 'body_frd'
+[fastlio_odometry_guard-2] [INFO] [1786648727.266276990] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.30m, xy=0.20m, z=0.10m, speed=1.20m/s, unknown angular variance>=100000)
+[mavros_node-1] [INFO] [1786648727.273432394] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1786648727.273556362] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1786648727.273562261] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1786648727.273565750] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1786648727.273568438] [mavros.mavros_node]: Starting mavros router node
+[fastlio_mavros_vision_bridge-5] [INFO] [1786648727.278398973] [fastlio_mavros_vision_bridge]: Bridging /Odometry/healthy -> /mavros/vision_pose/pose_cov + vision_speed for MAVROS vision input; body->FAST-LIO origin in body FLU=(0.0000, 0.0000, 0.0800) m, R_FASTLIO_body yaw=0.000000 rad, world yaw alignment=0.000000 rad
+[static_transform_publisher-7] [INFO] [1786648727.290099058] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'camera_init' to 'camera_init_ned'
+[static_transform_publisher-6] [INFO] [1786648727.292992501] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.080000')
+[static_transform_publisher-6] rotation: ('0.000000', '0.000000', '-0.000000', '1.000000')
+[static_transform_publisher-6] from 'base_link' to 'body'
+[mavros_node-1] [INFO] [1786648727.294961482] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786648727.294990292] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786648727.294998267] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786648727.295001832] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1786648727.295074493] [mavros.mavros_node]: Starting mavros uas node
+[fix_mavros_odometry_frames.py-4] [INFO] [1786648727.308019642] [fix_mavros_odometry_frames]: Waiting for /mavros/odometry parameter service...
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648727.347063649] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648727.348246368] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_status_missing
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648727.348423504] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [INFO] [1786648727.349042519] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1786648727.349083544] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1786648727.350118279] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1786648727.350168161] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1786648727.350189537] [mavros.mavros_router]: Endpoint link[1001] created
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648727.351820449] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[mavros_node-1] [INFO] [1786648727.353484072] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1786648727.357811286] [mavros.mavros_router]: link[1000] detected remote address 128.33
+[mavros_node-1] [INFO] [1786648727.359097994] [mavros.mavros]: Plugin actuator_control ignored
+[mavros_node-1] [INFO] [1786648727.359123096] [mavros.mavros]: Plugin adsb ignored
+[mavros_node-1] [INFO] [1786648727.359127673] [mavros.mavros]: Plugin altitude ignored
+[mavros_node-1] [INFO] [1786648727.359131487] [mavros.mavros]: Plugin cam_imu_sync ignored
+[mavros_node-1] [INFO] [1786648727.359134915] [mavros.mavros]: Plugin camera ignored
+[mavros_node-1] [INFO] [1786648727.359138167] [mavros.mavros]: Plugin cellular_status ignored
+[mavros_node-1] [INFO] [1786648727.359102173] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1786648727.359853974] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1786648727.390288310] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1786648727.390352096] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1786648727.390368112] [mavros.mavros]: Plugin companion_process_status ignored
+[mavros_node-1] [INFO] [1786648727.390379408] [mavros.mavros]: Plugin debug_value ignored
+[mavros_node-1] [INFO] [1786648727.390389392] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1786648727.390399233] [mavros.mavros]: Plugin esc_status ignored
+[mavros_node-1] [INFO] [1786648727.390409002] [mavros.mavros]: Plugin esc_telemetry ignored
+[mavros_node-1] [INFO] [1786648727.390419332] [mavros.mavros]: Plugin fake_gps ignored
+[mavros_node-1] [INFO] [1786648727.390429707] [mavros.mavros]: Plugin ftp ignored
+[mavros_node-1] [INFO] [1786648727.390439710] [mavros.mavros]: Plugin geofence ignored
+[mavros_node-1] [INFO] [1786648727.390449427] [mavros.mavros]: Plugin gimbal_control ignored
+[mavros_node-1] [INFO] [1786648727.390459020] [mavros.mavros]: Plugin global_position ignored
+[mavros_node-1] [INFO] [1786648727.390468176] [mavros.mavros]: Plugin gps_input ignored
+[mavros_node-1] [INFO] [1786648727.390477569] [mavros.mavros]: Plugin gps_rtk ignored
+[mavros_node-1] [INFO] [1786648727.390487174] [mavros.mavros]: Plugin gps_status ignored
+[mavros_node-1] [INFO] [1786648727.390496789] [mavros.mavros]: Plugin guided_target ignored
+[mavros_node-1] [INFO] [1786648727.390505929] [mavros.mavros]: Plugin hil ignored
+[mavros_node-1] [INFO] [1786648727.390515243] [mavros.mavros]: Plugin home_position ignored
+[mavros_node-1] [INFO] [1786648727.401330634] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1786648727.401402930] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1786648727.401419050] [mavros.mavros]: Plugin landing_target ignored
+[mavros_node-1] [INFO] [1786648727.413573738] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1786648727.413627724] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1786648727.413643360] [mavros.mavros]: Plugin log_transfer ignored
+[mavros_node-1] [INFO] [1786648727.413654771] [mavros.mavros]: Plugin mag_calibration_status ignored
+[mavros_node-1] [INFO] [1786648727.413701126] [mavros.mavros]: Plugin manual_control ignored
+[mavros_node-1] [INFO] [1786648727.413714678] [mavros.mavros]: Plugin mocap_pose_estimate ignored
+[mavros_node-1] [INFO] [1786648727.413724875] [mavros.mavros]: Plugin mount_control ignored
+[mavros_node-1] [INFO] [1786648727.413734309] [mavros.mavros]: Plugin nav_controller_output ignored
+[mavros_node-1] [INFO] [1786648727.413744450] [mavros.mavros]: Plugin obstacle_distance ignored
+[mavros_node-1] [INFO] [1786648727.413754031] [mavros.mavros]: Plugin obstacle_distance_3d ignored
+[mavros_node-1] [INFO] [1786648727.441023235] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1786648727.441094478] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1786648727.441112012] [mavros.mavros]: Plugin onboard_computer_status ignored
+[mavros_node-1] [INFO] [1786648727.441123510] [mavros.mavros]: Plugin open_drone_id ignored
+[mavros_node-1] [INFO] [1786648727.441152686] [mavros.mavros]: Plugin optical_flow ignored
+[mavros_node-1] [INFO] [1786648727.446414652] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1786648727.446460072] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1786648727.446466272] [mavros.mavros]: Plugin play_tune ignored
+[mavros_node-1] [INFO] [1786648727.446469453] [mavros.mavros]: Plugin px4flow ignored
+[mavros_node-1] [INFO] [1786648727.446472288] [mavros.mavros]: Plugin rallypoint ignored
+[mavros_node-1] [INFO] [1786648727.446475032] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1786648727.446478234] [mavros.mavros]: Plugin rc_io ignored
+[mavros_node-1] [INFO] [1786648727.446481322] [mavros.mavros]: Plugin setpoint_accel ignored
+[mavros_node-1] [INFO] [1786648727.446484073] [mavros.mavros]: Plugin setpoint_attitude ignored
+[mavros_node-1] [INFO] [1786648727.446487374] [mavros.mavros]: Plugin setpoint_position ignored
+[mavros_node-1] [INFO] [1786648727.454111043] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1786648727.454158374] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1786648727.454164481] [mavros.mavros]: Plugin setpoint_trajectory ignored
+[mavros_node-1] [INFO] [1786648727.454167945] [mavros.mavros]: Plugin setpoint_velocity ignored
+[mavros_node-1] [INFO] [1786648727.454170857] [mavros.mavros]: Plugin sim_state ignored
+[mavros_node-1] [INFO] [1786648727.469483415] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1786648727.469786334] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1786648727.476399320] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1786648727.478092156] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1786648727.478138941] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1786648727.478147382] [mavros.mavros]: Plugin tdr_radio ignored
+[mavros_node-1] [INFO] [1786648727.478152787] [mavros.mavros]: Plugin terrain ignored
+[mavros_node-1] [INFO] [1786648727.478157411] [mavros.mavros]: Plugin trajectory ignored
+[mavros_node-1] [INFO] [1786648727.478162275] [mavros.mavros]: Plugin tunnel ignored
+[mavros_node-1] [INFO] [1786648727.478166940] [mavros.mavros]: Plugin vfr_hud ignored
+[mavros_node-1] [INFO] [1786648727.478171544] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1786648727.489753512] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1786648727.489789171] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1786648727.497246665] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1786648727.497304017] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1786648727.497311848] [mavros.mavros]: Plugin waypoint ignored
+[mavros_node-1] [INFO] [1786648727.497315060] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1786648727.497317931] [mavros.mavros]: Plugin wind_estimation ignored
+[mavros_node-1] [INFO] [1786648727.498651638] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [INFO] [1786648727.498695157] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786648727.498785277] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786648727.498791612] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786648727.498796772] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1786648727.505933312] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1786648727.517006341] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786648727.675356434] [mavros.mavros_router]: link[1000] detected remote address 191.175
+[mavros_node-1] [INFO] [1786648727.771703479] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786648727.773741588] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786648727.774810349] [mavros.mavros_router]: link[1000] detected remote address 253.62
+[mavros_node-1] [INFO] [1786648727.854733156] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1786648727.869304031] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[mavros_node-1] [INFO] [1786648727.897347489] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786648728.058470952] [mavros.mavros_router]: link[1000] detected remote address 1.65
+[fix_mavros_odometry_frames.py-4] [INFO] [1786648728.309867172] [fix_mavros_odometry_frames]: Setting MAVROS odometry target frames to odom/base_link.
+[fix_mavros_odometry_frames.py-4] [INFO] [1786648728.311517532] [fix_mavros_odometry_frames]: MAVROS odometry frame targets updated successfully.
+[mavros_node-1] [INFO] [1786648728.404986792] [mavros.mavros_router]: link[1000] detected remote address 253.28
+[INFO] [fix_mavros_odometry_frames.py-4]: process has finished cleanly [pid 7007]
+[mavros_node-1] [INFO] [1786648728.581225079] [mavros.mavros_router]: link[1000] detected remote address 59.126
+[mavros_node-1] [INFO] [1786648728.636657295] [mavros.mavros_router]: link[1000] detected remote address 32.0
+[mavros_node-1] [INFO] [1786648728.726353173] [mavros.mavros_router]: link[1000] detected remote address 1.4
+[mavros_node-1] [INFO] [1786648728.826813866] [mavros.mavros_router]: link[1000] detected remote address 253.32
+[mavros_node-1] [INFO] [1786648728.861045621] [mavros.mavros_router]: link[1000] detected remote address 255.255
+[mavros_node-1] [WARN] [1786648728.868245326] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [INFO] [1786648728.955634204] [mavros.mavros_router]: link[1000] detected remote address 8.0
+[mavros_node-1] [INFO] [1786648729.040550326] [mavros.mavros_router]: link[1000] detected remote address 253.232
+[mavros_node-1] [INFO] [1786648729.705222234] [mavros.mavros_router]: link[1000] detected remote address 1.253
+[mavros_node-1] [INFO] [1786648729.715572006] [mavros.mavros_router]: link[1000] detected remote address 1.87
+[mavros_node-1] [WARN] [1786648729.847625806] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-0-0-16-1-0-0-0-0-199-191-127-128-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786648729.850077363] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786648729.857235951] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [INFO] [1786648729.977341840] [mavros.mavros_router]: link[1000] detected remote address 112.20
+[mavros_node-1] [INFO] [1786648730.141627672] [mavros.mavros_router]: link[1000] detected remote address 59.8
+[mavros_node-1] [INFO] [1786648730.147992329] [mavros.mavros_router]: link[1000] detected remote address 56.0
+[mavros_node-1] [INFO] [1786648730.160379266] [mavros.mavros_router]: link[1000] detected remote address 186.227
+[mavros_node-1] [INFO] [1786648730.241559474] [mavros.mavros_router]: link[1000] detected remote address 59.253
+[mavros_node-1] [INFO] [1786648730.306464310] [mavros.mavros_router]: link[1000] detected remote address 28.0
+[mavros_node-1] [INFO] [1786648730.627657177] [mavros.mavros_router]: link[1000] detected remote address 64.253
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648730.678980256] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648730.679183909] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648730.841757524] [mavros.mavros_router]: link[1000] detected remote address 186.166
+[mavros_node-1] [WARN] [1786648730.858089718] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [INFO] [1786648731.007265746] [mavros.mavros_router]: link[1000] detected remote address 63.28
+[mavros_node-1] [INFO] [1786648731.007960334] [mavros.mavros_router]: link[1000] detected remote address 178.229
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648731.083954714] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648731.084464878] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [INFO] [1786648731.404473031] [mavros.mavros_router]: link[1000] detected remote address 192.54
+[mavros_node-1] [INFO] [1786648731.857657945] [mavros.mavros_router]: link[1000] detected remote address 253.61
+[mavros_node-1] [ERROR] [1786648731.868833522] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786648731.868896637] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [INFO] [1786648731.875207002] [mavros.mavros_router]: link[1000] detected remote address 26.59
+[mavros_node-1] [INFO] [1786648732.045585604] [mavros.mavros_router]: link[1000] detected remote address 1.2
+[mavros_node-1] [INFO] [1786648732.302791311] [mavros.mavros_router]: link[1000] detected remote address 193.12
+[mavros_node-1] [INFO] [1786648732.572782272] [mavros.mavros_router]: link[1000] detected remote address 106.2
+[mavros_node-1] [INFO] [1786648732.755127041] [mavros.mavros_router]: link[1000] detected remote address 0.196
+[mavros_node-1] [INFO] [1786648732.902237650] [mavros.mavros_router]: link[1000] detected remote address 164.118
+[mavros_node-1] [INFO] [1786648733.007900075] [mavros.mavros_router]: link[1000] detected remote address 136.3
+[mavros_node-1] [WARN] [1786648733.097956079] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648733.236059305] [mavros.mavros_router]: link[1000] detected remote address 252.133
+[mavros_node-1] [INFO] [1786648733.272477494] [mavros.mavros_router]: link[1000] detected remote address 84.210
+[mavros_node-1] [INFO] [1786648733.311285551] [mavros.mavros_router]: link[1000] detected remote address 155.14
+[mavros_node-1] [INFO] [1786648733.371660810] [mavros.mavros_router]: link[1000] detected remote address 184.2
+[mavros_node-1] [INFO] [1786648733.372733286] [mavros.mavros_router]: link[1000] detected remote address 99.253
+[mavros_node-1] [INFO] [1786648733.573075842] [mavros.mavros_router]: link[1000] detected remote address 61.29
+[mavros_node-1] [INFO] [1786648733.772052239] [mavros.mavros_router]: link[1000] detected remote address 27.188
+[mavros_node-1] [ERROR] [1786648733.856225292] [mavros.sys]: VER: autopilot version service timeout
+[mavros_node-1] [ERROR] [1786648733.856286063] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786648733.856290427] [mavros.sys]: VER: unicast request timeout, retries left 1
+[mavros_node-1] [INFO] [1786648734.372405373] [mavros.mavros_router]: link[1000] detected remote address 50.210
+[mavros_node-1] [INFO] [1786648734.541889152] [mavros.mavros_router]: link[1000] detected remote address 107.2
+[mavros_node-1] [INFO] [1786648734.635722169] [mavros.mavros_router]: link[1000] detected remote address 100.125
+[mavros_node-1] [ERROR] [1786648734.858354287] [mavros.sys]: VER: autopilot version service timeout
+[mavros_node-1] [ERROR] [1786648734.858404218] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786648734.858408475] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [INFO] [1786648735.176171299] [mavros.mavros_router]: link[1000] detected remote address 0.204
+[mavros_node-1] [WARN] [1786648735.269819230] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648735.305414346] [mavros.mavros_router]: link[1000] detected remote address 255.253
+[mavros_node-1] [INFO] [1786648735.436853097] [mavros.mavros_router]: link[1000] detected remote address 200.97
+[mavros_node-1] [INFO] [1786648735.482260733] [mavros.mavros_router]: link[1000] detected remote address 187.200
+[mavros_node-1] [INFO] [1786648735.495192866] [mavros.mavros_router]: link[1000] detected remote address 100.122
+[mavros_node-1] [INFO] [1786648735.571655913] [mavros.mavros_router]: link[1000] detected remote address 12.34
+[mavros_node-1] [ERROR] [1786648735.860641385] [mavros.sys]: VER: autopilot version service timeout
+[mavros_node-1] [ERROR] [1786648735.860709551] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786648735.860728311] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[mavros_node-1] [INFO] [1786648735.935321110] [mavros.mavros_router]: link[1000] detected remote address 176.234
+[mavros_node-1] [INFO] [1786648735.942137004] [mavros.mavros_router]: link[1000] detected remote address 17.243
+[mavros_node-1] [INFO] [1786648736.000803184] [mavros.mavros_router]: link[1000] detected remote address 61.5
+[mavros_node-1] [INFO] [1786648736.107033727] [mavros.mavros_router]: link[1000] detected remote address 216.18
+[mavros_node-1] [INFO] [1786648736.234999234] [mavros.mavros_router]: link[1000] detected remote address 4.105
+[mavros_node-1] [INFO] [1786648736.441147440] [mavros.mavros_router]: link[1000] detected remote address 88.59
+[mavros_node-1] [INFO] [1786648736.836201115] [mavros.mavros_router]: link[1000] detected remote address 0.228
+[mavros_node-1] [INFO] [1786648736.903639690] [mavros.mavros_router]: link[1000] detected remote address 72.205
+[mavros_node-1] [INFO] [1786648737.140604613] [mavros.mavros_router]: link[1000] detected remote address 1.237
+[mavros_node-1] [WARN] [1786648737.250976978] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648737.382568440] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648737.383074846] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648737.506919460] [mavros.mavros_router]: link[1000] detected remote address 38.233
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648737.541076282] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648737.541266867] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [WARN] [1786648737.856237456] [mavros.cmd]: CMD: Command 520 -- ack timeout
+[mavros_node-1] [INFO] [1786648737.970880319] [mavros.mavros_router]: link[1000] detected remote address 16.157
+[mavros_node-1] [WARN] [1786648737.971307476] [mavros.cmd.rclcpp]: failed to send response to /mavros/cmd/command (timeout): client will not receive response, at ./src/rmw_response.cpp:154, at ./src/rcl/service.c:314
+[mavros_node-1] [WARN] [1786648738.087425179] [mavros.cmd.rclcpp]: failed to send response to /mavros/cmd/command (timeout): client will not receive response, at ./src/rmw_response.cpp:154, at ./src/rcl/service.c:314
+[mavros_node-1] [INFO] [1786648738.188753381] [mavros.mavros_router]: link[1000] detected remote address 1.58
+[mavros_node-1] [INFO] [1786648738.503744151] [mavros.mavros_router]: link[1000] detected remote address 93.1
+[mavros_node-1] [INFO] [1786648738.535724913] [mavros.mavros_router]: link[1000] detected remote address 222.18
+[mavros_node-1] [INFO] [1786648738.770037644] [mavros.mavros_router]: link[1000] detected remote address 22.198
+[mavros_node-1] [INFO] [1786648739.003992481] [mavros.mavros_router]: link[1000] detected remote address 80.6
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648739.581624315] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648739.582098198] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648739.768611079] [mavros.mavros_router]: link[1000] detected remote address 132.141
+[mavros_node-1] [INFO] [1786648739.784510000] [mavros.mavros_router]: link[1000] detected remote address 162.51
+[mavros_node-1] [INFO] [1786648739.912947713] [mavros.mavros_router]: link[1000] detected remote address 74.27
+[mavros_node-1] [INFO] [1786648739.934037185] [mavros.mavros_router]: link[1000] detected remote address 193.108
+[mavros_node-1] [WARN] [1786648739.951592386] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648739.955561957] [mavros.mavros_router]: link[1000] detected remote address 186.184
+[mavros_node-1] [INFO] [1786648740.039131138] [mavros.mavros_router]: link[1000] detected remote address 237.76
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648740.345652975] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648740.345852883] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [INFO] [1786648740.455156182] [mavros.mavros_router]: link[1000] detected remote address 58.0
+[mavros_node-1] [INFO] [1786648740.832233899] [mavros.mavros_router]: link[1000] detected remote address 128.201
+[mavros_node-1] [INFO] [1786648740.969062772] [mavros.mavros_router]: link[1000] detected remote address 232.0
+[mavros_node-1] [INFO] [1786648741.003465691] [mavros.mavros_router]: link[1000] detected remote address 25.0
+[mavros_node-1] [INFO] [1786648741.168692288] [mavros.mavros_router]: link[1000] detected remote address 162.254
+[mavros_node-1] [INFO] [1786648741.203121533] [mavros.mavros_router]: link[1000] detected remote address 83.151
+[mavros_node-1] [INFO] [1786648741.410248888] [mavros.mavros_router]: link[1000] detected remote address 11.229
+[mavros_node-1] [INFO] [1786648741.463738604] [mavros.mavros_router]: link[1000] detected remote address 53.63
+[mavros_node-1] [INFO] [1786648741.732321861] [mavros.mavros_router]: link[1000] detected remote address 188.255
+[mavros_node-1] [INFO] [1786648741.831848687] [mavros.mavros_router]: link[1000] detected remote address 0.255
+[mavros_node-1] [INFO] [1786648741.852024384] [mavros.mavros_router]: link[1000] detected remote address 135.180
+[mavros_node-1] [INFO] [1786648741.868352375] [mavros.mavros_router]: link[1000] detected remote address 143.118
+[mavros_node-1] [INFO] [1786648741.871359421] [mavros.mavros_router]: link[1000] detected remote address 213.157
+[mavros_node-1] [INFO] [1786648741.901786414] [mavros.mavros_router]: link[1000] detected remote address 63.64
+[mavros_node-1] [WARN] [1786648742.041328082] [mavros.param]: PR: request param #2 timeout, retries left 2, and 767 params still missing
+[mavros_node-1] [INFO] [1786648742.437541245] [mavros.mavros_router]: link[1000] detected remote address 1.249
+[mavros_node-1] [INFO] [1786648742.593055333] [mavros.mavros_router]: link[1000] detected remote address 59.134
+[mavros_node-1] [INFO] [1786648742.753311713] [mavros.mavros_router]: link[1000] detected remote address 0.116
+[mavros_node-1] [WARN] [1786648742.869859013] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648742.970086707] [mavros.mavros_router]: link[1000] detected remote address 1.59
+[mavros_node-1] [WARN] [1786648743.041146112] [mavros.param]: PR: request param #2 timeout, retries left 1, and 767 params still missing
+[mavros_node-1] [INFO] [1786648743.481270779] [mavros.mavros_router]: link[1000] detected remote address 0.16
+[mavros_node-1] [INFO] [1786648743.592785416] [mavros.mavros_router]: link[1000] detected remote address 230.75
+[mavros_node-1] [INFO] [1786648743.737896666] [mavros.mavros_router]: link[1000] detected remote address 15.175
+[mavros_node-1] [INFO] [1786648743.790403855] [mavros.mavros_router]: link[1000] detected remote address 190.255
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648743.943785435] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648743.943976492] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648743.967423803] [mavros.mavros_router]: link[1000] detected remote address 195.183
+[mavros_node-1] [WARN] [1786648744.040905136] [mavros.param]: PR: request param #2 timeout, retries left 0, and 767 params still missing
+[mavros_node-1] [INFO] [1786648744.066820932] [mavros.mavros_router]: link[1000] detected remote address 150.254
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648744.103523843] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648744.103717865] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [INFO] [1786648744.366721958] [mavros.mavros_router]: link[1000] detected remote address 128.99
+[mavros_node-1] [INFO] [1786648744.431773633] [mavros.mavros_router]: link[1000] detected remote address 168.219
+[mavros_node-1] [INFO] [1786648744.901785955] [mavros.mavros_router]: link[1000] detected remote address 138.3
+[mavros_node-1] [INFO] [1786648744.951780452] [mavros.mavros_router]: link[1000] detected remote address 63.150
+[mavros_node-1] [ERROR] [1786648745.040646142] [mavros.param]: PR: request param #2 completely missing.
+[mavros_node-1] [WARN] [1786648745.040719951] [mavros.param]: PR: 766 params still missing, trying to request next: #3
+[mavros_node-1] [INFO] [1786648745.232591464] [mavros.mavros_router]: link[1000] detected remote address 193.226
+[mavros_node-1] [INFO] [1786648745.291695343] [mavros.mavros_router]: link[1000] detected remote address 68.0
+[mavros_node-1] [INFO] [1786648745.361697402] [mavros.mavros_router]: link[1000] detected remote address 193.58
+[mavros_node-1] [WARN] [1786648745.832907757] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [WARN] [1786648746.040492270] [mavros.param]: PR: request param #3 timeout, retries left 2, and 766 params still missing
+[mavros_node-1] [WARN] [1786648747.040331321] [mavros.param]: PR: request param #3 timeout, retries left 1, and 766 params still missing
+[mavros_node-1] [INFO] [1786648747.101430514] [mavros.mavros_router]: link[1000] detected remote address 12.97
+[mavros_node-1] [INFO] [1786648747.291272771] [mavros.mavros_router]: link[1000] detected remote address 1.64
+[mavros_node-1] [INFO] [1786648747.554355655] [mavros.mavros_router]: link[1000] detected remote address 174.3
+[mavros_node-1] [INFO] [1786648747.890149743] [mavros.mavros_router]: link[1000] detected remote address 230.27
+[mavros_node-1] [INFO] [1786648747.999211101] [mavros.mavros_router]: link[1000] detected remote address 118.39
+[mavros_node-1] [WARN] [1786648748.051172719] [mavros.param]: PR: request param #6 timeout, retries left 2, and 763 params still missing
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648748.211949077] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648748.212152233] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648748.265138398] [mavros.mavros_router]: link[1000] detected remote address 83.37
+[mavros_node-1] [INFO] [1786648748.370928833] [mavros.mavros_router]: link[1000] detected remote address 123.172
+[mavros_node-1] [INFO] [1786648748.831160604] [mavros.mavros_router]: link[1000] detected remote address 173.243
+[mavros_node-1] [WARN] [1786648749.058766782] [mavros.param]: PR: request param #8 timeout, retries left 2, and 761 params still missing
+[mavros_node-1] [INFO] [1786648749.063301700] [mavros.mavros_router]: link[1000] detected remote address 21.165
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648749.138877055] [fastlio_ev_health_monitor]: EV flight_ready=false: healthy_odom_output_stale age=0.153s
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648749.323246295] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [WARN] [1786648749.324462493] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648749.752550194] [mavros.mavros_router]: link[1000] detected remote address 87.223
+[mavros_node-1] [INFO] [1786648749.975681312] [mavros.mavros_router]: link[1000] detected remote address 59.230
+[mavros_node-1] [WARN] [1786648750.064022115] [mavros.param]: PR: request param #12 timeout, retries left 2, and 759 params still missing
+[mavros_node-1] [INFO] [1786648750.554788750] [mavros.mavros_router]: link[1000] detected remote address 36.159
+[mavros_node-1] [INFO] [1786648750.904367087] [mavros.mavros_router]: link[1000] detected remote address 59.27
+[mavros_node-1] [INFO] [1786648751.049774595] [mavros.mavros_router]: link[1000] detected remote address 111.220
+[mavros_node-1] [WARN] [1786648751.063930811] [mavros.param]: PR: request param #12 timeout, retries left 1, and 759 params still missing
+[mavros_node-1] [INFO] [1786648751.499242011] [mavros.mavros_router]: link[1000] detected remote address 186.53
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648751.521705515] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648751.521895408] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [WARN] [1786648751.801790896] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648751.849310135] [mavros.mavros_router]: link[1000] detected remote address 2.0
+[mavros_node-1] [INFO] [1786648751.855386037] [mavros.mavros_router]: link[1000] detected remote address 1.19
+[mavros_node-1] [WARN] [1786648752.075396904] [mavros.param]: PR: request param #17 timeout, retries left 2, and 755 params still missing
+[mavros_node-1] [INFO] [1786648752.548405394] [mavros.mavros_router]: link[1000] detected remote address 150.20
+[mavros_node-1] [INFO] [1786648752.583640908] [mavros.mavros_router]: link[1000] detected remote address 66.63
+[mavros_node-1] [WARN] [1786648753.075253829] [mavros.param]: PR: request param #17 timeout, retries left 1, and 755 params still missing
+[mavros_node-1] [INFO] [1786648753.081272233] [mavros.mavros_router]: link[1000] detected remote address 187.10
+[mavros_node-1] [INFO] [1786648753.453302559] [mavros.mavros_router]: link[1000] detected remote address 58.79
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648753.529835774] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648753.530042004] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648753.608815326] [mavros.mavros_router]: link[1000] detected remote address 188.53
+[mavros_node-1] [INFO] [1786648753.898599560] [mavros.mavros_router]: link[1000] detected remote address 39.137
+[mavros_node-1] [WARN] [1786648754.075117589] [mavros.param]: PR: request param #17 timeout, retries left 0, and 755 params still missing
+[mavros_node-1] [INFO] [1786648754.094830184] [mavros.mavros_router]: link[1000] detected remote address 5.71
+[mavros_node-1] [INFO] [1786648754.109646497] [mavros.mavros_router]: link[1000] detected remote address 176.253
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648754.124072847] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648754.124270398] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [INFO] [1786648754.649810700] [mavros.mavros_router]: link[1000] detected remote address 189.0
+[mavros_node-1] [INFO] [1786648754.653151054] [mavros.mavros_router]: link[1000] detected remote address 184.194
+[mavros_node-1] [WARN] [1786648755.014211837] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648755.086807492] [mavros.mavros_router]: link[1000] detected remote address 168.205
+[mavros_node-1] [WARN] [1786648755.088801046] [mavros.param]: PR: request param #21 timeout, retries left 2, and 751 params still missing
+[mavros_node-1] [INFO] [1786648755.347853374] [mavros.mavros_router]: link[1000] detected remote address 13.0
+[mavros_node-1] [WARN] [1786648756.088734773] [mavros.param]: PR: request param #21 timeout, retries left 1, and 751 params still missing
+[mavros_node-1] [INFO] [1786648756.242513597] [mavros.mavros_router]: link[1000] detected remote address 32.34
+[mavros_node-1] [INFO] [1786648756.299924200] [mavros.mavros_router]: link[1000] detected remote address 3.84
+[mavros_node-1] [INFO] [1786648756.498008685] [mavros.mavros_router]: link[1000] detected remote address 8.221
+[mavros_node-1] [INFO] [1786648756.948712913] [mavros.mavros_router]: link[1000] detected remote address 253.199
+[mavros_node-1] [WARN] [1786648757.098902690] [mavros.param]: PR: request param #25 timeout, retries left 2, and 747 params still missing
+[mavros_node-1] [INFO] [1786648757.346115310] [mavros.mavros_router]: link[1000] detected remote address 148.119
+[mavros_node-1] [INFO] [1786648757.812021646] [mavros.mavros_router]: link[1000] detected remote address 29.212
+[mavros_node-1] [INFO] [1786648757.895721562] [mavros.mavros_router]: link[1000] detected remote address 68.73
+[mavros_node-1] [WARN] [1786648757.946109455] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648757.994206517] [mavros.mavros_router]: link[1000] detected remote address 220.50
+[mavros_node-1] [WARN] [1786648758.118110784] [mavros.param]: PR: request param #31 timeout, retries left 2, and 741 params still missing
+[mavros_node-1] [INFO] [1786648758.237105056] [mavros.mavros_router]: link[1000] detected remote address 0.210
+[mavros_node-1] [INFO] [1786648758.345548693] [mavros.mavros_router]: link[1000] detected remote address 27.126
+[mavros_node-1] [INFO] [1786648758.494528612] [mavros.mavros_router]: link[1000] detected remote address 104.104
+[mavros_node-1] [WARN] [1786648759.118046647] [mavros.param]: PR: request param #31 timeout, retries left 1, and 741 params still missing
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648759.128846936] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786648759.129049834] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786648759.352609762] [mavros.mavros_router]: link[1000] detected remote address 213.59
+[mavros_node-1] [INFO] [1786648759.397425198] [mavros.mavros_router]: link[1000] detected remote address 118.14
+[mavros_node-1] [INFO] [1786648759.649382918] [mavros.mavros_router]: link[1000] detected remote address 59.193
+[mavros_node-1] [INFO] [1786648759.855361709] [mavros.mavros_router]: link[1000] detected remote address 3.222
+[mavros_node-1] [INFO] [1786648759.981617459] [mavros.mavros_router]: link[1000] detected remote address 187.166
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648760.058110838] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786648760.058395201] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_suspect
+[mavros_node-1] [WARN] [1786648760.117976719] [mavros.param]: PR: request param #31 timeout, retries left 0, and 741 params still missing
+[mavros_node-1] [WARN] [1786648760.872212830] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [INFO] [1786648760.966920286] [mavros.mavros_router]: link[1000] detected remote address 30.0
+[mavros_node-1] [INFO] [1786648760.987186950] [mavros.mavros_router]: link[1000] detected remote address 96.50
+[mavros_node-1] [ERROR] [1786648761.118181891] [mavros.param]: PR: request param #31 completely missing.
+[mavros_node-1] [WARN] [1786648761.118415814] [mavros.param]: PR: 740 params still missing, trying to request next: #32
+[mavros_node-1] [INFO] [1786648762.041824728] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_odometry_guard-2] [INFO] [1786648762.041826061] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_mavros_vision_bridge-5] [INFO] [1786648762.041848465] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-6] [INFO] [1786648762.041854870] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-8] [INFO] [1786648762.041863824] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-7] [INFO] [1786648762.041858263] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[mavros_node-1] [WARN] [1786648762.043352652] [mavros.mavros]: UAS Executor terminated
+[fastlio_ev_health_monitor.py-3] Traceback (most recent call last):
+[fastlio_ev_health_monitor.py-3]   File "/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py", line 806, in <module>
+[fastlio_ev_health_monitor.py-3]     main()
+[fastlio_ev_health_monitor.py-3]   File "/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py", line 796, in main
+[fastlio_ev_health_monitor.py-3]     rclpy.spin(node)
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[fastlio_ev_health_monitor.py-3]     executor.spin_once()
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 808, in spin_once
+[fastlio_ev_health_monitor.py-3]     self._spin_once_impl(timeout_sec)
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 805, in _spin_once_impl
+[fastlio_ev_health_monitor.py-3]     raise handler.exception()
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/task.py", line 272, in _execute_coroutine_step
+[fastlio_ev_health_monitor.py-3]     result = coro.send(None)
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 488, in handler
+[fastlio_ev_health_monitor.py-3]     await call_coroutine(entity, arg)
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 407, in _execute_subscription
+[fastlio_ev_health_monitor.py-3]     await await_or_execute(sub.callback, msg)
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 110, in await_or_execute
+[fastlio_ev_health_monitor.py-3]     return callback(*args)
+[fastlio_ev_health_monitor.py-3]   File "/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py", line 603, in _ev_callback
+[fastlio_ev_health_monitor.py-3]     self.healthy_publisher.publish(output)
+[fastlio_ev_health_monitor.py-3]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/publisher.py", line 70, in publish
+[fastlio_ev_health_monitor.py-3]     self.__publisher.publish(msg)
+[fastlio_ev_health_monitor.py-3] rclpy._rclpy_pybind11.RCLError: Failed to publish: publisher's context is invalid, at ./src/rcl/publisher.c:389
+[INFO] [static_transform_publisher-8]: process has finished cleanly [pid 7015]
+[INFO] [static_transform_publisher-7]: process has finished cleanly [pid 7013]
+[INFO] [fastlio_odometry_guard-2]: process has finished cleanly [pid 7003]
+[INFO] [static_transform_publisher-6]: process has finished cleanly [pid 7011]
+[INFO] [fastlio_mavros_vision_bridge-5]: process has finished cleanly [pid 7009]
+[INFO] [mavros_node-1]: process has finished cleanly [pid 7001]
+[ERROR] [fastlio_ev_health_monitor.py-3]: process has died [pid 7005, exit code 1, cmd '/home/robot/rong_ws/ws_offboard_control/install/px4_ros_com/lib/px4_ros_com/fastlio_ev_health_monitor.py --ros-args -r __node:=fastlio_ev_health_monitor --params-file /tmp/launch_params_cfyrn36k'].

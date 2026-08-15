@@ -1,0 +1,211 @@
+[MAVROS 与 EV 定位链] starting
+[MAVROS 与 EV 定位链] command: ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py fcu_url:=serial:///dev/ttyUSB0:921600\?ids=255\,190 start_mavros_odometry_bridge:=true start_odom_guard:=true start_ev_health_monitor:=true start_tf:=true world_yaw_alignment_rad:=0.0 fastlio_odom_topic:=/Odometry require_frlio_anchor_status:=false body_to_sensor_x_m:=0.0 body_to_sensor_y_m:=0.0 body_to_sensor_z_m:=0.08 body_to_fastlio_yaw_rad:=0.0
+[MAVROS 与 EV 定位链] pid=12655 pgid=12655 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260815/flight_20260815_225247/logs/px4_mavros.log
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-15-22-53-03-882336-robot-12655
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [12701]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [12706]
+[INFO] [fastlio_ev_health_monitor.py-3]: process started with pid [12709]
+[INFO] [fix_mavros_odometry_frames.py-4]: process started with pid [12712]
+[INFO] [fastlio_mavros_odometry_bridge-5]: process started with pid [12714]
+[INFO] [static_transform_publisher-6]: process started with pid [12719]
+[INFO] [static_transform_publisher-7]: process started with pid [12722]
+[INFO] [static_transform_publisher-8]: process started with pid [12724]
+[INFO] [static_transform_publisher-9]: process started with pid [12726]
+[INFO] [static_transform_publisher-10]: process started with pid [12728]
+[static_transform_publisher-7] [INFO] [1786805584.222572145] [base_link_to_base_link_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'base_link' to 'base_link_frd'
+[fastlio_odometry_guard-2] [INFO] [1786805584.234449864] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.30m, xy=0.20m, z=0.10m, speed=1.20m/s, window=0.120s, unknown angular variance>=100000)
+[static_transform_publisher-9] [INFO] [1786805584.244319673] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-9] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-9] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-9] from 'camera_init' to 'camera_init_ned'
+[fastlio_mavros_odometry_bridge-5] [INFO] [1786805584.264558214] [fastlio_mavros_odometry_bridge]: Bridging /Odometry/healthy -> /mavros/odometry/out as MAVLink ODOMETRY at 50.0 Hz
+[static_transform_publisher-8] [INFO] [1786805584.264569633] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-8] translation: ('0.000000', '0.000000', '0.080000')
+[static_transform_publisher-8] rotation: ('0.000000', '0.000000', '-0.000000', '1.000000')
+[static_transform_publisher-8] from 'base_link' to 'body'
+[mavros_node-1] [INFO] [1786805584.276817784] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1786805584.276969168] [mavros.mavros_node]: FCU URL: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1786805584.276978478] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1786805584.276982096] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1786805584.276986581] [mavros.mavros_node]: Starting mavros router node
+[static_transform_publisher-6] [INFO] [1786805584.283201532] [odom_to_odom_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-6] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-6] from 'odom' to 'odom_ned'
+[static_transform_publisher-10] [INFO] [1786805584.291523477] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-10] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-10] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-10] from 'body' to 'body_frd'
+[mavros_node-1] [INFO] [1786805584.334925358] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786805584.335693556] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786805584.335724666] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786805584.335735706] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1786805584.335942677] [mavros.mavros_node]: Starting mavros uas node
+[mavros_node-1] [INFO] [1786805584.427598273] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/ttyUSB0:921600?ids=255,190
+[mavros_node-1] [INFO] [1786805584.427680808] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1786805584.428499489] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1786805584.428542513] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1786805584.428562470] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1786805584.435120847] [mavros.mavros_router]: link[1001] opened successfully
+[mavros_node-1] [INFO] [1786805584.437281897] [mavros.mavros_router]: link[1000] detected remote address 255.18
+[mavros_node-1] [INFO] [1786805584.437660849] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1786805584.437720627] [mavros.mavros]: Plugin actuator_control ignored
+[mavros_node-1] [INFO] [1786805584.437782220] [mavros.mavros]: Plugin adsb ignored
+[mavros_node-1] [INFO] [1786805584.437787791] [mavros.mavros]: Plugin altitude ignored
+[mavros_node-1] [INFO] [1786805584.437796530] [mavros.mavros]: Plugin cam_imu_sync ignored
+[mavros_node-1] [INFO] [1786805584.437957695] [mavros.mavros]: Plugin camera ignored
+[mavros_node-1] [INFO] [1786805584.437965769] [mavros.mavros]: Plugin cellular_status ignored
+[mavros_node-1] [INFO] [1786805584.442513677] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1786805584.521692504] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1786805584.523788521] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1786805584.523853119] [mavros.mavros]: Plugin companion_process_status ignored
+[mavros_node-1] [INFO] [1786805584.523870729] [mavros.mavros]: Plugin debug_value ignored
+[mavros_node-1] [INFO] [1786805584.523886208] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1786805584.523900025] [mavros.mavros]: Plugin esc_status ignored
+[mavros_node-1] [INFO] [1786805584.523913450] [mavros.mavros]: Plugin esc_telemetry ignored
+[mavros_node-1] [INFO] [1786805584.523926222] [mavros.mavros]: Plugin fake_gps ignored
+[mavros_node-1] [INFO] [1786805584.523939878] [mavros.mavros]: Plugin ftp ignored
+[mavros_node-1] [INFO] [1786805584.523953218] [mavros.mavros]: Plugin geofence ignored
+[mavros_node-1] [INFO] [1786805584.523965538] [mavros.mavros]: Plugin gimbal_control ignored
+[mavros_node-1] [INFO] [1786805584.523978586] [mavros.mavros]: Plugin global_position ignored
+[mavros_node-1] [INFO] [1786805584.523991357] [mavros.mavros]: Plugin gps_input ignored
+[mavros_node-1] [INFO] [1786805584.524003971] [mavros.mavros]: Plugin gps_rtk ignored
+[mavros_node-1] [INFO] [1786805584.524015582] [mavros.mavros]: Plugin gps_status ignored
+[mavros_node-1] [INFO] [1786805584.524028520] [mavros.mavros]: Plugin guided_target ignored
+[mavros_node-1] [INFO] [1786805584.524041890] [mavros.mavros]: Plugin hil ignored
+[mavros_node-1] [INFO] [1786805584.524056461] [mavros.mavros]: Plugin home_position ignored
+[mavros_node-1] [INFO] [1786805584.541654650] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1786805584.541949379] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1786805584.541985621] [mavros.mavros]: Plugin landing_target ignored
+[fix_mavros_odometry_frames.py-4] [INFO] [1786805584.556387473] [fix_mavros_odometry_frames]: Waiting for /mavros/odometry parameter service...
+[mavros_node-1] [INFO] [1786805584.580709307] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1786805584.581134847] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1786805584.581174381] [mavros.mavros]: Plugin log_transfer ignored
+[mavros_node-1] [INFO] [1786805584.581181631] [mavros.mavros]: Plugin mag_calibration_status ignored
+[mavros_node-1] [INFO] [1786805584.581397832] [mavros.mavros]: Plugin manual_control ignored
+[mavros_node-1] [INFO] [1786805584.581405289] [mavros.mavros]: Plugin mocap_pose_estimate ignored
+[mavros_node-1] [INFO] [1786805584.581410597] [mavros.mavros]: Plugin mount_control ignored
+[mavros_node-1] [INFO] [1786805584.581416657] [mavros.mavros]: Plugin nav_controller_output ignored
+[mavros_node-1] [INFO] [1786805584.581425907] [mavros.mavros]: Plugin obstacle_distance ignored
+[mavros_node-1] [INFO] [1786805584.581429620] [mavros.mavros]: Plugin obstacle_distance_3d ignored
+[mavros_node-1] [INFO] [1786805584.615403776] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1786805584.615496747] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1786805584.615515917] [mavros.mavros]: Plugin onboard_computer_status ignored
+[mavros_node-1] [INFO] [1786805584.615529213] [mavros.mavros]: Plugin open_drone_id ignored
+[mavros_node-1] [INFO] [1786805584.615546935] [mavros.mavros]: Plugin optical_flow ignored
+[mavros_node-1] [INFO] [1786805584.645059258] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1786805584.645203222] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1786805584.645225820] [mavros.mavros]: Plugin play_tune ignored
+[mavros_node-1] [INFO] [1786805584.645237220] [mavros.mavros]: Plugin px4flow ignored
+[mavros_node-1] [INFO] [1786805584.645247426] [mavros.mavros]: Plugin rallypoint ignored
+[mavros_node-1] [INFO] [1786805584.645258135] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1786805584.645268644] [mavros.mavros]: Plugin rc_io ignored
+[mavros_node-1] [INFO] [1786805584.645279128] [mavros.mavros]: Plugin setpoint_accel ignored
+[mavros_node-1] [INFO] [1786805584.645289897] [mavros.mavros]: Plugin setpoint_attitude ignored
+[mavros_node-1] [INFO] [1786805584.645301659] [mavros.mavros]: Plugin setpoint_position ignored
+[mavros_node-1] [INFO] [1786805584.691622777] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1786805584.691825745] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1786805584.691838926] [mavros.mavros]: Plugin setpoint_trajectory ignored
+[mavros_node-1] [INFO] [1786805584.691844068] [mavros.mavros]: Plugin setpoint_velocity ignored
+[mavros_node-1] [INFO] [1786805584.691849427] [mavros.mavros]: Plugin sim_state ignored
+[mavros_node-1] [INFO] [1786805584.769231813] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1786805584.769415437] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1786805584.797040056] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1786805584.806832210] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1786805584.806971814] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1786805584.806997200] [mavros.mavros]: Plugin tdr_radio ignored
+[mavros_node-1] [INFO] [1786805584.807011266] [mavros.mavros]: Plugin terrain ignored
+[mavros_node-1] [INFO] [1786805584.807024339] [mavros.mavros]: Plugin trajectory ignored
+[mavros_node-1] [INFO] [1786805584.807037232] [mavros.mavros]: Plugin tunnel ignored
+[mavros_node-1] [INFO] [1786805584.807049099] [mavros.mavros]: Plugin vfr_hud ignored
+[mavros_node-1] [INFO] [1786805584.807060546] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1786805584.807073566] [mavros.mavros]: Plugin vision_pose ignored
+[mavros_node-1] [INFO] [1786805584.807085890] [mavros.mavros]: Plugin vision_speed ignored
+[mavros_node-1] [INFO] [1786805584.807099920] [mavros.mavros]: Plugin waypoint ignored
+[mavros_node-1] [INFO] [1786805584.807110926] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1786805584.807124817] [mavros.mavros]: Plugin wind_estimation ignored
+[fix_mavros_odometry_frames.py-4] [INFO] [1786805584.809624698] [fix_mavros_odometry_frames]: Setting MAVROS odometry target frames to odom/base_link.
+[mavros_node-1] [INFO] [1786805584.812533881] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1786805584.812648113] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1786805584.812663648] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1786805584.812669499] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[mavros_node-1] [INFO] [1786805584.815378142] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786805584.815596719] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[fix_mavros_odometry_frames.py-4] [INFO] [1786805584.817254709] [fix_mavros_odometry_frames]: MAVROS odometry frame targets updated successfully.
+[mavros_node-1] [INFO] [1786805584.830109041] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805584.917713173] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805584.924747638] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805584.925307885] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1786805584.928984384] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1786805584.936255948] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1786805584.937641233] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[INFO] [fix_mavros_odometry_frames.py-4]: process has finished cleanly [pid 12712]
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805585.225597408] [fastlio_ev_health_monitor]: EV health state=FAULT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805585.225915714] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_fault
+[mavros_node-1] [WARN] [1786805585.245402113] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805585.245605211] [mavros.sys]: FCU: EVENT 9697819 with args -126-209-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805585.245973351] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805585.246292019] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805585.246656876] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805585.246808628] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805585.246955925] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805585.247316848] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805585.247701691] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786805585.248562925] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786805585.937596306] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[mavros_node-1] [WARN] [1786805586.934828308] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[mavros_node-1] [WARN] [1786805587.326240534] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805587.326672763] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805587.326952514] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805587.327061552] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805587.327255825] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805587.327356780] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805587.327626141] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786805587.328901900] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805587.674515714] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805587.675116798] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [WARN] [1786805587.943731382] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[mavros_node-1] [ERROR] [1786805588.946462509] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786805588.946646066] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [WARN] [1786805589.345605695] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805589.345955331] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805589.346369001] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805589.346634850] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805589.346971204] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805589.347398499] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805589.347727795] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805589.348029776] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786805589.350161398] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805589.944224572] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786805589.944317433] [mavros.sys]: VER: unicast request timeout, retries left 1
+[mavros_node-1] [ERROR] [1786805590.951805035] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786805590.951943592] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [WARN] [1786805591.367851329] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805591.368148228] [mavros.sys]: FCU: EVENT 13426421 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805591.368289358] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805591.368477029] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1786805591.369135958] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805591.369390323] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1786805591.369491968] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1786805591.371640833] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-16-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805591.576995617] [fastlio_ev_health_monitor]: EV flight_ready=false: healthy_odom_output_stale age=0.334s
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805591.584240882] [fastlio_ev_health_monitor]: EV health state=SUSPECT: internal_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805591.584851156] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [ERROR] [1786805591.937385002] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1786805591.937575273] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805593.622082365] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805597.576932447] [fastlio_ev_health_monitor]: EV flight_ready=false: healthy_odom_output_stale age=0.334s
+[fastlio_ev_health_monitor.py-3] [WARN] [1786805597.581735782] [fastlio_ev_health_monitor]: EV health state=SUSPECT: internal_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805597.582300304] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[fastlio_ev_health_monitor.py-3] [INFO] [1786805599.607272249] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_odometry_guard-2] [WARN] [1786805601.086414052] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: closely spaced dt 0.000936508 s (accepted=3297 rejected=1)
+[fastlio_odometry_guard-2] [WARN] [1786805609.639162905] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: closely spaced dt 0.000874519 s (accepted=5006 rejected=2)
+[fastlio_odometry_guard-2] [WARN] [1786805695.898190616] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: closely spaced dt 0.000974178 s (accepted=22255 rejected=3)
+[mavros_node-1] [INFO] [1786805704.348544261] [mavros.mavros_router]: link[1000] removed stale remote address 255.0
+[mavros_node-1] [INFO] [1786805704.348667092] [mavros.mavros_router]: link[1000] removed stale remote address 255.18
+[MAVROS 与 EV 定位链] 正在停止进程组 12655
+[MAVROS 与 EV 定位链] 已退出，状态码 143

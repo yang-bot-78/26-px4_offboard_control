@@ -47,14 +47,13 @@ target_include_directories(frame_transforms PUBLIC
 # EV 链唯一路径（2026-08-08 定稿）
 #
 #   MID-360 -> FAST-LIO -> /Odometry -> fastlio_odometry_guard
-#     -> /Odometry/healthy -> fastlio_mavros_vision_bridge
-#     -> /mavros/vision_pose/pose_cov -> MAVROS -> PX4 EKF2
+#     -> /Odometry/healthy -> fastlio_mavros_odometry_bridge
+#     -> /mavros/odometry/out -> MAVROS ODOMETRY -> PX4 EKF2
 #
-# 这是向 PX4 提供外部视觉定位的唯一通路。曾经并存的另两个 EV 写者
-# （fastlio_mavros_odometry_bridge -> /mavros/odometry/out、
-#  fastlio_vehicle_visual_odometry -> /fmu/in/vehicle_visual_odometry）
-# 已删除：它们默认关闭，但只靠 launch 参数互斥，两个 launch 同时起就会
-# 出现多个 EV 写者同时喂 PX4。删掉源头比在运行期检测更可靠。
+# 这是向 PX4 提供外部视觉定位的唯一通路。旧的 VISION_POSE 写者
+# （fastlio_mavros_vision_bridge）和直接 uXRCE 写者
+# （fastlio_vehicle_visual_odometry）均不再构建或启动，避免两个 launch
+# 同时运行时出现多个 EV 写者同时喂 PX4。
 #
 # 新增任何 PX4 EV 写者前，先读 坐标转换.md。
 # ============================================================================
@@ -64,10 +63,10 @@ add_executable(fastlio_odometry_guard src/bridges/fastlio_odometry_guard.cpp)
 ament_target_dependencies(fastlio_odometry_guard geometry_msgs nav_msgs rclcpp)
 install(TARGETS fastlio_odometry_guard DESTINATION lib/${PROJECT_NAME})
 
-# bridges/fastlio_mavros_vision_bridge —— 唯一 PX4 EV 写者
-add_executable(fastlio_mavros_vision_bridge src/bridges/fastlio_mavros_vision_bridge.cpp)
-ament_target_dependencies(fastlio_mavros_vision_bridge geometry_msgs nav_msgs rclcpp)
-install(TARGETS fastlio_mavros_vision_bridge DESTINATION lib/${PROJECT_NAME})
+# bridges/fastlio_mavros_odometry_bridge —— 唯一 PX4 EV 写者
+add_executable(fastlio_mavros_odometry_bridge src/bridges/fastlio_mavros_odometry_bridge.cpp)
+ament_target_dependencies(fastlio_mavros_odometry_bridge geometry_msgs nav_msgs rclcpp)
+install(TARGETS fastlio_mavros_odometry_bridge DESTINATION lib/${PROJECT_NAME})
 
 
 ############

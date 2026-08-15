@@ -81,6 +81,15 @@ TEST(TakeoffHandoverPolicy, HeightReachedStillHoldsWithoutFreshValidatedEgoTraje
   EXPECT_FALSE(race_offboard::canHandoverToEgo(true, true, true));
 }
 
+TEST(TakeoffHandoverPolicy, EvFaultDoesNotAutoLandDuringTakeoff)
+{
+  EXPECT_FALSE(race_offboard::shouldAutoLandForEvFault(true, true, false, false));
+  EXPECT_TRUE(race_offboard::shouldAutoLandForEvFault(true, true, true, false));
+  EXPECT_FALSE(race_offboard::shouldAutoLandForEvFault(false, true, true, false));
+  EXPECT_FALSE(race_offboard::shouldAutoLandForEvFault(true, false, true, false));
+  EXPECT_FALSE(race_offboard::shouldAutoLandForEvFault(true, true, true, true));
+}
+
 TEST(TakeoffHandoverPolicy, FreshSafeTrajectoryAllowsOnlyTheHandover)
 {
   EXPECT_TRUE(race_offboard::canHandoverToEgo(true, true, false));

@@ -1,0 +1,53 @@
+[状态] t=2.137s HEALTHY, anchor_age=0.12022638320922852
+[故障测试] 暂停门控 LiDAR；IMU 和原始 LiDAR 保持运行。
+[状态] t=4.355s SUSPECT_STALE_LIDAR, anchor_age=0.08477425575256348
+[故障测试] LiDAR forwarding paused; forwarded=1807
+[状态] t=4.600s FAULT_STALE_LIDAR, anchor_age=0.04436087608337402
+[故障测试] LiDAR forwarding enabled; forwarded=1807
+[状态] t=5.587s HEALTHY, anchor_age=1.3004565238952637
+{
+  "passed": false,
+  "checks": {
+    "saw_suspect": true,
+    "saw_fault": true,
+    "anchor_crossed_0_15_s": true,
+    "anchor_crossed_0_40_s": true,
+    "odom_quiet_after_fault": false,
+    "imu_continued": true,
+    "raw_lidar_continued": true,
+    "gated_lidar_quiet": true,
+    "recovered_healthy": true
+  },
+  "status_events": [
+    {
+      "elapsed_s": 2.136529193000001,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.12022638320922852
+    },
+    {
+      "elapsed_s": 4.3547103820000075,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.08477425575256348
+    },
+    {
+      "elapsed_s": 4.599511506999988,
+      "status": "FAULT_STALE_LIDAR",
+      "anchor_age_s": 0.04436087608337402
+    },
+    {
+      "elapsed_s": 5.587307246000023,
+      "status": "HEALTHY",
+      "anchor_age_s": 1.3004565238952637
+    }
+  ],
+  "counts_during_pause": {
+    "odom": 52,
+    "imu": 105,
+    "raw_lidar": 16,
+    "gated_lidar": 4
+  },
+  "odom_quiet_s": 0.13744730000001937,
+  "gated_lidar_quiet_s": 0.7713481050000155,
+  "first_anchor_at_or_above_0_15_s": 0.15492868423461914,
+  "first_anchor_at_or_above_0_40_s": 0.4503788948059082
+}

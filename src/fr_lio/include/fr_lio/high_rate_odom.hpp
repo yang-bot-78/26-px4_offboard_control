@@ -10,6 +10,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
@@ -112,6 +113,14 @@ struct HighRateImuSample
   double timestamp{0.0};
   Eigen::Vector3d acceleration{Eigen::Vector3d::Zero()};
   Eigen::Vector3d angular_velocity{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d raw_acceleration{Eigen::Vector3d::Zero()};
+  bool accel_spike_rejected{false};
+  bool accel_norm_limit_exceeded{false};
+  bool accel_deviation_limit_exceeded{false};
+  double raw_acceleration_norm_mps2{0.0};
+  double acceleration_deviation_mps2{0.0};
+  std::size_t accel_spike_rejection_count{0};
+  std::size_t consecutive_accel_spike_rejections{0};
 };
 
 struct HighRateOdomState
@@ -138,6 +147,138 @@ struct HighRateOdomNoise
   double accel_bias_variance{0.0001};
 };
 
+struct HighRateAccelFilterConfig
+{
+  bool enabled{true};
+  std::size_t window_size{21};
+  std::size_t min_samples{7};
+  double max_deviation_mps2{5.0};
+  double max_norm_mps2{19.62};
+};
+
+// Produces the single IMU sample that every estimator path must consume.
+// The raw value and rejection decision are retained as metadata for logging
+// and for scaling the ESKF process noise without dropping the sample time.
+class HighRateImuPreprocessor
+{
+public:
+  explicit HighRateImuPreprocessor(HighRateAccelFilterConfig config = {})
+  : config_(config)
+  {
+    config_.window_size = std::max<std::size_t>(3, config_.window_size);
+    if (config_.window_size % 2 == 0) ++config_.window_size;
+    config_.min_samples = std::clamp<std::size_t>(
+      config_.min_samples, 1, config_.window_size);
+  }
+
+  HighRateImuSample process(const HighRateImuSample & input)
+  {
+    HighRateImuSample used = input;
+    used.raw_acceleration = input.acceleration;
+    used.raw_acceleration_norm_mps2 = input.acceleration.norm();
+    used.acceleration_deviation_mps2 = 0.0;
+    used.accel_spike_rejected = false;
+    used.accel_norm_limit_exceeded = false;
+    used.accel_deviation_limit_exceeded = false;
+
+    if (config_.enabled) {
+      const bool has_reference = !used_acceleration_history_.empty();
+      const Eigen::Vector3d reference = has_reference ? median() : input.acceleration;
+      used.acceleration_deviation_mps2 = (input.acceleration - reference).norm();
+      used.accel_norm_limit_exceeded = config_.max_norm_mps2 > 0.0 &&
+        used.raw_acceleration_norm_mps2 > config_.max_norm_mps2;
+      used.accel_deviation_limit_exceeded =
+        used_acceleration_history_.size() >= config_.min_samples &&
+        config_.max_deviation_mps2 > 0.0 &&
+        used.acceleration_deviation_mps2 > config_.max_deviation_mps2;
+
+      bool sustained_candidate = false;
+      if (used.accel_norm_limit_exceeded) {
+        candidate_.reset();
+        candidate_count_ = 0;
+        sustained_confirmed_ = false;
+      } else if (used.accel_deviation_limit_exceeded) {
+        const bool matches = candidate_.has_value() &&
+          (input.acceleration - *candidate_).norm() <= config_.max_deviation_mps2;
+        if (!matches) {
+          candidate_ = input.acceleration;
+          candidate_count_ = 1;
+          sustained_confirmed_ = false;
+        } else {
+          ++candidate_count_;
+        }
+        if (sustained_confirmed_ || candidate_count_ > config_.min_samples) {
+          sustained_confirmed_ = true;
+          sustained_candidate = true;
+        }
+      } else {
+        candidate_.reset();
+        candidate_count_ = 0;
+        sustained_confirmed_ = false;
+      }
+
+      used.accel_spike_rejected = has_reference &&
+        (used.accel_norm_limit_exceeded ||
+        (used.accel_deviation_limit_exceeded && !sustained_candidate));
+      if (used.accel_spike_rejected) {
+        used.acceleration = reference;
+        ++rejection_count_;
+        ++consecutive_rejections_;
+      } else {
+        consecutive_rejections_ = 0;
+      }
+    } else {
+      candidate_.reset();
+      candidate_count_ = 0;
+      sustained_confirmed_ = false;
+      consecutive_rejections_ = 0;
+    }
+
+    used.accel_spike_rejection_count = rejection_count_;
+    used.consecutive_accel_spike_rejections = consecutive_rejections_;
+    used_acceleration_history_.push_back(used.acceleration);
+    while (used_acceleration_history_.size() > config_.window_size) {
+      used_acceleration_history_.pop_front();
+    }
+    return used;
+  }
+
+  void reset()
+  {
+    used_acceleration_history_.clear();
+    candidate_.reset();
+    candidate_count_ = 0;
+    sustained_confirmed_ = false;
+    rejection_count_ = 0;
+    consecutive_rejections_ = 0;
+  }
+
+private:
+  Eigen::Vector3d median() const
+  {
+    Eigen::Vector3d result = Eigen::Vector3d::Zero();
+    std::vector<double> values;
+    values.reserve(used_acceleration_history_.size());
+    for (int axis = 0; axis < 3; ++axis) {
+      values.clear();
+      for (const auto & value : used_acceleration_history_) values.push_back(value[axis]);
+      std::sort(values.begin(), values.end());
+      const std::size_t middle = values.size() / 2;
+      result[axis] = values[middle];
+      if (values.size() % 2 == 0) result[axis] = 0.5 * (result[axis] + values[middle - 1]);
+    }
+    return result;
+  }
+
+  HighRateAccelFilterConfig config_;
+  std::deque<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> used_acceleration_history_;
+  std::optional<Eigen::Vector3d> candidate_;
+  std::size_t candidate_count_{0};
+  bool sustained_confirmed_{false};
+  std::size_t rejection_count_{0};
+  std::size_t consecutive_rejections_{0};
+};
+
 enum class HighRateOdomHealth
 {
   Healthy,
@@ -152,7 +293,32 @@ struct HighRateOdomResult
   Eigen::Vector3d body_angular_velocity{Eigen::Vector3d::Zero()};
   double lidar_anchor_age_s{0.0};
   HighRateOdomHealth health{HighRateOdomHealth::Healthy};
+  std::size_t accel_spike_rejection_count{0};
+  std::size_t consecutive_accel_spike_rejections{0};
+  double raw_acceleration_norm_mps2{0.0};
+  double acceleration_deviation_mps2{0.0};
+  bool accel_spike_rejected{false};
+  bool accel_norm_limit_exceeded{false};
+  bool accel_deviation_limit_exceeded{false};
   bool publish{false};
+};
+
+struct HighRateCorrectionDiagnostic
+{
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  bool valid{false};
+  bool smoothing_enabled{false};
+  double anchor_timestamp{0.0};
+  double propagated_timestamp{0.0};
+  double smoothing_elapsed_before{0.0};
+  double smoothing_duration{0.0};
+  Eigen::Vector3d propagated_velocity{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d anchor_posterior_velocity{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d posterior_velocity{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d output_velocity_before{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d output_velocity_after{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d correction_offset_velocity{Eigen::Vector3d::Zero()};
 };
 
 class HighRateOdomPropagator
@@ -162,23 +328,46 @@ public:
 
   HighRateOdomPropagator(
     HighRateOdomNoise noise = {}, double warn_anchor_age_s = 0.15,
-    double max_anchor_age_s = 0.40, double history_duration_s = 5.0)
+    double max_anchor_age_s = 0.40, double history_duration_s = 5.0,
+    HighRateAccelFilterConfig accel_filter = {},
+    double correction_smoothing_s = 0.0)
   : noise_(noise),
     warn_anchor_age_s_(warn_anchor_age_s),
     max_anchor_age_s_(max_anchor_age_s),
-    history_duration_s_(history_duration_s)
+    history_duration_s_(history_duration_s),
+    accel_filter_(accel_filter),
+    correction_smoothing_s_(std::max(0.0, correction_smoothing_s))
   {
+    accel_filter_.window_size = std::max<std::size_t>(3, accel_filter_.window_size);
+    if (accel_filter_.window_size % 2 == 0) {
+      ++accel_filter_.window_size;
+    }
+    accel_filter_.min_samples = std::clamp<std::size_t>(
+      accel_filter_.min_samples, 1, accel_filter_.window_size);
   }
 
   bool reset_from_lidar(const HighRateOdomState & corrected_state)
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    std::optional<HighRateOdomState> previous_output;
+    const Eigen::Vector3d propagated_velocity = state_.velocity;
+    const double propagated_timestamp = state_.timestamp;
+    double smoothing_elapsed_before = 0.0;
+    if (initialized_ && previous_input_) {
+      previous_output = output_state_locked();
+      smoothing_elapsed_before = smoothing_elapsed_locked();
+    }
     if (!state_is_valid(corrected_state) ||
       (initialized_ && corrected_state.timestamp <= lidar_anchor_timestamp_) ||
       (!history_.empty() && corrected_state.timestamp > history_.back().timestamp))
     {
       return false;
     }
+
+    // The current published state is the only valid starting point for a new
+    // correction. Clear the old epoch before applying the posterior so an
+    // unfinished correction can never be added to the next one.
+    clear_correction_smoothing_locked();
 
     state_ = corrected_state;
     state_.rotation = orthonormalized(state_.rotation);
@@ -187,17 +376,59 @@ public:
     initialized_ = true;
 
     previous_input_ = input_at_locked(corrected_state.timestamp);
-    if (!previous_input_) {
-      return true;
+    if (previous_input_) {
+      for (const auto & sample : history_) {
+        if (sample.timestamp <= corrected_state.timestamp) {
+          continue;
+        }
+        propagate_locked(sample);
+      }
     }
 
-    for (const auto & sample : history_) {
-      if (sample.timestamp <= corrected_state.timestamp) {
-        continue;
-      }
-      propagate_locked(sample);
+    // LiDAR corrections are authoritative for the estimator, but publishing
+    // the corrected state immediately would turn a centimetre-scale map
+    // correction into a several-m/s 200 Hz velocity spike.  Keep the output
+    // continuous and let it converge to the corrected trajectory smoothly.
+    if (previous_output && correction_smoothing_s_ > 0.0) {
+      correction_offset_position_ =
+        previous_output->position - state_.position;
+      correction_offset_velocity_ =
+        previous_output->velocity - state_.velocity;
+      smoothing_start_position_ = previous_output->position;
+      smoothing_start_velocity_ = previous_output->velocity;
+      correction_offset_start_timestamp_ = state_.timestamp;
+    } else {
+      clear_correction_smoothing_locked();
+      smoothing_start_position_ = state_.position;
+      smoothing_start_velocity_ = state_.velocity;
+      correction_offset_start_timestamp_ = state_.timestamp;
     }
+
+    HighRateCorrectionDiagnostic diagnostic;
+    diagnostic.valid = true;
+    diagnostic.smoothing_enabled = previous_output.has_value() &&
+      correction_smoothing_s_ > 0.0;
+    diagnostic.anchor_timestamp = corrected_state.timestamp;
+    diagnostic.propagated_timestamp = propagated_timestamp;
+    diagnostic.smoothing_elapsed_before = smoothing_elapsed_before;
+    diagnostic.smoothing_duration = correction_smoothing_s_;
+    diagnostic.propagated_velocity = propagated_velocity;
+    diagnostic.anchor_posterior_velocity = corrected_state.velocity;
+    diagnostic.posterior_velocity = state_.velocity;
+    diagnostic.output_velocity_before = previous_output ?
+      previous_output->velocity : propagated_velocity;
+    diagnostic.output_velocity_after = output_state_locked().velocity;
+    diagnostic.correction_offset_velocity = correction_offset_velocity_;
+    last_correction_diagnostic_ = diagnostic;
     return true;
+  }
+
+  std::optional<HighRateCorrectionDiagnostic> take_last_correction_diagnostic()
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    const auto diagnostic = last_correction_diagnostic_;
+    last_correction_diagnostic_.reset();
+    return diagnostic;
   }
 
   std::optional<HighRateOdomResult> add_imu(const HighRateImuSample & sample)
@@ -210,14 +441,58 @@ public:
     if (!history_.empty() && sample.timestamp <= history_.back().timestamp) {
       if (sample.timestamp < history_.back().timestamp) {
         history_.clear();
+        raw_acceleration_history_.clear();
         previous_input_.reset();
         initialized_ = false;
+        accel_candidate_.reset();
+        accel_candidate_count_ = 0;
+        sustained_accel_confirmed_ = false;
+        consecutive_accel_spike_rejections_ = 0;
+        last_accel_spike_rejected_ = false;
+      }
+      return std::nullopt;
+    }
+
+    const HighRateImuSample filtered_sample = filter_acceleration_locked(sample);
+    return add_filtered_imu_locked(filtered_sample);
+  }
+
+  // In production this is fed by HighRateImuPreprocessor so the main ESKF
+  // and high-rate replay consume the exact same used acceleration.
+  std::optional<HighRateOdomResult> add_filtered_imu(const HighRateImuSample & sample)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!sample_is_valid(sample)) return std::nullopt;
+    return add_filtered_imu_locked(sample);
+  }
+
+private:
+  std::optional<HighRateOdomResult> add_filtered_imu_locked(const HighRateImuSample & sample)
+  {
+    if (!history_.empty() && sample.timestamp <= history_.back().timestamp) {
+      if (sample.timestamp < history_.back().timestamp) {
+        history_.clear();
+        raw_acceleration_history_.clear();
+        previous_input_.reset();
+        initialized_ = false;
+        accel_candidate_.reset();
+        accel_candidate_count_ = 0;
+        sustained_accel_confirmed_ = false;
+        consecutive_accel_spike_rejections_ = 0;
+        last_accel_spike_rejected_ = false;
       }
       return std::nullopt;
     }
 
     history_.push_back(sample);
     prune_history_locked(sample.timestamp);
+    last_raw_acceleration_norm_mps2_ = sample.raw_acceleration_norm_mps2;
+    last_acceleration_deviation_mps2_ = sample.acceleration_deviation_mps2;
+    last_accel_spike_rejected_ = sample.accel_spike_rejected;
+    last_accel_norm_limit_exceeded_ = sample.accel_norm_limit_exceeded;
+    last_accel_deviation_limit_exceeded_ = sample.accel_deviation_limit_exceeded;
+    accel_spike_rejection_count_ = sample.accel_spike_rejection_count;
+    consecutive_accel_spike_rejections_ = sample.consecutive_accel_spike_rejections;
     if (!initialized_) {
       return std::nullopt;
     }
@@ -235,6 +510,7 @@ public:
     return make_result_locked();
   }
 
+public:
   std::optional<HighRateOdomResult> current() const
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -328,6 +604,116 @@ private:
       output(index, index) = std::max(output(index, index), 1e-12);
     }
     return output;
+  }
+
+  Eigen::Vector3d acceleration_median_locked() const
+  {
+    Eigen::Vector3d median = Eigen::Vector3d::Zero();
+    std::vector<double> values;
+    values.reserve(raw_acceleration_history_.size());
+    for (int axis = 0; axis < 3; ++axis) {
+      values.clear();
+      for (const auto & acceleration : raw_acceleration_history_) {
+        values.push_back(acceleration[axis]);
+      }
+      std::sort(values.begin(), values.end());
+      const std::size_t middle = values.size() / 2;
+      median[axis] = values[middle];
+      if (values.size() % 2 == 0) {
+        median[axis] = 0.5 * (median[axis] + values[middle - 1]);
+      }
+    }
+    return median;
+  }
+
+  HighRateImuSample filter_acceleration_locked(const HighRateImuSample & sample)
+  {
+    HighRateImuSample filtered = sample;
+    filtered.raw_acceleration = sample.acceleration;
+    last_raw_acceleration_norm_mps2_ = sample.acceleration.norm();
+    last_acceleration_deviation_mps2_ = 0.0;
+    last_accel_norm_limit_exceeded_ = false;
+    last_accel_deviation_limit_exceeded_ = false;
+    last_accel_spike_rejected_ = false;
+
+    if (!accel_filter_.enabled) {
+      accel_candidate_.reset();
+      accel_candidate_count_ = 0;
+      sustained_accel_confirmed_ = false;
+      consecutive_accel_spike_rejections_ = 0;
+      return filtered;
+    }
+
+    const bool has_reference = !raw_acceleration_history_.empty();
+    const Eigen::Vector3d reference = has_reference ?
+      acceleration_median_locked() : sample.acceleration;
+    last_acceleration_deviation_mps2_ = (sample.acceleration - reference).norm();
+    last_accel_norm_limit_exceeded_ =
+      accel_filter_.max_norm_mps2 > 0.0 &&
+      last_raw_acceleration_norm_mps2_ > accel_filter_.max_norm_mps2;
+    last_accel_deviation_limit_exceeded_ =
+      raw_acceleration_history_.size() >= accel_filter_.min_samples &&
+      accel_filter_.max_deviation_mps2 > 0.0 &&
+      last_acceleration_deviation_mps2_ > accel_filter_.max_deviation_mps2;
+
+    // A legitimate step in acceleration can remain away from the old median
+    // for several samples.  Confirm repeated, norm-valid candidates before
+    // allowing them through; norm-limit violations remain hard rejects.
+    bool sustained_candidate = false;
+    if (last_accel_norm_limit_exceeded_) {
+      accel_candidate_.reset();
+      accel_candidate_count_ = 0;
+      sustained_accel_confirmed_ = false;
+    } else if (last_accel_deviation_limit_exceeded_) {
+      const bool candidate_matches = accel_candidate_.has_value() &&
+        (sample.acceleration - *accel_candidate_).norm() <=
+        accel_filter_.max_deviation_mps2;
+      if (!candidate_matches) {
+        accel_candidate_ = sample.acceleration;
+        accel_candidate_count_ = 1;
+        sustained_accel_confirmed_ = false;
+      } else {
+        ++accel_candidate_count_;
+      }
+      if (sustained_accel_confirmed_ ||
+        accel_candidate_count_ > accel_filter_.min_samples)
+      {
+        sustained_accel_confirmed_ = true;
+        sustained_candidate = true;
+      }
+    } else {
+      accel_candidate_.reset();
+      accel_candidate_count_ = 0;
+      sustained_accel_confirmed_ = false;
+    }
+
+    last_accel_spike_rejected_ = has_reference &&
+      (last_accel_norm_limit_exceeded_ ||
+      (last_accel_deviation_limit_exceeded_ && !sustained_candidate));
+
+    if (last_accel_spike_rejected_) {
+      filtered.acceleration = reference;
+      ++accel_spike_rejection_count_;
+      ++consecutive_accel_spike_rejections_;
+    } else {
+      consecutive_accel_spike_rejections_ = 0;
+    }
+
+    // Keep the reference window on the acceleration actually used for
+    // propagation.  Retaining rejected raw spikes lets a sustained burst
+    // move the median and can cause valid samples to be rejected afterward.
+    raw_acceleration_history_.push_back(filtered.acceleration);
+    while (raw_acceleration_history_.size() > accel_filter_.window_size) {
+      raw_acceleration_history_.pop_front();
+    }
+    filtered.accel_spike_rejection_count = accel_spike_rejection_count_;
+    filtered.consecutive_accel_spike_rejections = consecutive_accel_spike_rejections_;
+    filtered.raw_acceleration_norm_mps2 = last_raw_acceleration_norm_mps2_;
+    filtered.acceleration_deviation_mps2 = last_acceleration_deviation_mps2_;
+    filtered.accel_spike_rejected = last_accel_spike_rejected_;
+    filtered.accel_norm_limit_exceeded = last_accel_norm_limit_exceeded_;
+    filtered.accel_deviation_limit_exceeded = last_accel_deviation_limit_exceeded_;
+    return filtered;
   }
 
   std::optional<HighRateImuSample> input_at_locked(double timestamp) const
@@ -433,12 +819,64 @@ private:
     last_body_angular_velocity_ = omega_current;
   }
 
+  HighRateOdomState output_state_locked() const
+  {
+    HighRateOdomState output = state_;
+    if (correction_smoothing_s_ <= 0.0) {
+      return output;
+    }
+
+    const double elapsed = output.timestamp - correction_offset_start_timestamp_;
+    const double u = std::clamp(elapsed / correction_smoothing_s_, 0.0, 1.0);
+    if (u >= 1.0) {
+      return output;
+    }
+
+    // Cubic Hermite transition: preserve both pose and velocity at the first
+    // sample, then reach the corrected trajectory with zero residual offset.
+    const double u2 = u * u;
+    const double u3 = u2 * u;
+    const double h00 = 2.0 * u3 - 3.0 * u2 + 1.0;
+    const double h10 = u3 - 2.0 * u2 + u;
+    const double dh00 = (6.0 * u2 - 6.0 * u) / correction_smoothing_s_;
+    const double dh10 = 3.0 * u2 - 4.0 * u + 1.0;
+    output.position += h00 * correction_offset_position_ +
+      h10 * correction_smoothing_s_ * correction_offset_velocity_;
+    output.velocity += dh00 * correction_offset_position_ +
+      dh10 * correction_offset_velocity_;
+    return output;
+  }
+
+  double smoothing_elapsed_locked() const
+  {
+    if (correction_smoothing_s_ <= 0.0) {
+      return 0.0;
+    }
+    return std::max(0.0, state_.timestamp - correction_offset_start_timestamp_);
+  }
+
+  void clear_correction_smoothing_locked()
+  {
+    correction_offset_position_.setZero();
+    correction_offset_velocity_.setZero();
+    smoothing_start_position_ = state_.position;
+    smoothing_start_velocity_ = state_.velocity;
+    correction_offset_start_timestamp_ = state_.timestamp;
+  }
+
   HighRateOdomResult make_result_locked() const
   {
     HighRateOdomResult result;
-    result.state = state_;
+    result.state = output_state_locked();
     result.body_angular_velocity = last_body_angular_velocity_;
     result.lidar_anchor_age_s = state_.timestamp - lidar_anchor_timestamp_;
+    result.accel_spike_rejection_count = accel_spike_rejection_count_;
+    result.consecutive_accel_spike_rejections = consecutive_accel_spike_rejections_;
+    result.raw_acceleration_norm_mps2 = last_raw_acceleration_norm_mps2_;
+    result.acceleration_deviation_mps2 = last_acceleration_deviation_mps2_;
+    result.accel_spike_rejected = last_accel_spike_rejected_;
+    result.accel_norm_limit_exceeded = last_accel_norm_limit_exceeded_;
+    result.accel_deviation_limit_exceeded = last_accel_deviation_limit_exceeded_;
     if (result.lidar_anchor_age_s > max_anchor_age_s_) {
       result.health = HighRateOdomHealth::StaleLidar;
       result.publish = false;
@@ -464,13 +902,33 @@ private:
   double warn_anchor_age_s_{0.15};
   double max_anchor_age_s_{0.40};
   double history_duration_s_{5.0};
+  double correction_smoothing_s_{0.0};
+  HighRateAccelFilterConfig accel_filter_;
   mutable std::mutex mutex_;
   std::deque<HighRateImuSample, Eigen::aligned_allocator<HighRateImuSample>> history_;
+  std::deque<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>
+    raw_acceleration_history_;
   HighRateOdomState state_;
   std::optional<HighRateImuSample> previous_input_;
   Eigen::Vector3d last_body_angular_velocity_{Eigen::Vector3d::Zero()};
+  std::size_t accel_spike_rejection_count_{0};
+  std::size_t consecutive_accel_spike_rejections_{0};
+  double last_raw_acceleration_norm_mps2_{0.0};
+  double last_acceleration_deviation_mps2_{0.0};
+  bool last_accel_spike_rejected_{false};
+  bool last_accel_norm_limit_exceeded_{false};
+  bool last_accel_deviation_limit_exceeded_{false};
+  std::optional<Eigen::Vector3d> accel_candidate_;
+  std::size_t accel_candidate_count_{0};
+  bool sustained_accel_confirmed_{false};
   double lidar_anchor_timestamp_{0.0};
   bool initialized_{false};
+  Eigen::Vector3d correction_offset_position_{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d correction_offset_velocity_{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d smoothing_start_position_{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d smoothing_start_velocity_{Eigen::Vector3d::Zero()};
+  double correction_offset_start_timestamp_{0.0};
+  std::optional<HighRateCorrectionDiagnostic> last_correction_diagnostic_;
 };
 
 }  // namespace fr_lio

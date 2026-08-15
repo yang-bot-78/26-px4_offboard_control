@@ -1,0 +1,67 @@
+[debug rosbag] starting
+[debug rosbag] command: env FLIGHT_TIMESTAMP=20260816_043609 FLIGHT_RUN_DIR=/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_043609 /home/robot/rong_ws/ws_offboard_control/tools/rosbag/开始录包.sh
+[debug rosbag] pid=20225 pgid=20225 log=/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_043609/logs/rosbag_debug.log
+本场次目录：/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_043609
+参数快照目录：/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_043609/snapshot
+录包输出目录：/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_043609/rosbag
+是否录制完整配准点云：false
+是否录制 EGO 障碍诊断：false
+是否录制 PX4 DDS /fmu/out 镜像：false
+在本终端按 Ctrl+C 停止录包。
+[ULog] 检查 PX4 SDLOG_PROFILE 是否包含视觉与避障位（bit 7）...
+[ULog] PASS: SDLOG_PROFILE=129，vehicle_visual_odometry 将以约 33 Hz 写入 ULog。
+stdin is not a terminal device. Keyboard handling disabled.[INFO] [1786826251.613752462] [rosbag2_recorder]: Press SPACE for pausing/resuming
+[INFO] [1786826251.626811615] [rosbag2_storage]: Opened database '/home/robot/rong_ws/ws_offboard_control/flight_records/20260816/flight_20260816_043609/rosbag/rosbag_0.db3' for READ_WRITE.
+[INFO] [1786826251.633856028] [rosbag2_recorder]: Listening for topics...
+[INFO] [1786826251.633948606] [rosbag2_recorder]: Event publisher thread: Starting
+[INFO] [1786826251.660098235] [rosbag2_recorder]: Subscribed to topic '/tf'
+[INFO] [1786826251.666114565] [rosbag2_recorder]: Subscribed to topic '/race/ego/position_command'
+[INFO] [1786826251.674644977] [rosbag2_recorder]: Subscribed to topic '/planning/odom'
+[INFO] [1786826251.683769668] [rosbag2_recorder]: Subscribed to topic '/fastlio_global/relocalized_pose'
+[INFO] [1786826251.684547320] [rosbag2_recorder]: Recording...
+[INFO] [1786826251.695439302] [rosbag2_recorder]: Subscribed to topic '/race/ego/bspline'
+[INFO] [1786826251.698320991] [rosbag2_recorder]: Subscribed to topic '/race/ego/local_goal'
+[INFO] [1786826251.706136187] [rosbag2_recorder]: Subscribed to topic '/race/ego/local_path_reference'
+[INFO] [1786826251.709177558] [rosbag2_recorder]: Subscribed to topic '/race/global_path'
+[INFO] [1786826251.712944051] [rosbag2_recorder]: Subscribed to topic '/race/global_planner/status'
+[INFO] [1786826251.716391368] [rosbag2_recorder]: Subscribed to topic '/race/planner/status'
+[INFO] [1786826251.718925653] [rosbag2_recorder]: Subscribed to topic '/race/super_planner/raw_path'
+[INFO] [1786826251.833002079] [rosbag2_recorder]: Subscribed to topic '/race/ego/trajectory_setpoint'
+[INFO] [1786826251.840916735] [rosbag2_recorder]: Subscribed to topic '/race/ego/status'
+[INFO] [1786826251.850375131] [rosbag2_recorder]: Subscribed to topic '/race/ego/predicted_path'
+[INFO] [1786826251.858696334] [rosbag2_recorder]: Subscribed to topic '/race/ego/command_local_goal_seq'
+[INFO] [1786826251.863819275] [rosbag2_recorder]: Subscribed to topic '/goal_pose'
+[INFO] [1786826251.876114606] [rosbag2_recorder]: Subscribed to topic '/race/ego/odom'
+[INFO] [1786826251.887152085] [rosbag2_recorder]: Subscribed to topic '/race/ego/validated_bspline'
+[INFO] [1786826251.893436294] [rosbag2_recorder]: Subscribed to topic '/Odometry/guarded'
+[INFO] [1786826251.909841935] [rosbag2_recorder]: Subscribed to topic '/tf_static'
+[INFO] [1786826252.311009203] [rosbag2_recorder]: Subscribed to topic '/mavros/estimator_status'
+[INFO] [1786826252.322692804] [rosbag2_recorder]: Subscribed to topic '/mavros/state'
+[INFO] [1786826252.335615626] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/pose'
+[INFO] [1786826252.350603121] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/velocity_body'
+[INFO] [1786826252.357999190] [rosbag2_recorder]: Subscribed to topic '/mavros/setpoint_raw/target_local'
+[INFO] [1786826252.364834014] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/velocity_local'
+[INFO] [1786826252.367928047] [rosbag2_recorder]: Subscribed to topic '/mavros/local_position/odom'
+[INFO] [1786826252.486684723] [rosbag2_recorder]: Subscribed to topic '/ev_health/diagnostics'
+[INFO] [1786826252.492625102] [rosbag2_recorder]: Subscribed to topic '/frlio/high_rate_odom/anchor_age'
+[INFO] [1786826252.495840769] [rosbag2_recorder]: Subscribed to topic '/Odometry'
+[INFO] [1786826252.499646596] [rosbag2_recorder]: Subscribed to topic '/ev_health/flight_ready'
+[INFO] [1786826252.501753195] [rosbag2_recorder]: Subscribed to topic '/ev_health/velocity_ned'
+[INFO] [1786826252.504142531] [rosbag2_recorder]: Subscribed to topic '/frlio/high_rate_odom/status'
+[INFO] [1786826252.506624926] [rosbag2_recorder]: Subscribed to topic '/ev_health/fault'
+[INFO] [1786826252.511061956] [rosbag2_recorder]: Subscribed to topic '/ev_health/status'
+[INFO] [1786826252.516015059] [rosbag2_recorder]: Subscribed to topic '/Odometry/healthy'
+[INFO] [1786826252.520982627] [rosbag2_recorder]: Subscribed to topic '/path'
+[INFO] [1786826252.531595101] [rosbag2_recorder]: Subscribed to topic '/frlio/high_rate_odom/accel_spike_rejections'
+[INFO] [1786826252.997226585] [rosbag2_recorder]: Subscribed to topic '/mavros/setpoint_raw/local'
+[INFO] [1786826253.007574808] [rosbag2_recorder]: Subscribed to topic '/race/odom'
+[INFO] [1786826253.010774947] [rosbag2_recorder]: Subscribed to topic '/race/pose'
+[INFO] [1786826253.014430035] [rosbag2_recorder]: Subscribed to topic '/race/flight_altitude_reference'
+[INFO] [1786826253.135045857] [rosbag2_recorder]: Subscribed to topic '/race/control/status'
+[INFO] [1786826253.140011958] [rosbag2_recorder]: Subscribed to topic '/livox/lidar'
+[INFO] [1786826253.142875199] [rosbag2_recorder]: Subscribed to topic '/livox/imu'
+[INFO] [1786826253.145600062] [rosbag2_recorder]: Subscribed to topic '/mavros/odometry/out'
+[INFO] [1786826374.517187706] [rosbag2_cpp]: Writing remaining messages from cache to the bag. It may take a while
+[INFO] [1786826374.526490464] [rosbag2_recorder]: Event publisher thread: Exiting
+[INFO] [1786826374.526760296] [rosbag2_recorder]: Recording stopped
+[debug rosbag] 已退出，状态码 143

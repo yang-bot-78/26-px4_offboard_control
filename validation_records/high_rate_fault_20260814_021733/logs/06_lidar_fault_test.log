@@ -1,0 +1,378 @@
+[状态] t=0.150s HEALTHY, anchor_age=None
+[状态] t=0.197s SUSPECT_STALE_LIDAR, anchor_age=0.1467134952545166
+[状态] t=0.220s HEALTHY, anchor_age=0.0721597671508789
+[状态] t=0.298s SUSPECT_STALE_LIDAR, anchor_age=0.14834880828857422
+[状态] t=0.310s HEALTHY, anchor_age=0.16212940216064453
+[状态] t=0.399s SUSPECT_STALE_LIDAR, anchor_age=0.1523127555847168
+[状态] t=0.411s HEALTHY, anchor_age=0.16219758987426758
+[状态] t=0.497s SUSPECT_STALE_LIDAR, anchor_age=0.14679408073425293
+[状态] t=0.524s HEALTHY, anchor_age=0.17208504676818848
+[状态] t=0.600s SUSPECT_STALE_LIDAR, anchor_age=0.14565348625183105
+[状态] t=0.611s HEALTHY, anchor_age=0.0667877197265625
+[状态] t=0.696s SUSPECT_STALE_LIDAR, anchor_age=0.14691901206970215
+[状态] t=0.716s HEALTHY, anchor_age=0.07242155075073242
+[状态] t=0.797s SUSPECT_STALE_LIDAR, anchor_age=0.14687252044677734
+[状态] t=0.817s HEALTHY, anchor_age=0.16722655296325684
+[状态] t=0.897s SUSPECT_STALE_LIDAR, anchor_age=0.14675569534301758
+[状态] t=0.916s HEALTHY, anchor_age=0.07241082191467285
+[状态] t=0.997s SUSPECT_STALE_LIDAR, anchor_age=0.14921855926513672
+[状态] t=1.013s HEALTHY, anchor_age=0.16254091262817383
+[状态] t=1.096s SUSPECT_STALE_LIDAR, anchor_age=0.14870858192443848
+[状态] t=1.115s HEALTHY, anchor_age=0.1664900779724121
+[状态] t=1.197s SUSPECT_STALE_LIDAR, anchor_age=0.14662432670593262
+[状态] t=1.205s HEALTHY, anchor_age=0.15638017654418945
+[状态] t=1.296s SUSPECT_STALE_LIDAR, anchor_age=0.1523151397705078
+[状态] t=1.310s HEALTHY, anchor_age=0.16205859184265137
+[状态] t=1.398s SUSPECT_STALE_LIDAR, anchor_age=0.14622282981872559
+[状态] t=1.406s HEALTHY, anchor_age=0.15593647956848145
+[状态] t=1.497s SUSPECT_STALE_LIDAR, anchor_age=0.14673256874084473
+[状态] t=1.511s HEALTHY, anchor_age=0.162278413772583
+[状态] t=1.596s SUSPECT_STALE_LIDAR, anchor_age=0.14673376083374023
+[状态] t=1.607s HEALTHY, anchor_age=0.06231951713562012
+[状态] t=1.696s SUSPECT_STALE_LIDAR, anchor_age=0.14682841300964355
+[状态] t=1.710s HEALTHY, anchor_age=0.0665292739868164
+[状态] t=1.796s SUSPECT_STALE_LIDAR, anchor_age=0.14647936820983887
+[状态] t=1.812s HEALTHY, anchor_age=0.16225624084472656
+[状态] t=1.896s SUSPECT_STALE_LIDAR, anchor_age=0.14687252044677734
+[状态] t=1.906s HEALTHY, anchor_age=0.15760254859924316
+[状态] t=1.996s SUSPECT_STALE_LIDAR, anchor_age=0.1468214988708496
+[状态] t=2.021s HEALTHY, anchor_age=0.16655731201171875
+[状态] t=2.097s SUSPECT_STALE_LIDAR, anchor_age=0.14637041091918945
+[状态] t=2.120s HEALTHY, anchor_age=0.16630983352661133
+[状态] t=2.203s SUSPECT_STALE_LIDAR, anchor_age=0.14653539657592773
+[状态] t=2.220s HEALTHY, anchor_age=0.17227935791015625
+[状态] t=2.297s SUSPECT_STALE_LIDAR, anchor_age=0.14668965339660645
+[状态] t=2.327s HEALTHY, anchor_age=0.17678499221801758
+[状态] t=2.397s SUSPECT_STALE_LIDAR, anchor_age=0.14661717414855957
+[状态] t=2.440s HEALTHY, anchor_age=0.1937255859375
+[状态] t=2.498s SUSPECT_STALE_LIDAR, anchor_age=0.14637184143066406
+[状态] t=2.518s HEALTHY, anchor_age=0.16623234748840332
+[状态] t=2.596s SUSPECT_STALE_LIDAR, anchor_age=0.14677071571350098
+[状态] t=2.630s HEALTHY, anchor_age=0.08219695091247559
+[故障测试] 暂停门控 LiDAR；IMU 和原始 LiDAR 保持运行。
+[故障测试] LiDAR forwarding paused; received=614; forwarded=614
+[状态] t=2.698s SUSPECT_STALE_LIDAR, anchor_age=0.13223481178283691
+[状态] t=2.738s HEALTHY, anchor_age=0.1888589859008789
+[状态] t=2.803s SUSPECT_STALE_LIDAR, anchor_age=0.14681148529052734
+[状态] t=3.047s FAULT_STALE_LIDAR, anchor_age=0.39664196968078613
+[故障测试] LiDAR forwarding enabled; received=624; forwarded=614
+[状态] t=3.817s HEALTHY, anchor_age=1.1665222644805908
+{
+  "passed": true,
+  "checks": {
+    "saw_suspect": true,
+    "saw_fault": true,
+    "anchor_crossed_0_15_s": true,
+    "anchor_crossed_0_40_s": true,
+    "odom_quiet_after_fault": true,
+    "imu_continued": true,
+    "raw_lidar_continued": true,
+    "gated_lidar_quiet": true,
+    "recovered_healthy": true
+  },
+  "status_events": [
+    {
+      "elapsed_s": 0.14953834199991434,
+      "status": "HEALTHY",
+      "anchor_age_s": null
+    },
+    {
+      "elapsed_s": 0.19668592099992566,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.1467134952545166
+    },
+    {
+      "elapsed_s": 0.21997870800009878,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.0721597671508789
+    },
+    {
+      "elapsed_s": 0.29763601199988443,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14834880828857422
+    },
+    {
+      "elapsed_s": 0.3101547629999004,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16212940216064453
+    },
+    {
+      "elapsed_s": 0.39881949300001907,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.1523127555847168
+    },
+    {
+      "elapsed_s": 0.4109126930000002,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16219758987426758
+    },
+    {
+      "elapsed_s": 0.4971021839999139,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14679408073425293
+    },
+    {
+      "elapsed_s": 0.5240772940001079,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.17208504676818848
+    },
+    {
+      "elapsed_s": 0.5997784260000572,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14565348625183105
+    },
+    {
+      "elapsed_s": 0.6113487079999231,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.0667877197265625
+    },
+    {
+      "elapsed_s": 0.6961994440000581,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14691901206970215
+    },
+    {
+      "elapsed_s": 0.7161107590000029,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.07242155075073242
+    },
+    {
+      "elapsed_s": 0.7970040870000048,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14687252044677734
+    },
+    {
+      "elapsed_s": 0.8167973459999303,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16722655296325684
+    },
+    {
+      "elapsed_s": 0.8967365720000089,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14675569534301758
+    },
+    {
+      "elapsed_s": 0.9161293150000347,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.07241082191467285
+    },
+    {
+      "elapsed_s": 0.9972156920000543,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14921855926513672
+    },
+    {
+      "elapsed_s": 1.0132961009999235,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16254091262817383
+    },
+    {
+      "elapsed_s": 1.0959612149999884,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14870858192443848
+    },
+    {
+      "elapsed_s": 1.1152582649999658,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.1664900779724121
+    },
+    {
+      "elapsed_s": 1.196813855000073,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14662432670593262
+    },
+    {
+      "elapsed_s": 1.2053838150000047,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.15638017654418945
+    },
+    {
+      "elapsed_s": 1.2962846640000407,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.1523151397705078
+    },
+    {
+      "elapsed_s": 1.310018035999974,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16205859184265137
+    },
+    {
+      "elapsed_s": 1.3978106059998936,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14622282981872559
+    },
+    {
+      "elapsed_s": 1.4059167230000185,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.15593647956848145
+    },
+    {
+      "elapsed_s": 1.4973300379999728,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14673256874084473
+    },
+    {
+      "elapsed_s": 1.5107012480000321,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.162278413772583
+    },
+    {
+      "elapsed_s": 1.5960240730000805,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14673376083374023
+    },
+    {
+      "elapsed_s": 1.6074905190000663,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.06231951713562012
+    },
+    {
+      "elapsed_s": 1.6963081179999335,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14682841300964355
+    },
+    {
+      "elapsed_s": 1.7097645320000083,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.0665292739868164
+    },
+    {
+      "elapsed_s": 1.795933876999925,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14647936820983887
+    },
+    {
+      "elapsed_s": 1.812170267000056,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16225624084472656
+    },
+    {
+      "elapsed_s": 1.8962406539999392,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14687252044677734
+    },
+    {
+      "elapsed_s": 1.9059244709999348,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.15760254859924316
+    },
+    {
+      "elapsed_s": 1.9956709719999708,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.1468214988708496
+    },
+    {
+      "elapsed_s": 2.020715356999972,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16655731201171875
+    },
+    {
+      "elapsed_s": 2.0974569019999763,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14637041091918945
+    },
+    {
+      "elapsed_s": 2.1202611030000753,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16630983352661133
+    },
+    {
+      "elapsed_s": 2.2030186659999345,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14653539657592773
+    },
+    {
+      "elapsed_s": 2.2202121989998886,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.17227935791015625
+    },
+    {
+      "elapsed_s": 2.2967556670000704,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14668965339660645
+    },
+    {
+      "elapsed_s": 2.3267167179999433,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.17678499221801758
+    },
+    {
+      "elapsed_s": 2.3970521109999936,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14661717414855957
+    },
+    {
+      "elapsed_s": 2.439733988999933,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.1937255859375
+    },
+    {
+      "elapsed_s": 2.49794023000004,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14637184143066406
+    },
+    {
+      "elapsed_s": 2.517889680000053,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.16623234748840332
+    },
+    {
+      "elapsed_s": 2.5960308000001078,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14677071571350098
+    },
+    {
+      "elapsed_s": 2.630406353999888,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.08219695091247559
+    },
+    {
+      "elapsed_s": 2.697602677000077,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.13223481178283691
+    },
+    {
+      "elapsed_s": 2.73768277399995,
+      "status": "HEALTHY",
+      "anchor_age_s": 0.1888589859008789
+    },
+    {
+      "elapsed_s": 2.8029116109998995,
+      "status": "SUSPECT_STALE_LIDAR",
+      "anchor_age_s": 0.14681148529052734
+    },
+    {
+      "elapsed_s": 3.047198055000081,
+      "status": "FAULT_STALE_LIDAR",
+      "anchor_age_s": 0.39664196968078613
+    },
+    {
+      "elapsed_s": 3.8169694139999137,
+      "status": "HEALTHY",
+      "anchor_age_s": 1.1665222644805908
+    }
+  ],
+  "counts_during_pause": {
+    "odom": 75,
+    "imu": 204,
+    "raw_lidar": 10,
+    "gated_lidar": 0
+  },
+  "gate_counters": {
+    "paused": {
+      "message": "LiDAR forwarding paused; received=614; forwarded=614",
+      "received": 614,
+      "forwarded": 614
+    },
+    "restored": {
+      "message": "LiDAR forwarding enabled; received=624; forwarded=614",
+      "received": 624,
+      "forwarded": 614
+    }
+  },
+  "odom_quiet_s": 0.6452483849998316,
+  "odom_quiet_required_s": 0.2,
+  "odom_quiet_timeout_s": 2.0,
+  "first_anchor_at_or_above_0_15_s": 0.152146577835083,
+  "first_anchor_at_or_above_0_40_s": 0.4022958278656006
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structural static checks for the selected VISION_POSE entry contract."""
+"""Structural static checks for the selected MAVLink ODOMETRY entry contract."""
 
 from __future__ import annotations
 
@@ -13,19 +13,29 @@ from typing import Dict, Iterable, List, Sequence, Tuple
 
 SELECTED_NODE_IDENTITY = (
     "px4_ros_com",
-    "fastlio_mavros_vision_bridge",
-    "fastlio_mavros_vision_bridge",
+    "fastlio_mavros_odometry_bridge",
+    "fastlio_mavros_odometry_bridge",
 )
 PHYSICAL_BODY_TF_IDENTITY = (
     "tf2_ros",
     "static_transform_publisher",
     "base_link_to_body",
 )
+ODOM_TO_NED_TF_IDENTITY = (
+    "tf2_ros",
+    "static_transform_publisher",
+    "odom_to_odom_ned",
+)
+BASE_LINK_TO_FRD_TF_IDENTITY = (
+    "tf2_ros",
+    "static_transform_publisher",
+    "base_link_to_base_link_frd",
+)
 ADAPTER_DEFAULTS = {
-    "start_mavros_vision_bridge": "true",
+    "start_mavros_odometry_bridge": "true",
 }
 STACK_ADAPTER_VALUES = {
-    "start_mavros_vision_bridge": "true",
+    "start_mavros_odometry_bridge": "true",
 }
 # EV writers that must NOT reappear in any launch file. The former
 # start_bridge / start_px4_ev_bridge adapters were deleted at the source, so the
@@ -47,16 +57,15 @@ STACK_WORLD_YAW_VALUES = {
     "world_yaw_alignment_rad": "${world_yaw_alignment_rad}",
 }
 # Any node that can write EV data into the flight controller. Only the first one
-# still exists; the other two are kept listed on purpose so that reintroducing
-# either is detected as a second EV writer rather than silently allowed.
+# is selected; the other two are kept listed so a second EV writer is detected.
 EV_EXECUTABLES = {
+    "fastlio_mavros_odometry_bridge",
     "fastlio_mavros_vision_bridge",
     "fastlio_vehicle_visual_odometry",
-    "fastlio_mavros_odometry_bridge",
 }
 DELETED_EV_EXECUTABLES = {
+    "fastlio_mavros_vision_bridge",
     "fastlio_vehicle_visual_odometry",
-    "fastlio_mavros_odometry_bridge",
 }
 
 
@@ -555,6 +564,50 @@ def _validate_physical_body_tf(
         raise ContractError("physical body TF must be base_link -> body")
 
 
+def _validate_mavros_odometry_tf(
+    assignments: Dict[str, List[Tuple[int, ast.AST]]],
+    store_counts: Dict[str, int],
+    actions: Sequence[ast.AST],
+    identity: Tuple[str, str, str],
+    frame_id: str,
+    child_frame_id: str,
+    roll: str,
+    yaw: str,
+) -> None:
+    matches = [
+        (variable, value)
+        for variable, bindings in assignments.items()
+        for _, value in bindings
+        if isinstance(value, ast.Call)
+        and _call_name(value.func) == "Node"
+        and _node_identity(value) == identity
+    ]
+    if len(matches) != 1:
+        raise ContractError(f"expected exactly one MAVROS ODOMETRY TF {identity[2]!r}")
+    variable, call = matches[0]
+    _unique_direct_assignment(assignments, store_counts, variable, identity[2])
+    if sum(isinstance(action, ast.Name) and action.id == variable for action in actions) != 1:
+        raise ContractError(f"MAVROS ODOMETRY TF {identity[2]!r} must be returned once")
+
+    arguments = _keyword(call, "arguments")
+    if not isinstance(arguments, ast.List) or len(arguments.elts) != 16:
+        raise ContractError(f"MAVROS ODOMETRY TF {identity[2]!r} arguments are invalid")
+    values = arguments.elts
+    flags = tuple(_string(values[index], f"{identity[2]} TF flag") for index in range(0, 16, 2))
+    if flags != ("--x", "--y", "--z", "--roll", "--pitch", "--yaw", "--frame-id", "--child-frame-id"):
+        raise ContractError(f"MAVROS ODOMETRY TF {identity[2]!r} flags are invalid")
+    if (
+        tuple(_string(values[index], f"{identity[2]} TF translation") for index in (1, 3, 5))
+        != ("0", "0", "0")
+        or _string(values[7], f"{identity[2]} TF roll") != roll
+        or _string(values[9], f"{identity[2]} TF pitch") != "0"
+        or _string(values[11], f"{identity[2]} TF yaw") != yaw
+        or _string(values[13], f"{identity[2]} TF frame") != frame_id
+        or _string(values[15], f"{identity[2]} TF child frame") != child_frame_id
+    ):
+        raise ContractError(f"MAVROS ODOMETRY TF {identity[2]!r} has the wrong frame conversion")
+
+
 
 
 def validate_launch(path: Path) -> Dict[str, str]:
@@ -579,19 +632,19 @@ def validate_launch(path: Path) -> Dict[str, str]:
     ]
     if len(selected) != 1:
         raise ContractError(
-            "expected exactly one selected vision Node with identity "
+            "expected exactly one selected ODOMETRY Node with identity "
             + "/".join(SELECTED_NODE_IDENTITY)
         )
     selected_variable, selected_position, selected_call = selected[0]
     _, unique_selected_value = _unique_direct_assignment(
-        assignments, store_counts, selected_variable, "selected vision Node"
+        assignments, store_counts, selected_variable, "selected ODOMETRY Node"
     )
     if unique_selected_value is not selected_call:
-        raise ContractError("selected vision Node binding is ambiguous")
+        raise ContractError("selected ODOMETRY Node binding is ambiguous")
 
     returned_names = [item.id for item in actions if isinstance(item, ast.Name)]
     if returned_names.count(selected_variable) != 1:
-        raise ContractError("selected vision Node is not returned exactly once")
+        raise ContractError("selected ODOMETRY Node is not returned exactly once")
 
     condition = _keyword(selected_call, "condition")
     if (
@@ -601,12 +654,12 @@ def validate_launch(path: Path) -> Dict[str, str]:
         or condition.keywords
     ):
         raise ContractError(
-            "selected vision Node condition must bind start_mavros_vision_bridge"
+            "selected ODOMETRY Node condition must bind start_mavros_odometry_bridge"
         )
     _resolve_launch_configuration(
         condition.args[0],
-        "start_mavros_vision_bridge",
-        "selected vision Node condition",
+        "start_mavros_odometry_bridge",
+        "selected ODOMETRY Node condition",
         assignments,
         store_counts,
         selected_position,
@@ -617,7 +670,7 @@ def validate_launch(path: Path) -> Dict[str, str]:
     _resolve_launch_configuration(
         input_topic,
         "healthy_odom_topic",
-        "selected vision Node input_topic",
+        "selected ODOMETRY Node input_topic",
         assignments,
         store_counts,
         selected_position,
@@ -628,12 +681,24 @@ def validate_launch(path: Path) -> Dict[str, str]:
         and type(restamp.value) is bool
         and restamp.value is False
     ):
-        raise ContractError("selected vision Node restamp_message must be bool False")
+        raise ContractError("selected ODOMETRY Node restamp_message must be bool False")
+    for parameter_name, expected in (
+        ("output_topic", "/mavros/odometry/out"),
+        ("world_frame_id", "odom"),
+        ("body_frame_id", "base_link"),
+    ):
+        if _string(
+            _one_parameter(parameters, parameter_name),
+            f"selected ODOMETRY Node {parameter_name}",
+        ) != expected:
+            raise ContractError(
+                f"selected ODOMETRY Node {parameter_name} must be {expected!r}"
+            )
     for parameter_name in STACK_LEVER_ARM_VALUES:
         _resolve_launch_configuration(
             _one_parameter(parameters, parameter_name),
             parameter_name,
-            f"selected vision Node {parameter_name}",
+            f"selected ODOMETRY Node {parameter_name}",
             assignments,
             store_counts,
             selected_position,
@@ -641,12 +706,32 @@ def validate_launch(path: Path) -> Dict[str, str]:
     _resolve_launch_configuration(
         _one_parameter(parameters, "world_yaw_alignment_rad"),
         "world_yaw_alignment_rad",
-        "selected vision Node unified world yaw",
+        "selected ODOMETRY Node unified world yaw",
         assignments,
         store_counts,
         selected_position,
     )
     _validate_physical_body_tf(assignments, store_counts)
+    _validate_mavros_odometry_tf(
+        assignments,
+        store_counts,
+        actions,
+        ODOM_TO_NED_TF_IDENTITY,
+        "odom",
+        "odom_ned",
+        "3.141592653589793",
+        "1.5707963267948966",
+    )
+    _validate_mavros_odometry_tf(
+        assignments,
+        store_counts,
+        actions,
+        BASE_LINK_TO_FRD_TF_IDENTITY,
+        "base_link",
+        "base_link_frd",
+        "3.141592653589793",
+        "0",
+    )
 
     defaults = _launch_argument_defaults(actions)
     healthy_defaults: List[str] = []
@@ -706,7 +791,7 @@ def validate_launch(path: Path) -> Dict[str, str]:
                 raise ContractError(
                     f"deleted EV writer {keyword.value.value!r} must not be "
                     "reintroduced; the single EV path is "
-                    "fastlio_mavros_vision_bridge -> /mavros/vision_pose/pose_cov"
+                    "fastlio_mavros_odometry_bridge -> /mavros/odometry/out"
                 )
 
     identity = ",".join(
@@ -718,7 +803,7 @@ def validate_launch(path: Path) -> Dict[str, str]:
     )
     return {
         "identity": identity,
-        "condition": "start_mavros_vision_bridge",
+        "condition": "start_mavros_odometry_bridge",
         "input": "/Odometry/healthy",
         "restamp": "false",
         "defaults": ",".join(f"{key}={value}" for key, value in defaults.items()),

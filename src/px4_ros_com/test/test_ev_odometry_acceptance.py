@@ -13,6 +13,18 @@ WORKSPACE_ROOT = PACKAGE_ROOT.parents[1]
 CONTRACT_HELPER_PATH = PACKAGE_ROOT / "test" / "ev_entry_contract_static.py"
 AUTOFIX_LAUNCH_PATH = PACKAGE_ROOT / "launch" / "fastlio_mavros_autofix.launch.py"
 STACK_PATH = WORKSPACE_ROOT / "tools" / "flight" / "一键启动起飞栈.sh"
+NAVIGATION_STACK_PATH = WORKSPACE_ROOT / "tools" / "flight" / "一键启动导航栈.sh"
+GLOBAL_MAPPING_STACK_PATH = (
+    WORKSPACE_ROOT / "tools" / "fastlio" / "现场全局建图并保存重定位库.sh"
+)
+ODOMETRY_STABILITY_GATE_PATH = (
+    WORKSPACE_ROOT / "tools" / "flight" / "等待flight_ready稳定.py"
+)
+AUTO_TAKEOFF_PATH = (
+    WORKSPACE_ROOT / "tools" / "flight" / "切Offboard后自动起飞0.75米单目标验证.sh"
+)
+ROSBAG_SCRIPT_PATH = WORKSPACE_ROOT / "tools" / "rosbag" / "开始录包.sh"
+PX4_ULOG_CHECK_PATH = WORKSPACE_ROOT / "tools" / "flight" / "检查PX4视觉ULog.sh"
 
 
 def load_health_node_module():
@@ -76,10 +88,10 @@ def test_zero_or_non_psd_linear_velocity_covariance_is_rejected():
     assert not module.FastlioEvHealthMonitor._message_is_finite(message)
 
 
-def test_default_launch_selects_only_mavros_vision_path():
+def test_default_launch_selects_only_mavros_odometry_path():
     source = AUTOFIX_LAUNCH_PATH.read_text()
     assert (
-        'DeclareLaunchArgument("start_mavros_vision_bridge", default_value="true")'
+        'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="true")'
         in source
     )
     assert '"input_topic": healthy_odom_topic' in source
@@ -87,8 +99,12 @@ def test_default_launch_selects_only_mavros_vision_path():
         'DeclareLaunchArgument("healthy_odom_topic", default_value="/Odometry/healthy")'
         in source
     )
-    assert '"pose_topic": "/mavros/vision_pose/pose_cov"' in source
+    assert '"output_topic": "/mavros/odometry/out"' in source
+    assert '"world_frame_id": "odom"' in source
+    assert '"body_frame_id": "base_link"' in source
     assert '"restamp_message": False' in source
+    assert '"--frame-id", "odom", "--child-frame-id", "odom_ned"' in source
+    assert '"--frame-id", "base_link", "--child-frame-id", "base_link_frd"' in source
     assert (
         '"camera_init_ned_yaw", default_value="1.5707963267948966"'
         in source
@@ -100,9 +116,9 @@ def test_default_launch_selects_only_mavros_vision_path():
     code = "\n".join(
         line for line in source.splitlines() if not line.lstrip().startswith("#")
     )
-    assert "start_bridge" not in code.replace("start_mavros_vision_bridge", "")
+    assert "start_bridge" not in code.replace("start_mavros_odometry_bridge", "")
     assert "start_px4_ev_bridge" not in code
-    assert "fastlio_mavros_odometry_bridge" not in code
+    assert "fastlio_mavros_vision_bridge" not in code
     assert "fastlio_vehicle_visual_odometry" not in code
 
 
@@ -140,13 +156,82 @@ def test_velocity_comparison_window_is_launch_configurable():
     )
 
 
-def test_one_click_stack_explicitly_selects_only_mavros_vision_path():
+def test_one_click_stack_explicitly_selects_only_mavros_odometry_path():
     source = STACK_PATH.read_text()
-    assert "start_mavros_vision_bridge:=true" in source
+    assert "start_mavros_odometry_bridge:=true" in source
     # Passing an argument the launch file no longer declares would abort the
     # launch, so the stack must not mention the deleted adapters.
     assert "start_bridge:=" not in source
     assert "start_px4_ev_bridge:=" not in source
+
+
+def test_navigation_stack_waits_for_mavlink_odometry_not_retired_vision_topics():
+    source = NAVIGATION_STACK_PATH.read_text(encoding="utf-8")
+    assert "start_mavros_odometry_bridge:=true" in source
+    assert "start_mavros_vision_bridge:=" not in source
+    assert 'wait_component_ready "px4_mavros" message /mavros/odometry/out' in source
+    assert "/mavros/vision_pose/pose_cov must have exactly one publisher" not in source
+    assert "/mavros/vision_speed/speed_twist_cov" in source
+    assert "retired_topic" in source
+
+
+def test_global_mapping_stability_gate_uses_mavlink_odometry():
+    source = GLOBAL_MAPPING_STACK_PATH.read_text(encoding="utf-8")
+    gate = ODOMETRY_STABILITY_GATE_PATH.read_text(encoding="utf-8")
+    assert "start_mavros_odometry_bridge:=true" in source
+    assert "start_mavros_vision_bridge:=" not in source
+    assert 'python3 "${odometry_stability_gate}"' in source
+    assert "--require-disarmed" in source
+    assert "--reject-offboard" in source
+    assert 'Odometry,\n            "/mavros/odometry/out"' in gate
+    assert 'Odometry,\n            "/mavros/local_position/odom"' in gate
+    assert "mavlink_odometry_velocity_covariance_invalid" in gate
+    assert "fused_local_velocity_nonfinite" in gate
+
+
+def test_global_mapping_records_position_flight_and_flushes_bag_first():
+    source = GLOBAL_MAPPING_STACK_PATH.read_text(encoding="utf-8")
+    assert 'record_bag="${RECORD_BAG:-true}"' in source
+    assert 'start_component "诊断 rosbag"' in source
+    assert 'FLIGHT_RUN_DIR="${flight_run_dir}"' in source
+    assert 'wait_node /rosbag2_recorder "诊断 rosbag"' in source
+    assert 'stop_named_component "诊断 rosbag" 20' in source
+    assert 'kill -INT -- "-${pgid}"' in source
+    assert 'kill -TERM -- "-${pgid}"' in source
+    assert 'kill -KILL -- "-${pgid}"' in source
+    assert '[[ "${names[i]}" == "诊断 rosbag" ]] && continue' in source
+
+
+def test_odometry_stability_gate_uses_rate_appropriate_message_ages():
+    gate = ODOMETRY_STABILITY_GATE_PATH.read_text(encoding="utf-8")
+    assert '"--max-message-age-s"' in gate
+    assert '"--status-max-message-age-s"' in gate
+    assert "default=2.5" in gate
+    assert "self._status_max_message_age_s" in gate
+    assert "self._odometry_max_message_age_s" in gate
+
+
+def test_auto_takeoff_has_one_final_odometry_stability_window():
+    source = AUTO_TAKEOFF_PATH.read_text(encoding="utf-8")
+    assert source.count("wait_odometry_fusion_stable 30 3") == 1
+    assert "--require-disarmed" in source
+
+
+def test_auto_takeoff_vertical_disagreement_is_diagnostic_only():
+    source = AUTO_TAKEOFF_PATH.read_text(encoding="utf-8")
+    assert "垂直速度差异(仅诊断)" in source
+    assert "max_raw_vertical_speed_mps" not in source
+    assert "takeoff_climb_phase or" in source
+
+
+def test_flight_recorder_captures_mavros_and_px4_odometry_ingress():
+    recorder = ROSBAG_SCRIPT_PATH.read_text(encoding="utf-8")
+    ulog_check = PX4_ULOG_CHECK_PATH.read_text(encoding="utf-8")
+    assert "/mavros/odometry/out" in recorder
+    assert '"${px4_ulog_check}" "${snapshot_dir}/px4_ulog_profile.txt"' in recorder
+    assert "vision_profile_bit=128" in ulog_check
+    assert "profile | vision_profile_bit" in ulog_check
+    assert "vehicle_visual_odometry" in ulog_check
 
 
 def test_structural_contract_accepts_current_selected_entry():
@@ -155,10 +240,10 @@ def test_structural_contract_accepts_current_selected_entry():
 
     assert report["identity"] == (
         "package=px4_ros_com,"
-        "executable=fastlio_mavros_vision_bridge,"
-        "name=fastlio_mavros_vision_bridge"
+        "executable=fastlio_mavros_odometry_bridge,"
+        "name=fastlio_mavros_odometry_bridge"
     )
-    assert report["condition"] == "start_mavros_vision_bridge"
+    assert report["condition"] == "start_mavros_odometry_bridge"
     assert report["input"] == "/Odometry/healthy"
     assert report["restamp"] == "false"
     assert report["validation_order"] == "single_ev_node_in_source"
@@ -168,9 +253,9 @@ def test_structural_contract_accepts_current_selected_entry():
     "old,new,error",
     [
         (
-            'DeclareLaunchArgument("start_mavros_vision_bridge", default_value="true")',
-            'DeclareLaunchArgument("start_mavros_vision_bridge", default_value="false")',
-            "start_mavros_vision_bridge",
+            'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="true")',
+            'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="false")',
+            "start_mavros_odometry_bridge",
         ),
         (
             '"input_topic": healthy_odom_topic,',
@@ -256,8 +341,8 @@ def test_selected_node_rejects_correct_rebinding_after_capture(
     mutated = replace_once(source, original, wrong)
     mutated = replace_once(
         mutated,
-        "\n\n    fastlio_mavros_vision_bridge = Node(",
-        f"\n\n    {late}\n\n    fastlio_mavros_vision_bridge = Node(",
+        "\n\n    fastlio_mavros_odometry_bridge = Node(",
+        f"\n\n    {late}\n\n    fastlio_mavros_odometry_bridge = Node(",
     )
     launch_path = write_text(tmp_path, "late-rebinding.launch.py", mutated)
 
@@ -303,8 +388,8 @@ def test_stack_tokens_split_across_commands_and_comments_fail_closed(tmp_path):
     source = STACK_PATH.read_text(encoding="utf-8")
     mutated = replace_once(
         source,
-        "start_mavros_vision_bridge:=true",
-        "start_mavros_vision_bridge:=true start_px4_ev_bridge:=false",
+        "start_mavros_odometry_bridge:=true",
+        "start_mavros_odometry_bridge:=true start_px4_ev_bridge:=false",
     )
     stack_path = write_text(tmp_path, "split-stack.sh", mutated)
 
@@ -317,12 +402,12 @@ def test_stack_conflicting_duplicate_argument_fails_closed(tmp_path):
     source = STACK_PATH.read_text(encoding="utf-8")
     mutated = replace_once(
         source,
-        "start_mavros_vision_bridge:=true",
-        "start_mavros_vision_bridge:=true start_mavros_vision_bridge:=false",
+        "start_mavros_odometry_bridge:=true",
+        "start_mavros_odometry_bridge:=true start_mavros_odometry_bridge:=false",
     )
     stack_path = write_text(tmp_path, "conflicting-stack.sh", mutated)
 
-    with pytest.raises(contract.ContractError, match="start_mavros_vision_bridge"):
+    with pytest.raises(contract.ContractError, match="start_mavros_odometry_bridge"):
         contract.validate_stack(stack_path)
 
 
@@ -387,12 +472,11 @@ def test_readiness_invokes_structural_helper_fail_closed():
     assert "require_literal" not in source
 
 
-# The deleted fastlio_mavros_odometry_bridge used to carry these guarantees.
-# They did not disappear with it -- each moved to the component that owns it on
-# the single EV path, and the tests below pin them there:
+# The MAVLink ODOMETRY bridge owns timestamp preservation and coordinate output.
+# The upstream gate owns duplicate samples and covariance validation.
 #   duplicate / out-of-order samples -> fastlio_odometry_guard motion gate
 #   covariance floor + finite payload -> fastlio_ev_health_monitor
-#   source timestamp preservation     -> fastlio_mavros_vision_bridge
+#   source timestamp preservation     -> fastlio_mavros_odometry_bridge
 
 
 def test_guard_rejects_duplicate_and_non_monotonic_samples():
@@ -414,9 +498,9 @@ def test_guard_rejects_duplicate_and_non_monotonic_samples():
     assert 'reason += "; resynced guard baseline"' not in source
 
 
-def test_vision_bridge_preserves_source_timestamp_by_default():
+def test_odometry_bridge_preserves_source_timestamp_by_default():
     source = (
-        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_vision_bridge.cpp"
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_odometry_bridge.cpp"
     ).read_text()
     # 坐标转换.md requires the FAST-LIO measurement time to reach PX4 unchanged.
     # The default must be the documented behaviour, not something only a launch
@@ -425,9 +509,23 @@ def test_vision_bridge_preserves_source_timestamp_by_default():
     assert "bool restamp_message_{false};" in source
 
 
-def test_vision_bridge_limits_the_complete_ev_pair_to_50_hz_by_default():
+def test_odometry_bridge_converts_fastlio_child_velocity_to_base_link():
     source = (
-        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_vision_bridge.cpp"
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_odometry_bridge.cpp"
+    ).read_text()
+    # The ODOMETRY twist is body-relative.  Transform it from the FAST-LIO child
+    # frame with R_body_fastlio; MAVROS then yields the same world velocity as
+    # the previous vision_speed bridge (R_world_body R_body_fastlio = R_world_fastlio).
+    assert "ODOMETRY twist is in child_frame_id" in source
+    assert "const px4_ros_com::lever_arm::Matrix3 fastlio_to_body" in source
+    assert "{{c, s, 0.0}}" in source
+    assert "{{-s, c, 0.0}}" in source
+    assert "output.twist.covariance = rotate_twist_covariance_linear(" in source
+
+
+def test_odometry_bridge_limits_ev_output_to_50_hz_by_default():
+    source = (
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_odometry_bridge.cpp"
     ).read_text()
     launch = AUTOFIX_LAUNCH_PATH.read_text()
     assert 'declare_parameter<double>("max_publish_rate_hz", 50.0)' in source
@@ -458,7 +556,8 @@ def test_health_gate_declares_calibrated_world_velocity_covariance_floors():
     launch = AUTOFIX_LAUNCH_PATH.read_text()
     assert '"velocity_variance_floor_x_m2ps2", 0.0016' in source
     assert '"velocity_variance_floor_y_m2ps2", 0.0013' in source
-    assert '"velocity_variance_floor_z_m2ps2", 0.0' in source
+    assert '"velocity_variance_floor_z_m2ps2", 0.0009' in source
+    assert '"velocity_variance_floor_z_m2ps2", default_value="0.0009"' in launch
     assert '"velocity_variance_floor_x_m2ps2": velocity_variance_floor_x_m2ps2' in launch
     assert '"velocity_variance_floor_y_m2ps2": velocity_variance_floor_y_m2ps2' in launch
     assert '"velocity_variance_floor_z_m2ps2": velocity_variance_floor_z_m2ps2' in launch
@@ -489,7 +588,7 @@ def test_realtime_odometry_chain_uses_sensor_qos_depth_five():
         PACKAGE_ROOT / "src" / "bridges" / "fastlio_odometry_guard.cpp"
     ).read_text()
     bridge = (
-        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_vision_bridge.cpp"
+        PACKAGE_ROOT / "src" / "bridges" / "fastlio_mavros_odometry_bridge.cpp"
     ).read_text()
     monitor = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
     assert "rclcpp::SensorDataQoS().keep_last(5)" in guard

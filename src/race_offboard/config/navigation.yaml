@@ -21,8 +21,9 @@ offboard_waypoint_node:
     require_strict_local_position_health: true
     # External-vision gate. EKF2's position comes from FAST-LIO through
     # /mavros/vision_pose/pose_cov, so arming requires a continuously healthy
-    # EV chain and an in-flight FAULT normally requests AUTO.LAND. Individual
-    # flight procedures may disable that response but must keep RC takeover ready.
+    # EV chain and a post-takeoff FAULT normally requests AUTO.LAND. During
+    # vertical takeoff the pilot remains responsible for the response.
+    # Individual flight procedures may disable AUTO.LAND but must keep RC takeover ready.
     require_ev_health: true
     ev_health_topic: /ev_health/status
     ev_flight_ready_topic: /ev_health/flight_ready

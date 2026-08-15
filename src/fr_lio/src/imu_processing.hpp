@@ -59,6 +59,7 @@ class ImuProcess
   PointCloudXYZI::Ptr cur_pcl_un_;
   // sensor_msgs::ImuConstPtr last_imu_;
   sensor_msgs::msg::Imu::ConstSharedPtr last_imu_;
+  double last_imu_process_noise_scale_{1.0};
   std::deque<sensor_msgs::msg::Imu::ConstSharedPtr> v_imu_;
   std::vector<Pose6D> IMUpose;
   std::vector<M3D>    v_rot_pcl_;
@@ -90,6 +91,7 @@ inline ImuProcess::ImuProcess()
   Lidar_T_wrt_IMU = Zero3d;
   Lidar_R_wrt_IMU = Eye3d;
   last_imu_.reset(new sensor_msgs::msg::Imu());
+  last_imu_process_noise_scale_ = 1.0;
 }
 
 inline ImuProcess::~ImuProcess() {}
@@ -106,6 +108,7 @@ inline void ImuProcess::Reset()
   v_imu_.clear();
   IMUpose.clear();
   last_imu_.reset(new sensor_msgs::msg::Imu());
+  last_imu_process_noise_scale_ = 1.0;
   cur_pcl_un_.reset(new PointCloudXYZI());
 }
 
@@ -201,6 +204,9 @@ inline void ImuProcess::IMU_init(const MeasureGroup &meas, esekfom::esekf<state_
   init_P(21,21) = init_P(22,22) = 0.00001; 
   kf_state.change_P(init_P);
   last_imu_ = meas.imu.back();
+  last_imu_process_noise_scale_ =
+    meas.imu_process_noise_scale.size() == meas.imu.size() ?
+    meas.imu_process_noise_scale.back() : 1.0;
 
 }
 
@@ -209,6 +215,11 @@ inline void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<st
   /*** add the imu of the last frame-tail to the of current frame-head ***/
   auto v_imu = meas.imu;
   v_imu.push_front(last_imu_);
+  std::deque<double> v_process_noise_scale = meas.imu_process_noise_scale;
+  if (v_process_noise_scale.size() != meas.imu.size()) {
+    v_process_noise_scale.assign(meas.imu.size(), 1.0);
+  }
+  v_process_noise_scale.push_front(last_imu_process_noise_scale_);
   const double &imu_beg_time = rclcpp::Time(v_imu.front()->header.stamp).seconds();
   const double &imu_end_time = rclcpp::Time(v_imu.back()->header.stamp).seconds();
   const double &pcl_beg_time = meas.lidar_beg_time;
@@ -232,7 +243,8 @@ inline void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<st
   double dt = 0;
 
   input_ikfom in;
-  for (auto it_imu = v_imu.begin(); it_imu < (v_imu.end() - 1); it_imu++)
+  std::size_t imu_interval_index = 0;
+  for (auto it_imu = v_imu.begin(); it_imu < (v_imu.end() - 1); it_imu++, ++imu_interval_index)
   {
     auto &&head = *(it_imu);
     auto &&tail = *(it_imu + 1);
@@ -266,7 +278,10 @@ inline void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<st
     in.acc = acc_avr;
     in.gyro = angvel_avr;
     Q.block<3, 3>(0, 0).diagonal() = cov_gyr;
-    Q.block<3, 3>(3, 3).diagonal() = cov_acc;
+    const double accel_process_noise_scale = std::max(
+      1.0, std::max(v_process_noise_scale[imu_interval_index],
+      v_process_noise_scale[imu_interval_index + 1]));
+    Q.block<3, 3>(3, 3).diagonal() = cov_acc * accel_process_noise_scale;
     Q.block<3, 3>(6, 6).diagonal() = cov_bias_gyr;
     Q.block<3, 3>(9, 9).diagonal() = cov_bias_acc;
     kf_state.predict(dt, Q, in);
@@ -290,6 +305,7 @@ inline void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<st
   
   imu_state = kf_state.get_x();
   last_imu_ = meas.imu.back();
+  last_imu_process_noise_scale_ = v_process_noise_scale.back();
   last_lidar_end_time_ = pcl_end_time;
 
   /*** undistort each lidar point (backward propagation) ***/
