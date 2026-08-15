@@ -22,6 +22,9 @@ public:
     ego_topic_ = declare_parameter<std::string>("ego_topic", "/race/ego/goal_input");
     debug_topic_ = declare_parameter<std::string>("debug_topic", "/race/ego/goal");
     odom_topic_ = declare_parameter<std::string>("odom_topic", "/race/ego/odom");
+    velocity_topic_ = declare_parameter<std::string>(
+      "velocity_topic", "/mavros/local_position/odom");
+    velocity_freshness_sec_ = declare_parameter<double>("velocity_freshness_sec", 0.25);
     frame_id_ = declare_parameter<std::string>("frame_id", "map");
     release_height_ = declare_parameter<double>("release_height", 0.50);
     // Kept for launch-file compatibility; the handover gate now uses the
@@ -51,7 +54,7 @@ public:
     }
     if (stable_height_tolerance_m_ < 0.0 || stable_horizontal_speed_mps_ < 0.0 ||
       stable_vertical_speed_mps_ < 0.0 || stable_duration_sec_ < 0.0 ||
-      min_height_ > max_height_)
+      velocity_freshness_sec_ <= 0.0 || min_height_ > max_height_)
     {
       throw std::runtime_error(
               "EGO takeoff stability parameters are invalid: height range or limits");
@@ -63,6 +66,12 @@ public:
       input_topic_, 10, std::bind(&EgoGoalBridge::callback, this, std::placeholders::_1));
     odom_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
       odom_topic_, 10, std::bind(&EgoGoalBridge::odomCallback, this, std::placeholders::_1));
+    velocity_from_pose_odom_ = velocity_topic_ == odom_topic_;
+    if (!velocity_from_pose_odom_) {
+      velocity_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
+        velocity_topic_, rclcpp::SensorDataQoS(),
+        std::bind(&EgoGoalBridge::velocityCallback, this, std::placeholders::_1));
+    }
     state_subscription_ = create_subscription<mavros_msgs::msg::State>(
       "/mavros/state", rclcpp::SensorDataQoS(),
       std::bind(&EgoGoalBridge::stateCallback, this, std::placeholders::_1));
@@ -73,6 +82,9 @@ public:
     status_subscription_ = create_subscription<std_msgs::msg::String>(
       "/race/ego/status", rclcpp::QoS(1).reliable().transient_local(),
       std::bind(&EgoGoalBridge::statusCallback, this, std::placeholders::_1));
+    RCLCPP_INFO(
+      get_logger(), "Goal stability uses pose=%s velocity=%s freshness=%.2fs",
+      odom_topic_.c_str(), velocity_topic_.c_str(), velocity_freshness_sec_);
   }
 
 private:
@@ -193,8 +205,10 @@ private:
     have_pending_goal_ = true;
     RCLCPP_INFO(
       get_logger(), "[GOAL_BRIDGE_TAKEOFF_GATE] goal_seq=%lu current_agl=%.3f "
-      "safety_height=[%.3f,%.3f] stable=%s cached=true",
+      "safety_height=[%.3f,%.3f] horizontal_speed=%.3f vertical_speed=%.3f "
+      "velocity_fresh=%s stable=%s cached=true",
       static_cast<unsigned long>(pending_goal_seq_), currentAgl(), min_height_, max_height_,
+      current_horizontal_speed_, current_vertical_speed_, velocityFresh(now()) ? "true" : "false",
       isVehicleStable() ? "true" : "false");
   }
 
@@ -205,20 +219,23 @@ private:
     }
     have_odom_ = true;
     current_height_ = msg->pose.pose.position.z;
-    current_horizontal_speed_ = std::hypot(
-      msg->twist.twist.linear.x, msg->twist.twist.linear.y);
-    current_vertical_speed_ = std::abs(msg->twist.twist.linear.z);
+    if (velocity_from_pose_odom_) {
+      updateVelocity(*msg);
+    }
+    const auto sample_time = now();
+    const bool velocity_fresh = velocityFresh(sample_time);
     // The handover gate accepts any stable altitude inside the configured
     // safety window.  flight_height_ remains the commanded altitude for flat
     // goals, but it must not be used to reject a manually established hover.
     const double current_agl = currentAgl();
     const bool stable_sample = altitude_reference_valid_ &&
       current_agl >= min_height_ && current_agl <= max_height_ &&
+      velocity_fresh &&
       current_horizontal_speed_ <= stable_horizontal_speed_mps_ &&
       current_vertical_speed_ <= stable_vertical_speed_mps_;
     if (stable_sample) {
       if (stable_since_.nanoseconds() == 0) {
-        stable_since_ = now();
+        stable_since_ = sample_time;
       }
     } else {
       stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
@@ -233,6 +250,35 @@ private:
       publishGoal(pending_goal_, "vehicle stable within safety height range");
       have_pending_goal_ = false;
     }
+  }
+
+  void velocityCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+  {
+    updateVelocity(*msg);
+  }
+
+  void updateVelocity(const nav_msgs::msg::Odometry & msg)
+  {
+    current_horizontal_speed_ = std::hypot(
+      msg.twist.twist.linear.x, msg.twist.twist.linear.y);
+    current_vertical_speed_ = std::abs(msg.twist.twist.linear.z);
+    have_velocity_ = std::isfinite(current_horizontal_speed_) &&
+      std::isfinite(current_vertical_speed_);
+    last_velocity_time_ = now();
+    if (!have_velocity_ || current_horizontal_speed_ > stable_horizontal_speed_mps_ ||
+      current_vertical_speed_ > stable_vertical_speed_mps_)
+    {
+      stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    }
+  }
+
+  bool velocityFresh(const rclcpp::Time & sample_time) const
+  {
+    if (!have_velocity_ || last_velocity_time_.nanoseconds() == 0) {
+      return false;
+    }
+    const double age = (sample_time - last_velocity_time_).seconds();
+    return age >= 0.0 && age <= velocity_freshness_sec_;
   }
 
   void stateCallback(const mavros_msgs::msg::State::SharedPtr msg)
@@ -250,8 +296,9 @@ private:
 
   bool isVehicleStable() const
   {
-    return have_odom_ && stable_since_.nanoseconds() != 0 &&
-           (now() - stable_since_).seconds() >= stable_duration_sec_;
+    const auto sample_time = now();
+    return have_odom_ && velocityFresh(sample_time) && stable_since_.nanoseconds() != 0 &&
+           (sample_time - stable_since_).seconds() >= stable_duration_sec_;
   }
 
   void publishGoal(geometry_msgs::msg::PoseStamped output, const char * reason)
@@ -291,6 +338,7 @@ private:
   std::string ego_topic_;
   std::string debug_topic_;
   std::string odom_topic_;
+  std::string velocity_topic_;
   std::string frame_id_;
   std::string flight_mode_;
   double flight_height_{0.78};
@@ -305,6 +353,7 @@ private:
   double stable_horizontal_speed_mps_{0.08};
   double stable_vertical_speed_mps_{0.05};
   double stable_duration_sec_{0.50};
+  double velocity_freshness_sec_{0.25};
   double ego_failure_retry_period_sec_{0.75};
   double duplicate_goal_position_tolerance_m_{0.03};
   double duplicate_goal_time_window_sec_{1.0};
@@ -315,6 +364,8 @@ private:
   double current_horizontal_speed_{0.0};
   double current_vertical_speed_{0.0};
   bool have_odom_{false};
+  bool have_velocity_{false};
+  bool velocity_from_pose_odom_{false};
   bool have_pending_goal_{false};
   uint64_t pending_goal_seq_{0};
   bool have_active_goal_{false};
@@ -329,10 +380,12 @@ private:
   rclcpp::Time last_recovery_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time stable_since_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_input_goal_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_velocity_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr ego_publisher_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr debug_publisher_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr velocity_subscription_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr state_subscription_;
   rclcpp::Subscription<race_msgs::msg::FlightAltitudeReference>::SharedPtr
     altitude_reference_subscription_;

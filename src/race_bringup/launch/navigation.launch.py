@@ -90,6 +90,7 @@ def generate_launch_description():
     rviz = LaunchConfiguration('rviz')
     enable_output = LaunchConfiguration('enable_output')
     require_strict_health = LaunchConfiguration('require_strict_local_position_health')
+    ev_fault_auto_land = LaunchConfiguration('ev_fault_auto_land')
     map_file = LaunchConfiguration('map_file')
     map_auto_load = LaunchConfiguration('map_auto_load')
     planner_config = LaunchConfiguration('planner_config')
@@ -128,6 +129,7 @@ def generate_launch_description():
     world_yaw_alignment_rad = LaunchConfiguration('world_yaw_alignment_rad')
     publish_fastlio_bridge = LaunchConfiguration('publish_fastlio_bridge')
     publish_camera_init_tf = LaunchConfiguration('publish_camera_init_tf')
+    broadcast_map_to_odom = LaunchConfiguration('broadcast_map_to_odom')
     map_frame_id = LaunchConfiguration('map_frame_id')
     fast_lio_odom_topic = LaunchConfiguration('fast_lio_odom_topic')
 
@@ -137,6 +139,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'config_file': offboard_config,
             'require_strict_local_position_health': require_strict_health,
+            'ev_fault_auto_land': ev_fault_auto_land,
             'control_source': PythonExpression([
                 "'ego' if '", planner_backend,
                 "' in ['ego', 'astar_ego'] else 'navigation'"
@@ -172,6 +175,7 @@ def generate_launch_description():
             'world_yaw_alignment_rad': world_yaw_alignment_rad,
             'publish_fastlio_bridge': publish_fastlio_bridge,
             'publish_camera_init_tf': publish_camera_init_tf,
+            'broadcast_map_to_odom': broadcast_map_to_odom,
             'map_frame_id': map_frame_id,
             'fast_lio_odom_topic': fast_lio_odom_topic,
         }.items(),
@@ -314,6 +318,7 @@ def generate_launch_description():
             description='FAST-LIO camera_init world to project map ENU yaw alignment'),
         DeclareLaunchArgument('publish_fastlio_bridge', default_value='true'),
         DeclareLaunchArgument('publish_camera_init_tf', default_value='true'),
+        DeclareLaunchArgument('broadcast_map_to_odom', default_value='true'),
         DeclareLaunchArgument('map_frame_id', default_value='map'),
         DeclareLaunchArgument('fast_lio_odom_topic', default_value='/Odometry'),
         # The A->B->C->D race sequence. On by default: without it the stack
@@ -375,6 +380,7 @@ def generate_launch_description():
                 'navigation.yaml',
             ]),
         ),
+        DeclareLaunchArgument('ev_fault_auto_land', default_value='true'),
         OpaqueFunction(function=print_tuning_summary),
         offboard_launch,
         mapping_launch,

@@ -8,6 +8,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -20,6 +21,7 @@ def generate_launch_description():
     body_to_sensor_y_m = LaunchConfiguration("body_to_sensor_y_m")
     body_to_sensor_z_m = LaunchConfiguration("body_to_sensor_z_m")
     body_to_fastlio_yaw_rad = LaunchConfiguration("body_to_fastlio_yaw_rad")
+    require_frlio_anchor_status = LaunchConfiguration("require_frlio_anchor_status")
 
     ev_health_monitor = Node(
         package="px4_ros_com",
@@ -46,6 +48,9 @@ def generate_launch_description():
                 "healthy_position_variance_floor_m2": 0.01,
                 "healthy_orientation_variance_floor_rad2": 0.02,
                 "velocity_variance_m2ps2": 0.04,
+                "require_frlio_anchor_status": ParameterValue(
+                    require_frlio_anchor_status, value_type=bool
+                ),
             }
         ],
     )
@@ -81,6 +86,9 @@ def generate_launch_description():
             DeclareLaunchArgument("body_to_sensor_y_m", default_value="0.0"),
             DeclareLaunchArgument("body_to_sensor_z_m", default_value="0.08"),
             DeclareLaunchArgument("body_to_fastlio_yaw_rad", default_value="0.0"),
+            DeclareLaunchArgument(
+                "require_frlio_anchor_status", default_value="false"
+            ),
             # Validation-only override; production recovery is 2.0 s and the
             # Offboard node independently requires 7.5 s continuous HEALTHY.
             DeclareLaunchArgument("recovery_healthy_s", default_value="7.5"),

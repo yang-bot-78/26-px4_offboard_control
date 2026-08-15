@@ -28,6 +28,9 @@ TEST(GlobalPlannerStatusPolicy, RejectsFailuresForTheActiveGoal)
       true, true, 4, 4, "HOLD", "PATH_TRACKING_ERROR"));
   EXPECT_TRUE(
     race_offboard::globalPlannerStatusIsFailure(
+      true, true, 4, 4, "HOLD", "FAULT_MISSION_CORRIDOR_DEVIATION"));
+  EXPECT_TRUE(
+    race_offboard::globalPlannerStatusIsFailure(
       true, true, 4, 4, "BLOCKED_UNSAFE", "BLOCKED_UNSAFE"));
   EXPECT_TRUE(
     race_offboard::globalPlannerStatusIsFailure(

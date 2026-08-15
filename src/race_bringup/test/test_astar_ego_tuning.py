@@ -177,6 +177,14 @@ class AstarEgoTuningTest(unittest.TestCase):
                 '/race/ego/cloud', '/race/ego/occupancy',
                 '/race/ego/occupancy_inflate', '/race/ego/predicted_path'):
             self.assertIn(topic, bag)
+        # Flight bags must retain enough upstream evidence to distinguish a
+        # MID-360 input interruption from FR-LIO/EV processing starvation.
+        for topic in (
+                '/livox/lidar', '/livox/imu',
+                '/frlio/high_rate_odom/status',
+                '/frlio/high_rate_odom/anchor_age',
+                '/Odometry', '/planning/odom', '/Odometry/healthy'):
+            self.assertIn(topic, bag)
         for name in ('race_click_planner.rviz', 'race_mission_click_planner.rviz'):
             rviz = (ROOT / 'src/race_bringup/rviz' / name).read_text(encoding='utf-8')
             self.assertIn('Value: /cloud_registered', rviz)
@@ -259,7 +267,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_invalid_x_bounds_fail(self):
         bad = copy.deepcopy(self.tuning)
-        bad['shared_safety']['geofence']['x_min'] = 12.0
+        bad['shared_safety']['fault_envelope']['x_min'] = 31.0
         with self.assertRaisesRegex(TuningError, 'x_min'):
             self._validate(bad)
 
@@ -277,7 +285,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_all_node_bounds_are_identical(self):
         overlays = node_parameter_overlays(self.tuning)
-        expected = (-0.85, 11.90, -3.20, 12.40, 0.50, 0.90)
+        expected = (-30.0, 30.0, -30.0, 30.0, 0.50, 0.90)
         for name in ('ego', 'goal_bridge', 'trajectory_bridge'):
             values = overlays[name]
             self.assertEqual(expected, (
@@ -410,10 +418,10 @@ class AstarEgoTuningTest(unittest.TestCase):
         overlays = node_parameter_overlays(self.tuning)
         self.assertGreaterEqual(
             overlays['ego']['grid_map/visualization_truncate_height'],
-            self.tuning['shared_safety']['geofence']['z_max'])
+            self.tuning['shared_safety']['fault_envelope']['z_max'])
 
-    def test_calibrated_target_is_inside_shared_bounds(self):
-        bounds = self.tuning['shared_safety']['geofence']
+    def test_calibrated_target_is_inside_fault_envelope(self):
+        bounds = self.tuning['shared_safety']['fault_envelope']
         target = (10.9922, 3.58093, 0.78)
         self.assertGreaterEqual(target[0], bounds['x_min'])
         self.assertLessEqual(target[0], bounds['x_max'])
@@ -422,33 +430,27 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertGreaterEqual(target[2], bounds['z_min'])
         self.assertLessEqual(target[2], bounds['z_max'])
 
-    def test_goals_outside_each_calibrated_xy_bound_remain_rejected(self):
-        bounds = self.tuning['shared_safety']['geofence']
-        self.assertGreater(11.91, bounds['x_max'])
-        self.assertGreater(12.41, bounds['y_max'])
-        self.assertLess(-0.86, bounds['x_min'])
-        self.assertLess(-3.21, bounds['y_min'])
+    def test_old_hard_boundary_neighborhood_is_allowed_but_extreme_faults_are_not(self):
+        bounds = self.tuning['shared_safety']['fault_envelope']
+        for point in ((-0.86, -3.21), (11.91, 12.41), (20.0, -20.0)):
+            with self.subTest(point=point):
+                self.assertGreaterEqual(point[0], bounds['x_min'])
+                self.assertLessEqual(point[0], bounds['x_max'])
+                self.assertGreaterEqual(point[1], bounds['y_min'])
+                self.assertLessEqual(point[1], bounds['y_max'])
+        self.assertGreater(30.01, bounds['x_max'])
+        self.assertLess(-30.01, bounds['y_min'])
 
-    def test_ego_map_width_covers_calibrated_x_bounds(self):
-        bounds = self.tuning['shared_safety']['geofence']
-        half_width = self.tuning['ego_planner']['occupancy_map_size_x'] * 0.5
-        self.assertLessEqual(abs(bounds['x_min']), half_width)
-        self.assertLessEqual(abs(bounds['x_max']), half_width)
-
-    def test_ego_map_width_covers_calibrated_y_bounds(self):
-        bounds = self.tuning['shared_safety']['geofence']
-        half_width = self.tuning['ego_planner']['occupancy_map_size_y'] * 0.5
-        self.assertLessEqual(abs(bounds['y_min']), half_width)
-        self.assertLessEqual(abs(bounds['y_max']), half_width)
+    def test_fault_envelope_is_not_an_ego_local_map_size_requirement(self):
+        bounds = self.tuning['shared_safety']['fault_envelope']
+        self.assertGreater(abs(bounds['x_max']),
+                           self.tuning['ego_planner']['occupancy_map_size_x'] * 0.5)
+        self.assertGreater(abs(bounds['y_max']),
+                           self.tuning['ego_planner']['occupancy_map_size_y'] * 0.5)
         self.assertEqual(
-            self.tuning['ego_planner']['occupancy_map_size_y'],
-            node_parameter_overlays(self.tuning)['ego']['grid_map/map_size_y'])
-
-    def test_ego_map_y_width_must_cover_shared_bounds(self):
-        bad = copy.deepcopy(self.tuning)
-        bad['ego_planner']['occupancy_map_size_y'] = 14.0
-        with self.assertRaisesRegex(TuningError, 'occupancy_map_size_y'):
-            self._validate(bad)
+            bounds['planning_grid_padding_m'],
+            node_parameter_overlays(self.tuning)['super'][
+                'fault_envelope/planning_grid_padding_m'])
 
     def test_recovery_framework_is_enabled_and_bounded(self):
         overlays = node_parameter_overlays(self.tuning)

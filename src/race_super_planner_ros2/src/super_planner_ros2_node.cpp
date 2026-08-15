@@ -194,7 +194,7 @@ public:
     narrow_corridor_centering_tolerance_ =
       declare_parameter<double>("narrow_corridor_centering_tolerance", 0.05);
     heading_lookahead_distance_ = declare_parameter<double>("heading_lookahead_distance", 0.80);
-    max_path_tracking_error_ = declare_parameter<double>("max_path_tracking_error", 0.80);
+    max_path_tracking_error_ = declare_parameter<double>("mission_corridor_max_error_m", 1.50);
     yaw_smoothing_time_constant_ = declare_parameter<double>("yaw_smoothing_time_constant", 0.35);
     max_yaw_rate_ = declare_parameter<double>("max_yaw_rate", 1.0);
     publish_yaw_rate_feedforward_ = declare_parameter<bool>("publish_yaw_rate_feedforward", true);
@@ -273,14 +273,19 @@ public:
     shared_bounds_y_max_ = declare_parameter<double>("shared_bounds/y_max", 7.0);
     shared_bounds_z_min_ = declare_parameter<double>("shared_bounds/z_min", 0.50);
     shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 0.90);
-    shared_bounds_margin_m_ = declare_parameter<double>("shared_bounds/boundary_margin_m", 0.0);
+    fault_position_max_speed_mps_ =
+      declare_parameter<double>("fault_envelope/max_speed_mps", 4.0);
+    fault_position_jump_allowance_m_ =
+      declare_parameter<double>("fault_envelope/jump_allowance_m", 0.40);
+    fault_planning_grid_padding_m_ =
+      declare_parameter<double>("fault_envelope/planning_grid_padding_m", 3.0);
     if (shared_bounds_x_min_ >= shared_bounds_x_max_ ||
       shared_bounds_y_min_ >= shared_bounds_y_max_ ||
-      shared_bounds_z_min_ >= shared_bounds_z_max_ || shared_bounds_margin_m_ < 0.0 ||
+      shared_bounds_z_min_ >= shared_bounds_z_max_ ||
       fixed_flight_height_ < shared_bounds_z_min_ || fixed_flight_height_ > shared_bounds_z_max_)
     {
       throw std::runtime_error(
-              "SHARED_BOUNDARY_MISMATCH: invalid shared_bounds or fixed_flight_height");
+              "FAULT_ENVELOPE_MISMATCH: invalid fault envelope or fixed_flight_height");
     }
 
     tracking_lookahead_distance_ = std::max(0.10, tracking_lookahead_distance_);
@@ -296,6 +301,9 @@ public:
     heading_lookahead_distance_ =
       std::max(tracking_lookahead_distance_, heading_lookahead_distance_);
     max_path_tracking_error_ = std::max(0.20, max_path_tracking_error_);
+    fault_position_max_speed_mps_ = std::max(0.10, fault_position_max_speed_mps_);
+    fault_position_jump_allowance_m_ = std::max(0.05, fault_position_jump_allowance_m_);
+    fault_planning_grid_padding_m_ = std::max(0.50, fault_planning_grid_padding_m_);
     control_rate_ = std::max(1.0, control_rate_);
     replan_rate_ = std::clamp(replan_rate_, 0.2, control_rate_);
     yaw_smoothing_time_constant_ = std::max(0.0, yaw_smoothing_time_constant_);
@@ -421,9 +429,11 @@ public:
       get_logger(), "[SUPER_DIRECT_MODE] enabled=%s",
       allow_direct_path_ ? "true" : "false");
     RCLCPP_INFO(
-      get_logger(), "[SHARED_BOUNDS] x=[%.2f,%.2f] y=[%.2f,%.2f] z=[%.2f,%.2f] margin=%.2f",
+      get_logger(), "[FAULT_ENVELOPE] x=[%.2f,%.2f] y=[%.2f,%.2f] z=[%.2f,%.2f] "
+      "jump=max(%.2fm/s*dt)+%.2fm grid_padding=%.2fm corridor=%.2fm",
       shared_bounds_x_min_, shared_bounds_x_max_, shared_bounds_y_min_, shared_bounds_y_max_,
-      shared_bounds_z_min_, shared_bounds_z_max_, shared_bounds_margin_m_);
+      shared_bounds_z_min_, shared_bounds_z_max_, fault_position_max_speed_mps_,
+      fault_position_jump_allowance_m_, fault_planning_grid_padding_m_, max_path_tracking_error_);
   }
 
 private:
@@ -529,18 +539,27 @@ private:
     }
     Vec3 goal{msg->pose.position.x, msg->pose.position.y, msg->pose.position.z};
     if (!finite_vec(goal)) {
-      RCLCPP_ERROR(get_logger(), "Reject non-finite goal from %s", goal_topic_.c_str());
+      latchFault("FAULT_GOAL_NON_FINITE");
+      RCLCPP_ERROR(get_logger(), "[FAULT_GOAL_NON_FINITE] source=%s", goal_topic_.c_str());
       return;
     }
     goal.z = clampHeight(goal.z);
     if (!insideSharedBounds(goal)) {
+      latchFault("FAULT_GOAL_OUTSIDE_ENVELOPE");
       RCLCPP_ERROR(
         get_logger(),
-        "FINAL_GOAL_OUT_OF_SHARED_BOUNDS goal=(%.3f,%.3f,%.3f) shared_bounds=x=[%.3f,%.3f] y=[%.3f,%.3f] z=[%.3f,%.3f]",
+        "[FAULT_GOAL_OUTSIDE_ENVELOPE] goal=(%.3f,%.3f,%.3f) envelope=x=[%.3f,%.3f] y=[%.3f,%.3f] z=[%.3f,%.3f]",
         goal.x, goal.y, goal.z, shared_bounds_x_min_, shared_bounds_x_max_,
         shared_bounds_y_min_, shared_bounds_y_max_, effectiveSharedMinHeight(),
         effectiveSharedMaxHeight());
       return;
+    }
+    if (fault_latched_) {
+      RCLCPP_WARN(
+        get_logger(), "[FAULT_LATCH_CLEARED] reason=%s by explicit valid final goal",
+        fault_reason_.c_str());
+      fault_latched_ = false;
+      fault_reason_.clear();
     }
     if (have_goal_ && distance2d(goal, latest_goal_) <= goal_update_position_tolerance_m_ &&
       std::abs(goal.z - latest_goal_.z) <= goal_update_position_tolerance_m_)
@@ -672,12 +691,42 @@ private:
       odom = Vec3{odom.x, odom.y, odom.z};
     }
     if (!finite_vec(odom)) {
+      latchFault("FAULT_POSITION_NON_FINITE");
       RCLCPP_WARN_THROTTLE(
         get_logger(),
-        *get_clock(), 1000, "Ignore non-finite odom from %s", source.c_str());
+        *get_clock(), 1000, "[FAULT_POSITION_NON_FINITE] source=%s", source.c_str());
       return;
     }
+    if (!insideFaultEnvelopeXY(odom)) {
+      latchFault("FAULT_POSITION_OUTSIDE_ENVELOPE");
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[FAULT_POSITION_OUTSIDE_ENVELOPE] source=%s position=(%.3f,%.3f,%.3f) "
+        "envelope_xy=x=[%.3f,%.3f] y=[%.3f,%.3f]",
+        source.c_str(), odom.x, odom.y, odom.z, shared_bounds_x_min_, shared_bounds_x_max_,
+        shared_bounds_y_min_, shared_bounds_y_max_);
+      return;
+    }
+    const auto received_at = now();
+    if (have_fault_checked_odom_) {
+      const double dt_sec = (received_at - last_fault_checked_odom_time_).seconds();
+      const double displacement_m = std::hypot(
+        std::hypot(odom.x - latest_odom_.x, odom.y - latest_odom_.y), odom.z - latest_odom_.z);
+      const double allowed_m = fault_position_max_speed_mps_ * std::max(0.0, dt_sec) +
+        fault_position_jump_allowance_m_;
+      if (dt_sec > 0.0 && displacement_m > allowed_m) {
+        latchFault("FAULT_POSITION_JUMP");
+        RCLCPP_ERROR(
+          get_logger(), "[FAULT_POSITION_JUMP] source=%s displacement=%.3fm dt=%.3fs "
+          "allowed=%.3fm previous=(%.3f,%.3f,%.3f) candidate=(%.3f,%.3f,%.3f)",
+          source.c_str(), displacement_m, dt_sec, allowed_m, latest_odom_.x, latest_odom_.y,
+          latest_odom_.z, odom.x, odom.y, odom.z);
+        return;
+      }
+    }
     latest_odom_ = odom;
+    last_fault_checked_odom_time_ = received_at;
+    have_fault_checked_odom_ = true;
     const double vx = msg->twist.twist.linear.x;
     const double vy = msg->twist.twist.linear.y;
     if (std::isfinite(vx) && std::isfinite(vy)) {
@@ -803,6 +852,18 @@ private:
     if (!odom_ok) {
       setMode(Mode::NO_ODOM);
       publish_reason_ = "NO_ODOM";
+      logStatus();
+      return;
+    }
+
+    if (fault_latched_) {
+      active_path_.clear();
+      resetLocalGoalProgress();
+      selected_setpoint_ = latest_odom_;
+      selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+      setMode(Mode::HOLD);
+      publish_reason_ = fault_reason_;
+      publishHoldIfEnabled("HOLD: fault envelope/corridor protection latched");
       logStatus();
       return;
     }
@@ -951,12 +1012,10 @@ private:
     cross_track_error_ = projection.has_value() ? projection->cross_track_error :
       std::numeric_limits<double>::infinity();
     if (!projection.has_value() || projection->cross_track_error > max_path_tracking_error_) {
-      active_path_.clear();
-      selected_setpoint_ = latest_odom_;
-      selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+      latchFault("FAULT_MISSION_CORRIDOR_DEVIATION");
       setMode(Mode::HOLD);
-      publish_reason_ = "PATH_TRACKING_ERROR";
-      publishHoldIfEnabled("HOLD: path tracking error; replan on next cycle");
+      publish_reason_ = fault_reason_;
+      publishHoldIfEnabled("HOLD: mission corridor deviation; automatic replan disabled");
       logStatus();
       return;
     }
@@ -1158,9 +1217,16 @@ private:
   bool buildGrid(const Vec3 & center, const Vec3 & goal)
   {
     if (global_only_mode_) {
+      const double grid_min_x = std::max(
+        shared_bounds_x_min_, std::min(center.x, goal.x) - fault_planning_grid_padding_m_);
+      const double grid_max_x = std::min(
+        shared_bounds_x_max_, std::max(center.x, goal.x) + fault_planning_grid_padding_m_);
+      const double grid_min_y = std::max(
+        shared_bounds_y_min_, std::min(center.y, goal.y) - fault_planning_grid_padding_m_);
+      const double grid_max_y = std::min(
+        shared_bounds_y_max_, std::max(center.y, goal.y) + fault_planning_grid_padding_m_);
       const auto grid = race_super_planner_ros2::makeSharedBoundsGrid(
-        shared_bounds_x_min_, shared_bounds_x_max_, shared_bounds_y_min_, shared_bounds_y_max_,
-        planning_resolution_);
+        grid_min_x, grid_max_x, grid_min_y, grid_max_y, planning_resolution_);
       grid_origin_x_ = grid.origin_x;
       grid_origin_y_ = grid.origin_y;
       grid_width_ = grid.width;
@@ -1171,7 +1237,7 @@ private:
         get_logger(),
         "[SUPER_GLOBAL_GRID] min_x=%.3f max_x=%.3f min_y=%.3f max_y=%.3f "
         "resolution=%.3f width=%d height=%d start_index=(%d,%d) goal_index=(%d,%d)",
-        shared_bounds_x_min_, shared_bounds_x_max_, shared_bounds_y_min_, shared_bounds_y_max_,
+        grid_min_x, grid_max_x, grid_min_y, grid_max_y,
         planning_resolution_, grid_width_, grid_height_, start_cell.x, start_cell.y, goal_cell.x,
         goal_cell.y);
     } else {
@@ -2667,6 +2733,31 @@ private:
            point.z >= effectiveSharedMinHeight() && point.z <= effectiveSharedMaxHeight();
   }
 
+  bool insideFaultEnvelopeXY(const Vec3 & point) const
+  {
+    return finite_vec(point) && point.x >= shared_bounds_x_min_ &&
+           point.x <= shared_bounds_x_max_ && point.y >= shared_bounds_y_min_ &&
+           point.y <= shared_bounds_y_max_;
+  }
+
+  void latchFault(const std::string & reason)
+  {
+    if (fault_latched_) {
+      return;
+    }
+    fault_latched_ = true;
+    fault_reason_ = reason;
+    active_path_.clear();
+    resetLocalGoalProgress();
+    if (finite_vec(latest_odom_)) {
+      selected_setpoint_ = latest_odom_;
+      selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+    }
+    RCLCPP_ERROR(
+      get_logger(), "[SUPER_FAULT_LATCH] reason=%s; hold and automatic planning disabled "
+      "until an explicit valid final goal arrives", fault_reason_.c_str());
+  }
+
   void publishRawPath(const std::vector<Vec3> & path)
   {
     nav_msgs::msg::Path msg;
@@ -3285,7 +3376,9 @@ private:
   double shared_bounds_y_max_{7.0};
   double shared_bounds_z_min_{0.50};
   double shared_bounds_z_max_{0.90};
-  double shared_bounds_margin_m_{0.0};
+  double fault_position_max_speed_mps_{4.0};
+  double fault_position_jump_allowance_m_{0.40};
+  double fault_planning_grid_padding_m_{3.0};
   uint64_t altitude_reference_flight_id_{0};
   double ground_z_map_{0.0};
   double target_z_map_{0.0};
@@ -3362,6 +3455,8 @@ private:
   bool have_goal_{false};
   bool have_cloud_{false};
   bool have_output_setpoint_{false};
+  bool have_fault_checked_odom_{false};
+  bool fault_latched_{false};
   rclcpp::Time last_odom_time_;
   rclcpp::Time last_goal_time_;
   rclcpp::Time last_cloud_time_;
@@ -3369,6 +3464,7 @@ private:
   rclcpp::Time last_debug_marker_time_;
   rclcpp::Time last_path_progress_log_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_mavros_state_time_;
+  rclcpp::Time last_fault_checked_odom_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_local_goal_publish_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time local_planner_failure_start_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_validated_trajectory_time_{0, 0, RCL_ROS_TIME};
@@ -3376,6 +3472,7 @@ private:
   rclcpp::Time trajectory_recovery_candidate_since_{0, 0, RCL_ROS_TIME};
   std::string active_odom_source_;
   std::string active_cloud_source_;
+  std::string fault_reason_;
   bool mavros_connected_{false};
   bool mavros_armed_{false};
   bool takeoff_path_released_{false};

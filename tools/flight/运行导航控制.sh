@@ -39,6 +39,7 @@ rviz="${RVIZ:-true}"
 recognition_enabled="${RECOGNITION_ENABLED:-false}"
 enable_output="${ENABLE_OUTPUT:-true}"
 manual_handover="${MANUAL_HANDOVER:-false}"
+ev_fault_auto_land="${EV_FAULT_AUTO_LAND:-true}"
 body_to_sensor_x_m="${BODY_TO_SENSOR_X_M:-0.0}"
 body_to_sensor_y_m="${BODY_TO_SENSOR_Y_M:-0.0}"
 body_to_sensor_z_m="${BODY_TO_SENSOR_Z_M:-0.08}"
@@ -46,11 +47,14 @@ body_to_fastlio_yaw_rad="${BODY_TO_FASTLIO_YAW_RAD:-0.0}"
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 publish_fastlio_bridge="${PUBLISH_FASTLIO_BRIDGE:-true}"
 publish_camera_init_tf="${PUBLISH_CAMERA_INIT_TF:-true}"
+# The relocalization bridge owns map -> camera_init.  Its raw /Odometry frame
+# remains local, so do not also advertise that raw odom as an identity child of map.
+broadcast_map_to_odom="${PUBLISH_MAP_TO_ODOM_TF:-${publish_camera_init_tf}}"
 map_frame_id="${MAP_FRAME_ID:-map}"
 fast_lio_odom_topic="${FASTLIO_ODOM_TOPIC:-/Odometry}"
 require_map_local_alignment="${REQUIRE_MAP_LOCAL_ALIGNMENT:-false}"
 
-for boolean_name in mission_enabled rviz recognition_enabled enable_output map_auto_load manual_handover; do
+for boolean_name in mission_enabled rviz recognition_enabled enable_output map_auto_load manual_handover ev_fault_auto_land broadcast_map_to_odom; do
   boolean_value="${!boolean_name}"
   if [[ "${boolean_value}" != true && "${boolean_value}" != false ]]; then
     echo "${boolean_name^^} must be true or false; got: ${boolean_value}" >&2
@@ -97,6 +101,7 @@ launch_args=(
   "recognition_enabled:=${recognition_enabled}"
   "enable_output:=${enable_output}"
   "manual_handover:=${manual_handover}"
+  "ev_fault_auto_land:=${ev_fault_auto_land}"
   "body_to_sensor_x_m:=${body_to_sensor_x_m}"
   "body_to_sensor_y_m:=${body_to_sensor_y_m}"
   "body_to_sensor_z_m:=${body_to_sensor_z_m}"
@@ -104,6 +109,7 @@ launch_args=(
   "world_yaw_alignment_rad:=${world_yaw_alignment_rad}"
   "publish_fastlio_bridge:=${publish_fastlio_bridge}"
   "publish_camera_init_tf:=${publish_camera_init_tf}"
+  "broadcast_map_to_odom:=${broadcast_map_to_odom}"
   "map_frame_id:=${map_frame_id}"
   "fast_lio_odom_topic:=${fast_lio_odom_topic}"
   "require_map_local_alignment:=${require_map_local_alignment}"
@@ -128,5 +134,6 @@ echo "地图自动加载：${map_auto_load}"
 echo "Recognition:        ${recognition_enabled}"
 echo "导航输出：    ${enable_output}"
 echo "人工接管：    ${manual_handover}"
+echo "EV 故障自动降落：${ev_fault_auto_land}"
 
 exec ros2 launch race_bringup navigation.launch.py "${launch_args[@]}"

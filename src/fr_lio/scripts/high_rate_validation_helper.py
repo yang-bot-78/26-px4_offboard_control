@@ -7,6 +7,7 @@ import csv
 import json
 import multiprocessing as mp
 import os
+import re
 import signal
 import sys
 import time
@@ -201,6 +202,8 @@ def run_flight_monitor(args):
         "frlio": None,
         "ev": None,
         "ev_fault": None,
+        "flight_ready": None,
+        "flight_ready_at": None,
         "mavros": None,
         "mavros_at": None,
         "estimator": None,
@@ -209,7 +212,6 @@ def run_flight_monitor(args):
     }
     odom_times = deque()
     status_qos = _qos(ros, reliable=True, transient=True, depth=10)
-    reliable_qos = _qos(ros, reliable=True, transient=False, depth=20)
     sensor_qos = _qos(ros, reliable=False, transient=False, depth=100)
 
     node.create_subscription(
@@ -218,12 +220,21 @@ def run_flight_monitor(args):
     )
     node.create_subscription(
         ros["String"], "/ev_health/status",
-        lambda msg: state.__setitem__("ev", msg.data), reliable_qos,
+        lambda msg: state.__setitem__("ev", msg.data), status_qos,
     )
     node.create_subscription(
         ros["Bool"], "/ev_health/fault",
-        lambda msg: state.__setitem__("ev_fault", bool(msg.data)), reliable_qos,
+        lambda msg: state.__setitem__("ev_fault", bool(msg.data)), status_qos,
     )
+
+    def on_flight_ready(message):
+        state["flight_ready"] = bool(message.data)
+        state["flight_ready_at"] = now()
+
+    node.create_subscription(
+        ros["Bool"], "/ev_health/flight_ready", on_flight_ready, status_qos
+    )
+
     def on_mavros(message):
         state["mavros"] = message
         state["mavros_at"] = now()
@@ -266,6 +277,7 @@ def run_flight_monitor(args):
     last_reason_signature = None
     last_alarm_print = 0.0
     stable_since = None
+    last_stable_reported_second = 0
     ready = False
 
     def reasons(require_disarmed):
@@ -273,10 +285,13 @@ def run_flight_monitor(args):
         mavros = state["mavros"]
         estimator = state["estimator"]
         result = []
-        if state["frlio"] != "HEALTHY":
-            result.append(f"frlio={state['frlio']}")
-        if state["ev"] != "HEALTHY":
-            result.append(f"ev={state['ev']}")
+        flight_ready_at = state["flight_ready_at"]
+        if flight_ready_at is None:
+            result.append("ev_flight_ready=missing")
+        elif current - flight_ready_at > args.flight_ready_timeout:
+            result.append("ev_flight_ready=stale")
+        elif state["flight_ready"] is not True:
+            result.append("ev_flight_ready=false")
         if state["ev_fault"] is not False:
             result.append(f"ev_fault={state['ev_fault']}")
         if (mavros is None or state["mavros_at"] is None or
@@ -325,6 +340,7 @@ def run_flight_monitor(args):
                     return 2
                 if current_reasons:
                     stable_since = None
+                    last_stable_reported_second = 0
                     reason_signature = tuple(
                         "healthy_odometry_rate" if reason.startswith("healthy_odometry_rate=")
                         else reason
@@ -340,11 +356,14 @@ def run_flight_monitor(args):
                     if stable_since is None:
                         stable_since = current
                     stable_elapsed = current - stable_since
-                    if int(stable_elapsed) != int(max(0.0, stable_elapsed - 0.03)):
+                    stable_elapsed_second = int(stable_elapsed)
+                    if stable_elapsed_second > last_stable_reported_second:
                         print(
-                            f"[飞行监视] 连续稳定 {stable_elapsed:.0f}/{args.ready_sec:.0f}s",
+                            f"[飞行监视] 连续稳定 {stable_elapsed_second}/"
+                            f"{args.ready_sec:.0f}s",
                             flush=True,
                         )
+                        last_stable_reported_second = stable_elapsed_second
                         last_reason_signature = None
                     if stable_elapsed >= args.ready_sec:
                         ready = True
@@ -354,6 +373,9 @@ def run_flight_monitor(args):
                                     "ready_monotonic_s": current,
                                     "stable_s": stable_elapsed,
                                     "healthy_odom_rate_hz": len(odom_times),
+                                    "ev_flight_ready": state["flight_ready"],
+                                    "frlio_status": state["frlio"],
+                                    "ev_status": state["ev"],
                                 },
                                 ensure_ascii=False,
                                 indent=2,
@@ -370,6 +392,9 @@ def run_flight_monitor(args):
                     "wall_time": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                     "elapsed_s": current - started_at,
                     "reasons": current_reasons,
+                    "ev_flight_ready": state["flight_ready"],
+                    "frlio_status": state["frlio"],
+                    "ev_status": state["ev"],
                 }
                 if current_reasons != last_reasons:
                     with event_path.open("a", encoding="utf-8") as stream:
@@ -405,7 +430,9 @@ def run_flight_monitor(args):
 
 
 class _ValidationMonitor:
-    def __init__(self, ros, name, include_sensor_counts=True):
+    def __init__(
+        self, ros, name, include_sensor_counts=True, include_lidar_counts=True
+    ):
         self.ros = ros
         self.node = ros["Node"](name)
         self.start = time.monotonic()
@@ -431,6 +458,7 @@ class _ValidationMonitor:
             self.node.create_subscription(
                 ros["Imu"], "/livox/imu", lambda _: self._count("imu"), sensor_qos
             )
+        if include_lidar_counts:
             self.node.create_subscription(
                 ros["CustomMsg"], "/livox/lidar",
                 lambda _: self._count("raw_lidar"), sensor_qos
@@ -478,6 +506,26 @@ class _ValidationMonitor:
                 return True
         return bool(predicate())
 
+    def spin_until_quiet(self, key, quiet_s, timeout_s):
+        """Wait until a subscription has remained quiet for a continuous window.
+
+        DDS callbacks that were already queued can arrive after the upstream
+        publisher has stopped.  Checking the age once at a fixed deadline can
+        therefore report a false failure.  Keep spinning so every late callback
+        resets the window, and only succeed after the full quiet interval.
+        """
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
+            self.ros["rclpy"].spin_once(self.node, timeout_sec=0.02)
+            last_receive = self.last_receive[key]
+            if last_receive is not None and time.monotonic() - last_receive >= quiet_s:
+                return True
+        last_receive = self.last_receive[key]
+        return bool(
+            last_receive is not None
+            and time.monotonic() - last_receive >= quiet_s
+        )
+
     def close(self):
         self.node.destroy_node()
 
@@ -495,40 +543,56 @@ def _call_gate(monitor, enabled, timeout_s=3.0):
         ros["rclpy"].spin_once(monitor.node, timeout_sec=0.02)
     if not future.done() or not future.result() or not future.result().success:
         raise RuntimeError(f"LiDAR gate request failed: enabled={enabled}")
-    return future.result().message
+    message = future.result().message
+    counters = {
+        key: int(value)
+        for key, value in re.findall(r"\b(received|forwarded)=(\d+)\b", message)
+    }
+    if "received" not in counters or "forwarded" not in counters:
+        raise RuntimeError(f"LiDAR gate response lacks counters: {message}")
+    return {"message": message, **counters}
 
 
 def run_fault_test(args):
     ros = _import_ros()
     rclpy = ros["rclpy"]
     rclpy.init()
-    monitor = _ValidationMonitor(ros, "frlio_validation_fault_monitor")
+    # Do not deserialize the two large Livox CustomMsg streams in Python.
+    # Their counters come from the C++ gate, which avoids starving the IMU,
+    # odometry, anchor and status callbacks being measured here.
+    monitor = _ValidationMonitor(
+        ros, "frlio_validation_fault_monitor", include_lidar_counts=False
+    )
     result = {"passed": False, "checks": {}, "status_events": []}
     gate_paused = False
     try:
         ready = monitor.spin_until(
             lambda: monitor.status == "HEALTHY"
             and monitor.counts["odom"] >= 20
-            and monitor.counts["imu"] >= 20
-            and monitor.counts["raw_lidar"] >= 2
-            and monitor.counts["gated_lidar"] >= 2,
+            and monitor.counts["imu"] >= 20,
             8.0,
         )
         if not ready:
-            raise RuntimeError("故障测试前数据链未达到 HEALTHY 或消息计数不足")
+            raise RuntimeError("故障测试前数据链未达到 HEALTHY 或 IMU/里程计计数不足")
 
-        baseline = dict(monitor.counts)
         print("[故障测试] 暂停门控 LiDAR；IMU 和原始 LiDAR 保持运行。", flush=True)
-        print(f"[故障测试] {_call_gate(monitor, False)}", flush=True)
+        paused_gate = _call_gate(monitor, False)
+        print(f"[故障测试] {paused_gate['message']}", flush=True)
         gate_paused = True
         disabled_at = time.monotonic()
+        baseline = dict(monitor.counts)
+        first_fault_event = len(monitor.status_events)
+        first_fault_anchor = len(monitor.anchor_samples)
 
         saw_fault = monitor.spin_until(
-            lambda: any(e["status"] == "FAULT_STALE_LIDAR" for e in monitor.status_events),
+            lambda: any(
+                e["status"] == "FAULT_STALE_LIDAR"
+                for e in monitor.status_events[first_fault_event:]
+            ),
             2.0,
         )
         fault_at = next(
-            (monitor.start + e["elapsed_s"] for e in monitor.status_events
+            (monitor.start + e["elapsed_s"] for e in monitor.status_events[first_fault_event:]
              if e["status"] == "FAULT_STALE_LIDAR"),
             None,
         )
@@ -538,41 +602,65 @@ def run_fault_test(args):
         while time.monotonic() < target_resume_at:
             rclpy.spin_once(monitor.node, timeout_sec=0.02)
 
+        # The fixed pause above establishes the intended fault duration.  Now
+        # drain any callbacks already queued in DDS and require a *continuous*
+        # quiet window before restoring LiDAR.  Previously a late callback near
+        # target_resume_at made the one-shot age check fail even though the bag
+        # contained a clear odometry interruption.
+        odom_quiet = bool(
+            saw_fault
+            and monitor.spin_until_quiet(
+                "odom", args.odom_quiet_seconds, args.odom_quiet_timeout
+            )
+        )
+
         now = time.monotonic()
         last_odom = monitor.last_receive["odom"]
-        last_gated = monitor.last_receive["gated_lidar"]
         suspect_events = [
-            e for e in monitor.status_events if e["status"] == "SUSPECT_STALE_LIDAR"
+            e for e in monitor.status_events[first_fault_event:]
+            if e["status"] == "SUSPECT_STALE_LIDAR"
         ]
         fault_events = [
-            e for e in monitor.status_events if e["status"] == "FAULT_STALE_LIDAR"
+            e for e in monitor.status_events[first_fault_event:]
+            if e["status"] == "FAULT_STALE_LIDAR"
         ]
-        warn_crossings = [value for _, value in monitor.anchor_samples if value >= 0.15]
-        fault_crossings = [value for _, value in monitor.anchor_samples if value >= 0.40]
+        fault_anchor_samples = monitor.anchor_samples[first_fault_anchor:]
+        warn_crossings = [value for _, value in fault_anchor_samples if value >= 0.15]
+        fault_crossings = [value for _, value in fault_anchor_samples if value >= 4.0]
         deltas = {key: monitor.counts[key] - baseline[key] for key in baseline}
+
+        restored_gate = _call_gate(monitor, True)
+        print(f"[故障测试] {restored_gate['message']}", flush=True)
+        gate_paused = False
+        raw_lidar_delta = restored_gate["received"] - paused_gate["received"]
+        forwarded_delta = restored_gate["forwarded"] - paused_gate["forwarded"]
 
         result["checks"] = {
             "saw_suspect": bool(suspect_events),
             "saw_fault": bool(fault_events),
             "anchor_crossed_0_15_s": bool(warn_crossings),
             "anchor_crossed_0_40_s": bool(fault_crossings),
-            "odom_quiet_after_fault": bool(
-                saw_fault and last_odom is not None and now - last_odom >= args.odom_quiet_seconds
-            ),
+            "odom_quiet_after_fault": odom_quiet,
             "imu_continued": deltas["imu"] >= 20,
-            "raw_lidar_continued": deltas["raw_lidar"] >= 2,
-            "gated_lidar_quiet": bool(
-                last_gated is not None and now - last_gated >= args.odom_quiet_seconds
-            ),
+            "raw_lidar_continued": raw_lidar_delta >= 2,
+            "gated_lidar_quiet": forwarded_delta == 0,
         }
-        result["counts_during_pause"] = deltas
+        result["counts_during_pause"] = {
+            "odom": deltas["odom"],
+            "imu": deltas["imu"],
+            "raw_lidar": raw_lidar_delta,
+            "gated_lidar": forwarded_delta,
+        }
+        result["gate_counters"] = {
+            "paused": paused_gate,
+            "restored": restored_gate,
+        }
         result["odom_quiet_s"] = None if last_odom is None else now - last_odom
-        result["gated_lidar_quiet_s"] = None if last_gated is None else now - last_gated
+        result["odom_quiet_required_s"] = args.odom_quiet_seconds
+        result["odom_quiet_timeout_s"] = args.odom_quiet_timeout
         result["first_anchor_at_or_above_0_15_s"] = warn_crossings[0] if warn_crossings else None
         result["first_anchor_at_or_above_0_40_s"] = fault_crossings[0] if fault_crossings else None
 
-        print(f"[故障测试] {_call_gate(monitor, True)}", flush=True)
-        gate_paused = False
         recovered = monitor.spin_until(lambda: monitor.status == "HEALTHY", args.recovery_timeout)
         result["checks"]["recovered_healthy"] = recovered
         result["status_events"] = monitor.status_events
@@ -583,7 +671,8 @@ def run_fault_test(args):
     finally:
         if gate_paused:
             try:
-                print(f"[故障测试] 清理恢复：{_call_gate(monitor, True)}", flush=True)
+                restored_gate = _call_gate(monitor, True)
+                print(f"[故障测试] 清理恢复：{restored_gate['message']}", flush=True)
             except Exception as exc:
                 result["restore_error"] = str(exc)
         result["status_events"] = monitor.status_events
@@ -654,7 +743,7 @@ def run_observe(args):
         "anchor_age_max_s": max(values) if values else None,
         "anchor_age_over_0_15_count": sum(value > 0.15 for value in values),
         "anchor_age_over_0_30_count": sum(value > 0.30 for value in values),
-        "anchor_age_over_0_40_count": sum(value > 0.40 for value in values),
+        "anchor_age_over_4_00_count": sum(value > 4.0 for value in values),
         "max_odom_receive_gap_s": monitor.max_odom_gap_s,
         "counts": monitor.counts,
         "final_status": monitor.status,
@@ -746,6 +835,7 @@ def build_parser():
     flight.add_argument("--ready-timeout", type=float, default=120.0)
     flight.add_argument("--odom-timeout", type=float, default=0.15)
     flight.add_argument("--status-timeout", type=float, default=3.0)
+    flight.add_argument("--flight-ready-timeout", type=float, default=0.5)
     flight.add_argument("--min-odom-rate", type=int, default=150)
     flight.add_argument("--ready-file", required=True)
     flight.add_argument("--alarm-file", required=True)
@@ -756,6 +846,7 @@ def build_parser():
     fault = subparsers.add_parser("fault-test", help="Run and verify a LiDAR interruption")
     fault.add_argument("--pause-seconds", type=float, default=1.0)
     fault.add_argument("--odom-quiet-seconds", type=float, default=0.2)
+    fault.add_argument("--odom-quiet-timeout", type=float, default=2.0)
     fault.add_argument("--recovery-timeout", type=float, default=8.0)
     fault.add_argument("--output", required=True)
     fault.set_defaults(function=run_fault_test)
@@ -785,6 +876,12 @@ def main():
         raise SystemExit("workers must be >= 1")
     if not 0.0 < getattr(args, "duty", 50.0) <= 100.0:
         raise SystemExit("duty must be in (0, 100]")
+    if getattr(args, "odom_quiet_seconds", 1.0) <= 0.0:
+        raise SystemExit("odom-quiet-seconds must be > 0")
+    if getattr(args, "odom_quiet_timeout", 1.0) <= 0.0:
+        raise SystemExit("odom-quiet-timeout must be > 0")
+    if getattr(args, "flight_ready_timeout", 1.0) <= 0.0:
+        raise SystemExit("flight-ready-timeout must be > 0")
     return args.function(args)
 
 

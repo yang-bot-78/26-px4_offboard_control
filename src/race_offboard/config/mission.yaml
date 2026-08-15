@@ -9,8 +9,9 @@
 #
 # Coordinates are in the unified project map frame (standard ROS ENU) after
 # applying world_yaw_alignment_rad. See 坐标转换.md before entering numbers by
-# hand, and keep every point inside the geofence in
-# race_bringup/config/astar_ego_tuning.yaml (shared_safety.geofence).
+# hand. The fault envelope in race_bringup/config/astar_ego_tuning.yaml is
+# deliberately broad and only rejects obvious coordinate faults; it is not a
+# surveyed race-course boundary.
 #
 # preset_points is commented out because the values below are placeholders from
 # the simulation arena, not a survey of the real course. Uncomment and replace

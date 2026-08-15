@@ -51,6 +51,8 @@ def launch_setup(context):
         parameters=[clock, {
             'flight_mode': flight_mode,
             'input_topic': goal_input_topic,
+            'velocity_topic': '/mavros/local_position/odom',
+            'velocity_freshness_sec': 0.25,
             'retry_goal_on_ego_failure': False,
             'ego_failure_retry_period_sec': 0.75,
             'duplicate_goal_position_tolerance_m': 0.03,

@@ -106,6 +106,10 @@ def generate_launch_description():
         'publish_camera_init_tf', default_value='true',
         description='Publish the fixed map -> camera_init TF'
     )
+    broadcast_map_to_odom_arg = DeclareLaunchArgument(
+        'broadcast_map_to_odom', default_value='true',
+        description='Publish identity map -> odom TF; disable with external relocalization'
+    )
     map_frame_id_arg = DeclareLaunchArgument(
         'map_frame_id', default_value='camera_init',
         description='Frame used for the static planning map'
@@ -199,6 +203,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time,
             'world_yaw_alignment_rad': LaunchConfiguration('world_yaw_alignment_rad'),
             'publish_camera_init_tf': LaunchConfiguration('publish_camera_init_tf'),
+            'broadcast_map_to_odom': LaunchConfiguration('broadcast_map_to_odom'),
         }]
     )
 
@@ -285,6 +290,7 @@ def generate_launch_description():
         world_yaw_alignment_arg,
         publish_fastlio_bridge_arg,
         publish_camera_init_tf_arg,
+        broadcast_map_to_odom_arg,
         map_frame_id_arg,
         fast_lio_odom_topic_arg,
         *fast_lio_actions,

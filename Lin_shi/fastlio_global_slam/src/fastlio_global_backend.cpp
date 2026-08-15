@@ -33,6 +33,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include "fastlio_global_slam/srv/load_map.hpp"
@@ -208,6 +209,8 @@ public:
   {
     odom_topic_ = declare_parameter<std::string>("odom_topic", "/Odometry");
     cloud_topic_ = declare_parameter<std::string>("cloud_topic", "/cloud_registered");
+    backend_status_topic_ = declare_parameter<std::string>(
+      "backend_status_topic", "/fastlio_global/backend_status");
     global_map_topic_ = declare_parameter<std::string>("global_map_topic", "/fastlio_global/map");
     optimized_path_topic_ = declare_parameter<std::string>("optimized_path_topic", "/fastlio_global/path");
     loop_marker_topic_ = declare_parameter<std::string>("loop_marker_topic", "/fastlio_global/loop_markers");
@@ -243,6 +246,8 @@ public:
     loop_marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(loop_marker_topic_, 10);
     relocalized_pose_pub_ = create_publisher<geometry_msgs::msg::PoseStamped>(
       relocalized_pose_topic_, rclcpp::QoS(1).reliable().transient_local());
+    backend_status_pub_ = create_publisher<std_msgs::msg::String>(
+      backend_status_topic_, rclcpp::QoS(1).reliable().transient_local());
 
     save_map_srv_ = create_service<SaveMapSrv>(
       "~/save_map",
@@ -254,8 +259,13 @@ public:
       "~/relocalize",
       std::bind(&FastlioGlobalBackend::handleRelocalize, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
-    odom_sub_.subscribe(this, odom_topic_);
-    cloud_sub_.subscribe(this, cloud_topic_);
+    // FR-LIO publishes its live odometry and registered cloud with sensor-data
+    // QoS (BEST_EFFORT).  Request the same QoS here: a BEST_EFFORT subscriber
+    // remains compatible with a RELIABLE publisher, while the old default
+    // RELIABLE subscription received no FR-LIO messages at all.
+    const auto sensor_qos = rclcpp::SensorDataQoS().get_rmw_qos_profile();
+    odom_sub_.subscribe(this, odom_topic_, sensor_qos);
+    cloud_sub_.subscribe(this, cloud_topic_, sensor_qos);
     sync_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(SyncPolicy(20), odom_sub_, cloud_sub_);
     sync_->registerCallback(std::bind(&FastlioGlobalBackend::syncedCallback, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -275,7 +285,7 @@ public:
     optimized_path_.header.frame_id = map_frame_id_;
     RCLCPP_INFO(
       get_logger(),
-      "FAST-LIO global backend listening on odom=%s cloud=%s",
+      "Global mapping backend listening on odom=%s cloud=%s with BEST_EFFORT sensor QoS",
       odom_topic_.c_str(), cloud_topic_.c_str());
   }
 
@@ -315,6 +325,7 @@ private:
     latest_stamp_ = odom_msg->header.stamp;
     has_latest_scan_ = true;
     ++callback_count_;
+    publishBackendStatus();
 
     if (enable_relocalization_mode_ && has_loaded_map_ && !has_relocalized_ &&
         callback_count_ % std::max(1, auto_relocalize_stride_) == 0) {
@@ -973,6 +984,14 @@ private:
     path_pub_->publish(optimized_path_);
   }
 
+  void publishBackendStatus()
+  {
+    std_msgs::msg::String message;
+    message.data = "synced_callbacks=" + std::to_string(callback_count_) +
+      " keyframes=" + std::to_string(keyframes_.size());
+    backend_status_pub_->publish(message);
+  }
+
   void publishGlobalMap()
   {
     if (keyframes_.empty()) {
@@ -1031,6 +1050,7 @@ private:
 
   std::string odom_topic_;
   std::string cloud_topic_;
+  std::string backend_status_topic_;
   std::string global_map_topic_;
   std::string optimized_path_topic_;
   std::string loop_marker_topic_;
@@ -1076,6 +1096,7 @@ private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr loop_marker_pub_;
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr relocalized_pose_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr backend_status_pub_;
   rclcpp::Service<SaveMapSrv>::SharedPtr save_map_srv_;
   rclcpp::Service<LoadMapSrv>::SharedPtr load_map_srv_;
   rclcpp::Service<RelocalizeSrv>::SharedPtr relocalize_srv_;

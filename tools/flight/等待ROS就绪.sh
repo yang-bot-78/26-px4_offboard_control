@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mode="${1:?usage: 等待ROS就绪.sh <topic|message|node|healthy|mavros_connected> <timeout_s> [name]}"
-timeout_s="${2:?usage: 等待ROS就绪.sh <topic|message|node|healthy|mavros_connected> <timeout_s> [name]}"
+mode="${1:?usage: 等待ROS就绪.sh <topic|message|node|healthy|flight_ready|mavros_connected> <timeout_s> [name]}"
+timeout_s="${2:?usage: 等待ROS就绪.sh <topic|message|node|healthy|flight_ready|mavros_connected> <timeout_s> [name]}"
 topic="${3:-}"
 readiness_process_pid="${READINESS_PROCESS_PID:-}"
 readiness_setup_bash="${READINESS_SETUP_BASH:-}"
@@ -36,6 +36,9 @@ case "${mode}" in
     ;;
   healthy)
     topic="${topic:-/ev_health/status}"
+    ;;
+  flight_ready)
+    topic="${topic:-/ev_health/flight_ready}"
     ;;
   mavros_connected)
     topic="${topic:-/mavros/state}"
@@ -82,6 +85,13 @@ while (( SECONDS < deadline )); do
         exit 0
       fi
       ;;
+    flight_ready)
+      message="$(timeout 5 ros2 topic echo --once "${topic}" std_msgs/msg/Bool 2>/dev/null || true)"
+      if [[ "${message}" == *"data: true"* ]]; then
+        echo "Ready: ${topic}=true"
+        exit 0
+      fi
+      ;;
     mavros_connected)
       message="$(timeout 5 ros2 topic echo --once "${topic}" mavros_msgs/msg/State 2>/dev/null || true)"
       if [[ "${message}" == *"connected: true"* ]]; then
@@ -94,7 +104,7 @@ while (( SECONDS < deadline )); do
 done
 
 echo "就绪等待超时：mode=${mode}, topic=${topic}, timeout=${timeout_s}s" >&2
-if [[ "${mode}" == healthy ]]; then
+if [[ "${mode}" == healthy || "${mode}" == flight_ready ]]; then
   echo "最近一次 EV 健康诊断：" >&2
   timeout 5 ros2 topic echo --once /ev_health/diagnostics \
     diagnostic_msgs/msg/DiagnosticArray --field status 2>/dev/null |

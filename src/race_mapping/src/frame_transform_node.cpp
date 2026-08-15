@@ -27,7 +27,7 @@ public:
     FrameTransformNode()
     : Node("frame_transform_node")
     {
-        this->declare_parameter("broadcast_map_to_odom", true);
+        broadcast_map_to_odom_ = this->declare_parameter<bool>("broadcast_map_to_odom", true);
         this->declare_parameter("broadcast_odom_to_base_link", false);  // fastlio_bridge does this
         publish_camera_init_tf_ = this->declare_parameter<bool>("publish_camera_init_tf", true);
         world_yaw_alignment_rad_ =
@@ -43,7 +43,9 @@ public:
         sendStaticTransforms();
 
         RCLCPP_INFO(this->get_logger(), "frame_transform_node started");
-        RCLCPP_INFO(this->get_logger(), "  Published static TF: map -> odom (identity)");
+        RCLCPP_INFO(
+            this->get_logger(), "  Static TF map -> odom (identity): %s",
+            broadcast_map_to_odom_ ? "enabled" : "disabled");
         if (publish_camera_init_tf_) {
             RCLCPP_INFO(
                 this->get_logger(),
@@ -64,8 +66,9 @@ private:
     {
         auto now = this->now();
 
-        // 静态 TF 1: map -> odom (identity)
-        {
+        // Only publish this in a non-relocalized stack.  During relocalization
+        // it would falsely label raw FAST-LIO's local odom frame as map.
+        if (broadcast_map_to_odom_) {
             geometry_msgs::msg::TransformStamped t;
             t.header.stamp = now;
             t.header.frame_id = "map";
@@ -104,7 +107,9 @@ private:
         // driver uses livox_frame, and the physical LiDAR-to-aircraft origin
         // and full attitude must be measured before adding that TF.
         std::vector<geometry_msgs::msg::TransformStamped> transforms;
-        transforms.push_back(map_to_odom_);
+        if (broadcast_map_to_odom_) {
+            transforms.push_back(map_to_odom_);
+        }
         if (publish_camera_init_tf_) {
             transforms.push_back(camera_init_to_map_);
         }
@@ -117,6 +122,7 @@ private:
     geometry_msgs::msg::TransformStamped map_to_odom_;
     geometry_msgs::msg::TransformStamped camera_init_to_map_;
     double world_yaw_alignment_rad_{0.0};
+    bool broadcast_map_to_odom_{true};
     bool publish_camera_init_tf_{true};
 };
 

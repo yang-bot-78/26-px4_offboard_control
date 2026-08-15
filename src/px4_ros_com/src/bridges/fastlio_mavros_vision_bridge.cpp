@@ -5,6 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <functional>
 #include <memory>
@@ -131,6 +132,7 @@ public:
 		force_twist_frame_id_ = declare_parameter<std::string>("force_twist_frame_id", "odom");
 		restamp_message_ = declare_parameter<bool>("restamp_message", false);
 		publish_speed_ = declare_parameter<bool>("publish_speed", false);
+		max_publish_rate_hz_ = declare_parameter<double>("max_publish_rate_hz", 50.0);
 		world_yaw_alignment_rad_ = declare_parameter<double>(
 			"world_yaw_alignment_rad", 0.0);
 		body_to_sensor_x_m_ = declare_parameter<double>("body_to_sensor_x_m", 0.0);
@@ -142,9 +144,15 @@ public:
 			body_to_sensor_x_m_, body_to_sensor_y_m_, body_to_sensor_z_m_};
 		if (!px4_ros_com::lever_arm::finite(lever_arm) ||
 		    !std::isfinite(body_to_fastlio_yaw_rad_) ||
-		    !std::isfinite(world_yaw_alignment_rad_)) {
+		    !std::isfinite(world_yaw_alignment_rad_) ||
+		    !std::isfinite(max_publish_rate_hz_) || max_publish_rate_hz_ < 0.0) {
 			throw std::invalid_argument(
-				"installation and world_yaw_alignment_rad parameters must be finite");
+				"installation/world_yaw_alignment_rad must be finite and "
+				"max_publish_rate_hz must be finite and non-negative");
+		}
+		if (max_publish_rate_hz_ > 0.0) {
+			min_publish_interval_ = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+				std::chrono::duration<double>(1.0 / max_publish_rate_hz_));
 		}
 
 		pose_publisher_ = create_publisher<PoseWithCovarianceStamped>(pose_topic_, 10);
@@ -153,18 +161,20 @@ public:
 			speed_publisher_ = create_publisher<TwistWithCovarianceStamped>(speed_topic_, 10);
 		}
 
+		const auto odom_qos = rclcpp::SensorDataQoS().keep_last(5);
 		odometry_subscription_ = create_subscription<Odometry>(
-			input_topic_, 10,
+			input_topic_, odom_qos,
 			std::bind(&FastlioMavrosVisionBridge::odometry_callback, this, std::placeholders::_1));
 
 		RCLCPP_INFO(
 			get_logger(),
-			"Bridging %s -> %s%s for MAVROS vision input; body->FAST-LIO origin "
+			"Bridging %s -> %s%s at %.1f Hz (0=unlimited); body->FAST-LIO origin "
 			"in body FLU=(%.4f, %.4f, %.4f) m, R_FASTLIO_body yaw=%.6f rad, "
 			"world yaw alignment=%.6f rad",
 			input_topic_.c_str(),
 			pose_topic_.c_str(),
 			publish_speed_ ? " + vision_speed" : "",
+			max_publish_rate_hz_,
 			body_to_sensor_x_m_,
 			body_to_sensor_y_m_,
 			body_to_sensor_z_m_,
@@ -184,6 +194,9 @@ private:
 	std::string force_twist_frame_id_;
 	bool restamp_message_{false};
 	bool publish_speed_{false};
+	double max_publish_rate_hz_{50.0};
+	std::chrono::steady_clock::duration min_publish_interval_{};
+	std::chrono::steady_clock::time_point last_publish_time_{};
 	double world_yaw_alignment_rad_{0.0};
 	double body_to_sensor_x_m_{0.0};
 	double body_to_sensor_y_m_{0.0};
@@ -192,6 +205,18 @@ private:
 
 	void odometry_callback(const Odometry::SharedPtr msg)
 	{
+		// This bridge owns both EV pose and optional EV velocity output.  Apply
+		// one limiter to the pair so reducing UART ingress cannot leave the
+		// velocity stream at the original IMU rate.  A value of zero explicitly
+		// disables the limit for later high-rate qualification.
+		const auto publish_time = std::chrono::steady_clock::now();
+		if (max_publish_rate_hz_ > 0.0 &&
+		    last_publish_time_ != std::chrono::steady_clock::time_point{} &&
+		    publish_time - last_publish_time_ < min_publish_interval_) {
+			return;
+		}
+		last_publish_time_ = publish_time;
+
 		PoseWithCovarianceStamped pose_msg{};
 		pose_msg.header = msg->header;
 

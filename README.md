@@ -1,6 +1,6 @@
 # ws_offboard_control
 
-> 更新时间：2026-08-12
+> 更新时间：2026-08-14
 > 适用工作区：`~/rong_ws/ws_offboard_control`
 > 当前判定：`FLIGHT_GO_NO_GO = NO`（判定门限与依据见 [docs/VALIDATION_MATRIX.md](docs/VALIDATION_MATRIX.md)）
 
@@ -33,7 +33,29 @@
 
 本文档记录当前导航无人机工程的自动起降进度、默认链路、启动方法和已知边界。
 
-## 最新关键改动（2026-08-12）
+## 最新关键改动（2026-08-14）
+
+- **FR-LIO 高速里程计接入增加锚点与输入完整性门禁。** FR-LIO 随包固定
+  `ikd_tree v0.1.0` 源码依赖，新增 `lidar_validation_gate` 和高频状态发布；启动及
+  EV 健康监控会检查锚点状态、锚点时效和点云有效性。高速传播结果不再被当作静止飞行的
+  速度依据。
+- **EV 异常恢复保持可信位姿基线。** 时间戳回退、过期输入和位置跳变均不会重置到异常
+  样本；恢复必须回到最后可信位姿附近。密集但单调的传感器时间戳会被丢弃而不触发故障，
+  以避免调度抖动污染健康状态。
+- **Offboard 起飞门禁收紧。** 默认禁止纯推算起飞，要求严格的 PX4 本地位置健康；除
+  `/ev_health/status` 外，还必须持续收到 `/ev_health/flight_ready`。预热和起飞前稳定
+  时间分别调整为 `2 s` 和 `5 s`，EV 新鲜度限制为 `0.5 s`。飞行中 FAULT 默认请求
+  `AUTO.LAND`，但可由明确的飞行流程配置为人工接管。
+- **EGO 目标放行使用 PX4 EKF 速度。** `ego_goal_bridge` 以
+  `/mavros/local_position/odom` 的新鲜速度判断悬停稳定性，不再使用 FR-LIO 高频传播
+  twist；垂直速度容限相应调整为 `0.30 m/s`，避免正常起飞阶段被传播速度误阻塞。
+- **全局定位和验证工具同步更新。** Scan Context/ICP 全局重定位补充运行时诊断和
+  RViz 配置；启动、录包和现场检查脚本已同步上述门禁。源码契约和单元测试覆盖 EV
+  健康、里程计验收、EGO 放行与 A* 参数。
+
+当前版本仍不构成实飞放行；顶部 `FLIGHT_GO_NO_GO = NO` 保持不变。
+
+## 既有关键改动（2026-08-12）
 
 - **EV 速度坐标系已修正。** `fastlio_mavros_vision_bridge` 现在将 FAST-LIO 按
   REP-147 定义、位于 child frame 的线速度及其协方差旋转到局部世界 ENU 后，再发布
@@ -515,15 +537,16 @@ source ~/rong_ws/ws_offboard_control/install/setup.bash
 修改 `race_ego_bridge`（EGO 轨迹到 MAVROS 的桥）后同理换包名。`PYTHONNOUSERSITE=1`
 是必需的：用户 site-packages 里有版本冲突的包会让 colcon 的 Python 扩展加载失败。
 
-仓库内的高频 FR-LIO 位于 `src/fr_lio`。它依赖已安装的 `livox_ros_driver2` 和
-`ikd_tree` CMake 包；来源、许可证和完整构建前置条件见
+仓库内的高频 FR-LIO 位于 `src/fr_lio`。它依赖已安装的 `livox_ros_driver2`；
+`ikd_tree` 已按上游 `v0.1.0` 固定版本以源码随包引入，不再要求外部安装。
+来源、许可证和完整构建前置条件见
 [src/fr_lio/UPSTREAM.md](src/fr_lio/UPSTREAM.md)。构建时必须先 source Livox overlay：
 
 ```bash
-cd ~/rong_ws/26-px4_offboard_control
+cd ~/rong_ws/ws_offboard_control
 source /opt/ros/humble/setup.bash
-source ~/livox_ws/install/setup.bash
-PYTHONNOUSERSITE=1 colcon build --packages-up-to fr_lio
+source ~/livox_mid360_env/ws_livox/install/setup.bash
+PYTHONNOUSERSITE=1 colcon build --base-paths src --packages-select fr_lio
 ```
 
 默认启动仍使用已验证的外部 FAST-LIO。无桨集成验证才显式选择 FR-LIO：
