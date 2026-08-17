@@ -178,11 +178,18 @@ class AstarEgoTuningTest(unittest.TestCase):
                 '/race/ego/occupancy_inflate', '/race/ego/predicted_path'):
             self.assertIn(topic, bag)
         # Flight bags must retain enough upstream evidence to distinguish a
-        # MID-360 input interruption from FR-LIO/EV processing starvation.
+        # MID-360 input interruption from FR-LIO/EV processing starvation, and
+        # to tell a stale LiDAR posterior (planner holds, EV continues) from a
+        # dead predictor (EV genuinely unusable). Without predictor_age and the
+        # two usability flags, both look identical in a post-flight bag.
         for topic in (
                 '/livox/lidar', '/livox/imu',
                 '/frlio/high_rate_odom/status',
                 '/frlio/high_rate_odom/anchor_age',
+                '/frlio/high_rate_odom/predictor_age',
+                '/frlio/high_rate_odom/ev_usable',
+                '/frlio/high_rate_odom/planner_usable',
+                '/frlio/high_rate_odom/localization_health',
                 '/frlio/high_rate_odom/accel_spike_rejections',
                 '/Odometry', '/planning/odom', '/Odometry/healthy'):
             self.assertIn(topic, bag)
@@ -244,7 +251,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_maximum_speed_must_stop_inside_reliable_detection_range(self):
         bad = copy.deepcopy(self.tuning)
-        bad['ego_map']['minimum_reliable_detection_range_m'] = 0.60
+        bad['ego_map']['minimum_reliable_detection_range_m'] = 0.44
         with self.assertRaisesRegex(TuningError, 'braking horizon'):
             self._validate(bad)
 
@@ -418,7 +425,7 @@ class AstarEgoTuningTest(unittest.TestCase):
     def test_replan_hold_reanchors_only_after_a_bounded_stable_stop(self):
         bridge = self.tuning['trajectory_bridge']
         overlays = node_parameter_overlays(self.tuning)
-        self.assertEqual(0.10, bridge['switch_position_tolerance_m'])
+        self.assertEqual(0.20, bridge['switch_position_tolerance_m'])
         self.assertEqual(
             bridge['replan_reanchor_max_horizontal_speed_mps'],
             overlays['trajectory_bridge']['replan_reanchor_max_horizontal_speed_mps'])
@@ -584,13 +591,15 @@ class AstarEgoTuningTest(unittest.TestCase):
         overlays = node_parameter_overlays(self.tuning)
         planner = self.tuning['global_planner']
         bridge = self.tuning['trajectory_bridge']
+        self.assertEqual(3.0, planner['trajectory_stall_timeout_sec'])
         for key in (
                 'trajectory_prefetch_sec', 'trajectory_stall_timeout_sec',
                 'trajectory_recovery_confirmation_sec'):
             self.assertEqual(planner[key], overlays['super'][key])
         for key in (
                 'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
-                'switch_acceleration_tolerance_mps2'):
+                'switch_acceleration_tolerance_mps2', 'command_hold_grace_sec',
+                'candidate_max_age_sec', 'active_trajectory_min_remaining_sec'):
             self.assertEqual(bridge[key], overlays['trajectory_bridge'][key])
 
     def test_recovery_can_be_disabled_without_changing_other_tuning(self):

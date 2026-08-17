@@ -227,7 +227,7 @@ global_planner:
   # 留出后台规划时间。已有目标仍需被 Bridge 确认执行，避免无限超前发布。
   trajectory_prefetch_sec: 1.50
   # 任务未完成且局部目标/轨迹没有客观进展超过该时间，触发一次全局重规划。
-  trajectory_stall_timeout_sec: 1.00
+  trajectory_stall_timeout_sec: 3.00
   # 新 trajectory_id 通过 Bridge 后需稳定存在这段时间，才清除旧故障。
   trajectory_recovery_confirmation_sec: 0.50
   # Super 平滑路径最小净空，单位：m。
@@ -283,8 +283,8 @@ ego_planner:
   # [调大] 提高跟踪压力，绕障时更容易超出 PX4 实际跟得上的范围。
   # [调小] 可能使重规划滞后 —— 飞得太慢，柱子已到眼前才算完新轨迹。
   # 完整重启。
-  max_velocity: 0.60
-  max_acceleration: 0.80
+  max_velocity: 0.40
+  max_acceleration: 0.60
   # B-spline 控制点间距，单位：m。
   # 【与绕障的关系】绕柱子需要轨迹在短距离内拐弯，间距太大拐不过来。
   # [调小] 更灵活但优化变量更多、更慢。[调大] 更平滑但会切角。完整重启。
@@ -467,6 +467,15 @@ trajectory_bridge:
   # PositionCommand 超时，单位：s。
   # [调大] 容忍上游抖动。[调小] 更早拒绝旧命令。完整重启。
   command_timeout_sec: 0.20
+  # Command stream may briefly pause while a safe, validated B-spline remains
+  # active. Hold its last safe position with zero feed-forward before declaring
+  # a trajectory timeout.
+  command_hold_grace_sec: 0.60
+  # Old B-spline candidates must never overtake a newer candidate after queueing.
+  candidate_max_age_sec: 0.40
+  # Preserve a rejected handoff's active trajectory only while it has this much
+  # time left and still passes the complete collision recheck.
+  active_trajectory_min_remaining_sec: 0.50
   # 已验证动态切换宽限，单位：s；保持当前验证值 0.75。
   # [安全合同] 禁止在本文件中为绕障目的调低。完整重启。
   dynamic_invalid_grace_sec: 0.75
@@ -479,9 +488,15 @@ trajectory_bridge:
   replan_reanchor_stable_sec: 0.50
   # 新旧轨迹原子交接门限。候选自身安全但与当前输出不连续时，Bridge 拒绝
   # 瞬间切换并进入实测位置保持，要求 EGO 重新锚定。
-  switch_position_tolerance_m: 0.10
+  switch_position_tolerance_m: 0.20
   switch_velocity_tolerance_mps: 0.10
   switch_acceleration_tolerance_mps2: 0.20
+  # 上面三个门限只比较"候选轨迹 vs Bridge 当前输出的轨迹"（splice_error），
+  # 是唯一可以拒绝轨迹的判据。下面这个是"实测位置 vs 当前正在跟踪的指令"
+  # （tracking_error），只做诊断上报，不拒绝轨迹：跟踪误差大是定位/控制问题，
+  # 拒掉替换轨迹反而拿掉了唯一能减小该误差的手段。
+  # [调大] 上报更少。[调小] 更早暴露定位/跟踪退化。不影响防撞与轨迹接受。
+  tracking_error_report_threshold_m: 0.30
   # B-spline 碰撞采样最大空间间距，单位：m。整条曲线按这个间距逐点查净空。
   # [约束] 不得大于 global_planner.grid_resolution，否则启动失败
   #        （astar_ego_tuning.py:178）。

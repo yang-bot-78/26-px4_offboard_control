@@ -107,6 +107,10 @@ class RelocalizationFrameBridge(Node):
         self._latest_odom: Optional[Odometry] = None
         self._pending_relocalized_pose: Optional[PoseStamped] = None
         self._map_to_odom: Optional[Tuple[Vector3, Quaternion]] = None
+        # The output keeps the source measurement time for downstream age and
+        # velocity checks.  Never publish a duplicate or older stamp after the
+        # relocalization transform has been applied.
+        self._last_output_stamp_ns: Optional[int] = None
         self._tf_broadcaster = TransformBroadcaster(self)
         self._odom_pub = self.create_publisher(
             Odometry, self.get_parameter("output_odom_topic").value, 20
@@ -155,6 +159,17 @@ class RelocalizationFrameBridge(Node):
         if self._map_to_odom is None:
             return
 
+        stamp_ns = (
+            int(msg.header.stamp.sec) * 1_000_000_000
+            + int(msg.header.stamp.nanosec)
+        )
+        if self._last_output_stamp_ns is not None and stamp_ns <= self._last_output_stamp_ns:
+            self.get_logger().warning(
+                "丢弃非递增 /planning/odom 时间戳: "
+                f"stamp_ns={stamp_ns} last_ns={self._last_output_stamp_ns}"
+            )
+            return
+
         map_to_odom_translation, map_to_odom_rotation = self._map_to_odom
         rotated_translation = quat_rotate(map_to_odom_rotation, odom_translation)
         map_to_body_translation = tuple(
@@ -182,6 +197,7 @@ class RelocalizationFrameBridge(Node):
         )
         output.twist = copy.deepcopy(msg.twist)
         self._odom_pub.publish(output)
+        self._last_output_stamp_ns = stamp_ns
 
         self._publish_transform(
             str(self.get_parameter("map_frame").value),

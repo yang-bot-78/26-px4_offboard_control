@@ -30,11 +30,33 @@ offboard_waypoint_node:
     ev_health_required_s: 7.5
     ev_health_freshness_s: 0.5
     ev_fault_auto_land: true
+    # A stale LiDAR posterior still permits a fresh IMU-propagated PX4 EV
+    # stream with inflated covariance. Stop accepting aggressive trajectories
+    # and brake to hold instead of creating an EV transport dropout.
+    #
+    # The hold is recoverable: it stops trajectory intake but does NOT cancel
+    # the goal. When FR-LIO reports a usable planner state again and the vehicle
+    # has been stationary for frlio_hold_release_stable_sec, planning resumes
+    # from a freshly validated trajectory. Set frlio_hold_release_enabled=false
+    # to require an explicit operator restart instead (the previous behaviour).
+    frlio_status_topic: /frlio/high_rate_odom/status
+    frlio_planner_usable_topic: /frlio/high_rate_odom/planner_usable
+    frlio_fault_hold_enabled: true
+    frlio_hold_release_enabled: true
+    frlio_hold_release_stable_sec: 1.0
+    # A missing FR-LIO status holds the planner (we cannot tell whether planning
+    # is safe) but never interrupts EV: the EV chain has its own freshness gate
+    # and PX4 EKF2 has its own EV timeout.
+    frlio_status_timeout_sec: 0.5
     # A discontinuous PX4 local frame may be adopted only while disarmed and
     # IDLE, after the replacement frame remains still inside these limits.
     local_origin_rebase_stabilization_sec: 1.0
     local_origin_rebase_max_spread_m: 0.08
     local_origin_rebase_max_speed_mps: 0.20
+    # Preferred reset source is /fmu/out/vehicle_local_position, which carries
+    # the authoritative z_reset_counter/delta_z. Keep the MAVROS DEBUG_VECT
+    # fallback optional for older PX4 firmware.
+    px4_local_z_reset_topic: /mavros/debug_value/debug_vector
     ekf_xy_wait_timeout_sec: 3.0
     offboard_warmup_sec: 2.0
     preflight_stabilization_sec: 5.0

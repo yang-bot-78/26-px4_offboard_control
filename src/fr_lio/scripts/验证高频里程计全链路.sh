@@ -11,6 +11,8 @@ livox_ws="${LIVOX_WS:-/home/robot/livox_mid360_env/ws_livox}"
 livox_env_setup="${LIVOX_ENV_SETUP:-/home/robot/livox_mid360_env/setup_mid360.bash}"
 px4_root="${PX4_CONTROL_ROOT:-${project_root}}"
 helper="${script_dir}/high_rate_validation_helper.py"
+isolation_helper="${script_dir}/fault_isolation_validation.py"
+timing_analyzer="${script_dir}/analyze_frlio_timing.py"
 cleanup_helper="${px4_root}/tools/flight/清理运行环境.sh"
 lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${px4_root}/src/px4_ros_com/config/mid360_lever_arm.conf}"
 livox_launch="${livox_ws}/install/livox_ros_driver2/share/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py"
@@ -25,12 +27,15 @@ cpu_load_duty_percent="${CPU_LOAD_DUTY_PERCENT:-75}"
 record_livox_topics="${RECORD_LIVOX_TOPICS:-false}"
 stage_delay_sec="${STAGE_DELAY_SEC:-2}"
 mavros_state_timeout_sec="${MAVROS_STATE_TIMEOUT_SEC:-8}"
+high_rate_validation_hz="${HIGH_RATE_ODOM_HZ:-30}"
 dry_run="${DRY_RUN:-0}"
 
 session_stamp="${VALIDATION_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 case "${validation_mode}" in
   load_only) default_session_root="${highodom_ws}/validation_records/high_rate_load_${session_stamp}" ;;
   fault_only) default_session_root="${highodom_ws}/validation_records/high_rate_fault_${session_stamp}" ;;
+  backend_delay) default_session_root="${highodom_ws}/validation_records/high_rate_backend_delay_${session_stamp}" ;;
+  predictor_stop) default_session_root="${highodom_ws}/validation_records/high_rate_predictor_stop_${session_stamp}" ;;
   *) default_session_root="${highodom_ws}/validation_records/high_rate_odom_${session_stamp}" ;;
 esac
 session_root="${VALIDATION_DIR:-${default_session_root}}"
@@ -44,6 +49,9 @@ declare -a managed_pids=()
 bag_pid=""
 cpu_load_pid=""
 cleanup_started=0
+fix_cpu_performance="${FIX_CPU_PERFORMANCE:-true}"
+cpu_profile_before=""
+cpu_profile_changed=0
 
 die() {
   echo "拒绝继续：$*" >&2
@@ -86,22 +94,66 @@ start_process() {
 
 stop_process_group() {
   local name="$1" pid="$2"
-  kill -0 "${pid}" 2>/dev/null || return 0
+  if ! kill -0 -- "-${pid}" 2>/dev/null && ! kill -0 "${pid}" 2>/dev/null; then
+    return 0
+  fi
   echo "[停止] ${name} (pid=${pid})"
   kill -INT -- "-${pid}" 2>/dev/null || kill -INT "${pid}" 2>/dev/null || true
   local index
   for index in {1..12}; do
-    kill -0 "${pid}" 2>/dev/null || { wait "${pid}" 2>/dev/null || true; return 0; }
+    if ! kill -0 -- "-${pid}" 2>/dev/null && ! kill -0 "${pid}" 2>/dev/null; then
+      wait "${pid}" 2>/dev/null || true
+      return 0
+    fi
     sleep 0.5
   done
   kill -TERM -- "-${pid}" 2>/dev/null || kill -TERM "${pid}" 2>/dev/null || true
   for index in {1..6}; do
-    kill -0 "${pid}" 2>/dev/null || { wait "${pid}" 2>/dev/null || true; return 0; }
+    if ! kill -0 -- "-${pid}" 2>/dev/null && ! kill -0 "${pid}" 2>/dev/null; then
+      wait "${pid}" 2>/dev/null || true
+      return 0
+    fi
     sleep 0.5
   done
   echo "[警告] ${name} 在 SIGINT/SIGTERM 后仍未退出，发送 SIGKILL。" >&2
   kill -KILL -- "-${pid}" 2>/dev/null || kill -KILL "${pid}" 2>/dev/null || true
   wait "${pid}" 2>/dev/null || true
+}
+
+restore_cpu_profile() {
+  ((cpu_profile_changed == 1)) || return 0
+  if powerprofilesctl set "${cpu_profile_before}"; then
+    echo "[性能] 已恢复 CPU profile=${cpu_profile_before}"
+  else
+    echo "[警告] 无法恢复 CPU profile=${cpu_profile_before}；请手动执行 powerprofilesctl set ${cpu_profile_before}" >&2
+  fi
+  cpu_profile_changed=0
+}
+
+activate_cpu_performance() {
+  [[ "${fix_cpu_performance}" == true ]] || {
+    echo "[警告] FIX_CPU_PERFORMANCE=false：不强制 CPU performance profile。" >&2
+    return 0
+  }
+  command -v powerprofilesctl >/dev/null 2>&1 || die "FIX_CPU_PERFORMANCE=true 需要 powerprofilesctl"
+  powerprofilesctl list 2>/dev/null | grep -Eq '^[*[:space:]]+performance:' ||
+    die "本机没有可用的 performance CPU profile"
+
+  cpu_profile_before="$(powerprofilesctl get)"
+  if [[ "${cpu_profile_before}" != performance ]]; then
+    powerprofilesctl set performance || die "无法切换到 CPU performance profile"
+    cpu_profile_changed=1
+  fi
+  [[ "$(powerprofilesctl get)" == performance ]] || die "CPU performance profile 激活后校验失败"
+
+  local policy epp
+  for policy in /sys/devices/system/cpu/cpufreq/policy*; do
+    [[ -r "${policy}/energy_performance_preference" ]] || continue
+    epp="$(<"${policy}/energy_performance_preference")"
+    [[ "${epp}" == performance ]] ||
+      die "CPU policy ${policy##*/} EPP=${epp}，期望 performance"
+  done
+  echo "[性能] 已锁定 CPU performance profile（previous=${cpu_profile_before}）"
 }
 
 cleanup() {
@@ -111,6 +163,9 @@ cleanup() {
   cleanup_started=1
   echo
   echo "正在保存录包并停止本脚本启动的进程..."
+  # Parameter/dependency validation can fail before the normal setup mkdir.
+  # Keep the failure path quiet and recoverable as well.
+  mkdir -p "${log_dir}" "${result_dir}" "${snapshot_dir}"
 
   if [[ -n "${cpu_load_pid}" ]]; then
     stop_process_group "CPU 负载" "${cpu_load_pid}"
@@ -125,6 +180,10 @@ cleanup() {
   # LiDAR again. This does not command the aircraft or alter the IMU stream.
   if command -v ros2 >/dev/null 2>&1; then
     timeout 4 ros2 service call /frlio_validation/lidar_gate std_srvs/srv/SetBool \
+      '{data: true}' >/dev/null 2>&1 || true
+    timeout 4 ros2 service call /frlio_validation/lidar_delay std_srvs/srv/SetBool \
+      '{data: false}' >/dev/null 2>&1 || true
+    timeout 4 ros2 service call /frlio_validation/imu_gate std_srvs/srv/SetBool \
       '{data: true}' >/dev/null 2>&1 || true
   fi
 
@@ -148,6 +207,7 @@ cleanup() {
       [[ "${managed_pids[index]}" == "${bag_pid}" ]] && continue
       stop_process_group "${managed_names[index]}" "${managed_pids[index]}"
     done
+    restore_cpu_profile
   fi
 
   ros2 node list >"${snapshot_dir}/nodes_after.txt" 2>/dev/null || true
@@ -303,19 +363,54 @@ motion_phase() {
   sleep 3
 }
 
+run_timing_acceptance() {
+  local -a command
+  command=(
+    /usr/bin/python3 "${timing_analyzer}" "${log_dir}/03_frlio.log"
+    --high-rate-hz "${high_rate_validation_hz}"
+    --json "${result_dir}/timing_acceptance.json"
+  )
+  # The one-second gate pause deliberately inhibits high-rate odometry.  It
+  # verifies the fail-safe separately and must not contaminate normal-path
+  # latency acceptance.
+  if [[ "${validation_mode}" == full ]]; then
+    command+=(
+      --events "${result_dir}/event_wall_time.tsv"
+      --exclude-event-interval LIDAR_FAULT_TEST_BEGIN LIDAR_FAULT_TEST_END
+    )
+  fi
+
+  echo
+  echo "[验收] 分析 FR-LIO 正常链路 timing（${high_rate_validation_hz} Hz 限制）"
+  "${command[@]}" 2>&1 | tee "${log_dir}/09_timing_acceptance.log"
+  local analysis_rc=${PIPESTATUS[0]}
+  if ((analysis_rc == 0)); then
+    echo "[验收] timing 指标通过。"
+  else
+    echo "[验收] timing 指标未通过；详见 ${result_dir}/timing_acceptance.json" >&2
+  fi
+  return "${analysis_rc}"
+}
+
 case "${validation_mode}" in
-  full|load_only|fault_only) ;;
-  *) die "VALIDATION_MODE 仅支持 full、load_only 或 fault_only，收到 '${validation_mode}'" ;;
+  full|load_only|fault_only|backend_delay|predictor_stop) ;;
+  *) die "VALIDATION_MODE 仅支持 full、load_only、fault_only、backend_delay 或 predictor_stop，收到 '${validation_mode}'" ;;
 esac
 case "${record_livox_topics}" in
   true|false) ;;
   *) die "RECORD_LIVOX_TOPICS 仅支持 true 或 false，收到 '${record_livox_topics}'" ;;
 esac
+case "${fix_cpu_performance}" in
+  true|false) ;;
+  *) die "FIX_CPU_PERFORMANCE 仅支持 true 或 false，收到 '${fix_cpu_performance}'" ;;
+esac
 
-for value in "${baseline_duration_sec}" "${static_duration_sec}" "${cpu_load_workers}" "${cpu_load_duty_percent}" "${stage_delay_sec}" "${mavros_state_timeout_sec}"; do
+for value in "${baseline_duration_sec}" "${static_duration_sec}" "${cpu_load_duty_percent}" "${stage_delay_sec}" "${mavros_state_timeout_sec}"; do
   is_positive_number "${value}" || die "时长、worker 数和负载占空比必须为正数，收到 '${value}'"
 done
-[[ "${cpu_load_workers}" =~ ^[0-9]+$ ]] || die "CPU_LOAD_WORKERS 必须是正整数"
+[[ "${cpu_load_workers}" =~ ^[0-9]+$ ]] || die "CPU_LOAD_WORKERS 必须是非负整数"
+[[ "${high_rate_validation_hz}" == 30 || "${high_rate_validation_hz}" == 50 ]] ||
+  die "HIGH_RATE_ODOM_HZ 仅支持 30 或 50，收到 '${high_rate_validation_hz}'"
 awk -v duty="${cpu_load_duty_percent}" 'BEGIN { exit !(duty <= 100) }' ||
   die "CPU_LOAD_DUTY_PERCENT 不能大于 100"
 [[ "${ROS_DOMAIN_ID}" == 26 ]] ||
@@ -327,6 +422,8 @@ require_file "${livox_env_setup}"
 require_file "${highodom_ws}/install/setup.bash"
 require_file "${px4_root}/install/setup.bash"
 require_file "${helper}"
+require_file "${isolation_helper}"
+require_file "${timing_analyzer}"
 require_file "${cleanup_helper}"
 require_file "${lever_arm_config}"
 require_file "${livox_launch}"
@@ -356,12 +453,18 @@ if [[ "${dry_run}" == 1 ]]; then
   echo "ROS_DOMAIN_ID=${ROS_DOMAIN_ID}"
   echo "FCU_URL=${fcu_url}"
   echo "MAVROS 状态采样超时=${mavros_state_timeout_sec}s"
+  echo "CPU performance profile=${fix_cpu_performance}"
+  echo "timing 验收频率=${high_rate_validation_hz}Hz"
   if [[ "${validation_mode}" == load_only ]]; then
     echo "无负载基线=${baseline_duration_sec}s，负载测试=${static_duration_sec}s"
     echo "CPU workers=${cpu_load_workers}，duty=${cpu_load_duty_percent}%"
     echo "录制 Livox 点云=${record_livox_topics}"
   elif [[ "${validation_mode}" == fault_only ]]; then
     echo "仅执行 LiDAR 故障注入、里程计门控和恢复检查"
+  elif [[ "${validation_mode}" == backend_delay ]]; then
+    echo "执行 LiDAR backend ${LIDAR_DELAY_MS:-300}ms 延迟隔离检查"
+  elif [[ "${validation_mode}" == predictor_stop ]]; then
+    echo "执行已初始化 predictor 停止 ${PREDICTOR_STOP_SECONDS:-1.0}s 并恢复检查"
   else
     echo "静置=${static_duration_sec}s，CPU workers=${cpu_load_workers}，duty=${cpu_load_duty_percent}%"
   fi
@@ -383,14 +486,16 @@ if [[ "${validation_mode}" == load_only ]]; then
 4. 本模式不要求移动机体，也不进行 LiDAR 断流测试。
 ================================================
 EOF
-elif [[ "${validation_mode}" == fault_only ]]; then
+elif [[ "${validation_mode}" == fault_only ||
+        "${validation_mode}" == backend_delay ||
+        "${validation_mode}" == predictor_stop ]]; then
   cat <<'EOF'
 
 =================== 安全边界 ===================
 1. 必须拆除全部螺旋桨，并将机体牢固固定。
 2. 测试期间飞控必须始终 armed=false，且不得进入 OFFBOARD。
 3. 脚本不发送运动指令、setpoint 或解锁命令。
-4. 本模式仅暂停约 1 秒 LiDAR 转发，不移动机体、不做 CPU 负载。
+4. 本模式只注入传感器延迟或暂停，不移动机体、不做 CPU 负载。
 ================================================
 EOF
 else
@@ -406,6 +511,8 @@ EOF
 fi
 read -r -p "确认后请输入 我已拆桨并上锁：" safety_confirmation
 [[ "${safety_confirmation}" == "我已拆桨并上锁" ]] || die "未得到完整安全确认"
+
+activate_cpu_performance
 
 echo "[清理] 检查并清理上次运行残留；该脚本在 armed 状态不明时会拒绝清理。"
 "${cleanup_helper}" all
@@ -434,29 +541,44 @@ sleep "${stage_delay_sec}"
 
 # 2. Test-only LiDAR gate. IMU bypasses this process.
 start_process "LiDAR 测试门控" "${log_dir}/02_lidar_gate.log" \
-  ros2 run fr_lio lidar_validation_gate
+  ros2 run fr_lio lidar_validation_gate --ros-args \
+    -p delay_ms:="${LIDAR_DELAY_MS:-300}"
 gate_pid="${STARTED_PID}"
 wait_for_service /frlio_validation/lidar_gate 15 "${gate_pid}"
 wait_for_topic_message /validation/livox/lidar 15 "${gate_pid}" best_effort
 require_one_publisher /validation/livox/lidar
 sleep "${stage_delay_sec}"
 
-# 3. Modified FR-LIO, explicitly fed by the gated LiDAR topic.
-start_process "FR-LIO 高频里程计" "${log_dir}/03_frlio.log" \
-  ros2 launch fr_lio lio.launch.py rviz:=false lidar_accumulator:=false \
-    lid_topic:=/validation/livox/lidar
+# 3. Modified FR-LIO, explicitly fed by the gated LiDAR topic. Predictor-stop
+# runs route IMU through the validation relay so the initialized state can be
+# starved without changing the production flight graph.
+if [[ "${validation_mode}" == predictor_stop ]]; then
+  start_process "IMU 测试门控" "${log_dir}/02b_imu_gate.log" \
+    ros2 run fr_lio imu_validation_gate
+  imu_gate_pid="${STARTED_PID}"
+  wait_for_service /frlio_validation/imu_gate 15 "${imu_gate_pid}"
+  wait_for_topic_message /validation/livox/imu 15 "${imu_gate_pid}" best_effort
+  start_process "FR-LIO 高频里程计" "${log_dir}/03_frlio.log" \
+    ros2 launch fr_lio lio.launch.py rviz:=false lidar_accumulator:=false \
+      lid_topic:=/validation/livox/lidar imu_topic:=/validation/livox/imu \
+      timing_alignment_enabled:=true
+else
+  start_process "FR-LIO 高频里程计" "${log_dir}/03_frlio.log" \
+    ros2 launch fr_lio lio.launch.py rviz:=false lidar_accumulator:=false \
+      lid_topic:=/validation/livox/lidar timing_alignment_enabled:=true
+fi
 frlio_pid="${STARTED_PID}"
 wait_for_topic_message /Odometry 45 "${frlio_pid}" best_effort
 wait_for_status /frlio/high_rate_odom/status HEALTHY 20 "${frlio_pid}"
 require_one_publisher /Odometry
 sleep "${stage_delay_sec}"
 
-# 4. MAVROS + odometry guard + EV health monitor + vision bridge. No Offboard node.
+# 4. MAVROS + odometry guard + EV health monitor + MAVROS ODOMETRY bridge. No Offboard node.
 start_process "MAVROS 与 EV 健康链" "${log_dir}/04_mavros_ev.log" \
   ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py \
     fcu_url:="${fcu_url}" \
     start_odom_guard:=true start_ev_health_monitor:=true \
-    start_mavros_vision_bridge:=true start_tf:=true \
+    start_mavros_odometry_bridge:=false start_px4_vehicle_odometry:=true start_tf:=true \
     require_frlio_anchor_status:=true \
     body_to_sensor_x_m:="${MID360_BODY_TO_SENSOR_X_M}" \
     body_to_sensor_y_m:="${MID360_BODY_TO_SENSOR_Y_M}" \
@@ -468,9 +590,9 @@ assert_disarmed
 assert_no_control_publishers
 wait_for_topic_message /Odometry/guarded 20 "${mavros_pid}" best_effort
 wait_for_topic_message /Odometry/healthy 30 "${mavros_pid}" best_effort
-wait_for_topic_message /mavros/vision_pose/pose_cov 20 "${mavros_pid}" reliable
+wait_for_topic_message /mavros/odometry/out 20 "${mavros_pid}" reliable
 require_one_publisher /Odometry/healthy
-require_one_publisher /mavros/vision_pose/pose_cov
+require_one_publisher /mavros/odometry/out
 sleep "${stage_delay_sec}"
 
 # 5. One bag spans the selected validation mode.
@@ -485,6 +607,10 @@ if [[ "${validation_mode}" == load_only ]]; then
     /Odometry/healthy
     /frlio/high_rate_odom/status
     /frlio/high_rate_odom/anchor_age
+    /frlio/high_rate_odom/predictor_age
+    /frlio/high_rate_odom/ev_usable
+    /frlio/high_rate_odom/planner_usable
+    /frlio/high_rate_odom/localization_health
     /ev_health/status
     /ev_health/fault
     /mavros/state
@@ -496,14 +622,20 @@ else
   bag_topics=(
     /frlio_validation/event
     /frlio_validation/lidar_gate_enabled
+    /frlio_validation/imu_gate_enabled
     /livox/imu
     /livox/lidar
     /validation/livox/lidar
+    /validation/livox/imu
     /Odometry
     /Odometry/guarded
     /Odometry/healthy
     /frlio/high_rate_odom/status
     /frlio/high_rate_odom/anchor_age
+    /frlio/high_rate_odom/predictor_age
+    /frlio/high_rate_odom/ev_usable
+    /frlio/high_rate_odom/planner_usable
+    /frlio/high_rate_odom/localization_health
     /ev_health/status
     /ev_health/fault
     /ev_health/diagnostics
@@ -514,8 +646,7 @@ else
     /mavros/local_position/odom
     /mavros/local_position/velocity_local
     /mavros/local_position/velocity_body
-    /mavros/vision_pose/pose_cov
-    /mavros/vision_speed/speed_twist_cov
+    /mavros/odometry/out
     /tf
     /tf_static
     /rosout
@@ -531,7 +662,10 @@ mark SESSION_BEGIN
 if [[ "${validation_mode}" == fault_only ]]; then
   echo
   echo "故障注入链路已就绪：暂停 LiDAR 转发约 1 秒，IMU 和原始 LiDAR 保持运行。"
-  echo "预期：HEALTHY -> SUSPECT_STALE_LIDAR -> FAULT_STALE_LIDAR -> HEALTHY。"
+  echo "预期状态：HEALTHY -> SUSPECT_STALE_LIDAR -> FAULT_STALE_LIDAR -> HEALTHY。"
+  echo "预期数据流：FAULT_STALE_LIDAR 期间 /Odometry 必须持续发布（协方差放大），"
+  echo "            ev_usable 保持 true、planner_usable 变 false。"
+  echo "            LiDAR 变旧不等于 EV 断流；只有 predictor 本身失效才允许断 EV。"
   prompt_enter "确认机体已固定且飞控仍为 armed=false，按 Enter 开始："
   assert_disarmed
   mark LIDAR_FAULT_TEST_BEGIN
@@ -552,6 +686,32 @@ if [[ "${validation_mode}" == fault_only ]]; then
     echo "LiDAR 故障注入检查未通过，详见 lidar_fault_test.json。" >&2
   fi
   exit "${fault_test_rc}"
+fi
+
+if [[ "${validation_mode}" == backend_delay || "${validation_mode}" == predictor_stop ]]; then
+  assert_disarmed
+  mark "${validation_mode^^}_BEGIN"
+  prompt_enter "确认机体已固定且飞控仍为 armed=false，按 Enter 开始故障注入："
+  set +e
+  if [[ "${validation_mode}" == backend_delay ]]; then
+    /usr/bin/python3 "${isolation_helper}" backend-delay \
+      --delay-service /frlio_validation/lidar_delay \
+      --delay-ms "${LIDAR_DELAY_MS:-300}" \
+      --fault-seconds "${BACKEND_DELAY_SECONDS:-4.0}" \
+      --output "${result_dir}/backend_delay_test.json" \
+      2>&1 | tee "${log_dir}/06_backend_delay_test.log"
+  else
+    /usr/bin/python3 "${isolation_helper}" predictor-stop \
+      --imu-service /frlio_validation/imu_gate \
+      --stop-seconds "${PREDICTOR_STOP_SECONDS:-1.0}" \
+      --output "${result_dir}/predictor_stop_test.json" \
+      2>&1 | tee "${log_dir}/06_predictor_stop_test.log"
+  fi
+  isolation_test_rc=${PIPESTATUS[0]}
+  set -e
+  assert_disarmed
+  mark "${validation_mode^^}_END"
+  exit "${isolation_test_rc}"
 fi
 
 if [[ "${validation_mode}" == load_only ]]; then
@@ -577,12 +737,16 @@ if [[ "${validation_mode}" == load_only ]]; then
 
   assert_disarmed
   mark CPU_LOAD_BEGIN
-  start_process "CPU 负载" "${log_dir}/07_cpu_load.log" \
-    /usr/bin/python3 "${helper}" load \
-      --workers "${cpu_load_workers}" --duty "${cpu_load_duty_percent}"
-  cpu_load_pid="${STARTED_PID}"
-  sleep 1
-  wait_process_alive "${cpu_load_pid}" "CPU 负载"
+  if ((cpu_load_workers > 0)); then
+    start_process "CPU 负载" "${log_dir}/07_cpu_load.log" \
+      /usr/bin/python3 "${helper}" load \
+        --workers "${cpu_load_workers}" --duty "${cpu_load_duty_percent}"
+    cpu_load_pid="${STARTED_PID}"
+    sleep 1
+    wait_process_alive "${cpu_load_pid}" "CPU 负载"
+  else
+    echo "CPU_LOAD_WORKERS=0：跳过 CPU 负载，仅执行无负载基线。"
+  fi
   set +e
   /usr/bin/python3 "${helper}" observe --lightweight \
     --duration "${static_duration_sec}" --print-every 30 \
@@ -591,16 +755,23 @@ if [[ "${validation_mode}" == load_only ]]; then
     2>&1 | tee "${log_dir}/08_load_observe.log"
   load_observe_rc=${PIPESTATUS[0]}
   set -e
-  stop_process_group "CPU 负载" "${cpu_load_pid}"
-  cpu_load_pid=""
+  if [[ -n "${cpu_load_pid}" ]]; then
+    stop_process_group "CPU 负载" "${cpu_load_pid}"
+    cpu_load_pid=""
+  fi
   mark CPU_LOAD_END
   ((load_observe_rc == 0)) || echo "[警告] 负载监测异常退出，请结合 rosbag 分析。" >&2
 
   assert_disarmed
   mark SESSION_END
+  if run_timing_acceptance; then
+    timing_acceptance_rc=0
+  else
+    timing_acceptance_rc=$?
+  fi
   echo
   echo "负载测试完成。退出时将先用 SIGINT 保存 rosbag，再停止其他节点。"
-  exit 0
+  exit "${timing_acceptance_rc}"
 fi
 
 echo
@@ -627,8 +798,10 @@ motion_phase YAW_POSITIVE \
 
 echo
 echo "下一阶段自动暂停 LiDAR 转发约 1 秒。Livox 驱动继续运行，所以 IMU 不会中断。"
-echo "预期依次出现 SUSPECT_STALE_LIDAR（锚点 >0.15 s）、FAULT_STALE_LIDAR"
-echo "（锚点 >0.40 s），FAULT 后 /Odometry 停止，恢复后回到 HEALTHY。"
+echo "预期依次出现 SUSPECT_STALE_LIDAR（锚点 >0.18 s；恢复 <0.12 s）、FAULT_STALE_LIDAR"
+echo "（锚点 >0.40 s），恢复后回到 HEALTHY。"
+echo "FAULT_STALE_LIDAR 期间 /Odometry 不停：它是 L2 PLANNER_UNUSABLE，"
+echo "ev_usable 仍为 true，只有 planner_usable 变 false。"
 prompt_enter "请固定机体并确认仍然 armed=false；按 Enter 开始故障注入："
 assert_disarmed
 mark LIDAR_FAULT_TEST_BEGIN
@@ -648,16 +821,20 @@ wait_for_status /frlio/high_rate_odom/status HEALTHY 15 "${frlio_pid}"
 echo
 echo "最后阶段：机体固定静置 ${static_duration_sec} 秒，同时施加受控 CPU 负载。"
 echo "负载为 ${cpu_load_workers} 个 worker、每个 ${cpu_load_duty_percent}% 占空比；不会占满全部 CPU。"
-echo "每 30 秒打印状态、最大锚点年龄和超过 0.15 s 的样本数。"
+echo "每 30 秒打印状态、最大锚点年龄和超过 0.18 s 的样本数。"
 prompt_enter "把机体牢固放置、不要触碰，按 Enter 开始："
 assert_disarmed
 mark STATIC_CPU_LOAD_BEGIN
-start_process "CPU 负载" "${log_dir}/07_cpu_load.log" \
-  /usr/bin/python3 "${helper}" load \
-    --workers "${cpu_load_workers}" --duty "${cpu_load_duty_percent}"
-cpu_load_pid="${STARTED_PID}"
-sleep 1
-wait_process_alive "${cpu_load_pid}" "CPU 负载"
+if ((cpu_load_workers > 0)); then
+  start_process "CPU 负载" "${log_dir}/07_cpu_load.log" \
+    /usr/bin/python3 "${helper}" load \
+      --workers "${cpu_load_workers}" --duty "${cpu_load_duty_percent}"
+  cpu_load_pid="${STARTED_PID}"
+  sleep 1
+  wait_process_alive "${cpu_load_pid}" "CPU 负载"
+else
+  echo "CPU_LOAD_WORKERS=0：跳过 CPU 负载，仅执行无负载静置。"
+fi
 set +e
 /usr/bin/python3 "${helper}" observe \
   --duration "${static_duration_sec}" --print-every 30 \
@@ -666,11 +843,20 @@ set +e
   2>&1 | tee "${log_dir}/08_static_observe.log"
 observe_rc=${PIPESTATUS[0]}
 set -e
-stop_process_group "CPU 负载" "${cpu_load_pid}"
+if [[ -n "${cpu_load_pid}" ]]; then
+  stop_process_group "CPU 负载" "${cpu_load_pid}"
+  cpu_load_pid=""
+fi
 mark STATIC_CPU_LOAD_END
 ((observe_rc == 0)) || echo "[警告] 静置监测程序异常退出，请结合 rosbag 分析。" >&2
 
 assert_disarmed
 mark SESSION_END
+if run_timing_acceptance; then
+  timing_acceptance_rc=0
+else
+  timing_acceptance_rc=$?
+fi
 echo
 echo "全部提示阶段完成。退出时将先用 SIGINT 正常保存 rosbag，再停止其他节点。"
+exit "${timing_acceptance_rc}"

@@ -76,6 +76,29 @@ def test_normal_backward_motion_has_matching_negative_sign():
     assert result.state == HealthState.HEALTHY
 
 
+def test_relocalization_commits_once_after_stable_new_frame():
+    core = EvHealthMonitorCore(
+        config(
+            enable_relocalization=True,
+            relocalization_stable_s=0.20,
+            max_position_jump_m=0.15,
+        )
+    )
+    add_frame(core, 1.0, 0.0)
+    add_frame(core, 1.1, 0.01)
+    jump = add_frame(core, 1.2, 1.0)
+    assert not jump.publish
+    recovering = add_frame(core, 1.3, 1.01)
+    assert not recovering.publish
+    committed = add_frame(core, 1.5, 1.02)
+    assert committed.publish
+    assert committed.relocalized
+    assert committed.reset_counter == 1
+    duplicate = add_frame(core, 1.6, 1.03)
+    assert duplicate.reset_counter == 1
+    assert not duplicate.relocalized
+
+
 def test_internal_velocity_matches_position_derivative_in_common_frame():
     core = EvHealthMonitorCore(config())
     add_frame(
@@ -267,7 +290,7 @@ def test_persistent_position_jump_reaches_fault_without_following_bad_track():
 @pytest.mark.parametrize(
     "second_stamp,second_x,reason",
     [
-        (1.0, 0.0, "non_monotonic_stamp"),
+        (1.0, 0.1, "non_monotonic_stamp"),
         (0.9, 0.0, "non_monotonic_stamp"),
         (1.1, math.nan, "non_finite_ev_message"),
     ],
@@ -282,6 +305,29 @@ def test_zero_dt_timestamp_regression_and_nan_are_rejected(
     assert not result.accepted
     assert not result.publish
     assert reason in result.reason
+
+
+def test_exact_duplicate_timestamp_is_dropped_without_fault_and_new_frame_recovers():
+    core = EvHealthMonitorCore(config())
+    first = add_frame(core, 1.0, 0.0, px4_velocity_enu=(0.5, 0.0, 0.0))
+    assert first.state == HealthState.HEALTHY
+
+    duplicate = core.process_ev(
+        stamp_s=1.0,
+        receive_time_s=1.01,
+        raw_position_enu=(0.0, 0.0, 0.0),
+        covariance_xyz=(0.01, 0.01, 0.01),
+    )
+    assert not duplicate.accepted
+    assert not duplicate.publish
+    assert duplicate.state == HealthState.HEALTHY
+
+    following = add_frame(
+        core, 1.1, 0.05, px4_velocity_enu=(0.5, 0.0, 0.0)
+    )
+    assert following.accepted
+    assert following.publish
+    assert following.state == HealthState.HEALTHY
 
 
 def test_positive_sub_millisecond_sample_is_dropped_without_health_recovery():

@@ -62,6 +62,9 @@ public:
 		max_computed_z_speed_mps_ = declare_parameter<double>("max_computed_z_speed_mps", 1.2);
 		velocity_window_s_ = declare_parameter<double>("velocity_window_s", 0.12);
 		rebaseline_after_rejections_ = declare_parameter<int>("rebaseline_after_rejections", 8);
+		// Re-baselining can hide a real localization jump.  It is therefore an
+		// explicit ground-recovery action, disabled during flight by default.
+		allow_rebaseline_ = declare_parameter<bool>("allow_rebaseline", false);
 		if (velocity_window_s_ <= min_dt_s_) {
 			throw std::invalid_argument("velocity_window_s must be greater than min_dt_s");
 		}
@@ -110,6 +113,7 @@ private:
 	double max_computed_z_speed_mps_{1.2};
 	double velocity_window_s_{0.12};
 	int rebaseline_after_rejections_{8};
+	bool allow_rebaseline_{false};
 	double max_reported_speed_mps_{4.0};
 	double max_reported_z_speed_mps_{2.0};
 	double min_unknown_angular_variance_{1.0e5};
@@ -303,7 +307,7 @@ private:
 			std::ostringstream ss;
 			ss << "position jump " << position_jump << " m";
 			reason = ss.str();
-			if (rebaseline_after_rejections_ > 0 &&
+			if (allow_rebaseline_ && rebaseline_after_rejections_ > 0 &&
 				consecutive_rejections_ + 1 >= static_cast<std::size_t>(rebaseline_after_rejections_) &&
 				stable_rebaseline_candidate(current_time_s)) {
 				reason += "; stable window, rebaseline guard";
@@ -316,7 +320,7 @@ private:
 			std::ostringstream ss;
 			ss << "xy jump " << xy_jump << " m";
 			reason = ss.str();
-			if (rebaseline_after_rejections_ > 0 &&
+			if (allow_rebaseline_ && rebaseline_after_rejections_ > 0 &&
 				consecutive_rejections_ + 1 >= static_cast<std::size_t>(rebaseline_after_rejections_) &&
 				stable_rebaseline_candidate(current_time_s)) {
 				reason += "; stable window, rebaseline guard";
@@ -329,7 +333,7 @@ private:
 			std::ostringstream ss;
 			ss << "z jump " << dz << " m";
 			reason = ss.str();
-			if (rebaseline_after_rejections_ > 0 &&
+			if (allow_rebaseline_ && rebaseline_after_rejections_ > 0 &&
 				consecutive_rejections_ + 1 >= static_cast<std::size_t>(rebaseline_after_rejections_) &&
 				stable_rebaseline_candidate(current_time_s)) {
 				reason += "; stable window, rebaseline guard";
@@ -340,16 +344,16 @@ private:
 
 		if (dt > max_dt_s_) {
 			std::ostringstream ss;
-			ss << "large dt " << dt << " s; safely rebaseline near last accepted pose";
+			ss << "large dt " << dt << " s; reject until an explicit ground recovery";
 			reason = ss.str();
-			return MotionGateResult::RejectAndRebaseline;
+			return allow_rebaseline_ ? MotionGateResult::RejectAndRebaseline : MotionGateResult::Reject;
 		}
 
 		if (computed_speed > max_computed_speed_mps_) {
 			std::ostringstream ss;
 			ss << "computed speed " << computed_speed << " m/s over " << comparison_dt << " s";
 			reason = ss.str();
-			if (rebaseline_after_rejections_ > 0 &&
+			if (allow_rebaseline_ && rebaseline_after_rejections_ > 0 &&
 				consecutive_rejections_ + 1 >= static_cast<std::size_t>(rebaseline_after_rejections_) &&
 				stable_rebaseline_candidate(current_time_s)) {
 				reason += "; stable window, rebaseline guard";
@@ -362,7 +366,7 @@ private:
 			std::ostringstream ss;
 			ss << "computed z speed " << computed_z_speed << " m/s";
 			reason = ss.str();
-			if (rebaseline_after_rejections_ > 0 &&
+			if (allow_rebaseline_ && rebaseline_after_rejections_ > 0 &&
 				consecutive_rejections_ + 1 >= static_cast<std::size_t>(rebaseline_after_rejections_) &&
 				stable_rebaseline_candidate(current_time_s)) {
 				reason += "; stable window, rebaseline guard";

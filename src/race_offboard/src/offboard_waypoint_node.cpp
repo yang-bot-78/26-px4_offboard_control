@@ -10,11 +10,13 @@
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <mavros_msgs/msg/debug_value.hpp>
 #include <mavros_msgs/msg/position_target.hpp>
 #include <mavros_msgs/msg/state.hpp>
 #include <mavros_msgs/srv/command_bool.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
 #include <nav_msgs/msg/odometry.hpp>
+#include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <race_msgs/msg/flight_altitude_reference.hpp>
 #include <race_msgs/msg/global_planner_status.hpp>
 #include <race_msgs/msg/navigation_setpoint.hpp>
@@ -30,8 +32,10 @@
 #include "race_offboard/global_planner_status_policy.hpp"
 #include "race_offboard/ego_command_guard.hpp"
 #include "race_offboard/ev_health_tracker.hpp"
+#include "race_offboard/frlio_health_policy.hpp"
 #include "race_offboard/local_origin_rebase_guard.hpp"
 #include "race_offboard/mavros_frame_utils.hpp"
+#include "race_offboard/px4_local_z_reset_tracker.hpp"
 
 using namespace std::chrono_literals;
 
@@ -135,6 +139,26 @@ public:
     ev_health_topic_ = declare_parameter<std::string>("ev_health_topic", "/ev_health/status");
     ev_flight_ready_topic_ = declare_parameter<std::string>(
       "ev_flight_ready_topic", "/ev_health/flight_ready");
+    frlio_status_topic_ = declare_parameter<std::string>(
+      "frlio_status_topic", "/frlio/high_rate_odom/status");
+    frlio_planner_usable_topic_ = declare_parameter<std::string>(
+      "frlio_planner_usable_topic", "/frlio/high_rate_odom/planner_usable");
+    frlio_fault_hold_enabled_ = declare_parameter<bool>("frlio_fault_hold_enabled", true);
+    // A LiDAR-stale hold is recoverable: FR-LIO republishing a usable planner
+    // state releases it, after the vehicle has been stably held for this long.
+    // Latching it for the rest of the flight turned a ~200 ms LiDAR hiccup into
+    // a mission abort. The permanent latch remains for the genuinely
+    // unrecoverable classes (planner_safety_failure_latched_, pilot override).
+    frlio_hold_release_stable_sec_ =
+      declare_parameter<double>("frlio_hold_release_stable_sec", 1.0);
+    frlio_hold_release_enabled_ =
+      declare_parameter<bool>("frlio_hold_release_enabled", true);
+    frlio_status_timeout_sec_ =
+      declare_parameter<double>("frlio_status_timeout_sec", 0.5);
+    if (frlio_hold_release_stable_sec_ < 0.0 || frlio_status_timeout_sec_ <= 0.0) {
+      throw std::runtime_error(
+              "frlio_hold_release_stable_sec must be >= 0 and frlio_status_timeout_sec > 0");
+    }
     ev_health_required_s_ = declare_parameter<double>("ev_health_required_s", 7.5);
     ev_health_freshness_s_ = declare_parameter<double>("ev_health_freshness_s", 0.5);
     ev_fault_auto_land_ = declare_parameter<bool>("ev_fault_auto_land", true);
@@ -146,6 +170,8 @@ public:
       declare_parameter<double>("local_origin_rebase_max_spread_m", 0.08);
     local_origin_rebase_max_speed_mps_ =
       declare_parameter<double>("local_origin_rebase_max_speed_mps", 0.20);
+    px4_local_z_reset_topic_ = declare_parameter<std::string>(
+      "px4_local_z_reset_topic", "/mavros/debug_value/debug_vector");
     local_origin_rebase_guard_.configure(
       local_origin_rebase_stabilization_sec_, local_origin_rebase_max_spread_m_,
       local_origin_rebase_max_speed_mps_);
@@ -249,6 +275,15 @@ public:
     local_velocity_subscriber_ = create_subscription<geometry_msgs::msg::TwistStamped>(
       "/mavros/local_position/velocity_local", rclcpp::SensorDataQoS(),
       std::bind(&OffboardWaypointNode::localVelocityCallback, this, std::placeholders::_1));
+    px4_local_position_subscriber_ = create_subscription<px4_msgs::msg::VehicleLocalPosition>(
+      "/fmu/out/vehicle_local_position_v1", rclcpp::SensorDataQoS(),
+      std::bind(&OffboardWaypointNode::px4LocalPositionCallback, this, std::placeholders::_1));
+    if (!px4_local_z_reset_topic_.empty()) {
+      px4_local_z_reset_subscriber_ =
+        create_subscription<mavros_msgs::msg::DebugValue>(
+        px4_local_z_reset_topic_, rclcpp::SensorDataQoS(),
+        std::bind(&OffboardWaypointNode::px4LocalZResetCallback, this, std::placeholders::_1));
+    }
     const auto ev_latched_qos = rclcpp::QoS(1).reliable().transient_local();
     ev_health_subscriber_ = create_subscription<std_msgs::msg::String>(
       ev_health_topic_, ev_latched_qos,
@@ -256,6 +291,13 @@ public:
     ev_flight_ready_subscriber_ = create_subscription<std_msgs::msg::Bool>(
       ev_flight_ready_topic_, ev_latched_qos,
       std::bind(&OffboardWaypointNode::evFlightReadyCallback, this, std::placeholders::_1));
+    frlio_status_subscriber_ = create_subscription<std_msgs::msg::String>(
+      frlio_status_topic_, ev_latched_qos,
+      std::bind(&OffboardWaypointNode::frlioStatusCallback, this, std::placeholders::_1));
+    frlio_planner_usable_subscriber_ = create_subscription<std_msgs::msg::Bool>(
+      frlio_planner_usable_topic_, ev_latched_qos,
+      std::bind(
+        &OffboardWaypointNode::frlioPlannerUsableCallback, this, std::placeholders::_1));
     vehicle_status_subscriber_ = create_subscription<mavros_msgs::msg::State>(
       "/mavros/state", rclcpp::SensorDataQoS(),
       std::bind(&OffboardWaypointNode::vehicleStatusCallback, this, std::placeholders::_1));
@@ -377,6 +419,150 @@ private:
     current_vy_ = static_cast<float>(velocity_ned[1]);
     current_vz_ = static_cast<float>(velocity_ned[2]);
     have_local_velocity_ = true;
+  }
+
+  void px4LocalPositionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
+  {
+    px4_local_position_seen_ = true;
+    dead_reckoning_ = msg->dead_reckoning;
+    xy_valid_ = msg->xy_valid;
+    z_valid_ = msg->z_valid;
+    heading_good_ = msg->heading_good_for_control;
+    current_x_ = msg->x;
+    current_y_ = msg->y;
+    current_z_ = msg->z;
+    current_vx_ = msg->vx;
+    current_vy_ = msg->vy;
+    current_vz_ = msg->vz;
+    const auto counter = msg->z_reset_counter;
+    if (counter == last_px4_z_reset_counter_ && px4_local_z_reset_tracker_.initialized()) {
+      return;
+    }
+    const auto observation = px4_local_z_reset_tracker_.observe(counter, msg->delta_z);
+    if (observation.decision == race_offboard::Px4LocalZResetDecision::Initialized) {
+      last_px4_z_reset_counter_ = counter;
+      return;
+    }
+    if (observation.decision == race_offboard::Px4LocalZResetDecision::Applied) {
+      last_px4_z_reset_counter_ = counter;
+      applyPx4LocalZReset(observation.delta_z_ned, observation.cumulative_delta_z_ned, counter);
+    }
+  }
+
+  void px4LocalZResetCallback(const mavros_msgs::msg::DebugValue::SharedPtr msg)
+  {
+    constexpr const char * kResetEventName = "PX4_Z_RST";
+    if (msg->type != mavros_msgs::msg::DebugValue::TYPE_DEBUG_VECT ||
+      msg->name != kResetEventName)
+    {
+      return;
+    }
+    if (msg->data.size() != 3U || !std::isfinite(msg->data[0]) ||
+      !std::isfinite(msg->data[1]) || !std::isfinite(msg->data[2]))
+    {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[PX4_LOCAL_Z_RESET_REJECT] malformed %s event on %s",
+        kResetEventName, px4_local_z_reset_topic_.c_str());
+      return;
+    }
+
+    const auto counter_rounded = std::lround(msg->data[1]);
+    if (counter_rounded < 0 || counter_rounded > 255 ||
+      std::fabs(msg->data[1] - static_cast<float>(counter_rounded)) > 1e-3F)
+    {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[PX4_LOCAL_Z_RESET_REJECT] invalid counter=%f on %s",
+        static_cast<double>(msg->data[1]), px4_local_z_reset_topic_.c_str());
+      return;
+    }
+    const auto reset_counter = static_cast<std::uint8_t>(counter_rounded);
+    const auto observation = px4_local_z_reset_tracker_.observe(
+      reset_counter, static_cast<double>(msg->data[0]));
+    if (observation.decision == race_offboard::Px4LocalZResetDecision::Initialized) {
+      RCLCPP_INFO(
+        get_logger(),
+        "[PX4_LOCAL_Z_RESET_BASELINE] counter=%u dead_reckoning=%s topic=%s",
+        static_cast<unsigned int>(reset_counter), msg->data[2] > 0.5F ? "true" : "false",
+        px4_local_z_reset_topic_.c_str());
+      return;
+    }
+    if (observation.decision == race_offboard::Px4LocalZResetDecision::RejectedNonFinite) {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[PX4_LOCAL_Z_RESET_REJECT] counter=%u delta_z is non-finite; retaining prior targets",
+        static_cast<unsigned int>(reset_counter));
+      return;
+    }
+    if (observation.decision != race_offboard::Px4LocalZResetDecision::Applied) {
+      return;
+    }
+
+    last_px4_z_reset_counter_ = reset_counter;
+    applyPx4LocalZReset(
+      observation.delta_z_ned, observation.cumulative_delta_z_ned, reset_counter);
+  }
+
+  // PX4 defines delta_z in its local NED frame: the same physical point that
+  // was at z_old is at z_old + delta_z after the estimator reset. Every cached
+  // local target must therefore receive the same addition before the next
+  // 20 Hz keepalive can overwrite PX4's own reset-aware setpoint adjustment.
+  void applyPx4LocalZReset(
+    double delta_z_ned, double cumulative_delta_z_ned, std::uint8_t reset_counter)
+  {
+    // No timer callback may publish a stale local-frame command while this
+    // transaction updates every cached target and the map/local transform.
+    setpoint_publish_blocked_ = true;
+    local_z_rebase_offset_ned_ = cumulative_delta_z_ned;
+    if (flight_altitude_reference_valid_) {
+      ground_z_local_ned_ = race_offboard::rebaseLocalNedZ(
+        ground_z_local_ned_, delta_z_ned);
+      target_z_local_ned_ = race_offboard::rebaseLocalNedZ(
+        target_z_local_ned_, delta_z_ned);
+      publishFlightAltitudeReference();
+    }
+    if (hold_position_valid_) {
+      hold_z_ = static_cast<float>(race_offboard::rebaseLocalNedZ(hold_z_, delta_z_ned));
+    }
+    if (have_setpoint_) {
+      latest_setpoint_.position.z = race_offboard::rebaseLocalNedZ(
+        latest_setpoint_.position.z, delta_z_ned);
+    }
+    if (have_ego_setpoint_) {
+      latest_ego_setpoint_.position[2] = race_offboard::rebaseLocalNedZ(
+        latest_ego_setpoint_.position[2], delta_z_ned);
+    }
+    // An EGO PositionTarget is a local-frame command with no estimator reset
+    // generation in the message itself. Rebase the cached value for
+    // diagnostics, then drop it and require a newer planner sequence; a queued
+    // pre-reset callback must not become active after this transaction.
+    if (control_source_ == "ego") {
+      have_ego_setpoint_ = false;
+      awaiting_initial_ego_trajectory_ = true;
+      minimum_ego_command_goal_seq_ = ego_command_goal_seq_;
+      initial_ego_trajectory_wait_start_ = now();
+    }
+
+    // map_to_local_.z is ENU. A positive local-NED reset moves local ENU Z
+    // down by the same amount, so the map->local translation has the opposite
+    // sign. This keeps map-frame goals physical and prevents double applying
+    // local_z_rebase_offset_ned_ on the aligned paths below.
+    map_to_local_.z = race_offboard::rebaseMapToLocalEnuZ(map_to_local_.z, delta_z_ned);
+    if (map_local_alignment_candidate_valid_) {
+      map_to_local_candidate_.z = race_offboard::rebaseMapToLocalEnuZ(
+        map_to_local_candidate_.z, delta_z_ned);
+    }
+
+    RCLCPP_WARN(
+      get_logger(),
+      "[PX4_LOCAL_Z_RESET_REBASED] counter=%u delta_z_ned=%+.6f cumulative=%+.6f "
+      "hold=%s flight_reference=%s cached_navigation=%s cached_ego=%s",
+      static_cast<unsigned int>(reset_counter), delta_z_ned, local_z_rebase_offset_ned_,
+      hold_position_valid_ ? "true" : "false",
+      flight_altitude_reference_valid_ ? "true" : "false",
+      have_setpoint_ ? "true" : "false", have_ego_setpoint_ ? "true" : "false");
+    setpoint_publish_blocked_ = false;
   }
 
   void localPositionCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
@@ -548,15 +734,12 @@ private:
     current_y_ = y_ned;
     current_z_ = z_ned;
     current_yaw_ = static_cast<float>(yaw_ned);
-    // MAVROS pose carries no estimator validity flags.  A finite, monotonic,
-    // jump-checked pose is the strongest statement available here, so the flags
-    // degrade to "we have a usable sample".  require_strict_local_position_health
-    // defaults to false, so this matches the previous effective behaviour; FCU
-    // link loss is caught separately via State.connected in localPositionSafe().
+    // MAVROS pose carries no estimator validity flags.  PX4 DDS
+    // VehicleLocalPosition is authoritative for dead_reckoning and validity;
+    // do not overwrite those fields with a mere received-pose indication.
     xy_valid_ = true;
     z_valid_ = true;
     heading_good_ = true;
-    dead_reckoning_ = false;
     have_local_position_ = true;
     last_trusted_position_stamp_ = stamp;
     have_trusted_position_stamp_ = true;
@@ -683,6 +866,146 @@ private:
       RCLCPP_INFO(
         get_logger(), "[EV_FLIGHT_READY] ready=%d continuous_ready=%.2fs",
         msg->data, ev_flight_ready_.healthyDurationS(now_ns));
+    }
+  }
+
+  // FR-LIO's status is a *level*, not a trigger. Map it to planner usability
+  // and let the planner-usable signal own the hold. FAULT_STALE_LIDAR means
+  // "LiDAR posterior is stale, EV is still real": stop planning, keep flying,
+  // keep the Offboard stream up, and recover automatically when FR-LIO does.
+  void frlioStatusCallback(const std_msgs::msg::String::SharedPtr msg)
+  {
+    frlio_status_ = msg->data;
+    last_frlio_status_time_ = now();
+    // A STATE_UNUSABLE-class status is the one FR-LIO report that genuinely
+    // means "there is no trustworthy state". Record it so the in-flight EV
+    // guard can act on it directly instead of waiting for the EV monitor's
+    // anomaly-to-fault timer to expire. This adds a fault path; it does not
+    // remove one.
+    frlio_state_unusable_ = !race_offboard::frlioStatusAllowsEvFusion(msg->data);
+    if (frlio_state_unusable_) {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[FRLIO_STATE_UNUSABLE] status=%s; the propagated state itself is not "
+        "trustworthy, so this is a real EV loss rather than a planner hold",
+        msg->data.c_str());
+    }
+    applyFrlioPlannerUsable(
+      race_offboard::frlioStatusAllowsPlanning(msg->data), "status=" + msg->data);
+  }
+
+  // Preferred input when FR-LIO publishes it: an explicit boolean removes any
+  // status-string parsing from the safety path.
+  void frlioPlannerUsableCallback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    have_frlio_planner_usable_ = true;
+    last_frlio_status_time_ = now();
+    applyFrlioPlannerUsable(msg->data, msg->data ? "planner_usable=true" : "planner_usable=false");
+  }
+
+  void applyFrlioPlannerUsable(bool planner_usable, const std::string & reason)
+  {
+    if (planner_usable) {
+      if (!frlio_planner_hold_active_) {
+        return;
+      }
+      if (!frlio_hold_release_enabled_) {
+        RCLCPP_INFO_THROTTLE(
+          get_logger(), *get_clock(), 1000,
+          "[FRLIO_RECOVERED] %s; automatic release disabled, holding until navigation "
+          "is explicitly restarted", reason.c_str());
+        return;
+      }
+      // Release only after the aircraft has actually settled: resuming while it
+      // is still braking would hand the planner a moving start state.
+      if (frlio_planner_usable_since_.nanoseconds() == 0) {
+        frlio_planner_usable_since_ = now();
+        RCLCPP_INFO(
+          get_logger(), "[FRLIO_RECOVERING] %s; releasing hold after %.2fs stable",
+          reason.c_str(), frlio_hold_release_stable_sec_);
+      }
+      return;
+    }
+
+    frlio_planner_usable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    if (!frlio_fault_hold_enabled_ || frlio_planner_hold_active_) {
+      return;
+    }
+    frlio_planner_hold_active_ = true;
+    // Preserve the active goal and last validated EGO transaction. The hold
+    // branch remains authoritative until recovery, so retaining this context
+    // cannot leak a trajectory command while planner_usable=false.
+    if (state_ == State::TAKEOFF || state_ == State::ACTIVE) {
+      beginBraking(
+        ControlState::PLANNER_FAILURE_HOLD,
+        "FR-LIO LiDAR correction stale; hold on covariance-degraded EV");
+    }
+    RCLCPP_ERROR(
+      get_logger(),
+      "[FRLIO_DEGRADED_HOLD] %s; stopped trajectory intake and braking to hold. "
+      "PX4 EV remains continuous with inflated covariance and the Offboard "
+      "setpoint stream keeps running.",
+      reason.c_str());
+  }
+
+  // Called from the control loop so the release decision uses the same clock
+  // and vehicle state as the hold itself.
+  void updateFrlioHoldRelease()
+  {
+    if (!frlio_planner_hold_active_ || !frlio_hold_release_enabled_) {
+      return;
+    }
+    if (frlio_planner_usable_since_.nanoseconds() == 0) {
+      return;
+    }
+    const double stable_sec = (now() - frlio_planner_usable_since_).seconds();
+    if (!race_offboard::frlioHoldReleaseReady(
+        frlio_planner_hold_active_, true, stable_sec, frlio_hold_release_stable_sec_,
+        horizontalSpeed(), hold_velocity_tolerance_))
+    {
+      if (stable_sec >= frlio_hold_release_stable_sec_) {
+        // The window elapsed but the vehicle is still moving: restart it rather
+        // than resume planning from a moving start state.
+        frlio_planner_usable_since_ = now();
+      }
+      return;
+    }
+    frlio_planner_hold_active_ = false;
+    frlio_planner_usable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    RCLCPP_WARN(
+      get_logger(),
+      "[FRLIO_HOLD_RELEASED] stable=%.2fs speed=%.3f; planning may resume",
+      stable_sec, horizontalSpeed());
+    if (goal_active_ && !navigation_cancelled_ &&
+      (state_ == State::TAKEOFF || state_ == State::ACTIVE))
+    {
+      // The Bridge validates the first post-recovery command against measured
+      // P/V/A. Accept the same local_goal_seq when it is continuous; a failed
+      // check causes a same-goal reanchor upstream.
+      setControlState(ControlState::PLANNING, "FR-LIO planner state usable again");
+    }
+  }
+
+  bool frlioStatusFresh()
+  {
+    return last_frlio_status_time_.nanoseconds() != 0 &&
+           (now() - last_frlio_status_time_).seconds() <= frlio_status_timeout_sec_;
+  }
+
+  // A missing FR-LIO status means we cannot tell whether the planner may plan,
+  // so it holds -- the same fail-closed treatment an explicit
+  // planner_usable=false gets. It deliberately does NOT touch EV: the EV chain
+  // has its own freshness gate (ev_health_) and PX4 EKF2 has its own EV
+  // timeout, so a lost FR-LIO status topic must not add an EV interruption.
+  void updateFrlioStatusFreshness()
+  {
+    if (last_frlio_status_time_.nanoseconds() == 0) {
+      // Nothing received yet. Startup is covered by the pre-arm EV gate; do not
+      // synthesize a hold before the first message has had a chance to arrive.
+      return;
+    }
+    if (!frlioStatusFresh()) {
+      applyFrlioPlannerUsable(false, "frlio_status_timeout");
     }
   }
 
@@ -821,6 +1144,13 @@ private:
     if (navigation_cancelled_) {
       return;
     }
+    if (frlio_planner_hold_active_) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[FRLIO_HOLD_REJECT_SETPOINT] status=%s; holding, Offboard stream continues",
+        frlio_status_.c_str());
+      return;
+    }
     if (require_map_local_alignment_ && !map_local_alignment_ready_) {
       RCLCPP_ERROR_THROTTLE(
         get_logger(), *get_clock(), 1000,
@@ -855,15 +1185,6 @@ private:
       return;
     }
 
-    const double commanded_height = heightAglForLocalNed(msg->position.z);
-    if (commanded_height < min_command_height_m_ || commanded_height > max_command_height_m_) {
-      RCLCPP_ERROR_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "Reject navigation height %.2fm outside hard safety range [%.2f, %.2f]m",
-        commanded_height, min_command_height_m_, max_command_height_m_);
-      return;
-    }
-
     latest_setpoint_ = *msg;
     if (map_local_alignment_ready_) {
       const auto map_enu = race_offboard::nedToEnu(
@@ -886,6 +1207,20 @@ private:
         latest_setpoint_.velocity.y = local_velocity_ned[1];
         latest_setpoint_.velocity.z = local_velocity_ned[2];
       }
+    } else {
+      // Unaligned producers use the local frame that existed when their
+      // trajectory was created. Preserve that physical target across every
+      // PX4 local-Z reset seen since this controller started.
+      latest_setpoint_.position.z = race_offboard::rebaseLocalNedZ(
+        latest_setpoint_.position.z, local_z_rebase_offset_ned_);
+    }
+    const double commanded_height = heightAglForLocalNed(latest_setpoint_.position.z);
+    if (commanded_height < min_command_height_m_ || commanded_height > max_command_height_m_) {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "Reject navigation height %.2fm outside hard safety range [%.2f, %.2f]m",
+        commanded_height, min_command_height_m_, max_command_height_m_);
+      return;
     }
     latest_setpoint_.yaw = wrapAngle(latest_setpoint_.yaw);
     have_setpoint_ = true;
@@ -906,6 +1241,16 @@ private:
       return;
     }
     if (navigation_cancelled_) {
+      return;
+    }
+    // FR-LIO says the LiDAR posterior is stale: refuse new trajectories while
+    // continuing to fly the hold. The setpoint stream itself is unaffected --
+    // publishLockedHold() keeps running from the control loop.
+    if (frlio_planner_hold_active_) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[FRLIO_HOLD_REJECT_SETPOINT] status=%s; holding, Offboard stream continues",
+        frlio_status_.c_str());
       return;
     }
     if (require_map_local_alignment_ && !map_local_alignment_ready_) {
@@ -958,6 +1303,9 @@ private:
         command.yaw = race_offboard::enuYawToNed(
           race_offboard::mapToLocalYaw(raw->yaw, map_to_local_));
       }
+    } else {
+      command.position[2] = race_offboard::rebaseLocalNedZ(
+        command.position[2], local_z_rebase_offset_ned_);
     }
     const auto msg = &command;
     if (awaiting_initial_ego_trajectory_ &&
@@ -1296,9 +1644,52 @@ private:
     setControlState(ControlState::BRAKING, reason);
   }
 
+  // PX4 leaves OFFBOARD after roughly 0.5 s without a setpoint. Every hold and
+  // braking path therefore has to keep publishing: a planner-side hold must
+  // never turn into "Offboard signal lost". When there is no valid hold point
+  // but the vehicle is armed in OFFBOARD, resend the last command that was
+  // already accepted rather than going silent. Repeating a *setpoint* is what
+  // PX4 expects; this is not the same as repeating a stale state estimate,
+  // which remains forbidden.
+  bool publishOffboardKeepalive(const char * reason)
+  {
+    if (setpoint_publish_blocked_) {
+      return false;
+    }
+    if (!armed_ || !offboard_mode_ || !last_command_valid_) {
+      return false;
+    }
+    mavros_msgs::msg::PositionTarget msg{};
+    msg.header.stamp = now();
+    msg.coordinate_frame = mavros_msgs::msg::PositionTarget::FRAME_LOCAL_NED;
+    const auto position_enu = race_offboard::nedToEnu(
+      {last_command_x_, last_command_y_, static_cast<float>(targetFlightZNed())});
+    msg.type_mask = mavros_msgs::msg::PositionTarget::IGNORE_VX |
+      mavros_msgs::msg::PositionTarget::IGNORE_VY |
+      mavros_msgs::msg::PositionTarget::IGNORE_VZ |
+      mavros_msgs::msg::PositionTarget::IGNORE_AFX |
+      mavros_msgs::msg::PositionTarget::IGNORE_AFY |
+      mavros_msgs::msg::PositionTarget::IGNORE_AFZ |
+      mavros_msgs::msg::PositionTarget::IGNORE_YAW_RATE;
+    msg.position.x = position_enu[0];
+    msg.position.y = position_enu[1];
+    msg.position.z = position_enu[2];
+    msg.yaw = static_cast<float>(race_offboard::nedYawToEnu(last_command_yaw_));
+    trajectory_setpoint_publisher_->publish(msg);
+    RCLCPP_ERROR_THROTTLE(
+      get_logger(), *get_clock(), 1000,
+      "[OFFBOARD_KEEPALIVE] reason=%s; no valid hold point, resending the last "
+      "accepted command so OFFBOARD is not lost", reason);
+    return true;
+  }
+
   void publishSafetySetpoint(float vx, float vy, float vz, float ax, float ay, float az)
   {
+    if (setpoint_publish_blocked_) {
+      return;
+    }
     if (!hold_position_valid_) {
+      publishOffboardKeepalive("hold_position_invalid");
       return;
     }
     // Hold and braking always supply finite position, velocity and
@@ -1345,6 +1736,9 @@ private:
   {
     if (!hold_position_valid_) {
       setControlState(ControlState::WAITING_FOR_ODOM, "cannot brake without odometry");
+      // Braking without a hold point is impossible, but abandoning the setpoint
+      // stream would add an OFFBOARD loss on top of the odometry loss.
+      publishOffboardKeepalive("braking_without_hold_point");
       return;
     }
     const double elapsed = (now() - braking_start_time_).seconds();
@@ -1389,6 +1783,8 @@ private:
       " handover_accepted=" + (manual_handover_accepted_ ? "1" : "0") +
       " map_local_alignment=" + (map_local_alignment_ready_ ? "1" : "0") +
       " position_valid=" + (position_valid ? "1" : "0") +
+      " px4_local_position_seen=" + (px4_local_position_seen_ ? "1" : "0") +
+      " dead_reckoning=" + (dead_reckoning_ ? "1" : "0") +
       " ev_ready=" + (ev_ready ? "1" : "0") +
       " position_aligned=" + (position_aligned ? "1" : "0") +
       " speed_safe=" + (speed_safe ? "1" : "0") +
@@ -1517,6 +1913,9 @@ private:
     if (state_ == State::FINISHED) {
       return;
     }
+    // Evaluated every tick so the release decision sees the current speed.
+    updateFrlioStatusFreshness();
+    updateFrlioHoldRelease();
     if (pilot_override_latched_ || state_ == State::MANUAL_OVERRIDE) {
       publishControlDiagnostics("pilot_override");
       return;
@@ -1525,7 +1924,11 @@ private:
     // vertical takeoff reaches ACTIVE.  Takeoff velocity and handover
     // transients are expected; the pilot must take over if health degrades in
     // that phase. SUSPECT and status staleness do not by themselves descend.
-    if (require_ev_health_ && ev_health_.faulted() && armed_ &&
+    // Either the EV monitor declared a fault, or FR-LIO itself reported that the
+    // propagated state is unusable. The second is the L3 case: there is no
+    // trustworthy state at all, which is the only condition that justifies
+    // descending rather than holding.
+    if (require_ev_health_ && (ev_health_.faulted() || frlio_state_unusable_) && armed_ &&
       state_ != State::LANDING && state_ != State::IDLE)
     {
       const bool auto_land_for_fault = race_offboard::shouldAutoLandForEvFault(
@@ -1572,6 +1975,10 @@ private:
           RCLCPP_ERROR_THROTTLE(
             get_logger(), *get_clock(), 1000,
             "[GROUND_REFERENCE_RELOCK_BLOCKED] armed=true; refusing automatic hold lock");
+          // Refusing to relock the hold is correct. Dropping the setpoint
+          // stream on an armed vehicle is not: it would take OFFBOARD away
+          // from the pilot at the same moment.
+          publishOffboardKeepalive("armed_idle_without_hold");
           publishControlDiagnostics("safety_hold_blocked");
           return;
         }
@@ -1846,6 +2253,8 @@ private:
       status.find("BLOCKED") != std::string::npos ||
       status.find("TRAJECTORY_TIMEOUT") != std::string::npos ||
       status.find("NO_SAFE_TRAJECTORY") != std::string::npos ||
+      status.find("BRIDGE_SWITCH_REJECTED") != std::string::npos ||
+      status.find("NEW_GLOBAL_GOAL_PREEMPTED") != std::string::npos ||
       status.find("EGO_TRAJECTORY_COLLISION") != std::string::npos ||
       status.find("EGO_OCCUPANCY_STALE") != std::string::npos ||
       status.find("EGO_REPLAN_REANCHOR_FAILED") != std::string::npos ||
@@ -1893,6 +2302,25 @@ private:
         runBraking();
       }
       publishControlDiagnostics("planner_failure_hold");
+      return;
+    }
+    // Localization is degraded but real: hold the position and keep publishing.
+    // This is the branch that guarantees "planner cannot plan" never becomes
+    // "Offboard signal lost" -- publishLockedHold() runs every tick here.
+    if (frlio_planner_hold_active_) {
+      if (control_state_ == ControlState::PLANNER_FAILURE_HOLD) {
+        publishLockedHold();
+      } else {
+        beginBraking(
+          ControlState::PLANNER_FAILURE_HOLD, "FR-LIO planner state unusable");
+        runBraking();
+      }
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[FRLIO_HOLD_ACTIVE] status=%s goal_active=%d; holding position, "
+        "Offboard setpoints and PX4 EV both continuous",
+        frlio_status_.c_str(), goal_active_);
+      publishControlDiagnostics("frlio_planner_hold");
       return;
     }
     if (!goal_active_ || navigation_cancelled_) {
@@ -2110,6 +2538,9 @@ private:
 
   void publishTrajectorySetpoint(const race_msgs::msg::NavigationSetpoint & setpoint)
   {
+    if (setpoint_publish_blocked_) {
+      return;
+    }
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const double yaw_ned = wrapAngle(setpoint.yaw);
     const auto position_enu = race_offboard::nedToEnu(
@@ -2154,6 +2585,9 @@ private:
 
   void publishEgoTrajectorySetpoint(EgoCommandNed setpoint)
   {
+    if (setpoint_publish_blocked_) {
+      return;
+    }
     const auto publish_time = now();
     if (last_command_valid_) {
       const double elapsed = last_ego_publish_time_.nanoseconds() == 0 ?
@@ -2369,6 +2803,9 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr local_position_subscriber_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr map_odom_subscriber_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr local_velocity_subscriber_;
+  rclcpp::Subscription<mavros_msgs::msg::DebugValue>::SharedPtr px4_local_z_reset_subscriber_;
+  rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr
+    px4_local_position_subscriber_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr vehicle_status_subscriber_;
   rclcpp::Subscription<race_msgs::msg::NavigationSetpoint>::SharedPtr
     navigation_setpoint_subscriber_;
@@ -2422,6 +2859,11 @@ private:
   double map_yaw_enu_{0.0};
   race_offboard::PlanarFrameTransform map_to_local_;
   race_offboard::PlanarFrameTransform map_to_local_candidate_;
+  race_offboard::Px4LocalZResetTracker px4_local_z_reset_tracker_;
+  std::uint8_t last_px4_z_reset_counter_{0};
+  bool px4_local_position_seen_{false};
+  bool setpoint_publish_blocked_{false};
+  double local_z_rebase_offset_ned_{0.0};
   uint64_t flight_id_{0};
   double ground_z_local_ned_{0.0};
   double target_z_local_ned_{0.0};
@@ -2472,13 +2914,31 @@ private:
   race_offboard::LocalOriginRebaseGuard local_origin_rebase_guard_;
   std::string ev_health_topic_;
   std::string ev_flight_ready_topic_;
+  std::string px4_local_z_reset_topic_;
+  std::string frlio_status_topic_;
+  std::string frlio_planner_usable_topic_;
   bool require_ev_health_{true};
   double ev_health_required_s_{7.5};
   double ev_health_freshness_s_{0.5};
   bool ev_fault_auto_land_{true};
   bool ev_fault_report_latched_{false};
+  bool frlio_fault_hold_enabled_{true};
+  // Recoverable planner hold. Replaces the old permanent
+  // frlio_fault_hold_latched_, which cancelled the goal on a single
+  // FAULT_STALE_LIDAR message and required an operator restart.
+  bool frlio_planner_hold_active_{false};
+  bool frlio_hold_release_enabled_{true};
+  double frlio_hold_release_stable_sec_{1.0};
+  double frlio_status_timeout_sec_{0.5};
+  rclcpp::Time frlio_planner_usable_since_{0, 0, RCL_ROS_TIME};
+  std::string frlio_status_;
+  rclcpp::Time last_frlio_status_time_{0, 0, RCL_ROS_TIME};
+  bool have_frlio_planner_usable_{false};
+  bool frlio_state_unusable_{false};
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr ev_health_subscriber_;
   rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ev_flight_ready_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr frlio_status_subscriber_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr frlio_planner_usable_subscriber_;
   bool arm_request_pending_{false};
   bool land_request_pending_{false};
   bool offboard_mode_{false};

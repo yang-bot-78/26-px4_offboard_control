@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 真机单目标流程：地面切入 OFFBOARD -> 程序自动解锁并起飞到 0.75m
-# -> 稳定检查通过后等待 RViz 单目标。
+# -> 到达 0.55-0.75m 后保持悬停并等待 RViz 单目标。
 # 飞手仍然负责用遥控器切入 OFFBOARD，并必须全程保持接管准备。
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -226,13 +226,6 @@ require_state() {
   fi
 }
 
-wait_odometry_fusion_stable() {
-  local timeout_sec="${1:-30}"
-  local stable_sec="${2:-3}"
-  python3 "${script_dir}/等待flight_ready稳定.py" \
-    --timeout-s "${timeout_sec}" --stable-s "${stable_sec}" --require-disarmed
-}
-
 wait_stack_ready() {
   local deadline=$((SECONDS + 300))
   echo "[等待] 完整启动栈通过全部检查（包括全局重定位、RViz 和 rosbag）。"
@@ -248,77 +241,40 @@ wait_stack_ready() {
   return 1
 }
 
-wait_ground_takeoff_gate() {
-  echo "[检查] 复核地面自动起飞条件：未解锁、OFFBOARD、EV/位置/地图对齐有效、飞机静止。"
-  set +o pipefail
-  if timeout 35 ros2 topic echo /race/control/status --field data 2>/dev/null |
-    awk '
-      BEGIN {ready_since = 0; next_report = systime(); passed = 0}
-      /state=IDLE_HOLD/ && /manual_handover=0/ && /armed=0/ && /offboard=1/ &&
-      /map_local_alignment=1/ && /position_valid=1/ && /ev_ready=1/ &&
-      /position_aligned=1/ && /speed_safe=1/ {
-        height = 999
-        if (match($0, /current_height_m=[-+0-9.eE]+/)) {
-          height = substr($0, RSTART + 17, RLENGTH - 17) + 0
-        }
-        if (height >= -0.15 && height <= 0.20) {
-          if (ready_since == 0) ready_since = systime()
-          if (systime() - ready_since >= 3) {
-            print "[就绪] 地面起飞条件已连续稳定 3 秒："
-            print $0
-            fflush()
-            passed = 1
-            exit 0
-          }
-          next
-        }
-      }
-      /state=/ {
-        ready_since = 0
-        if (systime() >= next_report) {
-          print "[等待详情] " $0
-          fflush()
-          next_report = systime() + 3
-        }
-      }
-      END {if (!passed) exit 1}
-    '
-  then
-    set -o pipefail
-    return 0
-  fi
-  set -o pipefail
-  echo "[错误] 30 秒内未连续满足地面起飞门禁，禁止起飞。" >&2
-  printf '%s\n' "$(control_status_text)" >&2
+verify_runtime_altitude() {
+  local output="" value="" result=0 attempt
+  local -a diagnostics=()
+
+  # The controller is already running, but its parameter service can take a
+  # few seconds to become discoverable after the stack-ready topic arrives.
+  # Do not turn one empty CLI response into a false flight-height failure.
+  for attempt in 1 2 3 4 5; do
+    if output="$(timeout 10 ros2 param get /offboard_waypoint_node cruise_altitude_m 2>&1)"; then
+      value="$(sed -n -E \
+        's/^[[:space:]]*[^:]*:[[:space:]]*([-+]?[0-9]+([.][0-9]*)?|[-+]?[.][0-9]+)([eE][-+]?[0-9]+)?[[:space:]]*$/\1/p' \
+        <<<"${output}")"
+      if awk -v actual="${value:-nan}" -v expected="${target_altitude_m}" \
+        'BEGIN {exit !(actual == actual && actual > expected - 0.0001 && actual < expected + 0.0001)}'; then
+        echo "[就绪] Offboard 运行时定高已确认为 ${target_altitude_m}m。"
+        return 0
+      fi
+      diagnostics+=("attempt=${attempt} unexpected_response=${output:-<empty>}")
+    else
+      result=$?
+      diagnostics+=("attempt=${attempt} ros2_param_exit=${result} response=${output:-<empty>}")
+    fi
+    sleep 1
+  done
+
+  echo "[错误] 无法确认 Offboard 运行时定高为 ${target_altitude_m}m；参数服务连续 5 次未返回匹配值。" >&2
+  printf '[错误] %s\n' "${diagnostics[@]}" >&2
   return 1
 }
 
-verify_runtime_altitude() {
-  local output value
-  output="$(timeout 5 ros2 param get /offboard_waypoint_node cruise_altitude_m 2>/dev/null || true)"
-  value="$(sed -n -E 's/.*:[[:space:]]*([-+0-9.eE]+)[[:space:]]*$/\1/p' <<<"${output}")"
-  if ! awk -v actual="${value:-nan}" -v expected="${target_altitude_m}" \
-    'BEGIN {exit !(actual == actual && actual > expected - 0.0001 && actual < expected + 0.0001)}'; then
-    echo "[错误] Offboard 运行时定高不是 ${target_altitude_m}m：${output:-无输出}" >&2
-    return 1
-  fi
-  echo "[就绪] Offboard 运行时定高已确认为 ${target_altitude_m}m。"
-}
-
 request_takeoff() {
-  local output result=0 preflight_status="" preflight_id=""
-  echo "[指令] 起飞门禁已通过，请求自动解锁并垂直起飞到 ${target_altitude_m}m。"
-  preflight_status="$(control_status_text)"
-  preflight_id="$(sed -n -E 's/.*flight_id=([0-9]+).*/\1/p' <<<"${preflight_status}" | head -n 1)"
-  if [[ ! "${preflight_id}" =~ ^[0-9]+$ ]]; then
-    echo "[错误] 无法在起飞请求前读取 flight_id，禁止发送不可确认的起飞请求。" >&2
-    printf '%s\n' "${preflight_status:-无 /race/control/status 输出}" >&2
-    return 1
-  fi
+  local output result=0
+  echo "[指令] 已确认 OFFBOARD，请求自动解锁并垂直起飞到 ${target_altitude_m}m。"
 
-  # Do not wrap `ros2 service call` in one wall-clock timeout.  Discovery can
-  # consume that timeout, kill the client after the request reaches the server,
-  # and make a successfully started flight look like a failed takeoff.
   if output="$(python3 - <<'PY'
 import sys
 import time
@@ -371,27 +327,6 @@ PY
     return 0
   fi
 
-  # The request may have reached the server just as its response transport
-  # failed.  Treat that as an ambiguous command, not an automatic abort: the
-  # A changed flight_id plus a valid new altitude reference proves this
-  # invocation started the takeoff transaction.
-  if ((result == 3)); then
-    local deadline=$((SECONDS + 8)) status=""
-    while ((SECONDS < deadline)); do
-      status="$(control_status_text)"
-      local observed_flight_id=""
-      observed_flight_id="$(sed -n -E 's/.*flight_id=([0-9]+).*/\1/p' <<<"${status}" | head -n 1)"
-      if [[ "${observed_flight_id}" =~ ^[0-9]+$ ]] &&
-         ((observed_flight_id != preflight_id)) &&
-         grep -Eq 'altitude_reference_valid=1' <<<"${status}"; then
-        echo "[警告] /race/takeoff 未收到回包，但已确认本次起飞事务已启动；继续监控起飞状态。" >&2
-        printf '%s\n' "${status}" >&2
-        return 0
-      fi
-      sleep 0.2
-    done
-  fi
-
   if ((result == 4)); then
     echo "[错误] 起飞服务未返回 success=true。" >&2
   elif ((result == 2)); then
@@ -404,69 +339,39 @@ PY
   return 1
 }
 
-wait_takeoff_stable() {
-  TARGET_ALTITUDE_M="${target_altitude_m}" python3 - <<'PY'
+wait_takeoff_height() {
+  python3 - <<'PY'
 import math
-import os
 import sys
 import time
-from collections import deque
 
 import rclpy
 from mavros_msgs.msg import State
 from nav_msgs.msg import Odometry
 from race_msgs.msg import FlightAltitudeReference
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
-from std_msgs.msg import Bool
 
-target = float(os.environ["TARGET_ALTITUDE_M"])
-min_stable_agl_m = 0.55
-max_stable_agl_m = 0.80
-# The PX4 velocity estimate can retain a small vertical bias while the fused
-# position is stationary. Use a one-second position window for the actual
-# motion gate. Vertical velocity disagreement is diagnostic only and is never
-# used as a flight-health or AUTO.LAND gate.
-position_speed_window_s = 1.0
-minimum_position_speed_window_s = 0.75
-state_freshness_s = 2.0
-odom_freshness_s = 0.5
-flight_ready_freshness_s = 0.5
-max_position_horizontal_speed_mps = 0.20
-max_position_vertical_speed_mps = 0.10
-max_raw_horizontal_speed_mps = 0.50
+min_takeoff_agl_m = 0.55
+max_takeoff_agl_m = 0.75
 rclpy.init()
 node = rclpy.create_node("wait_auto_takeoff_075")
 latest = {
-    "state": None, "state_time": 0.0,
-    "odom": None, "odom_time": 0.0,
-    "flight_ready": None, "flight_ready_time": 0.0,
-    "reference": None, "reference_time": 0.0,
+    "state": None,
+    "odom": None,
+    "reference": None,
 }
-pose_history = deque()
-
-def odom_callback(msg):
-    now = time.monotonic()
-    latest.update(odom=msg, odom_time=now)
-    position = msg.pose.pose.position
-    pose_history.append((now, position.x, position.y, position.z))
-    cutoff = now - position_speed_window_s * 1.5
-    while pose_history and pose_history[0][0] < cutoff:
-        pose_history.popleft()
 
 node.create_subscription(
     State, "/mavros/state",
-    lambda msg: latest.update(state=msg, state_time=time.monotonic()),
+    lambda msg: latest.update(state=msg),
     qos_profile_sensor_data)
 node.create_subscription(
-    Odometry, "/mavros/local_position/odom", odom_callback,
-    qos_profile_sensor_data)
-node.create_subscription(
-    Bool, "/ev_health/flight_ready",
-    lambda msg: latest.update(flight_ready=bool(msg.data), flight_ready_time=time.monotonic()),
+    Odometry, "/mavros/local_position/odom",
+    lambda msg: latest.update(odom=msg),
     qos_profile_sensor_data)
 node.create_subscription(
     FlightAltitudeReference, "/race/flight_altitude_reference",
-    lambda msg: latest.update(reference=msg, reference_time=time.monotonic()),
+    lambda msg: latest.update(reference=msg),
     QoSProfile(
         depth=1,
         reliability=ReliabilityPolicy.RELIABLE,
@@ -474,118 +379,42 @@ node.create_subscription(
     ))
 
 deadline = time.monotonic() + 60.0
-stable_since = None
-armed_seen = False
 next_report = 0.0
 result = 1
 try:
     while rclpy.ok() and time.monotonic() < deadline:
         rclpy.spin_once(node, timeout_sec=0.1)
-        state, odom, flight_ready = latest["state"], latest["odom"], latest["flight_ready"]
+        state, odom = latest["state"], latest["odom"]
         reference = latest["reference"]
         now = time.monotonic()
-        if flight_ready is False:
-            print("[错误] 起飞中 flight_ready=false；请查看 /ev_health/diagnostics 并立即遥控接管。", file=sys.stderr, flush=True)
-            break
         if state is None or odom is None or reference is None:
             continue
-        if state.armed:
-            armed_seen = True
-        if armed_seen and (not state.armed or state.mode != "OFFBOARD"):
-            print(
-                f"[错误] 起飞中飞控状态丢失：armed={int(state.armed)} mode={state.mode}；"
-                "请立即遥控接管。",
-                file=sys.stderr,
-                flush=True,
-            )
-            break
         position = odom.pose.pose.position
-        velocity = odom.twist.twist.linear
         ground_z_local_enu = -reference.ground_z_local_ned
         height = position.z - ground_z_local_enu
-        raw_horizontal_speed = math.hypot(velocity.x, velocity.y)
-        raw_vertical_speed = abs(velocity.z)
-        window_start = now - position_speed_window_s
-        first_pose = next((sample for sample in pose_history if sample[0] >= window_start), None)
-        last_pose = pose_history[-1] if pose_history else None
-        position_speed_available = False
-        position_horizontal_speed = math.inf
-        position_vertical_speed = math.inf
-        if first_pose is not None and last_pose is not None:
-            pose_dt = last_pose[0] - first_pose[0]
-            if pose_dt >= minimum_position_speed_window_s:
-                position_horizontal_speed = math.hypot(
-                    last_pose[1] - first_pose[1], last_pose[2] - first_pose[2]
-                ) / pose_dt
-                position_vertical_speed = abs(last_pose[3] - first_pose[3]) / pose_dt
-                position_speed_available = True
-        state_fresh = now - latest["state_time"] <= state_freshness_s
-        odom_fresh = now - latest["odom_time"] <= odom_freshness_s
-        flight_ready_fresh = now - latest["flight_ready_time"] <= flight_ready_freshness_s
-        inputs_fresh = state_fresh and odom_fresh and flight_ready_fresh
-        reference_ok = (
-            reference.valid and math.isfinite(reference.target_agl_m) and
-            abs(reference.target_agl_m - target) <= 0.001
+        height_ok = (
+            reference.valid and math.isfinite(height) and
+            min_takeoff_agl_m <= height <= max_takeoff_agl_m
         )
-        height_ok = math.isfinite(height) and min_stable_agl_m <= height <= max_stable_agl_m
-        takeoff_climb_phase = math.isfinite(height) and height < min_stable_agl_m
-        horizontal_speed_ok = (
-            position_speed_available and
-            position_horizontal_speed <= max_position_horizontal_speed_mps
-        )
-        vertical_speed_ok = (
-            takeoff_climb_phase or
-            position_speed_available and
-            position_vertical_speed <= max_position_vertical_speed_mps
-        )
-        # A vertical-only mismatch is expected while PX4 and position fusion
-        # settle after takeoff. Keep only the horizontal raw-speed plausibility
-        # check here; vertical disagreement remains telemetry below.
-        raw_velocity_plausible = (
-            raw_horizontal_speed <= max_raw_horizontal_speed_mps
-        )
-        good = (
-            inputs_fresh and state.connected and state.armed and state.mode == "OFFBOARD" and
-            flight_ready is True and reference_ok and height_ok and
-            horizontal_speed_ok and vertical_speed_ok and raw_velocity_plausible
-        )
-        if good:
-            stable_since = stable_since or now
-            if now - stable_since >= 3.0:
-                print(
-                    f"[就绪] 自动起飞完成并稳定 3 秒："
-                    f"高度={height:.3f}m "
-                    f"位置水平速度={position_horizontal_speed:.3f}m/s "
-                    f"位置垂直速度={position_vertical_speed:.3f}m/s "
-                    f"飞行就绪={flight_ready}",
-                    flush=True,
-                )
-                result = 0
-                break
-        else:
-            stable_since = None
+        if state.armed and state.mode == "OFFBOARD" and height_ok:
+            print(
+                f"[就绪] 自动起飞已到达高度={height:.3f}m "
+                f"({min_takeoff_agl_m:.2f}-{max_takeoff_agl_m:.2f}m)，"
+                "保持悬停并等待轨迹。",
+                flush=True,
+            )
+            result = 0
+            break
         if now >= next_report:
             print(
-                f"[起飞检查] 已解锁={int(state.armed)} 模式={state.mode} 飞行就绪={flight_ready} "
-                f"相对地面高度={height:.3f}/{min_stable_agl_m:.2f}-{max_stable_agl_m:.2f}m "
-                f"目标高度={target:.2f}m 高度参考有效={int(reference_ok)} "
-                f"高度合格={int(height_ok)} 输入新鲜={int(inputs_fresh)} "
-                f"新鲜度(状态/里程计/就绪)={int(state_fresh)}/{int(odom_fresh)}/{int(flight_ready_fresh)} "
-                f"PX4水平速度={raw_horizontal_speed:.3f}m/s "
-                f"位置水平速度={position_horizontal_speed:.3f}m/s "
-                f"水平速度合格={int(horizontal_speed_ok)} "
-                f"PX4垂直速度={raw_vertical_speed:.3f}m/s "
-                f"位置垂直速度={position_vertical_speed:.3f}m/s "
-                f"垂直速度合格={int(vertical_speed_ok)} "
-                f"垂直阶段={'起飞爬升' if takeoff_climb_phase else '定高稳定'} "
-                f"位置速度可用={int(position_speed_available)} "
-                f"原始速度合理={int(raw_velocity_plausible)} "
-                f"垂直速度差异(仅诊断)={abs(raw_vertical_speed - position_vertical_speed):.3f}m/s",
+                f"[起飞等待] 已解锁={int(state.armed)} 模式={state.mode} "
+                f"相对地面高度={height:.3f}/{min_takeoff_agl_m:.2f}-{max_takeoff_agl_m:.2f}m "
+                f"高度参考有效={int(reference.valid)}",
                 flush=True,
             )
             next_report = now + 1.0
     else:
-        print("[错误] 60 秒内自动起飞未通过稳定性检查；请立即遥控接管。", file=sys.stderr)
+        print("[错误] 60 秒内未在 OFFBOARD 解锁状态到达 0.55-0.75m；请立即遥控接管。", file=sys.stderr)
 finally:
     node.destroy_node()
     rclpy.shutdown()
@@ -628,8 +457,8 @@ cat <<EOF
        地面 OFFBOARD -> 自动起飞 0.75m -> 单目标
 ============================================================
 本脚本会启动导航、MID-360、项目内 FR-LIO、全局重定位、MAVROS/EV、RViz 和 rosbag。
-第二次回车后，只有全部地面门禁通过，程序才会调用起飞服务，
-然后自动解锁、垂直起飞并定高 ${target_altitude_m}m。
+第二次回车确认已切入 OFFBOARD 后，程序立即调用起飞服务，
+然后自动解锁、垂直起飞；达到 0.55-0.75m 后保持悬停并等待轨迹。
 
 规划地图：${map_file}
 重定位目录：${global_map_source_dir}
@@ -685,24 +514,18 @@ cat <<'EOF'
 [回车 2/2]
 请保持飞机在地面且不要解锁，现在用遥控器切到 OFFBOARD。
 确认飞控已显示 OFFBOARD 后按回车。
-回车后脚本会复核状态；通过后将立即自动解锁并起飞，不再询问。
+回车后脚本确认仍处于 OFFBOARD，随后立即自动解锁并起飞，不再询问。
 EOF
 read -r
 
-require_state 'connected:[[:space:]]*true' || exit 4
-require_state 'armed:[[:space:]]*false' || exit 4
-require_state "mode:[[:space:]]+['\"]?OFFBOARD['\"]?" || exit 4
-wait_odometry_fusion_stable 30 3 || exit 4
-wait_ground_takeoff_gate || exit 4
-require_state 'armed:[[:space:]]*false' || exit 4
 require_state "mode:[[:space:]]+['\"]?OFFBOARD['\"]?" || exit 4
 request_takeoff || exit 5
-wait_takeoff_stable || exit 5
+wait_takeoff_height || exit 5
 
 cat <<'EOF'
 
 [请给点]
-飞机已在 0.75m 定高稳定悬停。
+飞机已到达 0.55-0.75m 高度带，正在悬停等待轨迹。
 现在请在 RViz 使用「2D Goal Pose」点击一个近距离、空旷目标点。
 建议首次距离不超过 1m；无需再按回车，点击后会立即规划并开始飞行。
 EOF

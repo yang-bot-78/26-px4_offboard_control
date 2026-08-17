@@ -58,7 +58,6 @@ class HealthConfig:
     internal_velocity_history_s: float = 3.0
     velocity_lowpass_cutoff_hz: float = 3.0
     stationary_speed_deadband_mps: float = 0.02
-    suspect_covariance_multiplier: float = 100.0
     min_position_variance: float = 0.01
     min_orientation_variance: float = 0.02
     velocity_variance: float = 0.04
@@ -72,6 +71,12 @@ class HealthConfig:
     require_frlio_anchor_status: bool = False
     frlio_anchor_status_timeout_s: float = 0.5
     frlio_max_anchor_age_s: float = 0.40
+    # A discontinuous, then stable, source frame is a relocalization.  Keep
+    # this opt-in in the pure core so existing offline consumers remain strict;
+    # the flight monitor enables it explicitly and publishes the counter to the
+    # PX4 VehicleOdometry bridge.
+    enable_relocalization: bool = False
+    relocalization_stable_s: float = 0.50
 
 
 @dataclass
@@ -91,6 +96,8 @@ class HealthMetrics:
     velocity_alignment_s: float = math.nan
     internal_velocity_alignment_s: float = math.nan
     covariance_xyz: Vector3 = (math.nan, math.nan, math.nan)
+    sample_gap_s: float = math.nan
+    sample_age_s: float = math.nan
 
 
 @dataclass
@@ -99,9 +106,10 @@ class FrameResult:
     publish: bool
     state: HealthState
     reason: str
-    covariance_multiplier: float
     velocity_px4_ned: Vector3
     metrics: HealthMetrics
+    reset_counter: int = 0
+    relocalized: bool = False
 
 
 def _finite(values: Iterable[float]) -> bool:
@@ -301,6 +309,8 @@ class EvHealthMonitorCore:
         self._last_stamp_s: Optional[float] = None
         self._last_receive_s: Optional[float] = None
         self._last_position_ned: Optional[Vector3] = None
+        self._reset_counter = 0
+        self._relocalization_candidate = None
         self._position_history = deque()
         self._filtered_velocity_ned: Vector3 = (0.0, 0.0, 0.0)
         self._px4_velocity_ned: Optional[Vector3] = None
@@ -312,10 +322,6 @@ class EvHealthMonitorCore:
         self._effective_points_receive_s: Optional[float] = None
         self._anomaly_since_s: Optional[float] = None
         self._healthy_since_s: Optional[float] = None
-        self._anomaly_start_covariance_fraction = 0.0
-        # Startup is deliberately low-confidence until the recovery interval has
-        # contained only aligned, healthy samples.
-        self._recovery_start_covariance_fraction = 1.0
 
     def update_px4_velocity(
         self,
@@ -402,9 +408,6 @@ class EvHealthMonitorCore:
 
     def _set_anomaly(self, now_s: float, reason: str) -> None:
         if self._anomaly_since_s is None:
-            self._anomaly_start_covariance_fraction = self._covariance_fraction(
-                now_s
-            )
             self._anomaly_since_s = now_s
         self._healthy_since_s = None
         self.reason = reason
@@ -422,10 +425,6 @@ class EvHealthMonitorCore:
             self.reason = "ok"
             return
         if self._healthy_since_s is None:
-            if self._anomaly_since_s is not None:
-                self._recovery_start_covariance_fraction = (
-                    self._covariance_fraction(now_s)
-                )
             self._healthy_since_s = now_s
         self._anomaly_since_s = None
         elapsed = now_s - self._healthy_since_s
@@ -435,45 +434,82 @@ class EvHealthMonitorCore:
         else:
             self.reason = f"recovering ({elapsed:.2f}/{self.config.recovery_healthy_s:.2f}s)"
 
-    def _covariance_fraction(self, now_s: float) -> float:
-        if self.state == HealthState.HEALTHY:
-            return 0.0
-        if self.state == HealthState.FAULT:
-            return 1.0
-        if self._anomaly_since_s is not None:
-            if self.config.anomaly_to_fault_s <= 0.0:
-                return 1.0
-            progress = min(
-                1.0,
-                max(0.0, (now_s - self._anomaly_since_s) / self.config.anomaly_to_fault_s),
-            )
-            return self._anomaly_start_covariance_fraction + progress * (
-                1.0 - self._anomaly_start_covariance_fraction
-            )
-        if self._healthy_since_s is not None:
-            if self.config.recovery_healthy_s <= 0.0:
-                return 0.0
-            progress = min(
-                1.0,
-                max(0.0, (now_s - self._healthy_since_s) / self.config.recovery_healthy_s),
-            )
-            return self._recovery_start_covariance_fraction * (1.0 - progress)
-        return self._recovery_start_covariance_fraction
-
-    def _covariance_multiplier(self, now_s: float) -> float:
-        fraction = self._covariance_fraction(now_s)
-        return 1.0 + fraction * (self.config.suspect_covariance_multiplier - 1.0)
-
-    def _result(self, accepted: bool, now_s: float) -> FrameResult:
+    def _result(
+        self, accepted: bool, now_s: float, *, relocalized: bool = False
+    ) -> FrameResult:
         return FrameResult(
             accepted=accepted,
             publish=accepted and self.state != HealthState.FAULT,
             state=self.state,
             reason=self.reason,
-            covariance_multiplier=self._covariance_multiplier(now_s),
             velocity_px4_ned=self._filtered_velocity_ned,
             metrics=self.metrics,
+            reset_counter=self._reset_counter,
+            relocalized=relocalized,
         )
+
+    def _begin_relocalization(self, stamp_s: float, receive_time_s: float,
+                              position_ned: Vector3) -> None:
+        self._relocalization_candidate = {
+            "stamp": float(stamp_s),
+            "position": position_ned,
+            "since": float(receive_time_s),
+        }
+        self._set_anomaly(float(receive_time_s), "relocalization_candidate")
+
+    def _process_relocalization_candidate(
+        self,
+        *,
+        stamp_s: float,
+        receive_time_s: float,
+        position_ned: Vector3,
+        internal_velocity_px4_ned: Optional[Sequence[float]],
+        covariance_xyz: Sequence[float],
+    ) -> Optional[FrameResult]:
+        """Commit a stable replacement frame exactly once.
+
+        Samples in the candidate frame are withheld until the source has been
+        spatially and temporally continuous for the configured window.  The
+        first committed sample advances the counter and becomes the sole
+        baseline used by downstream publishers.
+        """
+        candidate = self._relocalization_candidate
+        if candidate is None:
+            return None
+        candidate_dt = float(stamp_s) - candidate["stamp"]
+        candidate_displacement = _norm(_subtract(position_ned, candidate["position"]))
+        if (
+            candidate_dt <= self.config.min_dt_s
+            or candidate_dt > self.config.max_dt_s
+            or candidate_displacement > self.config.max_position_jump_m
+        ):
+            self._begin_relocalization(stamp_s, receive_time_s, position_ned)
+            self.metrics.dt_s = candidate_dt
+            self.metrics.sample_gap_s = candidate_dt
+            return self._result(False, receive_time_s)
+
+        candidate["stamp"] = float(stamp_s)
+        candidate["position"] = position_ned
+        self.metrics.dt_s = candidate_dt
+        self.metrics.sample_gap_s = candidate_dt
+        self.metrics.single_frame_displacement_m = candidate_displacement
+        if float(receive_time_s) - candidate["since"] < self.config.relocalization_stable_s:
+            self._set_anomaly(float(receive_time_s), "relocalization_recovering")
+            return self._result(False, receive_time_s)
+
+        self._last_stamp_s = float(stamp_s)
+        self._last_receive_s = float(receive_time_s)
+        self._last_position_ned = position_ned
+        self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
+        self._record_position(float(stamp_s), position_ned)
+        self.metrics.covariance_xyz = tuple(float(v) for v in covariance_xyz)  # type: ignore[assignment]
+        self._relocalization_candidate = None
+        self._reset_counter = (self._reset_counter + 1) % 256
+        self._healthy_since_s = float(receive_time_s)
+        self._anomaly_since_s = None
+        self.state = HealthState.HEALTHY
+        self.reason = "relocalized"
+        return self._result(True, receive_time_s, relocalized=True)
 
     def process_ev(
         self,
@@ -501,6 +537,8 @@ class EvHealthMonitorCore:
         self.metrics.input_age_s = math.nan
         self.metrics.velocity_alignment_s = math.nan
         self.metrics.internal_velocity_alignment_s = math.nan
+        self.metrics.sample_gap_s = math.nan
+        self.metrics.sample_age_s = math.nan
 
         if not finite_payload or not _finite((*raw, stamp_s, receive_time_s)):
             self._set_anomaly(now_s, "non_finite_ev_message")
@@ -516,7 +554,25 @@ class EvHealthMonitorCore:
         if self._last_stamp_s is not None:
             source_dt = float(stamp_s) - self._last_stamp_s
             self.metrics.dt_s = source_dt
-            if source_dt <= 0.0:
+            self.metrics.sample_gap_s = source_dt
+            if source_dt == 0.0:
+                # Duplicate transport frames are harmless when they carry the
+                # same pose.  Drop them without changing the trusted baseline
+                # or entering recovery; a later strictly newer frame can still
+                # continue the stream.  A same-stamp pose change is different:
+                # it indicates a timestamp/measurement corruption and remains
+                # a hard non-monotonic fault.
+                duplicate_position = (
+                    self._last_position_ned is not None
+                    and _norm(_subtract(position_ned, self._last_position_ned)) <= 1e-9
+                )
+                if duplicate_position:
+                    return self._result(False, now_s)
+                self._set_anomaly(
+                    now_s, f"non_monotonic_stamp dt={source_dt:.6f}s"
+                )
+                return self._result(False, now_s)
+            if source_dt < 0.0:
                 self._set_anomaly(
                     now_s, f"non_monotonic_stamp dt={source_dt:.6f}s"
                 )
@@ -530,6 +586,7 @@ class EvHealthMonitorCore:
 
         input_age_s = now_s - float(stamp_s)
         self.metrics.input_age_s = input_age_s
+        self.metrics.sample_age_s = input_age_s
         if input_age_s > self.config.max_input_age_s:
             self._set_anomaly(now_s, f"stale_input age={input_age_s:.3f}s")
             # A delayed queue must never drag the trusted baseline along an old
@@ -538,6 +595,17 @@ class EvHealthMonitorCore:
         if input_age_s < -self.config.max_future_stamp_s:
             self._set_anomaly(now_s, f"future_input age={input_age_s:.3f}s")
             return self._result(False, now_s)
+
+        if self._relocalization_candidate is not None:
+            if not self.config.enable_relocalization:
+                return self._result(False, now_s)
+            return self._process_relocalization_candidate(
+                stamp_s=float(stamp_s),
+                receive_time_s=now_s,
+                position_ned=position_ned,
+                internal_velocity_px4_ned=internal_velocity_px4_ned,
+                covariance_xyz=covariance,
+            )
 
         if self._last_stamp_s is None or self._last_position_ned is None:
             self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
@@ -572,10 +640,14 @@ class EvHealthMonitorCore:
             # only when it is still spatially continuous with the trusted pose.
             if displacement <= self.config.max_position_jump_m:
                 self._resync(float(stamp_s), now_s, raw)
+            elif self.config.enable_relocalization:
+                self._begin_relocalization(float(stamp_s), now_s, position_ned)
             return self._result(False, now_s)
 
         if displacement > self.config.max_position_jump_m:
             self._set_anomaly(now_s, f"position_jump displacement={displacement:.3f}m")
+            if self.config.enable_relocalization:
+                self._begin_relocalization(float(stamp_s), now_s, position_ned)
             return self._result(False, now_s)
 
         self._last_stamp_s = float(stamp_s)

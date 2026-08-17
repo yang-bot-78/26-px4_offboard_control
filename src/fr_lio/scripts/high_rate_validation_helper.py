@@ -598,24 +598,32 @@ def run_fault_test(args):
         )
         target_resume_at = disabled_at + args.pause_seconds
         if saw_fault and fault_at is not None:
-            target_resume_at = max(target_resume_at, fault_at + args.odom_quiet_seconds)
+            target_resume_at = max(target_resume_at, fault_at + args.odom_continuity_seconds)
+        odom_at_fault = monitor.counts["odom"]
+        odom_gap_baseline = monitor.max_odom_gap_s
         while time.monotonic() < target_resume_at:
             rclpy.spin_once(monitor.node, timeout_sec=0.02)
 
-        # The fixed pause above establishes the intended fault duration.  Now
-        # drain any callbacks already queued in DDS and require a *continuous*
-        # quiet window before restoring LiDAR.  Previously a late callback near
-        # target_resume_at made the one-shot age check fail even though the bag
-        # contained a clear odometry interruption.
-        odom_quiet = bool(
-            saw_fault
-            and monitor.spin_until_quiet(
-                "odom", args.odom_quiet_seconds, args.odom_quiet_timeout
-            )
-        )
-
+        # Test A from the gate-topology requirement, inverted from what this
+        # helper used to assert.  A stale LiDAR anchor must NOT interrupt
+        # /Odometry: the IMU predictor is still real time, so the stream has to
+        # stay continuous with inflated covariance while the planner holds.
+        # Requiring the stream to go quiet here was asserting the very cascade
+        # (LiDAR stale -> EV dropout -> PX4 loses EV) that this rework removes.
         now = time.monotonic()
         last_odom = monitor.last_receive["odom"]
+        odom_during_fault = monitor.counts["odom"] - odom_at_fault
+        fault_window_s = max(1e-6, now - disabled_at)
+        odom_rate_during_fault = odom_during_fault / fault_window_s
+        odom_gap_during_fault = max(
+            0.0, monitor.max_odom_gap_s - odom_gap_baseline)
+        # Continuity, not mere presence: a large publish gap is a dropout even if
+        # samples resume afterwards.
+        odom_continued = bool(
+            saw_fault
+            and odom_during_fault >= args.min_odom_during_fault
+            and odom_gap_during_fault <= args.max_odom_gap_seconds
+        )
         suspect_events = [
             e for e in monitor.status_events[first_fault_event:]
             if e["status"] == "SUSPECT_STALE_LIDAR"
@@ -625,8 +633,9 @@ def run_fault_test(args):
             if e["status"] == "FAULT_STALE_LIDAR"
         ]
         fault_anchor_samples = monitor.anchor_samples[first_fault_anchor:]
-        warn_crossings = [value for _, value in fault_anchor_samples if value >= 0.15]
-        fault_crossings = [value for _, value in fault_anchor_samples if value >= 4.0]
+        warn_crossings = [value for _, value in fault_anchor_samples if value >= 0.18]
+        # This must match high_rate_odom.max_anchor_age_s (0.40 s), not 4 s.
+        fault_crossings = [value for _, value in fault_anchor_samples if value >= 0.40]
         deltas = {key: monitor.counts[key] - baseline[key] for key in baseline}
 
         restored_gate = _call_gate(monitor, True)
@@ -638,9 +647,10 @@ def run_fault_test(args):
         result["checks"] = {
             "saw_suspect": bool(suspect_events),
             "saw_fault": bool(fault_events),
-            "anchor_crossed_0_15_s": bool(warn_crossings),
+            "anchor_crossed_0_18_s": bool(warn_crossings),
             "anchor_crossed_0_40_s": bool(fault_crossings),
-            "odom_quiet_after_fault": odom_quiet,
+            # LiDAR stale must not become an EV dropout.
+            "odom_continued_during_fault": odom_continued,
             "imu_continued": deltas["imu"] >= 20,
             "raw_lidar_continued": raw_lidar_delta >= 2,
             "gated_lidar_quiet": forwarded_delta == 0,
@@ -655,10 +665,13 @@ def run_fault_test(args):
             "paused": paused_gate,
             "restored": restored_gate,
         }
-        result["odom_quiet_s"] = None if last_odom is None else now - last_odom
-        result["odom_quiet_required_s"] = args.odom_quiet_seconds
-        result["odom_quiet_timeout_s"] = args.odom_quiet_timeout
-        result["first_anchor_at_or_above_0_15_s"] = warn_crossings[0] if warn_crossings else None
+        result["odom_age_at_restore_s"] = None if last_odom is None else now - last_odom
+        result["odom_samples_during_fault"] = odom_during_fault
+        result["odom_rate_during_fault_hz"] = odom_rate_during_fault
+        result["odom_max_gap_during_fault_s"] = odom_gap_during_fault
+        result["odom_min_samples_required"] = args.min_odom_during_fault
+        result["odom_max_gap_allowed_s"] = args.max_odom_gap_seconds
+        result["first_anchor_at_or_above_0_18_s"] = warn_crossings[0] if warn_crossings else None
         result["first_anchor_at_or_above_0_40_s"] = fault_crossings[0] if fault_crossings else None
 
         recovered = monitor.spin_until(lambda: monitor.status == "HEALTHY", args.recovery_timeout)
@@ -694,6 +707,17 @@ def _percentile(values, percentile):
     return ordered[index]
 
 
+def _percentile_summary(values):
+    """Return the distribution points used to choose stale-LiDAR thresholds."""
+    return {
+        "p50_s": _percentile(values, 0.50),
+        "p90_s": _percentile(values, 0.90),
+        "p95_s": _percentile(values, 0.95),
+        "p99_s": _percentile(values, 0.99),
+        "max_s": max(values) if values else None,
+    }
+
+
 def run_observe(args):
     ros = _import_ros()
     rclpy = ros["rclpy"]
@@ -721,11 +745,11 @@ def run_observe(args):
                 if time.monotonic() >= next_print:
                     values = [value for _, value in monitor.anchor_samples]
                     maximum = max(values) if values else float("nan")
-                    over = sum(value > 0.15 for value in values)
+                    over = sum(value > 0.18 for value in values)
                     print(
                         f"[静置监测] {monitor.elapsed():.0f}/{args.duration:.0f}s "
                         f"status={monitor.status} max_anchor={maximum:.4f}s "
-                        f">0.15s={over} odom={monitor.counts['odom']}",
+                        f">0.18s={over} odom={monitor.counts['odom']}",
                         flush=True,
                     )
                     stream.flush()
@@ -734,16 +758,22 @@ def run_observe(args):
             pass
 
     values = [value for _, value in monitor.anchor_samples]
+    percentile_summary = _percentile_summary(values)
     summary = {
         "requested_duration_s": args.duration,
         "observed_duration_s": monitor.elapsed(),
         "sample_count": len(values),
         "anchor_age_mean_s": sum(values) / len(values) if values else None,
-        "anchor_age_p99_s": _percentile(values, 0.99),
-        "anchor_age_max_s": max(values) if values else None,
+        "anchor_age_p50_s": percentile_summary["p50_s"],
+        "anchor_age_p90_s": percentile_summary["p90_s"],
+        "anchor_age_p95_s": percentile_summary["p95_s"],
+        "anchor_age_p99_s": percentile_summary["p99_s"],
+        "anchor_age_max_s": percentile_summary["max_s"],
+        "anchor_age_percentiles_s": percentile_summary,
+        "anchor_age_over_0_18_count": sum(value > 0.18 for value in values),
         "anchor_age_over_0_15_count": sum(value > 0.15 for value in values),
         "anchor_age_over_0_30_count": sum(value > 0.30 for value in values),
-        "anchor_age_over_4_00_count": sum(value > 4.0 for value in values),
+        "anchor_age_over_0_40_count": sum(value > 0.40 for value in values),
         "max_odom_receive_gap_s": monitor.max_odom_gap_s,
         "counts": monitor.counts,
         "final_status": monitor.status,
@@ -845,8 +875,13 @@ def build_parser():
 
     fault = subparsers.add_parser("fault-test", help="Run and verify a LiDAR interruption")
     fault.add_argument("--pause-seconds", type=float, default=1.0)
-    fault.add_argument("--odom-quiet-seconds", type=float, default=0.2)
-    fault.add_argument("--odom-quiet-timeout", type=float, default=2.0)
+    # /Odometry must stay continuous through a LiDAR stall. These bound what
+    # "continuous" means: enough samples, and no publish gap large enough to
+    # count as a dropout. At 200 Hz over a 1 s pause, 100 samples is a very
+    # conservative floor.
+    fault.add_argument("--odom-continuity-seconds", type=float, default=0.2)
+    fault.add_argument("--min-odom-during-fault", type=int, default=100)
+    fault.add_argument("--max-odom-gap-seconds", type=float, default=0.15)
     fault.add_argument("--recovery-timeout", type=float, default=8.0)
     fault.add_argument("--output", required=True)
     fault.set_defaults(function=run_fault_test)
@@ -876,10 +911,12 @@ def main():
         raise SystemExit("workers must be >= 1")
     if not 0.0 < getattr(args, "duty", 50.0) <= 100.0:
         raise SystemExit("duty must be in (0, 100]")
-    if getattr(args, "odom_quiet_seconds", 1.0) <= 0.0:
-        raise SystemExit("odom-quiet-seconds must be > 0")
-    if getattr(args, "odom_quiet_timeout", 1.0) <= 0.0:
-        raise SystemExit("odom-quiet-timeout must be > 0")
+    if getattr(args, "odom_continuity_seconds", 1.0) <= 0.0:
+        raise SystemExit("odom-continuity-seconds must be > 0")
+    if getattr(args, "min_odom_during_fault", 1) < 1:
+        raise SystemExit("min-odom-during-fault must be >= 1")
+    if getattr(args, "max_odom_gap_seconds", 1.0) <= 0.0:
+        raise SystemExit("max-odom-gap-seconds must be > 0")
     if getattr(args, "flight_ready_timeout", 1.0) <= 0.0:
         raise SystemExit("flight-ready-timeout must be > 0")
     return args.function(args)

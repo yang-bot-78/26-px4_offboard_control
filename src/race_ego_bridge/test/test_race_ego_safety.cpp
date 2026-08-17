@@ -120,6 +120,21 @@ TEST(TakeoffHandover, ResetsOnlyOnDisarmNotOnLowAltitude)
   EXPECT_FALSE(race_ego_bridge::shouldResetFlightHandover(false, false));
 }
 
+TEST(Trajectory, PlannerPausePreservesOnlyAnAuthorizedSafeTrajectory)
+{
+  EXPECT_TRUE(race_ego_bridge::shouldPreserveTrajectoryForPlannerPause(true, true, false));
+  EXPECT_FALSE(race_ego_bridge::shouldPreserveTrajectoryForPlannerPause(false, true, false));
+  EXPECT_FALSE(race_ego_bridge::shouldPreserveTrajectoryForPlannerPause(true, false, false));
+  EXPECT_FALSE(race_ego_bridge::shouldPreserveTrajectoryForPlannerPause(true, true, true));
+}
+
+TEST(EgoTrajectorySafety, FrlioRecoveryRejectsPreFaultLocalGoalSequence)
+{
+  EXPECT_TRUE(race_ego_bridge::frlioRecoveryNeedsFreshLocalGoal(7, 7));
+  EXPECT_TRUE(race_ego_bridge::frlioRecoveryNeedsFreshLocalGoal(6, 7));
+  EXPECT_FALSE(race_ego_bridge::frlioRecoveryNeedsFreshLocalGoal(8, 7));
+}
+
 TEST(Trajectory, SetpointTimeout)
 {
   EXPECT_TRUE(race_ego_bridge::timedOut(0.21, 0.20));
@@ -222,6 +237,20 @@ TEST(Trajectory, FullStateReplanSwitch)
     previous, position_jump, 0.05, 0.10, 0.20);
   EXPECT_FALSE(rejected.continuous);
   EXPECT_NEAR(0.40, rejected.position_error, 1e-9);
+}
+
+TEST(Trajectory, ResumeUsesMeasuredStateContinuityBeforeKeepingOldTrajectory)
+{
+  const race_ego_bridge::TrajectoryState measured{
+    {1.0, 2.0, 0.78}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+  const race_ego_bridge::TrajectoryState short_pause_command{
+    {1.04, 2.0, 0.78}, {0.04, 0.0, 0.0}, {0.10, 0.0, 0.0}};
+  const race_ego_bridge::TrajectoryState advanced_command{
+    {1.35, 2.0, 0.78}, {0.30, 0.0, 0.0}, {0.25, 0.0, 0.0}};
+  EXPECT_TRUE(race_ego_bridge::transitionStateContinuous(
+    measured, short_pause_command, 0.10, 0.10, 0.20).continuous);
+  EXPECT_FALSE(race_ego_bridge::transitionStateContinuous(
+    measured, advanced_command, 0.10, 0.10, 0.20).continuous);
 }
 
 TEST(Trajectory, SpatialSamplingNeverExceedsConfiguredSpacing)
@@ -329,4 +358,58 @@ TEST(Coordinates, BodyPointToMapMatchesPx4YawConversion)
   const auto point = race_ego_bridge::bodyPointToMap(Vec3{1.0, 0.0, 0.0}, Vec3{}, yaw_map);
   EXPECT_NEAR(0.0, point.x, 1e-9);
   EXPECT_NEAR(1.0, point.y, 1e-9);
+}
+
+// A single "new trajectory start vs current odom" comparison used to answer two
+// unrelated questions. These tests pin the separation: splice error judges
+// trajectory handoff, tracking error judges localization/control, and each
+// combination maps to exactly one diagnosis.
+TEST(TrajectoryFaultClassification, LargeSpliceWithSmallTrackingIsAHandoffFault)
+{
+  const auto fault = race_ego_bridge::classifyTrajectoryFault(0.40, 0.05, 0.02, 0.30);
+  EXPECT_EQ(fault, race_ego_bridge::TrajectoryFaultClass::TrajectoryHandoff);
+}
+
+TEST(TrajectoryFaultClassification, SmallSpliceWithLargeTrackingIsALocalizationFault)
+{
+  const auto fault = race_ego_bridge::classifyTrajectoryFault(0.01, 0.05, 0.55, 0.30);
+  EXPECT_EQ(fault, race_ego_bridge::TrajectoryFaultClass::LocalizationTracking);
+}
+
+TEST(TrajectoryFaultClassification, BothLargeIsReportedAsBothNotGuessed)
+{
+  const auto fault = race_ego_bridge::classifyTrajectoryFault(0.40, 0.05, 0.55, 0.30);
+  EXPECT_EQ(fault, race_ego_bridge::TrajectoryFaultClass::Both);
+}
+
+TEST(TrajectoryFaultClassification, WithinBothTolerancesIsClean)
+{
+  const auto fault = race_ego_bridge::classifyTrajectoryFault(0.01, 0.05, 0.02, 0.30);
+  EXPECT_EQ(fault, race_ego_bridge::TrajectoryFaultClass::None);
+}
+
+// An unknown tracking error must not be reported as a tracking fault: the
+// bridge has no command to compare against before the first validated output,
+// and inventing a fault there would produce spurious warnings and could brake a
+// perfectly good trajectory. Unknown means unknown, not bad.
+TEST(TrajectoryFaultClassification, UnknownTrackingErrorIsNotAFault)
+{
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_EQ(
+    race_ego_bridge::classifyTrajectoryFault(0.01, 0.05, nan, 0.30),
+    race_ego_bridge::TrajectoryFaultClass::None);
+  // An unknown tracking error still must not mask a real splice fault.
+  EXPECT_EQ(
+    race_ego_bridge::classifyTrajectoryFault(0.40, 0.05, nan, 0.30),
+    race_ego_bridge::TrajectoryFaultClass::TrajectoryHandoff);
+}
+
+// A non-finite splice error can never be shown to be within tolerance, so it
+// must fail closed as a handoff fault.
+TEST(TrajectoryFaultClassification, NonFiniteSpliceErrorFailsClosed)
+{
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_EQ(
+    race_ego_bridge::classifyTrajectoryFault(nan, 0.05, 0.02, 0.30),
+    race_ego_bridge::TrajectoryFaultClass::TrajectoryHandoff);
 }

@@ -525,12 +525,14 @@ void EGOReplanFSM::waypointCallback(
   }
 
   const bool had_active_reference_path = have_active_reference_path_;
+  const uint64_t previous_global_goal_id = active_reference_path_.global_goal_id;
   const uint64_t previous_global_path_id = active_reference_path_.global_path_id;
   const uint64_t previous_reference_goal_seq = active_reference_path_.local_goal_seq;
   const bool latest_reference_matches_goal = have_latest_reference_path_ &&
     (latest_reference_path_.local_goal - end_wp).norm() <= 0.05;
   const bool duplicate_reference_transaction = had_active_reference_path &&
     latest_reference_matches_goal &&
+    latest_reference_path_.global_goal_id == active_reference_path_.global_goal_id &&
     latest_reference_path_.global_path_id == previous_global_path_id &&
     latest_reference_path_.local_goal_seq == previous_reference_goal_seq;
   if (duplicate_reference_transaction) {
@@ -543,10 +545,10 @@ void EGOReplanFSM::waypointCallback(
   }
 
   init_pt_ = odom_pos_;
-  const bool new_global_path = have_active_reference_path_ &&
+  const bool new_global_goal = have_active_reference_path_ &&
     have_latest_reference_path_ &&
-    latest_reference_path_.global_path_id != active_reference_path_.global_path_id;
-  force_new_global_path_session_ = new_global_path;
+    latest_reference_path_.global_goal_id != active_reference_path_.global_goal_id;
+  force_new_global_path_session_ = new_global_goal;
   have_active_reference_path_ = false;
   if (latest_reference_matches_goal)
   {
@@ -614,8 +616,11 @@ void EGOReplanFSM::waypointCallback(
     if (force_new_global_path_session_) {
       RCLCPP_INFO(
         node_->get_logger(),
-        "[EGO_NEW_GLOBAL_PATH_SESSION] old_global_path_id=%lu new_global_path_id=%lu "
+        "[EGO_NEW_GLOBAL_GOAL_SESSION] old_global_goal_id=%lu new_global_goal_id=%lu "
+        "old_global_path_id=%lu new_global_path_id=%lu "
         "start=current_odom preempt_old_trajectory=true",
+        static_cast<unsigned long>(previous_global_goal_id),
+        static_cast<unsigned long>(latest_reference_path_.global_goal_id),
         static_cast<unsigned long>(previous_global_path_id),
         static_cast<unsigned long>(latest_reference_path_.global_path_id));
     }
@@ -669,6 +674,7 @@ void EGOReplanFSM::referencePathCallback(
   }
 
   LocalPathReference reference;
+  reference.global_goal_id = msg->global_goal_id;
   reference.global_path_id = msg->global_path_id;
   reference.local_goal_seq = msg->local_goal_seq;
   const Eigen::Vector3d received_local_goal(

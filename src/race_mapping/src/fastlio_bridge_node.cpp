@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cmath>
 #include <memory>
+#include <optional>
 #include <string>
 #include <stdexcept>
 
@@ -22,6 +23,8 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/transform_broadcaster.h>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/string.hpp>
 
 class FastLioBridgeNode : public rclcpp::Node {
 public:
@@ -32,7 +35,23 @@ public:
         // 发布的话题名。原先硬编码的 /fast_lio/odometry 在本工作区不存在，会让
         // 本节点一条消息都收不到，/race/odom 与 /race/pose 永不发布 —— 而且不报错。
         // 参数化以便别的 FAST-LIO 分支使用不同话题名。
-        odom_topic_ = this->declare_parameter<std::string>("odom_topic", "/Odometry");
+        // Consume the health-gated stream by default.  An explicit override is
+        // still useful for validation bags, but the bridge applies its own
+        // continuity gate before it can publish /race/odom.
+        odom_topic_ = this->declare_parameter<std::string>("odom_topic", "/Odometry/healthy");
+        health_status_topic_ = this->declare_parameter<std::string>(
+            "health_status_topic", "/frlio/high_rate_odom/status");
+        planner_usable_topic_ = this->declare_parameter<std::string>(
+            "planner_usable_topic", "/frlio/high_rate_odom/planner_usable");
+        require_health_status_ = this->declare_parameter<bool>("require_health_status", true);
+        recovery_healthy_sec_ = this->declare_parameter<double>("recovery_healthy_sec", 1.0);
+        max_position_jump_m_ = this->declare_parameter<double>("max_position_jump_m", 0.25);
+        max_speed_mps_ = this->declare_parameter<double>("max_speed_mps", 1.5);
+        max_dt_s_ = this->declare_parameter<double>("max_dt_s", 0.5);
+        if (recovery_healthy_sec_ <= 0.0 || max_position_jump_m_ <= 0.0 ||
+            max_speed_mps_ <= 0.0 || max_dt_s_ <= 0.0) {
+            throw std::invalid_argument("FAST-LIO bridge gate parameters must be positive");
+        }
         body_to_sensor_x_m_ = this->declare_parameter<double>("body_to_sensor_x_m", 0.0);
         body_to_sensor_y_m_ = this->declare_parameter<double>("body_to_sensor_y_m", 0.0);
         body_to_sensor_z_m_ = this->declare_parameter<double>("body_to_sensor_z_m", 0.08);
@@ -48,6 +67,29 @@ public:
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
             odom_topic_, 10,
             std::bind(&FastLioBridgeNode::odom_callback, this, std::placeholders::_1));
+        health_status_sub_ = this->create_subscription<std_msgs::msg::String>(
+            health_status_topic_, rclcpp::QoS(1).reliable().transient_local(),
+            [this](const std_msgs::msg::String::SharedPtr msg) {
+                health_status_ = msg->data;
+                health_status_seen_ = true;
+                health_status_time_ = now();
+                if (health_status_ == "FAULT_STATE_UNUSABLE" ||
+                    health_status_ == "FAULT_STALE_LIDAR" ||
+                    health_status_ == "STATE_UNUSABLE" ||
+                    health_status_ == "PLANNER_UNUSABLE") {
+                    healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+                }
+            });
+        planner_usable_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+            planner_usable_topic_, rclcpp::QoS(1).reliable().transient_local(),
+            [this](const std_msgs::msg::Bool::SharedPtr msg) {
+                planner_usable_ = msg->data;
+                planner_usable_seen_ = true;
+                planner_usable_time_ = now();
+                if (!planner_usable_) {
+                    healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+                }
+            });
 
         // 2️⃣ 创建统一 ENU/map 语义的里程计和位姿发布器
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/race/odom", 10);
@@ -65,7 +107,76 @@ public:
     }
 
 private:
+    bool health_allows_new_pose() {
+        const auto current = now();
+        if (require_health_status_ && (!health_status_seen_ || !planner_usable_seen_)) {
+            return false;
+        }
+        if (health_status_seen_ && (current - health_status_time_).seconds() > 0.5) {
+            return false;
+        }
+        if (planner_usable_seen_ &&
+            ((current - planner_usable_time_).seconds() > 0.5 || !planner_usable_)) {
+            return false;
+        }
+        const bool nominal = health_status_ == "HEALTHY" ||
+            health_status_ == "SUSPECT_STALE_LIDAR" || health_status_ == "DEGRADED";
+        if (!nominal) {
+            healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+            return false;
+        }
+        if (healthy_since_.nanoseconds() == 0) {
+            healthy_since_ = current;
+            return false;
+        }
+        return (current - healthy_since_).seconds() >= recovery_healthy_sec_;
+    }
+
+    bool continuity_allows(const nav_msgs::msg::Odometry &msg) const {
+        if (!last_accepted_.has_value()) {
+            return true;
+        }
+        const auto &previous = *last_accepted_;
+        const double dt = (rclcpp::Time(msg.header.stamp) -
+            rclcpp::Time(previous.header.stamp)).seconds();
+        if (dt <= 0.0 || dt > max_dt_s_) {
+            return false;
+        }
+        const auto &a = msg.pose.pose.position;
+        const auto &b = previous.pose.pose.position;
+        const double distance = std::hypot(std::hypot(a.x - b.x, a.y - b.y), a.z - b.z);
+        const double speed = distance / dt;
+        return distance <= max_position_jump_m_ && speed <= max_speed_mps_;
+    }
+
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+        if (!health_allows_new_pose()) {
+            // No sample observed while the health gate is closed can be a
+            // valid continuity anchor.  This also handles a relocalization
+            // that completes while the bridge is in its healthy-recovery
+            // window: the first frame after recovery starts a new baseline.
+            last_accepted_.reset();
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(), *this->get_clock(), 1000,
+                "[RACE_ODOM_FROZEN] status=%s planner_usable=%s; holding last trusted pose",
+                health_status_.c_str(), planner_usable_ ? "true" : "false");
+            return;
+        }
+        if (!continuity_allows(*msg)) {
+            // A relocalization or tracker reset can legitimately move the
+            // pose by more than the in-flight jump limit.  Do not retain the
+            // pre-reset sample as the comparison anchor: doing so rejects
+            // every subsequent frame forever because each frame is compared
+            // with the stale pose.  The health hold above provides the
+            // recovery interval; the first healthy frame after it establishes
+            // a fresh baseline without being published as a jump.
+            last_accepted_.reset();
+            healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+            RCLCPP_ERROR_THROTTLE(
+                this->get_logger(), *this->get_clock(), 1000,
+                "[RACE_ODOM_REJECTED] discontinuous pose; resetting continuity baseline");
+            return;
+        }
         // FAST-LIO publishes camera_init/world ENU pose with child frame `body`.
         // Convert that child pose to the control-center `base_link` once here;
         // RViz's Odometry display consumes the pose quaternion directly and does
@@ -164,6 +275,11 @@ private:
         odom_msg->twist.twist.angular.z = angular_base.z();
 
         odom_pub_->publish(*odom_msg);
+        // Continuity is checked against the incoming FAST-LIO pose.  Keep the
+        // same raw frame here; storing odom_msg would mix the base_link lever
+        // arm correction into the next comparison and turn the fixed offset
+        // into an apparent high-speed jump.
+        last_accepted_ = *msg;
 
         // --- 4. 打包并发布 /race/pose ---
         auto pose_msg = std::make_shared<geometry_msgs::msg::PoseStamped>();
@@ -212,12 +328,29 @@ private:
 
     // ROS2 订阅器与发布器
     std::string odom_topic_;
+    std::string health_status_topic_;
+    std::string planner_usable_topic_;
     double body_to_sensor_x_m_{0.0};
     double body_to_sensor_y_m_{0.0};
     double body_to_sensor_z_m_{0.08};
     double body_to_fastlio_yaw_rad_{0.0};
     double world_yaw_alignment_rad_{0.0};
+    double recovery_healthy_sec_{1.0};
+    double max_position_jump_m_{0.25};
+    double max_speed_mps_{1.5};
+    double max_dt_s_{0.5};
+    bool require_health_status_{true};
+    bool health_status_seen_{false};
+    bool planner_usable_seen_{false};
+    bool planner_usable_{false};
+    std::string health_status_;
+    rclcpp::Time health_status_time_{0, 0, RCL_ROS_TIME};
+    rclcpp::Time planner_usable_time_{0, 0, RCL_ROS_TIME};
+    rclcpp::Time healthy_since_{0, 0, RCL_ROS_TIME};
+    std::optional<nav_msgs::msg::Odometry> last_accepted_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr health_status_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr planner_usable_sub_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
 

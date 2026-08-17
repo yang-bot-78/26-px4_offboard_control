@@ -12,6 +12,7 @@ find_package(mavros_msgs REQUIRED)
 find_package(race_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(px4_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -21,7 +22,7 @@ add_executable(offboard_waypoint_node src/offboard_waypoint_node.cpp)
 target_include_directories(offboard_waypoint_node PRIVATE include)
 ament_target_dependencies(
   offboard_waypoint_node rclcpp mavros_msgs race_msgs geometry_msgs nav_msgs
-  std_msgs std_srvs tf2 tf2_geometry_msgs)
+  px4_msgs std_msgs std_srvs tf2 tf2_geometry_msgs)
 
 install(TARGETS
   offboard_waypoint_node
@@ -29,6 +30,13 @@ install(TARGETS
 )
 install(PROGRAMS
   mission/mission_sequencer_node.py
+  mission/save_waypoint.py
+  mission/list_waypoints.py
+  mission/goto_waypoint.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(FILES
+  mission/waypoint_common.py
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/ DESTINATION include)
@@ -54,11 +62,21 @@ if(BUILD_TESTING)
   # chain.  Absent from the simulation node; required on the real aircraft.
   ament_add_gtest(test_ev_health_tracker test/test_ev_health_tracker.cpp)
   target_include_directories(test_ev_health_tracker PRIVATE include)
+  # Separates "the planner may not plan" from "PX4 has no localization".  A
+  # stale LiDAR posterior must hold the planner without interrupting EV, and the
+  # resulting hold must be recoverable rather than a mission abort.
+  ament_add_gtest(test_frlio_health_policy test/test_frlio_health_policy.cpp)
+  target_include_directories(test_frlio_health_policy PRIVATE include)
   # A PX4 EKF local-origin reset may replace a disarmed IDLE hold only after
   # stable confirmation.  The policy must remain impossible while armed.
   ament_add_gtest(
     test_local_origin_rebase_guard test/test_local_origin_rebase_guard.cpp)
   target_include_directories(test_local_origin_rebase_guard PRIVATE include)
+  # PX4 local-Z resets are edge-triggered by z_reset_counter. The tracker
+  # prevents a persistent delta_z field from translating a hold repeatedly.
+  ament_add_gtest(
+    test_px4_local_z_reset_tracker test/test_px4_local_z_reset_tracker.cpp)
+  target_include_directories(test_px4_local_z_reset_tracker PRIVATE include)
   add_test(
     NAME test_mission_sequencer
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_mission_sequencer.py)

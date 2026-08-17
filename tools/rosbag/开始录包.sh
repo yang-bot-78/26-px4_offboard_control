@@ -18,6 +18,7 @@ snapshot_dir="${run_root}/snapshot"
 bag_dir="${run_root}/rosbag"
 runtime_dir="${project_root}/runtime"
 px4_ulog_check="${project_root}/tools/flight/检查PX4视觉ULog.sh"
+qos_overrides="${project_root}/tools/rosbag/sensor_qos_overrides.yaml"
 pid_file="${runtime_dir}/takeoff_debug_bag.pid"
 run_dir_file="${runtime_dir}/takeoff_debug_bag_run_dir.txt"
 status_file="${runtime_dir}/last_rosbag_status.txt"
@@ -25,7 +26,9 @@ history_file="${runtime_dir}/last_rosbag_status_history.log"
 run_status_file="${snapshot_dir}/rosbag_status.txt"
 param_snapshot_enabled="${PARAM_SNAPSHOT_ENABLED:-false}"
 record_ego_diagnostics="${RECORD_EGO_DIAGNOSTICS:-false}"
-record_px4_dds_out="${RECORD_PX4_DDS_OUT:-false}"
+record_px4_dds_out="${RECORD_PX4_DDS_OUT:-true}"
+rosbag_cpu_affinity="${ROSBAG_CPU_AFFINITY:-}"
+rosbag_nice_level="${ROSBAG_NICE_LEVEL:-10}"
 
 if [[ "${param_snapshot_enabled}" != true && "${param_snapshot_enabled}" != false ]]; then
   echo "PARAM_SNAPSHOT_ENABLED 必须是 true 或 false" >&2
@@ -38,6 +41,20 @@ fi
 if [[ "${record_px4_dds_out}" != true && "${record_px4_dds_out}" != false ]]; then
   echo "RECORD_PX4_DDS_OUT 必须是 true 或 false" >&2
   exit 1
+fi
+if [[ ! "${rosbag_nice_level}" =~ ^([0-9]|1[0-9])$ ]]; then
+  echo "ROSBAG_NICE_LEVEL 必须是 [0, 19] 内的整数：${rosbag_nice_level}" >&2
+  exit 1
+fi
+if [[ -n "${rosbag_cpu_affinity}" ]]; then
+  if ! command -v taskset >/dev/null 2>&1; then
+    echo "ROSBAG_CPU_AFFINITY=${rosbag_cpu_affinity} 但找不到 taskset" >&2
+    exit 1
+  fi
+  if ! taskset --cpu-list "${rosbag_cpu_affinity}" true >/dev/null 2>&1; then
+    echo "ROSBAG_CPU_AFFINITY 无效：${rosbag_cpu_affinity}" >&2
+    exit 1
+  fi
 fi
 
 mid360_candidates=(
@@ -203,6 +220,7 @@ echo "录包输出目录：${bag_dir}"
 echo "是否录制完整配准点云：${RECORD_POINTCLOUD:-false}"
 echo "是否录制 EGO 障碍诊断：${record_ego_diagnostics}"
 echo "是否录制 PX4 DDS /fmu/out 镜像：${record_px4_dds_out}"
+echo "录包 CPU affinity：${rosbag_cpu_affinity:-未设置}；nice：+${rosbag_nice_level}"
 echo "在本终端按 Ctrl+C 停止录包。"
 
 if [[ ! -x "${px4_ulog_check}" ]]; then
@@ -225,6 +243,15 @@ bag_topics=(
   /frlio/high_rate_odom/status
   /frlio/high_rate_odom/anchor_age
   /frlio/high_rate_odom/accel_spike_rejections
+  /frlio/high_rate_odom/predictor_age
+  /frlio/high_rate_odom/ev_usable
+  /frlio/high_rate_odom/planner_usable
+  /frlio/high_rate_odom/localization_health
+  # Structured source-stamped evidence chain: IMU raw/gate/used/dv, LiDAR
+  # pre/post posterior, and the high-rate smoothing correction/output.
+  /frlio/high_rate_odom/imu_trace
+  /frlio/high_rate_odom/lidar_update_trace
+  /frlio/high_rate_odom/correction_trace
   # 高频原始、规划和经 EV 门控后的里程计，三者必须一起保存，才能对齐
   # 输入断档、重定位桥和 MAVROS/PX4 视觉输出。
   /Odometry
@@ -238,6 +265,7 @@ bag_topics=(
   /ev_health/status
   /ev_health/fault
   /ev_health/flight_ready
+  /ev_health/reset_counter
   /ev_health/diagnostics
   /ev_health/velocity_ned
   /path
@@ -246,8 +274,8 @@ bag_topics=(
   #   /Odometry.twist              FAST-LIO child/body FLU 原始速度
   #   /mavros/vision_speed/...     桥接后送入 MAVROS 的世界 ENU 视觉速度
   #   /mavros/local_position/...   PX4 EKF 输出的本地速度
-  #   /fmu/out/...                 PX4 原生 uORB 镜像（默认不录，避免混入
-  #                                未确认来源的 DDS 状态）
+  #   /fmu/out/...                 PX4 原生 uORB 镜像（由
+  #                                RECORD_PX4_DDS_OUT 控制，生产验收默认开启）
   /mavros/estimator_status
   /mavros/local_position/pose
   /mavros/local_position/odom
@@ -257,6 +285,8 @@ bag_topics=(
   /mavros/vision_speed/speed_twist_cov
   /mavros/setpoint_raw/local
   /mavros/setpoint_raw/target_local
+  # Legacy reset event; the production path also records PX4 DDS local state.
+  /mavros/debug_value/debug_vector
   # 导航栈话题。缺了这些，导航飞行就无法复盘：只留下飞机做了什么的记录，
   # 而没有"当时规划的是什么"的记录。
   /race/odom
@@ -286,11 +316,18 @@ bag_topics=(
   /tf_static
 )
 
+if [[ "${LIVOX_BOUNDARY_TRACE_ENABLED:-false}" == true ]]; then
+  # These topics are emitted by the patched driver and distinguish UDP/SDK
+  # starvation from DDS publish or downstream executor starvation.
+  bag_topics+=(/livox/imu_driver_trace /livox/lidar_driver_trace)
+fi
+
 if [[ "${record_px4_dds_out}" == true ]]; then
   bag_topics+=(
     /fmu/out/estimator_status_flags
+    /fmu/out/estimator_aid_src_ev_pos
     /fmu/out/vehicle_local_position_v1
-    /fmu/out/vehicle_local_position
+    /fmu/in/vehicle_visual_odometry
   )
 fi
 
@@ -314,12 +351,17 @@ if [[ "${RECORD_POINTCLOUD:-false}" == "true" ]]; then
   bag_topics+=(/cloud_registered /saved_map)
 fi
 
-ros2 bag record -o "${bag_dir}" "${bag_topics[@]}" &
+bag_command=(nice -n "${rosbag_nice_level}" ros2 bag record
+  --qos-profile-overrides-path "${qos_overrides}" -o "${bag_dir}")
+if [[ -n "${rosbag_cpu_affinity}" ]]; then
+  bag_command=(taskset --cpu-list "${rosbag_cpu_affinity}" "${bag_command[@]}")
+fi
+"${bag_command[@]}" "${bag_topics[@]}" &
 
 bag_pid=$!
 printf '%s\n' "${bag_pid}" >"${pid_file}"
 printf '%s\n' "${run_root}" >"${run_dir_file}"
-write_status "recording" "rosbag started"
+write_status "recording" "rosbag started affinity=${rosbag_cpu_affinity:-unset} nice=+${rosbag_nice_level}"
 
 stop_reason="completed"
 

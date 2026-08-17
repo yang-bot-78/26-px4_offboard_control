@@ -374,6 +374,10 @@ bag_topics=(
   /Odometry/healthy
   /frlio/high_rate_odom/status
   /frlio/high_rate_odom/anchor_age
+  /frlio/high_rate_odom/predictor_age
+  /frlio/high_rate_odom/ev_usable
+  /frlio/high_rate_odom/planner_usable
+  /frlio/high_rate_odom/localization_health
   /ev_health/status
   /ev_health/fault
   /ev_health/flight_ready

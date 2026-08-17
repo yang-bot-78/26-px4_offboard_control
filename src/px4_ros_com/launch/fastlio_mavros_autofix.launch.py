@@ -12,10 +12,11 @@ from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 
 
-# EV 链唯一路径：
-#   MID-360 -> FAST-LIO -> /Odometry -> fastlio_odometry_guard
-#     -> /Odometry/healthy -> fastlio_mavros_odometry_bridge
-#     -> /mavros/odometry/out -> MAVROS ODOMETRY -> PX4 EKF2
+# EV 链生产路径：
+#   MID-360 -> FAST-LIO -> /Odometry -> EV health/relocalization gate
+#     -> fastlio_px4_vehicle_odometry -> /fmu/in/vehicle_visual_odometry
+#     -> PX4 EKF2.  MAVROS ODOMETRY remains an explicit, disabled-by-default
+#     diagnostic path and must not be enabled together with the native writer.
 #
 # 曾经的 start_bridge(/mavros/odometry/out) 与
 # start_px4_ev_bridge(/fmu/in/vehicle_visual_odometry) 两条备选 EV 通路已删除，
@@ -28,6 +29,7 @@ def generate_launch_description():
     tgt_system = LaunchConfiguration("tgt_system")
     tgt_component = LaunchConfiguration("tgt_component")
     start_mavros_odometry_bridge = LaunchConfiguration("start_mavros_odometry_bridge")
+    start_px4_vehicle_odometry = LaunchConfiguration("start_px4_vehicle_odometry")
     start_odom_guard = LaunchConfiguration("start_odom_guard")
     start_ev_health_monitor = LaunchConfiguration("start_ev_health_monitor")
     start_tf = LaunchConfiguration("start_tf")
@@ -84,6 +86,7 @@ def generate_launch_description():
         "ev_effective_points_timeout_s"
     )
     ev_publish_rate_hz = LaunchConfiguration("ev_publish_rate_hz")
+    timing_alignment_enabled = LaunchConfiguration("timing_alignment_enabled")
     require_frlio_anchor_status = LaunchConfiguration(
         "require_frlio_anchor_status"
     )
@@ -91,9 +94,21 @@ def generate_launch_description():
         "frlio_anchor_status_timeout_s"
     )
     frlio_max_anchor_age_s = LaunchConfiguration("frlio_max_anchor_age_s")
+    frlio_max_predictor_age_s = LaunchConfiguration("frlio_max_predictor_age_s")
+    frlio_allow_stale_lidar_predictor_degraded = LaunchConfiguration(
+        "frlio_allow_stale_lidar_predictor_degraded"
+    )
     flight_ready_output_timeout_s = LaunchConfiguration(
         "flight_ready_output_timeout_s"
     )
+    enable_relocalization = LaunchConfiguration("enable_relocalization")
+    relocalization_stable_s = LaunchConfiguration("relocalization_stable_s")
+    require_px4_local_position = LaunchConfiguration("require_px4_local_position")
+    px4_local_position_timeout_s = LaunchConfiguration("px4_local_position_timeout_s")
+    require_px4_ev_fusion = LaunchConfiguration("require_px4_ev_fusion")
+    px4_ev_aid_topic = LaunchConfiguration("px4_ev_aid_topic")
+    px4_ev_fuse_timeout_s = LaunchConfiguration("px4_ev_fuse_timeout_s")
+    px4_bootstrap_max_s = LaunchConfiguration("px4_bootstrap_max_s")
     velocity_variance_floor_x_m2ps2 = LaunchConfiguration(
         "velocity_variance_floor_x_m2ps2"
     )
@@ -124,6 +139,9 @@ def generate_launch_description():
                 "rebaseline_after_rejections": ParameterValue(
                     guard_rebaseline_after_rejections, value_type=int
                 ),
+                # A flight-time position jump must remain rejected; a ground
+                # relocalization requires an explicit guarded restart.
+                "allow_rebaseline": False,
             }
         ],
     )
@@ -165,7 +183,25 @@ def generate_launch_description():
                 ),
                 "frlio_anchor_status_timeout_s": frlio_anchor_status_timeout_s,
                 "frlio_max_anchor_age_s": frlio_max_anchor_age_s,
+                "frlio_max_predictor_age_s": frlio_max_predictor_age_s,
+                "frlio_allow_stale_lidar_predictor_degraded": ParameterValue(
+                    frlio_allow_stale_lidar_predictor_degraded, value_type=bool
+                ),
                 "flight_ready_output_timeout_s": flight_ready_output_timeout_s,
+                "enable_relocalization": ParameterValue(
+                    enable_relocalization, value_type=bool
+                ),
+                "relocalization_stable_s": relocalization_stable_s,
+                "require_px4_local_position": ParameterValue(
+                    require_px4_local_position, value_type=bool
+                ),
+                "px4_local_position_timeout_s": px4_local_position_timeout_s,
+                "require_px4_ev_fusion": ParameterValue(
+                    require_px4_ev_fusion, value_type=bool
+                ),
+                "px4_ev_aid_topic": px4_ev_aid_topic,
+                "px4_ev_fuse_timeout_s": px4_ev_fuse_timeout_s,
+                "px4_bootstrap_max_s": px4_bootstrap_max_s,
                 "healthy_position_variance_floor_m2": 0.01,
                 "healthy_orientation_variance_floor_rad2": 0.02,
                 "velocity_variance_m2ps2": 0.04,
@@ -232,11 +268,39 @@ def generate_launch_description():
                 "max_publish_rate_hz": ParameterValue(
                     ev_publish_rate_hz, value_type=float
                 ),
+                "timing_alignment_enabled": ParameterValue(
+                    timing_alignment_enabled, value_type=bool
+                ),
                 "world_yaw_alignment_rad": world_yaw_alignment_rad,
                 "body_to_sensor_x_m": body_to_sensor_x_m,
                 "body_to_sensor_y_m": body_to_sensor_y_m,
                 "body_to_sensor_z_m": body_to_sensor_z_m,
                 "body_to_fastlio_yaw_rad": body_to_fastlio_yaw_rad,
+            }
+        ],
+    )
+
+    # The native PX4 message is the production writer because it preserves
+    # VehicleOdometry.reset_counter.  The expression prevents two EV writers
+    # when an old validation command explicitly enables the MAVROS bridge.
+    fastlio_px4_vehicle_odometry = Node(
+        package="px4_ros_com",
+        executable="fastlio_px4_vehicle_odometry",
+        name="fastlio_px4_vehicle_odometry",
+        output="screen",
+        condition=IfCondition(PythonExpression([
+            "'", start_px4_vehicle_odometry, "' == 'true' and '",
+            start_mavros_odometry_bridge, "' == 'false'",
+        ])),
+        parameters=[
+            {
+                "input_topic": healthy_odom_topic,
+                "output_topic": "/fmu/in/vehicle_visual_odometry",
+                "reset_counter_topic": "/ev_health/reset_counter",
+                "position_yaw_offset_rad": world_yaw_alignment_rad,
+                "max_publish_rate_hz": ParameterValue(
+                    ev_publish_rate_hz, value_type=float
+                ),
             }
         ],
     )
@@ -342,6 +406,7 @@ def generate_launch_description():
             DeclareLaunchArgument("tgt_system", default_value="1"),
             DeclareLaunchArgument("tgt_component", default_value="1"),
             DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="true"),
+            DeclareLaunchArgument("start_px4_vehicle_odometry", default_value="false"),
             DeclareLaunchArgument("start_odom_guard", default_value="true"),
             DeclareLaunchArgument("start_ev_health_monitor", default_value="true"),
             DeclareLaunchArgument("start_tf", default_value="true"),
@@ -403,18 +468,40 @@ def generate_launch_description():
                 "ev_effective_points_timeout_s", default_value="0.5"
             ),
             DeclareLaunchArgument("ev_publish_rate_hz", default_value="50.0"),
+            DeclareLaunchArgument("timing_alignment_enabled", default_value="true"),
             DeclareLaunchArgument(
-                "require_frlio_anchor_status", default_value="false"
+                "require_frlio_anchor_status", default_value="true"
             ),
             DeclareLaunchArgument(
                 "frlio_anchor_status_timeout_s", default_value="0.5"
             ),
             DeclareLaunchArgument("frlio_max_anchor_age_s", default_value="0.40"),
+            # Must match fr_lio's high_rate_odom.max_predictor_age_s. This gate
+            # is the one that can take EV away, so a value tighter than FR-LIO's
+            # own L3 threshold would block EV while FR-LIO still reports the
+            # state as usable -- the two layers would disagree about the same
+            # fact. The measured high-rate publish gap reaches 135 ms, so the
+            # previous 0.05 s also fired during healthy operation.
+            DeclareLaunchArgument("frlio_max_predictor_age_s", default_value="0.15"),
+            DeclareLaunchArgument(
+                "frlio_allow_stale_lidar_predictor_degraded", default_value="true"
+            ),
             DeclareLaunchArgument(
                 # Tolerate short FR-LIO LiDAR-correction stalls without dropping
                 # flight_ready; EV fault and hard anchor gates still fail closed.
                 "flight_ready_output_timeout_s", default_value="0.8"
             ),
+            DeclareLaunchArgument("enable_relocalization", default_value="true"),
+            DeclareLaunchArgument("relocalization_stable_s", default_value="0.50"),
+            # The MAVLink transport does not expose PX4 uORB VehicleLocalPosition
+            # to ROS 2. Use MAVROS local odometry instead; do not subscribe to
+            # the unavailable /fmu topic.
+            DeclareLaunchArgument("require_px4_local_position", default_value="false"),
+            DeclareLaunchArgument("px4_local_position_timeout_s", default_value="0.30"),
+            DeclareLaunchArgument("require_px4_ev_fusion", default_value="false"),
+            DeclareLaunchArgument("px4_ev_aid_topic", default_value=""),
+            DeclareLaunchArgument("px4_ev_fuse_timeout_s", default_value="0.50"),
+            DeclareLaunchArgument("px4_bootstrap_max_s", default_value="15.0"),
             DeclareLaunchArgument(
                 "velocity_variance_floor_x_m2ps2", default_value="0.0016"
             ),
@@ -433,6 +520,7 @@ def generate_launch_description():
             fastlio_ev_health_monitor,
             odometry_frame_fixer,
             fastlio_mavros_odometry_bridge,
+            fastlio_px4_vehicle_odometry,
             tf_odom_to_odom_ned,
             tf_base_link_to_base_link_frd,
             tf_base_link_to_body,

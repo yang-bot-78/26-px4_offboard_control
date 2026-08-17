@@ -9,7 +9,9 @@ from typing import Iterable, List
 
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import TwistStamped, TwistWithCovarianceStamped
+from mavros_msgs.msg import State
 from nav_msgs.msg import Odometry
+from px4_msgs.msg import EstimatorAidSource2d, VehicleLocalPosition
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -19,7 +21,7 @@ from rclpy.qos import (
     QoSProfile,
     ReliabilityPolicy,
 )
-from std_msgs.msg import Bool, Float64, String
+from std_msgs.msg import Bool, Float64, String, UInt8
 
 from px4_ros_com.ev_health import (
     covariance_3x3_is_symmetric_psd,
@@ -41,6 +43,25 @@ def _vector_text(values: Iterable[float]) -> str:
     return ",".join("nan" if not math.isfinite(value) else f"{value:.6f}" for value in values)
 
 
+# Statuses that mean "the propagated state itself is unusable".  These are the
+# only FR-LIO statuses that may block the EV stream, because they are the only
+# ones asserting that there is no trustworthy current state.
+_FRLIO_STATE_UNUSABLE_STATUSES = frozenset(
+    {
+        "FAULT_STATE_UNUSABLE",
+        "UNIT_UNCONFIRMED",
+        "WAITING_FOR_LIDAR",
+        "DISABLED",
+    }
+)
+
+# Statuses that mean "LiDAR corrections are late, the predictor is still real
+# time". EV continues with FR-LIO's propagated covariance; only the planner stops.
+_FRLIO_PLANNER_UNUSABLE_STATUSES = frozenset({"FAULT_STALE_LIDAR"})
+
+_FRLIO_DEGRADED_STATUSES = frozenset({"SUSPECT_STALE_LIDAR"})
+
+
 def _evaluate_frlio_anchor_gate(
     *,
     required: bool,
@@ -51,14 +72,62 @@ def _evaluate_frlio_anchor_gate(
     anchor_message_age_s: float,
     message_timeout_s: float,
     max_anchor_age_s: float,
+    predictor_age_s: float = math.nan,
+    predictor_message_age_s: float = math.inf,
+    max_predictor_age_s: float = 0.05,
+    allow_stale_lidar_predictor_degraded: bool = False,
 ):
-    """Return ``(reason, block_output)`` for the optional FR-LIO safety gate."""
+    """Return ``(reason, block_output)`` for the FR-LIO safety gate.
+
+    ``block_output`` means "do not hand this sample to PX4 as EV".  It is
+    reserved for the cases where the propagated state itself is untrustworthy:
+
+    * FR-LIO reports a STATE_UNUSABLE-class status,
+    * the status/predictor stream is missing or timed out (we cannot tell), or
+    * the predictor age exceeds ``max_predictor_age_s``.
+
+    A stale *anchor* (late LiDAR posterior) is deliberately NOT a block. It is
+    reported as a degraded reason so the planner stops while EV stays continuous.
+    FR-LIO already propagates process uncertainty into the source covariance;
+    this gate must not encode health state by multiplying that covariance again.
+    PX4 retains its own EV innovation/timeout gating, and the offboard node uses
+    ``planner_usable`` to enter HOLD.
+    """
     if not required:
         return None, False
     if not status_seen:
         return "frlio_status_missing", True
     if status_message_age_s < 0.0 or status_message_age_s > message_timeout_s:
         return f"frlio_status_timeout age={status_message_age_s:.3f}s", True
+    if status in _FRLIO_STATE_UNUSABLE_STATUSES:
+        return f"frlio_state_unusable status={status}", True
+
+    # The predictor stream is what licenses continued EV publication in every
+    # degraded case, so its freshness is validated before any of them.
+    def _predictor_reason():
+        if not math.isfinite(predictor_message_age_s):
+            return "frlio_predictor_age_missing"
+        if predictor_message_age_s < 0.0 or predictor_message_age_s > message_timeout_s:
+            return f"frlio_predictor_age_timeout age={predictor_message_age_s:.3f}s"
+        if (
+            not math.isfinite(predictor_age_s)
+            or predictor_age_s < 0.0
+            or predictor_age_s > max_predictor_age_s
+        ):
+            return f"frlio_predictor_stale age={predictor_age_s:.3f}s"
+        return None
+
+    if status in _FRLIO_PLANNER_UNUSABLE_STATUSES:
+        if not allow_stale_lidar_predictor_degraded:
+            return "frlio_status_FAULT_STALE_LIDAR", True
+        predictor_reason = _predictor_reason()
+        if predictor_reason is not None:
+            return predictor_reason, True
+        return (
+            "frlio_stale_lidar_predictor_fresh "
+            f"predictor_age={predictor_age_s:.3f}s",
+            False,
+        )
     if not math.isfinite(anchor_message_age_s):
         return "frlio_anchor_age_missing", True
     if anchor_message_age_s < 0.0 or anchor_message_age_s > message_timeout_s:
@@ -66,12 +135,99 @@ def _evaluate_frlio_anchor_gate(
     if not math.isfinite(anchor_age_s) or anchor_age_s < 0.0:
         return "frlio_anchor_age_invalid", True
     if anchor_age_s >= max_anchor_age_s:
-        return f"frlio_anchor_stale age={anchor_age_s:.3f}s", True
-    if status == "SUSPECT_STALE_LIDAR":
+        # The anchor crossed the stale threshold before the status message
+        # carrying that transition arrived.  Same physical situation as
+        # FAULT_STALE_LIDAR, so it gets the same graded treatment rather than a
+        # hard block: a message-ordering race must not create an EV dropout.
+        if not allow_stale_lidar_predictor_degraded:
+            return f"frlio_anchor_stale age={anchor_age_s:.3f}s", True
+        predictor_reason = _predictor_reason()
+        if predictor_reason is not None:
+            return predictor_reason, True
+        return (
+            f"frlio_stale_lidar_predictor_fresh anchor_age={anchor_age_s:.3f}s "
+            f"predictor_age={predictor_age_s:.3f}s",
+            False,
+        )
+    if status in _FRLIO_DEGRADED_STATUSES:
         return f"frlio_anchor_suspect age={anchor_age_s:.3f}s", False
     if status != "HEALTHY":
+        # Unrecognised status text still fails closed: we cannot map it to a
+        # level, so we must not assume the state is usable.
         return f"frlio_status_{status or 'empty'}", True
     return None, False
+
+
+def _is_frlio_predictor_degraded_reason(reason) -> bool:
+    return bool(reason) and reason.startswith("frlio_stale_lidar_predictor_fresh")
+
+
+def _is_internal_velocity_only_fault(reason: str) -> bool:
+    """Whether a core fault is expected while LiDAR corrections are stale."""
+    return reason == "internal_velocity_unaligned" or reason.startswith(
+        "internal_velocity_mismatch "
+    )
+
+
+def _is_px4_velocity_bootstrap_reason(reason: str) -> bool:
+    """Whether PX4's local-velocity check alone can block EKF2 bootstrap."""
+    return reason == "px4_velocity_timeout" or reason == "px4_velocity_unaligned" or (
+        reason.startswith("velocity_mismatch ")
+    )
+
+
+def _bootstrap_forward_allowed(
+    *,
+    accepted: bool,
+    core_state,
+    reason: str,
+    mavros_armed,
+    bootstrap_completed: bool,
+    now_s: float,
+    bootstrap_deadline_s: float,
+) -> bool:
+    """Permit EV only while a disarmed PX4 EKF2 establishes its local state.
+
+    MAVROS local velocity is produced by the estimator that consumes this EV
+    stream. Before that estimator has been seeded it can be missing or drift
+    far from the stationary FAST-LIO derivative. Dropping every accepted EV
+    sample at that point creates a bootstrap deadlock. Flight readiness remains
+    fail-closed; this exception only keeps the input needed to initialize EKF2.
+    """
+    if (
+        not accepted
+        or mavros_armed is not False
+        or bootstrap_completed
+        or now_s > bootstrap_deadline_s
+        or core_state == HealthState.HEALTHY
+    ):
+        return False
+    return _is_px4_velocity_bootstrap_reason(reason) or reason.startswith(
+        "recovering "
+    )
+
+
+def _copy_with_covariance_floors(
+    msg: Odometry,
+    *,
+    min_position_variance: float,
+    min_orientation_variance: float,
+    linear_covariance_body,
+) -> Odometry:
+    """Copy an accepted measurement without encoding health in covariance."""
+    output = copy.deepcopy(msg)
+    for index in (0, 7, 14):
+        output.pose.covariance[index] = max(
+            float(output.pose.covariance[index]), min_position_variance
+        )
+    for index in (21, 28, 35):
+        output.pose.covariance[index] = max(
+            float(output.pose.covariance[index]), min_orientation_variance
+        )
+    for row in range(3):
+        for column in range(3):
+            output.twist.covariance[row * 6 + column] = linear_covariance_body[row][column]
+    return output
 
 
 def _evaluate_flight_ready(
@@ -79,9 +235,17 @@ def _evaluate_flight_ready(
     core_state,
     frlio_reason,
     frlio_block: bool,
+    frlio_predictor_degraded: bool = False,
     now_s: float,
     last_healthy_output_s,
     healthy_output_timeout_s: float,
+    dead_reckoning: bool = False,
+    px4_local_position_age_s: float = 0.0,
+    require_px4_local_position: bool = False,
+    px4_local_position_timeout_s: float = 0.30,
+    ev_fuse_age_s: float = math.inf,
+    require_px4_ev_fusion: bool = False,
+    px4_ev_fuse_timeout_s: float = 0.50,
 ):
     """Return ``(ready, reason)`` for the actual flight-safety gate.
 
@@ -92,6 +256,18 @@ def _evaluate_flight_ready(
     FAULT, an expired healthy-output stream, and the hard FR-LIO anchor gate
     still fail closed immediately.
     """
+    if frlio_predictor_degraded:
+        return False, "frlio_predictor_degraded"
+    if require_px4_local_position and not math.isfinite(px4_local_position_age_s):
+        return False, "px4_local_position_missing"
+    if require_px4_local_position and px4_local_position_age_s > px4_local_position_timeout_s:
+        return False, f"px4_local_position_stale age={px4_local_position_age_s:.3f}s"
+    if dead_reckoning:
+        return False, "px4_dead_reckoning"
+    if require_px4_ev_fusion and (
+        not math.isfinite(ev_fuse_age_s) or ev_fuse_age_s > px4_ev_fuse_timeout_s
+    ):
+        return False, f"px4_ev_last_fuse_stale age={ev_fuse_age_s:.3f}s"
     if core_state == HealthState.FAULT:
         return False, f"core_state_{core_state.value.lower()}"
     if frlio_block:
@@ -117,6 +293,9 @@ class FastlioEvHealthMonitor(Node):
         self.output_topic = self.declare_parameter("output_topic", "/Odometry/healthy").value
         self.px4_velocity_topic = self.declare_parameter(
             "px4_velocity_topic", "/mavros/local_position/velocity_local"
+        ).value
+        self.mavros_state_topic = self.declare_parameter(
+            "mavros_state_topic", "/mavros/state"
         ).value
         self.px4_local_odom_topic = self.declare_parameter(
             "px4_local_odom_topic", "/mavros/local_position/odom"
@@ -147,11 +326,56 @@ class FastlioEvHealthMonitor(Node):
         self.frlio_anchor_age_topic = self.declare_parameter(
             "frlio_anchor_age_topic", "/frlio/high_rate_odom/anchor_age"
         ).value
+        self.frlio_predictor_age_topic = self.declare_parameter(
+            "frlio_predictor_age_topic", "/frlio/high_rate_odom/predictor_age"
+        ).value
+        # Keep aligned with fr_lio's high_rate_odom.max_predictor_age_s. This is
+        # the threshold that decides whether EV is taken away, so the two layers
+        # must not disagree about when the propagated state stops being usable.
+        self.frlio_max_predictor_age_s = float(
+            self.declare_parameter("frlio_max_predictor_age_s", 0.15).value
+        )
+        self.frlio_allow_stale_lidar_predictor_degraded = bool(
+            self.declare_parameter(
+                "frlio_allow_stale_lidar_predictor_degraded", True
+            ).value
+        )
         self.flight_ready_output_timeout_s = float(
             self.declare_parameter("flight_ready_output_timeout_s", 0.10).value
         )
+        self.px4_bootstrap_max_s = float(
+            self.declare_parameter("px4_bootstrap_max_s", 15.0).value
+        )
         if self.flight_ready_output_timeout_s <= 0.0:
             raise ValueError("flight_ready_output_timeout_s must be positive")
+        if self.frlio_max_predictor_age_s <= 0.0:
+            raise ValueError("frlio_max_predictor_age_s must be positive")
+        if self.px4_bootstrap_max_s <= 0.0:
+            raise ValueError("px4_bootstrap_max_s must be positive")
+        self.px4_local_position_topic = self.declare_parameter(
+            "px4_local_position_topic", ""
+        ).value
+        self.require_px4_local_position = bool(
+            self.declare_parameter("require_px4_local_position", True).value
+        )
+        self.px4_local_position_timeout_s = float(
+            self.declare_parameter("px4_local_position_timeout_s", 0.30).value
+        )
+        self.px4_ev_aid_topic = self.declare_parameter(
+            "px4_ev_aid_topic", ""
+        ).value
+        self.require_px4_ev_fusion = bool(
+            self.declare_parameter("require_px4_ev_fusion", True).value
+        )
+        self.px4_ev_fuse_timeout_s = float(
+            self.declare_parameter("px4_ev_fuse_timeout_s", 0.50).value
+        )
+        enable_relocalization = bool(
+            self.declare_parameter("enable_relocalization", True).value
+        )
+        relocalization_stable_s = float(
+            self.declare_parameter("relocalization_stable_s", 0.50).value
+        )
 
         config = HealthConfig(
             position_yaw_offset_rad=float(
@@ -224,9 +448,6 @@ class FastlioEvHealthMonitor(Node):
             stationary_speed_deadband_mps=float(
                 self.declare_parameter("stationary_speed_deadband_mps", 0.02).value
             ),
-            suspect_covariance_multiplier=float(
-                self.declare_parameter("suspect_covariance_multiplier", 100.0).value
-            ),
             min_position_variance=float(
                 self.declare_parameter("healthy_position_variance_floor_m2", 0.01).value
             ),
@@ -258,6 +479,8 @@ class FastlioEvHealthMonitor(Node):
             frlio_max_anchor_age_s=float(
                 self.declare_parameter("frlio_max_anchor_age_s", 0.40).value
             ),
+            enable_relocalization=enable_relocalization,
+            relocalization_stable_s=relocalization_stable_s,
         )
         if config.frlio_anchor_status_timeout_s <= 0.0:
             raise ValueError("frlio_anchor_status_timeout_s must be positive")
@@ -274,18 +497,31 @@ class FastlioEvHealthMonitor(Node):
             (math.nan, math.nan, math.nan),
             (math.nan, math.nan, math.nan),
         )
-        self._last_covariance_multiplier = math.nan
+        self._last_applied_covariance_multiplier = math.nan
         self._last_logged_health_key = None
         self._frlio_status = None
         self._frlio_status_receive_s = None
         self._frlio_anchor_age_s = math.nan
         self._frlio_anchor_age_receive_s = None
+        self._frlio_predictor_age_s = math.nan
+        self._frlio_predictor_age_receive_s = None
         self._frlio_gate_reason = None
         self._frlio_gate_block = False
+        self._frlio_predictor_degraded = False
         self._last_healthy_output_publish_s = None
         self._flight_ready = False
         self._flight_ready_reason = "initializing"
         self._last_logged_flight_ready = None
+        self._mavros_armed = None
+        self._px4_dead_reckoning = None
+        self._px4_local_position_receive_s = None
+        self._px4_z_reset_counter = None
+        self._px4_ev_fuse_age_s = math.inf
+        self._px4_ev_aid_receive_s = None
+        self._ev_reset_counter = 0
+        self._last_published_ev_reset_counter = None
+        self._bootstrap_completed = False
+        self._bootstrap_deadline_s = self._now_seconds() + self.px4_bootstrap_max_s
 
         odom_qos = QoSProfile(
             history=HistoryPolicy.KEEP_LAST,
@@ -309,6 +545,9 @@ class FastlioEvHealthMonitor(Node):
         self.flight_ready_publisher = self.create_publisher(
             Bool, self.flight_ready_topic, status_qos
         )
+        self.reset_counter_publisher = self.create_publisher(
+            UInt8, "/ev_health/reset_counter", status_qos
+        )
         self.diagnostic_publisher = self.create_publisher(
             DiagnosticArray, self.diagnostic_topic, 10
         )
@@ -324,6 +563,32 @@ class FastlioEvHealthMonitor(Node):
             self._px4_velocity_callback,
             odom_qos,
         )
+        self.mavros_state_subscription = self.create_subscription(
+            State,
+            self.mavros_state_topic,
+            self._mavros_state_callback,
+            odom_qos,
+        )
+        # VehicleLocalPosition and EstimatorAidSource2d are PX4 uORB/DDS
+        # interfaces. MAVLink deployments intentionally have no /fmu graph;
+        # only create these subscriptions when the corresponding safety gates
+        # are explicitly enabled and a topic was configured.
+        self.px4_local_position_subscription = None
+        if self.require_px4_local_position and self.px4_local_position_topic:
+            self.px4_local_position_subscription = self.create_subscription(
+                VehicleLocalPosition,
+                self.px4_local_position_topic,
+                self._px4_local_position_callback,
+                odom_qos,
+            )
+        self.px4_ev_aid_subscription = None
+        if self.require_px4_ev_fusion and self.px4_ev_aid_topic:
+            self.px4_ev_aid_subscription = self.create_subscription(
+                EstimatorAidSource2d,
+                self.px4_ev_aid_topic,
+                self._px4_ev_aid_callback,
+                odom_qos,
+            )
         self.local_odom_subscription = None
         if self.use_local_odom_velocity_fallback:
             self.local_odom_subscription = self.create_subscription(
@@ -344,6 +609,7 @@ class FastlioEvHealthMonitor(Node):
             )
         self.frlio_status_subscription = None
         self.frlio_anchor_age_subscription = None
+        self.frlio_predictor_age_subscription = None
         if self.require_frlio_anchor_status:
             self.frlio_status_subscription = self.create_subscription(
                 String,
@@ -355,6 +621,12 @@ class FastlioEvHealthMonitor(Node):
                 Float64,
                 self.frlio_anchor_age_topic,
                 self._frlio_anchor_age_callback,
+                odom_qos,
+            )
+            self.frlio_predictor_age_subscription = self.create_subscription(
+                Float64,
+                self.frlio_predictor_age_topic,
+                self._frlio_predictor_age_callback,
                 odom_qos,
             )
 
@@ -382,11 +654,20 @@ class FastlioEvHealthMonitor(Node):
         self._frlio_anchor_age_s = float(msg.data)
         self._frlio_anchor_age_receive_s = self._now_seconds()
 
+    def _frlio_predictor_age_callback(self, msg: Float64) -> None:
+        self._frlio_predictor_age_s = float(msg.data)
+        self._frlio_predictor_age_receive_s = self._now_seconds()
+
     def _frlio_anchor_gate(self, now_s: float):
         anchor_message_age_s = (
             math.inf
             if self._frlio_anchor_age_receive_s is None
             else now_s - self._frlio_anchor_age_receive_s
+        )
+        predictor_message_age_s = (
+            math.inf
+            if self._frlio_predictor_age_receive_s is None
+            else now_s - self._frlio_predictor_age_receive_s
         )
         status_message_age_s = (
             math.inf
@@ -402,6 +683,12 @@ class FastlioEvHealthMonitor(Node):
             anchor_message_age_s=anchor_message_age_s,
             message_timeout_s=self.core.config.frlio_anchor_status_timeout_s,
             max_anchor_age_s=self.core.config.frlio_max_anchor_age_s,
+            predictor_age_s=self._frlio_predictor_age_s,
+            predictor_message_age_s=predictor_message_age_s,
+            max_predictor_age_s=self.frlio_max_predictor_age_s,
+            allow_stale_lidar_predictor_degraded=(
+                self.frlio_allow_stale_lidar_predictor_degraded
+            ),
         )
 
     def _px4_velocity_callback(self, msg: TwistStamped) -> None:
@@ -415,6 +702,24 @@ class FastlioEvHealthMonitor(Node):
             sample_stamp_s=sample_stamp_s,
         ):
             self._last_velocity_topic_receive_s = now_s
+
+    def _mavros_state_callback(self, msg: State) -> None:
+        self._mavros_armed = bool(msg.armed)
+
+    def _px4_local_position_callback(self, msg: VehicleLocalPosition) -> None:
+        self._px4_local_position_receive_s = self._now_seconds()
+        self._px4_dead_reckoning = bool(msg.dead_reckoning)
+        self._px4_z_reset_counter = int(msg.z_reset_counter)
+
+    def _px4_ev_aid_callback(self, msg: EstimatorAidSource2d) -> None:
+        # PX4 timestamps are both in boot-time microseconds, so the difference
+        # is independent of the ROS/PX4 wall-clock offset.
+        now_s = self._now_seconds()
+        self._px4_ev_aid_receive_s = now_s
+        if msg.time_last_fuse == 0 or msg.timestamp < msg.time_last_fuse:
+            self._px4_ev_fuse_age_s = math.inf
+            return
+        self._px4_ev_fuse_age_s = (msg.timestamp - msg.time_last_fuse) * 1e-6
 
     def _px4_local_odom_callback(self, msg: Odometry) -> None:
         # nav_msgs/Odometry twist is normally expressed in child_frame_id.  This
@@ -517,60 +822,68 @@ class FastlioEvHealthMonitor(Node):
             ),
             finite_payload=self._message_is_finite(msg),
         )
+        self._ev_reset_counter = int(result.reset_counter)
         frlio_reason, frlio_block = self._frlio_anchor_gate(now_s)
         self._frlio_gate_reason = frlio_reason
         self._frlio_gate_block = frlio_block
+        self._frlio_predictor_degraded = _is_frlio_predictor_degraded_reason(
+            frlio_reason
+        )
         if frlio_reason is not None and frlio_block:
             result = self.core.report_external_anomaly(
                 now_s, frlio_reason, accepted=result.accepted
             )
-        # A short LiDAR-anchor warning is diagnostic-only: it must neither
-        # poison core recovery nor change the EV measurement covariance.
-        output_covariance_multiplier = result.covariance_multiplier
-        self._last_covariance_multiplier = output_covariance_multiplier
+        # A fresh predictor can continue EV while LiDAR corrections are stale.
+        # FR-LIO's source covariance already includes process-noise propagation
+        # and stale-anchor growth, so applying health-state inflation here would
+        # double count uncertainty and make PX4's EV weight oscillate.
+        predictor_degraded_fault = (
+            self._frlio_predictor_degraded
+            and result.accepted
+            and _is_internal_velocity_only_fault(result.reason)
+        )
 
-        if result.publish and not frlio_block:
-            output = copy.deepcopy(msg)
-            for index in (0, 7, 14):
-                source_variance = max(
-                    float(output.pose.covariance[index]),
-                    self.core.config.min_position_variance,
-                )
-                output.pose.covariance[index] = (
-                    source_variance * output_covariance_multiplier
-                )
-            # EV yaw is fused with EKF2_EV_CTRL=11, so degraded position health
-            # must not leave attitude/yaw at the raw near-zero covariance.
-            for index in (21, 28, 35):
-                source_variance = max(
-                    float(output.pose.covariance[index]),
-                    self.core.config.min_orientation_variance,
-                )
-                output.pose.covariance[index] = (
-                    source_variance * output_covariance_multiplier
-                )
+        bootstrap_forward = _bootstrap_forward_allowed(
+            accepted=result.accepted,
+            core_state=result.state,
+            reason=result.reason,
+            mavros_armed=self._mavros_armed,
+            bootstrap_completed=self._bootstrap_completed,
+            now_s=now_s,
+            bootstrap_deadline_s=self._bootstrap_deadline_s,
+        )
+        if (result.publish or predictor_degraded_fault or bootstrap_forward) and not frlio_block:
+            output = _copy_with_covariance_floors(
+                msg,
+                min_position_variance=self.core.config.min_position_variance,
+                min_orientation_variance=self.core.config.min_orientation_variance,
+                linear_covariance_body=linear_covariance_body,
+            )
             self._last_output_covariance = (
                 output.pose.covariance[0],
                 output.pose.covariance[7],
                 output.pose.covariance[14],
                 output.pose.covariance[35],
             )
-
-            # Preserve FAST-LIO's internal child/body velocity. Position
-            # differencing above is a health cross-check, never the final
-            # velocity measurement. Write the calibrated child-frame block
-            # first, then inflate the complete 3x3 block while SUSPECT.
-            for row in range(3):
-                for column in range(3):
-                    index = row * 6 + column
-                    output.twist.covariance[index] = (
-                        linear_covariance_body[row][column]
-                        * output_covariance_multiplier
-                    )
+            self._last_applied_covariance_multiplier = 1.0
             # Preserve the original measurement stamp.  Downstream must not turn
             # an old measurement into an apparently current one.
+            if result.relocalized:
+                # Publish the counter before the first pose in the replacement
+                # frame. The native PX4 bridge blocks one sample on this edge,
+                # so it cannot send an old-frame pose with the new counter.
+                self.reset_counter_publisher.publish(
+                    UInt8(data=int(result.reset_counter))
+                )
+                self.get_logger().warning(
+                    "[EV_RELOCALIZED] reset_counter=%d; committed new source frame atomically",
+                    int(result.reset_counter),
+                )
             self.healthy_publisher.publish(output)
             self._last_healthy_output_publish_s = now_s
+
+        if result.state == HealthState.HEALTHY:
+            self._bootstrap_completed = True
 
         if result.accepted and all(
             math.isfinite(value)
@@ -597,17 +910,41 @@ class FastlioEvHealthMonitor(Node):
         frlio_reason, frlio_block = self._frlio_anchor_gate(now_s)
         self._frlio_gate_reason = frlio_reason
         self._frlio_gate_block = frlio_block
+        self._frlio_predictor_degraded = _is_frlio_predictor_degraded_reason(
+            frlio_reason
+        )
         if frlio_reason is not None and frlio_block:
             self.core.report_external_anomaly(now_s, frlio_reason)
         self._publish_status_and_diagnostics()
 
     def _publish_status_and_diagnostics(self) -> None:
-        # Keep raw EV and FR-LIO state separate.  FR-LIO's soft SUSPECT is a
-        # diagnostic event, not an alternate EV health state.
-        state, reason = self.core.state, self.core.reason
+        # A stale LiDAR posterior with a fresh IMU predictor is explicitly
+        # degraded. Do not expose its velocity-only core FAULT as a normal EV
+        # hard fault: that would request AUTO.LAND even though FR-LIO and PX4
+        # are receiving a continuous prediction with propagated covariance.
+        predictor_degraded_fault = (
+            self._frlio_predictor_degraded
+            and self.core.state == HealthState.FAULT
+            and _is_internal_velocity_only_fault(self.core.reason)
+        )
+        exposed_predictor_degraded = (
+            self._frlio_predictor_degraded
+            and (self.core.state != HealthState.FAULT or predictor_degraded_fault)
+        )
+        state = HealthState.SUSPECT if exposed_predictor_degraded else self.core.state
+        reason = (
+            f"{self._frlio_gate_reason}; {self.core.reason}"
+            if exposed_predictor_degraded
+            else self.core.reason
+        )
         self.status_publisher.publish(String(data=state.value))
         self.fault_publisher.publish(Bool(data=state == HealthState.FAULT))
         now_s = self._now_seconds()
+        ev_fuse_age_s = self._px4_ev_fuse_age_s
+        if self._px4_ev_aid_receive_s is None:
+            ev_fuse_age_s = math.inf
+        elif math.isfinite(ev_fuse_age_s):
+            ev_fuse_age_s += max(0.0, now_s - self._px4_ev_aid_receive_s)
         (
             self._flight_ready,
             self._flight_ready_reason,
@@ -615,11 +952,28 @@ class FastlioEvHealthMonitor(Node):
             core_state=self.core.state,
             frlio_reason=self._frlio_gate_reason,
             frlio_block=self._frlio_gate_block,
+            frlio_predictor_degraded=exposed_predictor_degraded,
             now_s=now_s,
             last_healthy_output_s=self._last_healthy_output_publish_s,
             healthy_output_timeout_s=self.flight_ready_output_timeout_s,
+            dead_reckoning=bool(self._px4_dead_reckoning),
+            px4_local_position_age_s=(
+                math.inf
+                if self._px4_local_position_receive_s is None
+                else now_s - self._px4_local_position_receive_s
+            ),
+            require_px4_local_position=self.require_px4_local_position,
+            px4_local_position_timeout_s=self.px4_local_position_timeout_s,
+            ev_fuse_age_s=ev_fuse_age_s,
+            require_px4_ev_fusion=self.require_px4_ev_fusion,
+            px4_ev_fuse_timeout_s=self.px4_ev_fuse_timeout_s,
         )
         self.flight_ready_publisher.publish(Bool(data=self._flight_ready))
+        # Transient-local publication lets a restarted native PX4 bridge learn
+        # the current source-frame counter before its first EV sample.
+        if self._last_published_ev_reset_counter != self._ev_reset_counter:
+            self.reset_counter_publisher.publish(UInt8(data=self._ev_reset_counter))
+            self._last_published_ev_reset_counter = self._ev_reset_counter
 
         diagnostic = DiagnosticArray()
         diagnostic.header.stamp = self.get_clock().now().to_msg()
@@ -638,6 +992,25 @@ class FastlioEvHealthMonitor(Node):
             KeyValue(key="reason", value=reason),
             KeyValue(key="flight_ready", value=str(self._flight_ready).lower()),
             KeyValue(key="flight_ready_reason", value=self._flight_ready_reason),
+            KeyValue(
+                key="px4_dead_reckoning",
+                value=str(bool(self._px4_dead_reckoning)).lower(),
+            ),
+            KeyValue(
+                key="px4_z_reset_counter",
+                value=("unknown" if self._px4_z_reset_counter is None else str(self._px4_z_reset_counter)),
+            ),
+            KeyValue(key="ev_reset_counter", value=str(self._ev_reset_counter)),
+            KeyValue(
+                key="px4_local_position_age_s",
+                value=(
+                    "inf"
+                    if self._px4_local_position_receive_s is None
+                    else f"{now_s - self._px4_local_position_receive_s:.6f}"
+                ),
+            ),
+            KeyValue(key="px4_ev_last_fuse_age_s", value=f"{ev_fuse_age_s:.6f}"),
+            KeyValue(key="px4_ev_fusion_required", value=str(self.require_px4_ev_fusion).lower()),
             KeyValue(
                 key="frlio_anchor_gate_required",
                 value=str(self.require_frlio_anchor_status).lower(),
@@ -658,6 +1031,18 @@ class FastlioEvHealthMonitor(Node):
                     if not math.isfinite(self._frlio_anchor_age_s)
                     else f"{self._frlio_anchor_age_s:.6f}"
                 ),
+            ),
+            KeyValue(
+                key="frlio_predictor_age_s",
+                value=(
+                    "nan"
+                    if not math.isfinite(self._frlio_predictor_age_s)
+                    else f"{self._frlio_predictor_age_s:.6f}"
+                ),
+            ),
+            KeyValue(
+                key="frlio_predictor_degraded",
+                value=str(exposed_predictor_degraded).lower(),
             ),
             KeyValue(key="comparison_frame", value="PX4 local NED"),
             KeyValue(key="ev_raw_position_enu_m", value=_vector_text(metrics.raw_position_enu)),
@@ -711,11 +1096,13 @@ class FastlioEvHealthMonitor(Node):
                 value=f"{metrics.single_frame_displacement_m:.6f}",
             ),
             KeyValue(key="measurement_dt_s", value=f"{metrics.dt_s:.6f}"),
+            KeyValue(key="ev_sample_gap_s", value=f"{metrics.sample_gap_s:.6f}"),
             KeyValue(
                 key="velocity_comparison_dt_s",
                 value=f"{metrics.velocity_comparison_dt_s:.6f}",
             ),
             KeyValue(key="input_age_s", value=f"{metrics.input_age_s:.6f}"),
+            KeyValue(key="ev_sample_age_s", value=f"{metrics.sample_age_s:.6f}"),
             KeyValue(
                 key="velocity_alignment_s",
                 value=f"{metrics.velocity_alignment_s:.6f}",
@@ -724,14 +1111,14 @@ class FastlioEvHealthMonitor(Node):
                 key="internal_velocity_alignment_s",
                 value=f"{metrics.internal_velocity_alignment_s:.6f}",
             ),
-            KeyValue(key="input_covariance_xyz_m2", value=_vector_text(metrics.covariance_xyz)),
+            KeyValue(key="source_covariance_xyz_m2", value=_vector_text(metrics.covariance_xyz)),
             KeyValue(
                 key="last_published_covariance_xyz_yaw",
                 value=_vector_text(self._last_output_covariance),
             ),
             KeyValue(
-                key="covariance_multiplier",
-                value=f"{self._last_covariance_multiplier:.6f}",
+                key="applied_covariance_multiplier",
+                value=f"{self._last_applied_covariance_multiplier:.6f}",
             ),
         ]
         diagnostic.status = [status]
@@ -740,7 +1127,7 @@ class FastlioEvHealthMonitor(Node):
         # Do not turn the raw ~10 ms FR-LIO warning sawtooth into a logging
         # feedback load. The full raw FR-LIO state remains in diagnostics;
         # log only core transitions or entry/exit of a hard FR-LIO block.
-        health_log_key = (self.core.state, self._frlio_gate_block)
+        health_log_key = (state, self._frlio_gate_block, exposed_predictor_degraded)
         if health_log_key != self._last_logged_health_key:
             message = f"EV health state={state.value}: {reason}"
             if state == HealthState.HEALTHY:

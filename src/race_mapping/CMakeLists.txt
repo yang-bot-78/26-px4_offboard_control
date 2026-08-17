@@ -30,6 +30,7 @@ ament_target_dependencies(fastlio_bridge_node
   rclcpp
   nav_msgs
   geometry_msgs
+  std_msgs
   tf2_ros
   tf2_geometry_msgs
 )

@@ -16,6 +16,9 @@ set -euo pipefail
 # MID360_FASTLIO_DELAY_SEC, LIO_BACKEND, FRLIO_CONFIG,
 # COMPONENT_WINDOWS, COMPONENT_WINDOW_GEOMETRY,
 # RELOCALIZATION_RETRY_COUNT, RELOCALIZATION_RETRY_DELAY_SEC,
+# FLIGHT_CPU_PERFORMANCE, FLIGHT_CPU_AFFINITY, LIVOX_CPU_AFFINITY,
+# FRLIO_CPU_AFFINITY, PLANNER_CPU_AFFINITY, ROSBAG_CPU_AFFINITY,
+# ROSBAG_NICE_LEVEL,
 # SKIP_PREFLIGHT_CHECK.
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
@@ -56,6 +59,24 @@ mid360_fastlio_delay_sec="${MID360_FRLIO_DELAY_SEC:-${MID360_FASTLIO_DELAY_SEC:-
 component_windows="${COMPONENT_WINDOWS:-true}"
 component_window_geometry="${COMPONENT_WINDOW_GEOMETRY:-110x30}"
 fcu_url="${FCU_URL:-serial:///dev/ttyUSB0:921600?ids=255,190}"
+# uXRCE-DDS must use an independent UDP/ethernet endpoint in production. If a
+# deployment explicitly selects serial transport, fail before MAVROS starts
+# whenever it names the same device as FCU_URL.
+uxrce_dds_transport="${UXRCE_DDS_TRANSPORT:-udp}"
+uxrce_dds_serial_device="${UXRCE_DDS_SERIAL_DEVICE:-}"
+if [[ "${uxrce_dds_transport}" == serial ]]; then
+  if [[ -z "${uxrce_dds_serial_device}" ]]; then
+    echo "拒绝启动：UXRCE_DDS_TRANSPORT=serial 时必须显式设置 UXRCE_DDS_SERIAL_DEVICE，且不得与 MAVROS 共用。" >&2
+    exit 2
+  fi
+  fcu_serial_device="${fcu_url#serial://}"
+  fcu_serial_device="${fcu_serial_device%%:*}"
+  if [[ -n "${fcu_serial_device}" && -e "${fcu_serial_device}" && -e "${uxrce_dds_serial_device}" ]] &&
+     [[ "$(readlink -f "${fcu_serial_device}")" == "$(readlink -f "${uxrce_dds_serial_device}")" ]]; then
+    echo "拒绝启动：MAVROS 与 uXRCE-DDS 配置为共用串口 ${fcu_serial_device}。请改用独立串口或 UDP。" >&2
+    exit 2
+  fi
+fi
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 allow_unvalidated_world_yaw="${ALLOW_UNVALIDATED_WORLD_YAW:-false}"
 skip_preflight_check="${SKIP_PREFLIGHT_CHECK:-0}"
@@ -67,6 +88,36 @@ relocalization_fresh_scan_delay_sec="${RELOCALIZATION_FRESH_SCAN_DELAY_SEC:-3}"
 relocalization_call_timeout_sec="${RELOCALIZATION_CALL_TIMEOUT_SEC:-120}"
 relocalization_retry_count="${RELOCALIZATION_RETRY_COUNT:-8}"
 relocalization_retry_delay_sec="${RELOCALIZATION_RETRY_DELAY_SEC:-2}"
+flight_cpu_performance="${FLIGHT_CPU_PERFORMANCE:-true}"
+flight_cpu_affinity="${FLIGHT_CPU_AFFINITY:-true}"
+livox_cpu_affinity="${LIVOX_CPU_AFFINITY:-}"
+frlio_cpu_affinity="${FRLIO_CPU_AFFINITY:-}"
+planner_cpu_affinity="${PLANNER_CPU_AFFINITY:-}"
+rosbag_cpu_affinity="${ROSBAG_CPU_AFFINITY:-}"
+rosbag_nice_level="${ROSBAG_NICE_LEVEL:-10}"
+
+# Keep LiDAR processing, planning, and recording apart. On this 16-logical-CPU
+# host, 8-15 are separate physical cores; 0-7 remain available for the driver,
+# MAVROS, DDS, and desktop. Deployments can override any set explicitly.
+if [[ "${flight_cpu_affinity}" == true ]]; then
+  online_cpu_count="$(nproc --all 2>/dev/null || echo 1)"
+  if [[ "${online_cpu_count}" =~ ^[0-9]+$ ]] && ((online_cpu_count >= 16)); then
+    livox_cpu_affinity="${livox_cpu_affinity:-0-1}"
+    frlio_cpu_affinity="${frlio_cpu_affinity:-8-11}"
+    planner_cpu_affinity="${planner_cpu_affinity:-12-13}"
+    rosbag_cpu_affinity="${rosbag_cpu_affinity:-14-15}"
+  elif [[ "${online_cpu_count}" =~ ^[0-9]+$ ]] && ((online_cpu_count >= 12)); then
+    livox_cpu_affinity="${livox_cpu_affinity:-0-1}"
+    frlio_cpu_affinity="${frlio_cpu_affinity:-2-6}"
+    planner_cpu_affinity="${planner_cpu_affinity:-7-8}"
+    rosbag_cpu_affinity="${rosbag_cpu_affinity:-9-11}"
+  elif [[ "${online_cpu_count}" =~ ^[0-9]+$ ]] && ((online_cpu_count >= 8)); then
+    livox_cpu_affinity="${livox_cpu_affinity:-0-1}"
+    frlio_cpu_affinity="${frlio_cpu_affinity:-2-4}"
+    planner_cpu_affinity="${planner_cpu_affinity:-5-6}"
+    rosbag_cpu_affinity="${rosbag_cpu_affinity:-7}"
+  fi
+fi
 
 flight_timestamp="${FLIGHT_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 flight_date="${flight_timestamp%%_*}"
@@ -93,6 +144,8 @@ declare -A component_logs=()
 declare -a started_components=()
 cleanup_required=true
 cleanup_started=false
+cpu_profile_before=""
+cpu_profile_changed=false
 owner_start_ticks="$(awk '{print $22}' "/proc/$$/stat")"
 
 log_info() {
@@ -242,6 +295,16 @@ terminate_components() {
   done
 }
 
+restore_cpu_profile() {
+  [[ "${cpu_profile_changed}" == true ]] || return 0
+  if powerprofilesctl set "${cpu_profile_before}"; then
+    log_info "Restored CPU power profile: ${cpu_profile_before}"
+  else
+    log_warn "Failed to restore CPU power profile: ${cpu_profile_before}"
+  fi
+  cpu_profile_changed=false
+}
+
 on_exit() {
   local status=$?
   [[ "${cleanup_started}" == false ]] || exit "${status}"
@@ -252,6 +315,7 @@ on_exit() {
     log_warn "Stopping components started by this run..." || true
     terminate_components
   fi
+  restore_cpu_profile
   exit "${status}"
 }
 
@@ -276,20 +340,32 @@ start_component() {
   shift 2
   local log_file="${flight_log_dir}/${key}.log"
   local runtime_file="${flight_run_dir}/snapshot/component_runtime/${key}.state"
-  local launcher_pid pid pgid
+  local launcher_pid pid pgid cpu_affinity
+  local -a component_env=()
+
+  case "${key}" in
+    mid360_driver) cpu_affinity="${livox_cpu_affinity}" ;;
+    fastlio) cpu_affinity="${frlio_cpu_affinity}" ;;
+    navigation) cpu_affinity="${planner_cpu_affinity}" ;;
+    rosbag_debug) cpu_affinity="${rosbag_cpu_affinity}" ;;
+    *) cpu_affinity="" ;;
+  esac
+  if [[ -n "${cpu_affinity}" ]]; then
+    component_env=(env "COMPONENT_CPU_AFFINITY=${cpu_affinity}")
+  fi
 
   log_info "Starting ${title} in its own terminal window; log=${log_file}"
   mkdir -p "$(dirname -- "${runtime_file}")"
   : >"${runtime_file}"
   if [[ "${component_windows}" == true ]]; then
-    gnome-terminal --window --wait \
+    "${component_env[@]}" gnome-terminal --window --wait \
       --title="${title} | ${flight_timestamp}" \
       --geometry="${component_window_geometry}" \
       --working-directory="${project_root}" \
       -- "${component_runner}" "$$" "${owner_start_ticks}" \
       "${runtime_file}" "${log_file}" "${title}" -- "$@" &
   else
-    "${component_runner}" "$$" "${owner_start_ticks}" \
+    "${component_env[@]}" "${component_runner}" "$$" "${owner_start_ticks}" \
       "${runtime_file}" "${log_file}" "${title}" -- "$@" >/dev/null 2>&1 &
   fi
   launcher_pid=$!
@@ -322,6 +398,9 @@ start_component() {
   component_pgids["${key}"]="${pgid}"
   component_launcher_pids["${key}"]="${launcher_pid}"
   component_logs["${key}"]="${log_file}"
+  if command -v taskset >/dev/null 2>&1; then
+    log_info "${title} scheduler affinity: $(taskset --pid "${pid}" 2>/dev/null || true)"
+  fi
   started_components+=("${key}")
 }
 
@@ -463,6 +542,23 @@ validate_configuration() {
   require_boolean MAP_AUTO_LOAD "${map_auto_load}"
   require_boolean COMPONENT_WINDOWS "${component_windows}"
   require_boolean RELOCALIZATION_ENABLED "${relocalization_enabled}"
+  require_boolean FLIGHT_CPU_PERFORMANCE "${flight_cpu_performance}"
+  require_boolean FLIGHT_CPU_AFFINITY "${flight_cpu_affinity}"
+  if [[ ! "${rosbag_nice_level}" =~ ^([0-9]|1[0-9])$ ]]; then
+    log_error "ROSBAG_NICE_LEVEL must be an integer in [0, 19]; got: ${rosbag_nice_level}"
+    exit 1
+  fi
+
+  if [[ "${flight_cpu_performance}" == true ]]; then
+    if ! command -v powerprofilesctl >/dev/null 2>&1; then
+      log_error "FLIGHT_CPU_PERFORMANCE=true requires powerprofilesctl"
+      exit 1
+    fi
+    if ! powerprofilesctl list 2>/dev/null | grep -Eq '^[*[:space:]]+performance:'; then
+      log_error "This host does not expose a non-degraded performance CPU profile"
+      exit 1
+    fi
+  fi
 
   if [[ "${relocalization_enabled}" == true ]]; then
     require_file "${relocalization_backend_config}"
@@ -572,6 +668,34 @@ validate_configuration() {
   fi
 }
 
+activate_cpu_performance() {
+  [[ "${flight_cpu_performance}" == true ]] || {
+    log_warn "FLIGHT_CPU_PERFORMANCE=false: CPU performance profile is not enforced."
+    return 0
+  }
+
+  cpu_profile_before="$(powerprofilesctl get)"
+  if [[ "${cpu_profile_before}" != performance ]]; then
+    powerprofilesctl set performance
+    cpu_profile_changed=true
+  fi
+  if [[ "$(powerprofilesctl get)" != performance ]]; then
+    log_error "Failed to activate the CPU performance profile"
+    return 1
+  fi
+
+  local policy epp
+  for policy in /sys/devices/system/cpu/cpufreq/policy*; do
+    [[ -r "${policy}/energy_performance_preference" ]] || continue
+    epp="$(<"${policy}/energy_performance_preference")"
+    if [[ "${epp}" != performance ]]; then
+      log_error "CPU policy ${policy##*/} EPP is ${epp}, expected performance"
+      return 1
+    fi
+  done
+  log_info "CPU performance profile locked for this flight (previous=${cpu_profile_before})."
+}
+
 prepare_run() {
   mkdir -p "${flight_log_dir}"
   mkdir -p "$(dirname -- "${stack_ready_file}")"
@@ -637,6 +761,9 @@ print_configuration() {
   log_info "Navigation=${navigation_enabled}; planner requested=${planner_backend}, effective=${effective_planner_backend}, ego_enabled=${ego_enabled}, mission=${mission_enabled}, output=${enable_output}, manual_handover=${manual_handover}, rviz=${rviz}"
   log_info "Recognition=${recognition_enabled}, rosbag=${record_bag}, readiness_timeout=${readiness_timeout_sec}s"
   log_info "LIO backend=${lio_backend}; MID-360 to LIO minimum startup delay=${mid360_fastlio_delay_sec}s"
+  log_info "CPU performance profile enforcement=${flight_cpu_performance}"
+  log_info "CPU affinity: MID-360=${livox_cpu_affinity:-auto} FR-LIO=${frlio_cpu_affinity:-auto} planner=${planner_cpu_affinity:-auto} rosbag=${rosbag_cpu_affinity:-auto}"
+  log_info "rosbag recorder nice level: +${rosbag_nice_level}"
   if [[ "${lio_backend}" == fr_lio ]]; then
     log_warn "FR-LIO high-rate output remains diagnostic only and is not authorized to replace the PX4 EV path."
   fi
@@ -721,12 +848,13 @@ start_stack() {
     ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py \
     "fcu_url:=${fcu_url}" \
     start_mavros_odometry_bridge:=true \
+    start_px4_vehicle_odometry:=false \
     start_odom_guard:=true \
     start_ev_health_monitor:=true \
     start_tf:=true \
     "world_yaw_alignment_rad:=${world_yaw_alignment_rad}" \
     "fastlio_odom_topic:=${ev_odom_topic}" \
-    "require_frlio_anchor_status:=false" \
+    "require_frlio_anchor_status:=true" \
     "body_to_sensor_x_m:=${MID360_BODY_TO_SENSOR_X_M}" \
     "body_to_sensor_y_m:=${MID360_BODY_TO_SENSOR_Y_M}" \
     "body_to_sensor_z_m:=${MID360_BODY_TO_SENSOR_Z_M}" \
@@ -738,8 +866,8 @@ start_stack() {
   wait_component_ready "px4_mavros" message /Odometry/healthy
   wait_component_ready "px4_mavros" message /mavros/odometry/out
 
-  # MAVLink ODOMETRY is the only EV ingress. A second writer would make the
-  # EKF receive conflicting pose or velocity samples.
+  # MAVROS is the sole EV ingress for this MAVLink-only topology. No uXRCE-DDS
+  # or /fmu topic is required or read.
   local odometry_out_info retired_info
   odometry_out_info="$(ros2 topic info -v /mavros/odometry/out 2>/dev/null || true)"
   if ! grep -Eq 'Publisher count:[[:space:]]+1$' <<<"${odometry_out_info}"; then
@@ -747,6 +875,8 @@ start_stack() {
     printf '%s\n' "${odometry_out_info}" >&2
     return 1
   fi
+  # /mavros/odometry/out is the selected MAVROS EV ingress and was validated
+  # above. The retired vision and native-DDS inputs must remain publisher-free.
   for retired_topic in /mavros/vision_pose/pose_cov /mavros/vision_speed/speed_twist_cov /fmu/in/vehicle_visual_odometry; do
     retired_info="$(ros2 topic info -v "${retired_topic}" 2>/dev/null || true)"
     if grep -Eq 'Publisher count:[[:space:]]+[1-9]' <<<"${retired_info}"; then
@@ -774,6 +904,7 @@ start_stack() {
   if [[ "${record_bag}" == true ]]; then
     start_component "debug rosbag" "rosbag_debug" \
       env FLIGHT_TIMESTAMP="${flight_timestamp}" FLIGHT_RUN_DIR="${flight_run_dir}" \
+      ROSBAG_CPU_AFFINITY="${rosbag_cpu_affinity}" ROSBAG_NICE_LEVEL="${rosbag_nice_level}" \
       "${bag_script}"
     wait_component_ready "rosbag_debug" node /rosbag2_recorder
   else
@@ -823,6 +954,7 @@ main() {
 
   prepare_run
   print_configuration
+  activate_cpu_performance
   start_stack
 
   log_info "PASS: complete chain is ready: MID-360 -> ${lio_backend} -> relocalization(${relocalization_enabled}) -> MAVROS/EV -> rosbag(${record_bag}) -> navigation."

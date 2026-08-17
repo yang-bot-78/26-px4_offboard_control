@@ -22,9 +22,11 @@ inline bool localPlanningStalled(
   const bool goal_waiting_for_validated_trajectory,
   const double validated_trajectory_age_sec,
   const double trajectory_lease_remaining_sec,
-  const double stall_timeout_sec)
+  const double stall_timeout_sec, const bool planner_usable = true)
 {
-  if (!mission_active || !std::isfinite(stall_timeout_sec) || stall_timeout_sec <= 0.0) {
+  if (!planner_usable || !mission_active || !std::isfinite(stall_timeout_sec) ||
+    stall_timeout_sec <= 0.0)
+  {
     return false;
   }
   const bool trajectory_stale = !std::isfinite(validated_trajectory_age_sec) ||
@@ -42,6 +44,31 @@ inline bool shouldStartRecoveryConfirmation(
 {
   return !confirmation_already_active &&
          validated_trajectory_id > recovery_required_after_trajectory_id;
+}
+
+inline bool shouldConfirmCurrentTrajectoryRecovery(
+  const bool command_resumed, const int64_t validated_trajectory_id,
+  const double trajectory_lease_remaining_sec)
+{
+  return command_resumed && validated_trajectory_id >= 0 &&
+         std::isfinite(trajectory_lease_remaining_sec) &&
+         trajectory_lease_remaining_sec > 0.0;
+}
+
+inline bool shouldHoldLocalGoalForPlannerRecovery(
+  const bool watchdog_paused, const bool waiting_for_resumed_command)
+{
+  return watchdog_paused || waiting_for_resumed_command;
+}
+
+// A FR-LIO outage is a localization reset, not a normal command-stream pause.
+// Wait until the bridge has stabilized its measured-position hold, then issue
+// a new local-goal transaction instead of accepting the pre-fault sequence.
+inline bool shouldArmFreshLocalGoalForFrlioRecovery(
+  const bool recovery_pending, const bool bridge_replan_ready,
+  const bool planner_watchdog_paused)
+{
+  return recovery_pending && bridge_replan_ready && !planner_watchdog_paused;
 }
 
 }  // namespace race_super_planner_ros2

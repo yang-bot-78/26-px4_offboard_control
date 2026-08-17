@@ -103,6 +103,7 @@ python3 "${ev_contract_helper}" --launch "${launch_source}" --stack "${stack_scr
 for required_token in \
   'ros2 launch px4_ros_com fastlio_mavros_autofix.launch.py' \
   'start_mavros_odometry_bridge:=true' \
+  'start_px4_vehicle_odometry:=false' \
   'start_odom_guard:=true' \
   'start_ev_health_monitor:=true' \
   'start_tf:=true' \

@@ -88,21 +88,22 @@ def test_zero_or_non_psd_linear_velocity_covariance_is_rejected():
     assert not module.FastlioEvHealthMonitor._message_is_finite(message)
 
 
-def test_default_launch_selects_only_mavros_odometry_path():
+def test_default_launch_selects_native_px4_odometry_path():
     source = AUTOFIX_LAUNCH_PATH.read_text()
     assert (
-        'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="true")'
+        'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="false")'
         in source
     )
+    assert 'DeclareLaunchArgument("start_px4_vehicle_odometry", default_value="true")' in source
+    assert 'DeclareLaunchArgument("require_px4_ev_fusion", default_value="true")' in source
+    assert 'default_value="/fmu/out/estimator_aid_src_ev_pos"' in source
     assert '"input_topic": healthy_odom_topic' in source
     assert (
         'DeclareLaunchArgument("healthy_odom_topic", default_value="/Odometry/healthy")'
         in source
     )
-    assert '"output_topic": "/mavros/odometry/out"' in source
-    assert '"world_frame_id": "odom"' in source
-    assert '"body_frame_id": "base_link"' in source
-    assert '"restamp_message": False' in source
+    assert '"output_topic": "/fmu/in/vehicle_visual_odometry"' in source
+    assert '"reset_counter_topic": "/ev_health/reset_counter"' in source
     assert '"--frame-id", "odom", "--child-frame-id", "odom_ned"' in source
     assert '"--frame-id", "base_link", "--child-frame-id", "base_link_frd"' in source
     assert (
@@ -156,9 +157,10 @@ def test_velocity_comparison_window_is_launch_configurable():
     )
 
 
-def test_one_click_stack_explicitly_selects_only_mavros_odometry_path():
+def test_one_click_stack_explicitly_selects_only_native_px4_odometry_path():
     source = STACK_PATH.read_text()
-    assert "start_mavros_odometry_bridge:=true" in source
+    assert "start_mavros_odometry_bridge:=false" in source
+    assert "start_px4_vehicle_odometry:=true" in source
     # Passing an argument the launch file no longer declares would abort the
     # launch, so the stack must not mention the deleted adapters.
     assert "start_bridge:=" not in source
@@ -167,9 +169,11 @@ def test_one_click_stack_explicitly_selects_only_mavros_odometry_path():
 
 def test_navigation_stack_waits_for_mavlink_odometry_not_retired_vision_topics():
     source = NAVIGATION_STACK_PATH.read_text(encoding="utf-8")
-    assert "start_mavros_odometry_bridge:=true" in source
+    assert "start_mavros_odometry_bridge:=false" in source
+    assert "start_px4_vehicle_odometry:=true" in source
     assert "start_mavros_vision_bridge:=" not in source
-    assert 'wait_component_ready "px4_mavros" message /mavros/odometry/out' in source
+    assert 'wait_component_ready "px4_mavros" message /fmu/in/vehicle_visual_odometry' in source
+    assert "/fmu/in/vehicle_visual_odometry 必须恰有一个发布者" in source
     assert "/mavros/vision_pose/pose_cov must have exactly one publisher" not in source
     assert "/mavros/vision_speed/speed_twist_cov" in source
     assert "retired_topic" in source
@@ -178,7 +182,8 @@ def test_navigation_stack_waits_for_mavlink_odometry_not_retired_vision_topics()
 def test_global_mapping_stability_gate_uses_mavlink_odometry():
     source = GLOBAL_MAPPING_STACK_PATH.read_text(encoding="utf-8")
     gate = ODOMETRY_STABILITY_GATE_PATH.read_text(encoding="utf-8")
-    assert "start_mavros_odometry_bridge:=true" in source
+    assert "start_mavros_odometry_bridge:=false" in source
+    assert "start_px4_vehicle_odometry:=true" in source
     assert "start_mavros_vision_bridge:=" not in source
     assert 'python3 "${odometry_stability_gate}"' in source
     assert "--require-disarmed" in source
@@ -228,6 +233,8 @@ def test_flight_recorder_captures_mavros_and_px4_odometry_ingress():
     recorder = ROSBAG_SCRIPT_PATH.read_text(encoding="utf-8")
     ulog_check = PX4_ULOG_CHECK_PATH.read_text(encoding="utf-8")
     assert "/mavros/odometry/out" in recorder
+    assert "/fmu/out/estimator_aid_src_ev_pos" in recorder
+    assert "/ev_health/reset_counter" in recorder
     assert '"${px4_ulog_check}" "${snapshot_dir}/px4_ulog_profile.txt"' in recorder
     assert "vision_profile_bit=128" in ulog_check
     assert "profile | vision_profile_bit" in ulog_check
@@ -240,12 +247,12 @@ def test_structural_contract_accepts_current_selected_entry():
 
     assert report["identity"] == (
         "package=px4_ros_com,"
-        "executable=fastlio_mavros_odometry_bridge,"
-        "name=fastlio_mavros_odometry_bridge"
+        "executable=fastlio_px4_vehicle_odometry,"
+        "name=fastlio_px4_vehicle_odometry"
     )
-    assert report["condition"] == "start_mavros_odometry_bridge"
+    assert report["condition"] == "start_px4_vehicle_odometry"
     assert report["input"] == "/Odometry/healthy"
-    assert report["restamp"] == "false"
+    assert report["output"] == "/fmu/in/vehicle_visual_odometry"
     assert report["validation_order"] == "single_ev_node_in_source"
 
 
@@ -253,9 +260,9 @@ def test_structural_contract_accepts_current_selected_entry():
     "old,new,error",
     [
         (
-            'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="true")',
-            'DeclareLaunchArgument("start_mavros_odometry_bridge", default_value="false")',
-            "start_mavros_odometry_bridge",
+            'DeclareLaunchArgument("start_px4_vehicle_odometry", default_value="true")',
+            'DeclareLaunchArgument("start_px4_vehicle_odometry", default_value="false")',
+            "start_px4_vehicle_odometry",
         ),
         (
             '"input_topic": healthy_odom_topic,',
@@ -263,9 +270,9 @@ def test_structural_contract_accepts_current_selected_entry():
             "input_topic",
         ),
         (
-            '"restamp_message": False,',
-            '"restamp_message": True,',
-            "restamp_message",
+            '"output_topic": "/fmu/in/vehicle_visual_odometry",',
+            '"output_topic": "/mavros/odometry/out",',
+            "output_topic",
         ),
         # Reintroducing a deleted adapter must fail closed even though the
         # argument no longer exists in the real launch file.
@@ -286,9 +293,9 @@ def test_structural_contract_accepts_current_selected_entry():
 def test_launch_negative_mutation_matrix(tmp_path, old, new, error):
     contract = load_contract_module()
     source = AUTOFIX_LAUNCH_PATH.read_text(encoding="utf-8")
-    if old in ('"input_topic": healthy_odom_topic,', '"restamp_message": False,'):
+    if old in ('"input_topic": healthy_odom_topic,', '"output_topic": "/fmu/in/vehicle_visual_odometry",'):
         assert source.count(old) >= 1
-        mutated = source.replace(old, new, 1)
+        mutated = source.replace(old, new, 2 if old.startswith('"input_topic"') else 1)
     else:
         mutated = replace_once(source, old, new)
     launch_path = write_text(tmp_path, "mutated.launch.py", mutated)
@@ -303,9 +310,13 @@ def test_decoy_literals_comments_and_other_bridges_cannot_satisfy_selected_node(
     mutated = source.replace(
         '"input_topic": healthy_odom_topic,',
         '"input_topic": fastlio_odom_topic,',
-        1,
+        2,
     )
-    mutated = mutated.replace('"restamp_message": False,', '"restamp_message": True,', 1)
+    mutated = mutated.replace(
+        '"output_topic": "/fmu/in/vehicle_visual_odometry",',
+        '"output_topic": "/mavros/odometry/out",',
+        2,
+    )
     mutated += """
 # Decoys must not satisfy the selected Node contract:
 # \"input_topic\": healthy_odom_topic, \"restamp_message\": False
@@ -388,8 +399,8 @@ def test_stack_tokens_split_across_commands_and_comments_fail_closed(tmp_path):
     source = STACK_PATH.read_text(encoding="utf-8")
     mutated = replace_once(
         source,
-        "start_mavros_odometry_bridge:=true",
-        "start_mavros_odometry_bridge:=true start_px4_ev_bridge:=false",
+        "start_mavros_odometry_bridge:=false",
+        "start_mavros_odometry_bridge:=false start_px4_ev_bridge:=false",
     )
     stack_path = write_text(tmp_path, "split-stack.sh", mutated)
 
@@ -402,8 +413,8 @@ def test_stack_conflicting_duplicate_argument_fails_closed(tmp_path):
     source = STACK_PATH.read_text(encoding="utf-8")
     mutated = replace_once(
         source,
-        "start_mavros_odometry_bridge:=true",
-        "start_mavros_odometry_bridge:=true start_mavros_odometry_bridge:=false",
+        "start_mavros_odometry_bridge:=false",
+        "start_mavros_odometry_bridge:=false start_mavros_odometry_bridge:=true",
     )
     stack_path = write_text(tmp_path, "conflicting-stack.sh", mutated)
 
@@ -565,6 +576,27 @@ def test_health_gate_declares_calibrated_world_velocity_covariance_floors():
     assert "linear_covariance_body[row][column]" in source
 
 
+def test_flight_stack_isolates_frlio_planner_and_rosbag_cpu_resources():
+    stack = NAVIGATION_STACK_PATH.read_text(encoding="utf-8")
+    bag = ROSBAG_SCRIPT_PATH.read_text(encoding="utf-8")
+
+    # This host has 16 logical CPUs. Keep the LiDAR posterior, planning work,
+    # and SQLite recorder on separate physical-core ranges.
+    assert 'frlio_cpu_affinity="${frlio_cpu_affinity:-8-11}"' in stack
+    assert 'planner_cpu_affinity="${planner_cpu_affinity:-12-13}"' in stack
+    assert 'rosbag_cpu_affinity="${rosbag_cpu_affinity:-14-15}"' in stack
+    assert 'navigation) cpu_affinity="${planner_cpu_affinity}"' in stack
+    assert 'rosbag_debug) cpu_affinity="${rosbag_cpu_affinity}"' in stack
+    assert 'ROSBAG_CPU_AFFINITY="${rosbag_cpu_affinity}"' in stack
+    assert 'ROSBAG_NICE_LEVEL="${rosbag_nice_level}"' in stack
+
+    # Lower scheduling priority applies to rosbag2_recorder itself, including
+    # direct invocations that do not go through the managed flight stack.
+    assert 'rosbag_nice_level="${ROSBAG_NICE_LEVEL:-10}"' in bag
+    assert 'bag_command=(nice -n "${rosbag_nice_level}" ros2 bag record' in bag
+    assert 'taskset --cpu-list "${rosbag_cpu_affinity}"' in bag
+
+
 def test_health_gate_rejects_nonfinite_payload():
     source = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
     assert "finite_payload=self._message_is_finite(msg)" in source
@@ -575,12 +607,39 @@ def test_health_gate_rejects_nonfinite_payload():
     assert not math.isfinite(math.inf)
 
 
-def test_health_gate_preserves_internal_velocity_and_inflates_full_covariance():
+def test_health_gate_preserves_source_covariance_without_health_scaling():
+    module = load_health_node_module()
+    message = valid_odometry()
+    for index, value in ((0, 0.02), (7, 0.005), (14, 0.0290379)):
+        message.pose.covariance[index] = value
+    for index in (21, 28, 35):
+        message.pose.covariance[index] = 0.001
+    velocity_covariance = (
+        (0.04, 0.002, 0.0),
+        (0.002, 0.03, 0.0),
+        (0.0, 0.0, 0.197439),
+    )
+
+    output = module._copy_with_covariance_floors(
+        message,
+        min_position_variance=0.01,
+        min_orientation_variance=0.02,
+        linear_covariance_body=velocity_covariance,
+    )
+
+    assert output.pose.covariance[0] == pytest.approx(0.02)
+    assert output.pose.covariance[7] == pytest.approx(0.01)
+    assert output.pose.covariance[14] == pytest.approx(0.0290379)
+    assert output.pose.covariance[35] == pytest.approx(0.02)
+    assert output.twist.covariance[14] == pytest.approx(0.197439)
+    assert output.pose.covariance[14] != pytest.approx(2.90379)
+    assert output.twist.covariance[14] != pytest.approx(19.7439)
+    assert message.pose.covariance[7] == pytest.approx(0.005)
+
     source = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
-    assert "output.twist.twist.linear.x =" not in source
-    assert "for row in range(3):" in source
-    assert "result.covariance_multiplier" in source
-    assert "if result.publish and not frlio_block:" in source
+    assert "suspect_covariance_multiplier" not in source
+    assert "frlio_degraded_covariance_multiplier" not in source
+    assert 'key="applied_covariance_multiplier"' in source
 
 
 def test_realtime_odometry_chain_uses_sensor_qos_depth_five():
@@ -614,6 +673,10 @@ def test_frlio_anchor_gate_rejects_unknown_and_stale_status():
     reason, blocked = evaluate(status="probe", anchor_age_s=0.10, **common)
     assert reason == "frlio_status_probe"
     assert blocked
+    # With the graded path explicitly disabled
+    # (allow_stale_lidar_predictor_degraded defaults to False here), a stale
+    # anchor still hard-blocks. The graded behaviour is covered separately by
+    # test_stale_anchor_with_fresh_predictor_never_blocks_ev.
     reason, blocked = evaluate(status="HEALTHY", anchor_age_s=0.40, **common)
     assert reason.startswith("frlio_anchor_stale")
     assert blocked
@@ -622,6 +685,122 @@ def test_frlio_anchor_gate_rejects_unknown_and_stale_status():
     )
     assert reason.startswith("frlio_anchor_suspect")
     assert not blocked
+
+
+def test_stale_anchor_with_fresh_predictor_never_blocks_ev():
+    """A late LiDAR posterior must not interrupt the PX4 EV stream.
+
+    The anchor-age branch has to be graded exactly like FAULT_STALE_LIDAR: the
+    status message carrying the transition can arrive after the anchor age has
+    already crossed the threshold, and a message-ordering race must not create
+    an EV dropout.
+    """
+    module = load_health_node_module()
+    reason, blocked = module._evaluate_frlio_anchor_gate(
+        required=True,
+        status="HEALTHY",
+        status_seen=True,
+        status_message_age_s=0.01,
+        anchor_age_s=0.80,
+        anchor_message_age_s=0.01,
+        predictor_age_s=0.02,
+        predictor_message_age_s=0.01,
+        message_timeout_s=0.5,
+        max_anchor_age_s=0.40,
+        max_predictor_age_s=0.05,
+        allow_stale_lidar_predictor_degraded=True,
+    )
+    assert reason.startswith("frlio_stale_lidar_predictor_fresh")
+    assert not blocked
+
+
+def test_state_unusable_statuses_block_ev():
+    """Only a STATE_UNUSABLE-class status may take the EV stream away."""
+    module = load_health_node_module()
+    common = dict(
+        required=True,
+        status_seen=True,
+        status_message_age_s=0.01,
+        anchor_age_s=0.05,
+        anchor_message_age_s=0.01,
+        predictor_age_s=0.01,
+        predictor_message_age_s=0.01,
+        message_timeout_s=0.5,
+        max_anchor_age_s=0.40,
+        max_predictor_age_s=0.05,
+        allow_stale_lidar_predictor_degraded=True,
+    )
+    for status in (
+        "FAULT_STATE_UNUSABLE",
+        "UNIT_UNCONFIRMED",
+        "WAITING_FOR_LIDAR",
+        "DISABLED",
+    ):
+        reason, blocked = module._evaluate_frlio_anchor_gate(status=status, **common)
+        assert blocked, status
+        assert reason.startswith("frlio_state_unusable"), status
+
+
+def test_stale_anchor_with_dead_predictor_still_blocks():
+    """The predictor is what licenses continued publication in every degraded
+    case, so its staleness blocks regardless of which branch got there."""
+    module = load_health_node_module()
+    reason, blocked = module._evaluate_frlio_anchor_gate(
+        required=True,
+        status="HEALTHY",
+        status_seen=True,
+        status_message_age_s=0.01,
+        anchor_age_s=0.80,
+        anchor_message_age_s=0.01,
+        predictor_age_s=0.30,
+        predictor_message_age_s=0.01,
+        message_timeout_s=0.5,
+        max_anchor_age_s=0.40,
+        max_predictor_age_s=0.05,
+        allow_stale_lidar_predictor_degraded=True,
+    )
+    assert reason.startswith("frlio_predictor_stale")
+    assert blocked
+
+
+def test_frlio_stale_lidar_with_fresh_predictor_is_degraded_not_blocked():
+    module = load_health_node_module()
+    reason, blocked = module._evaluate_frlio_anchor_gate(
+        required=True,
+        status="FAULT_STALE_LIDAR",
+        status_seen=True,
+        status_message_age_s=0.01,
+        anchor_age_s=2.0,
+        anchor_message_age_s=0.01,
+        predictor_age_s=0.015,
+        predictor_message_age_s=0.01,
+        message_timeout_s=0.5,
+        max_anchor_age_s=0.40,
+        max_predictor_age_s=0.05,
+        allow_stale_lidar_predictor_degraded=True,
+    )
+    assert reason.startswith("frlio_stale_lidar_predictor_fresh")
+    assert not blocked
+
+
+def test_frlio_stale_lidar_with_stale_predictor_remains_blocked():
+    module = load_health_node_module()
+    reason, blocked = module._evaluate_frlio_anchor_gate(
+        required=True,
+        status="FAULT_STALE_LIDAR",
+        status_seen=True,
+        status_message_age_s=0.01,
+        anchor_age_s=2.0,
+        anchor_message_age_s=0.01,
+        predictor_age_s=0.08,
+        predictor_message_age_s=0.01,
+        message_timeout_s=0.5,
+        max_anchor_age_s=0.40,
+        max_predictor_age_s=0.05,
+        allow_stale_lidar_predictor_degraded=True,
+    )
+    assert reason.startswith("frlio_predictor_stale")
+    assert blocked
 
 
 def test_frlio_soft_suspect_remains_diagnostic_only():
@@ -633,8 +812,50 @@ def test_frlio_soft_suspect_remains_diagnostic_only():
 def test_frlio_soft_suspect_does_not_feed_the_hard_fault_timer():
     source = (PACKAGE_ROOT / "scripts" / "fastlio_ev_health_monitor.py").read_text()
     assert "if frlio_reason is not None and frlio_block:" in source
-    assert "A short LiDAR-anchor warning is diagnostic-only" in source
-    assert "output_covariance_multiplier = max(" not in source
+    assert "double count uncertainty" in source
+    assert "frlio_degraded_covariance_multiplier" not in source
+
+
+def test_only_internal_velocity_fault_is_eligible_for_predictor_degraded_forwarding():
+    module = load_health_node_module()
+    assert module._is_internal_velocity_only_fault(
+        "internal_velocity_mismatch difference=0.600m/s"
+    )
+    assert module._is_internal_velocity_only_fault("internal_velocity_unaligned")
+    assert not module._is_internal_velocity_only_fault("position_jump displacement=1.0m")
+    assert not module._is_internal_velocity_only_fault("stale_input age=0.4s")
+
+
+def test_px4_velocity_bootstrap_forwards_only_disarmed_accepted_ev_before_ready():
+    module = load_health_node_module()
+    allowed = module._bootstrap_forward_allowed
+    common = dict(
+        accepted=True,
+        core_state=module.HealthState.FAULT,
+        reason="velocity_mismatch difference=2.100m/s",
+        bootstrap_completed=False,
+        now_s=3.0,
+        bootstrap_deadline_s=15.0,
+    )
+
+    assert allowed(mavros_armed=False, **common)
+    assert not allowed(mavros_armed=True, **common)
+    assert not allowed(mavros_armed=None, **common)
+    assert not allowed(
+        mavros_armed=False,
+        accepted=False,
+        **{key: value for key, value in common.items() if key != "accepted"},
+    )
+    assert not allowed(
+        mavros_armed=False,
+        reason="position_jump displacement=1.0m",
+        **{key: value for key, value in common.items() if key != "reason"},
+    )
+    assert not allowed(
+        mavros_armed=False,
+        now_s=15.1,
+        **{key: value for key, value in common.items() if key != "now_s"},
+    )
 
 
 def test_flight_ready_keeps_raw_suspect_diagnostic_only():
@@ -659,6 +880,18 @@ def test_flight_ready_keeps_raw_suspect_diagnostic_only():
     )
     assert not ready
     assert reason == "core_state_fault"
+
+    ready, reason = evaluate(
+        core_state=module.HealthState.FAULT,
+        frlio_reason="frlio_stale_lidar_predictor_fresh predictor_age=0.015s",
+        frlio_block=False,
+        frlio_predictor_degraded=True,
+        now_s=10.01,
+        last_healthy_output_s=10.01,
+        healthy_output_timeout_s=0.10,
+    )
+    assert not ready
+    assert reason == "frlio_predictor_degraded"
 
 
 def test_flight_ready_fails_closed_for_hard_gate_and_stale_output():
@@ -687,6 +920,29 @@ def test_flight_ready_fails_closed_for_hard_gate_and_stale_output():
     )
     assert not ready
     assert reason.startswith("healthy_odom_output_stale")
+
+
+def test_flight_ready_requires_continuous_px4_ev_fusion_and_no_dead_reckoning():
+    module = load_health_node_module()
+    evaluate = module._evaluate_flight_ready
+    common = dict(
+        core_state=module.HealthState.HEALTHY,
+        frlio_reason=None,
+        frlio_block=False,
+        now_s=5.0,
+        last_healthy_output_s=5.0,
+        healthy_output_timeout_s=0.10,
+        require_px4_local_position=True,
+        px4_local_position_age_s=0.01,
+        require_px4_ev_fusion=True,
+        px4_ev_fuse_timeout_s=0.50,
+    )
+    ready, reason = evaluate(dead_reckoning=True, ev_fuse_age_s=0.01, **common)
+    assert not ready and reason == "px4_dead_reckoning"
+    ready, reason = evaluate(dead_reckoning=False, ev_fuse_age_s=0.51, **common)
+    assert not ready and reason.startswith("px4_ev_last_fuse_stale")
+    ready, reason = evaluate(dead_reckoning=False, ev_fuse_age_s=0.01, **common)
+    assert ready and reason == "ready"
 
 
 def test_actual_fastlio_source_publishes_internal_velocity_before_message():

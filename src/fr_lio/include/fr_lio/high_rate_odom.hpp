@@ -4,8 +4,10 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <mutex>
 #include <optional>
@@ -279,6 +281,80 @@ private:
   std::size_t consecutive_rejections_{0};
 };
 
+// Four graded levels replace the previous binary healthy/stale distinction.
+// The ordering matters: a level only ever restricts what the level below it
+// already allowed, so `level >= X` is a valid test for "at least as degraded".
+//
+//   Good            L0  EV publishes, planner may plan.
+//   Degraded        L1  LiDAR posterior is late but the predictor is real time.
+//                       EV publishes with inflated covariance; the planner may
+//                       continue at reduced speed.
+//   PlannerUnusable L2  LiDAR posterior is stale.  EV still publishes the real
+//                       IMU-propagated state; the planner must stop switching
+//                       trajectories.  This is NOT an EV dropout.
+//   StateUnusable   L3  The propagated state itself is untrustworthy (predictor
+//                       cannot reach now, timestamp rollback, NaN/Inf,
+//                       uninitialised).  Only here does EV become unusable.
+enum class HighRateOdomLevel
+{
+  Good = 0,
+  Degraded = 1,
+  PlannerUnusable = 2,
+  StateUnusable = 3,
+};
+
+inline const char * high_rate_level_name(HighRateOdomLevel level)
+{
+  switch (level) {
+    case HighRateOdomLevel::Good: return "GOOD";
+    case HighRateOdomLevel::Degraded: return "DEGRADED";
+    case HighRateOdomLevel::PlannerUnusable: return "PLANNER_UNUSABLE";
+    case HighRateOdomLevel::StateUnusable: return "STATE_UNUSABLE";
+  }
+  return "STATE_UNUSABLE";
+}
+
+// EV usability and planner usability are deliberately separate booleans.  A
+// single `localization_healthy` flag driving both PX4 and the planner is what
+// turned a late LiDAR posterior into an EV transport dropout.
+inline bool ev_usable_at(HighRateOdomLevel level)
+{
+  return level < HighRateOdomLevel::StateUnusable;
+}
+
+inline bool planner_usable_at(HighRateOdomLevel level)
+{
+  return level < HighRateOdomLevel::PlannerUnusable;
+}
+
+// Reason codes for why the level was raised. Reported alongside the level so a
+// consumer can distinguish "LiDAR posterior late" from "predictor dead" without
+// parsing the level name.
+enum class HighRateOdomReason
+{
+  None,
+  AnchorSuspect,
+  AnchorStale,
+  PredictorStale,
+  TimestampRollback,
+  NonFiniteState,
+  NotInitialized,
+};
+
+inline const char * high_rate_reason_name(HighRateOdomReason reason)
+{
+  switch (reason) {
+    case HighRateOdomReason::None: return "none";
+    case HighRateOdomReason::AnchorSuspect: return "anchor_suspect";
+    case HighRateOdomReason::AnchorStale: return "anchor_stale";
+    case HighRateOdomReason::PredictorStale: return "predictor_stale";
+    case HighRateOdomReason::TimestampRollback: return "timestamp_rollback";
+    case HighRateOdomReason::NonFiniteState: return "non_finite_state";
+    case HighRateOdomReason::NotInitialized: return "not_initialized";
+  }
+  return "none";
+}
+
 enum class HighRateOdomHealth
 {
   Healthy,
@@ -286,13 +362,52 @@ enum class HighRateOdomHealth
   StaleLidar,
 };
 
+// One consistent health snapshot. Every field is read once, at the same
+// instant, so a consumer can never observe a mixture such as
+// "GOOD + anchor_age=1.1s".  Ages are in seconds; generations are monotonic
+// counters that only advance when the corresponding stage actually committed.
+struct LocalizationHealthSnapshot
+{
+  double steady_clock_now_s{0.0};
+  std::uint64_t sequence{0};
+  double anchor_age_s{0.0};
+  double predictor_age_s{0.0};
+  double imu_backlog_age_s{0.0};
+  std::size_t imu_queue_size{0};
+  std::uint64_t posterior_generation{0};
+  std::uint64_t predictor_generation{0};
+  bool timestamp_monotonic{true};
+  bool state_finite{true};
+  double position_jump_m{0.0};
+  double velocity_jump_mps{0.0};
+  HighRateOdomLevel level{HighRateOdomLevel::Good};
+  HighRateOdomReason reason{HighRateOdomReason::None};
+  bool ev_usable{true};
+  bool planner_usable{true};
+};
+
 struct HighRateOdomResult
 {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   HighRateOdomState state;
+  // state is the published, potentially smoothed output. Keep the internal
+  // propagation endpoints as well so a trace can show whether a velocity
+  // excursion originated in IMU integration or output smoothing.
+  Eigen::Vector3d propagation_velocity_before{Eigen::Vector3d::Zero()};
+  Eigen::Vector3d propagation_velocity_after{Eigen::Vector3d::Zero()};
+  bool sample_propagated{false};
   Eigen::Vector3d body_angular_velocity{Eigen::Vector3d::Zero()};
   double lidar_anchor_age_s{0.0};
   HighRateOdomHealth health{HighRateOdomHealth::Healthy};
+  // Anchor-age-derived level. The node raises it to StateUnusable when the
+  // predictor cannot be propagated to the present; that decision needs the
+  // steady clock and therefore does not belong to the propagator.
+  HighRateOdomLevel level{HighRateOdomLevel::Good};
+  HighRateOdomReason reason{HighRateOdomReason::None};
+  std::uint64_t predictor_generation{0};
+  bool state_finite{true};
+  double position_jump_m{0.0};
+  double velocity_jump_mps{0.0};
   std::size_t accel_spike_rejection_count{0};
   std::size_t consecutive_accel_spike_rejections{0};
   double raw_acceleration_norm_mps2{0.0};
@@ -300,8 +415,245 @@ struct HighRateOdomResult
   bool accel_spike_rejected{false};
   bool accel_norm_limit_exceeded{false};
   bool accel_deviation_limit_exceeded{false};
+  std::uint64_t mutex_wait_us{0};
+  std::uint64_t mutex_hold_us{0};
   bool publish{false};
 };
+
+// Applies hysteresis to the externally visible high-rate odometry health.
+//
+// The anchor age can only ever raise the level to PlannerUnusable (L2): a late
+// LiDAR posterior says nothing about whether the IMU-propagated state is still
+// valid, and the propagated state is what PX4 consumes as EV.  StateUnusable
+// (L3) is reachable only through the predictor-side inputs below, which the node
+// supplies from the steady clock and the state validity check.
+//
+// The L2 latch is kept: leaving PlannerUnusable requires a *newer* committed
+// LiDAR posterior (generation increase) plus `recovery_healthy_samples`
+// consecutive low-age samples.  Age alone is never enough, because the age
+// resets the instant a replay starts, before the posterior is committed.
+class HighRateOdomHealthGate
+{
+public:
+  HighRateOdomHealthGate(
+    double suspect_enter_age_s = 0.18,
+    double suspect_exit_age_s = 0.12,
+    double fault_age_s = 0.40,
+    std::size_t recovery_healthy_samples = 3)
+  : suspect_enter_age_s_(suspect_enter_age_s),
+    suspect_exit_age_s_(suspect_exit_age_s),
+    fault_age_s_(fault_age_s),
+    recovery_healthy_samples_required_(std::max<std::size_t>(1, recovery_healthy_samples))
+  {
+  }
+
+  // Anchor-side update. Returns the level implied by the LiDAR posterior age
+  // alone; the caller merges it with the predictor-side level.
+  HighRateOdomLevel update_anchor(double anchor_age_s, std::uint64_t posterior_generation)
+  {
+    if (!std::isfinite(anchor_age_s) || anchor_age_s > fault_age_s_) {
+      anchor_level_ = HighRateOdomLevel::PlannerUnusable;
+      anchor_reason_ = HighRateOdomReason::AnchorStale;
+      fault_generation_ = posterior_generation;
+      recovery_generation_ = posterior_generation;
+      recovery_healthy_samples_ = 0;
+      return anchor_level_;
+    }
+
+    if (anchor_level_ == HighRateOdomLevel::PlannerUnusable) {
+      if (posterior_generation <= fault_generation_ ||
+        anchor_age_s >= suspect_exit_age_s_)
+      {
+        recovery_healthy_samples_ = 0;
+        return anchor_level_;
+      }
+      if (posterior_generation != recovery_generation_) {
+        recovery_generation_ = posterior_generation;
+        recovery_healthy_samples_ = 0;
+      }
+      if (++recovery_healthy_samples_ >= recovery_healthy_samples_required_) {
+        anchor_level_ = HighRateOdomLevel::Good;
+        anchor_reason_ = HighRateOdomReason::None;
+        recovery_healthy_samples_ = 0;
+      }
+      return anchor_level_;
+    }
+
+    if (anchor_level_ == HighRateOdomLevel::Degraded) {
+      if (anchor_age_s < suspect_exit_age_s_) {
+        anchor_level_ = HighRateOdomLevel::Good;
+        anchor_reason_ = HighRateOdomReason::None;
+      }
+      return anchor_level_;
+    }
+
+    if (anchor_age_s > suspect_enter_age_s_) {
+      anchor_level_ = HighRateOdomLevel::Degraded;
+      anchor_reason_ = HighRateOdomReason::AnchorSuspect;
+    }
+    return anchor_level_;
+  }
+
+  // Legacy three-state view, retained so existing call sites and tests that
+  // only care about the anchor axis keep compiling.
+  HighRateOdomHealth update(double anchor_age_s, std::uint64_t posterior_generation)
+  {
+    switch (update_anchor(anchor_age_s, posterior_generation)) {
+      case HighRateOdomLevel::Good: return HighRateOdomHealth::Healthy;
+      case HighRateOdomLevel::Degraded: return HighRateOdomHealth::Suspect;
+      default: return HighRateOdomHealth::StaleLidar;
+    }
+  }
+
+  HighRateOdomLevel anchorLevel() const { return anchor_level_; }
+  HighRateOdomReason anchorReason() const { return anchor_reason_; }
+
+  HighRateOdomHealth state() const
+  {
+    switch (anchor_level_) {
+      case HighRateOdomLevel::Good: return HighRateOdomHealth::Healthy;
+      case HighRateOdomLevel::Degraded: return HighRateOdomHealth::Suspect;
+      default: return HighRateOdomHealth::StaleLidar;
+    }
+  }
+
+  void reset()
+  {
+    anchor_level_ = HighRateOdomLevel::Good;
+    anchor_reason_ = HighRateOdomReason::None;
+    fault_generation_ = 0;
+    recovery_generation_ = 0;
+    recovery_healthy_samples_ = 0;
+  }
+
+private:
+  double suspect_enter_age_s_;
+  double suspect_exit_age_s_;
+  double fault_age_s_;
+  std::size_t recovery_healthy_samples_required_;
+  HighRateOdomLevel anchor_level_{HighRateOdomLevel::Good};
+  HighRateOdomReason anchor_reason_{HighRateOdomReason::None};
+  std::uint64_t fault_generation_{0};
+  std::uint64_t recovery_generation_{0};
+  std::size_t recovery_healthy_samples_{0};
+};
+
+// Predictor-side gate: decides whether the propagated state itself is still
+// trustworthy.  This is the only path to StateUnusable (L3), and therefore the
+// only path that may take EV away from PX4.
+//
+// Hysteresis mirrors the anchor gate: entering the fault is immediate (a state
+// that cannot be propagated to now is unusable right away), leaving it requires
+// `recovery_healthy_samples` consecutive fresh, finite, monotonic samples with
+// an advancing predictor generation.
+class PredictorHealthGate
+{
+public:
+  PredictorHealthGate(
+    double fault_age_s = 0.15,
+    double recover_age_s = 0.10,
+    std::size_t recovery_healthy_samples = 3)
+  : fault_age_s_(fault_age_s),
+    recover_age_s_(recover_age_s),
+    recovery_healthy_samples_required_(std::max<std::size_t>(1, recovery_healthy_samples))
+  {
+  }
+
+  struct Input
+  {
+    double predictor_age_s{0.0};
+    std::uint64_t predictor_generation{0};
+    bool state_finite{true};
+    bool timestamp_monotonic{true};
+    bool initialized{true};
+  };
+
+  HighRateOdomLevel update(const Input & input)
+  {
+    HighRateOdomReason immediate = HighRateOdomReason::None;
+    if (!input.initialized) {
+      immediate = HighRateOdomReason::NotInitialized;
+    } else if (!input.state_finite) {
+      immediate = HighRateOdomReason::NonFiniteState;
+    } else if (!input.timestamp_monotonic) {
+      immediate = HighRateOdomReason::TimestampRollback;
+    } else if (!std::isfinite(input.predictor_age_s) ||
+      input.predictor_age_s < 0.0 || input.predictor_age_s > fault_age_s_)
+    {
+      immediate = HighRateOdomReason::PredictorStale;
+    }
+
+    if (immediate != HighRateOdomReason::None) {
+      level_ = HighRateOdomLevel::StateUnusable;
+      reason_ = immediate;
+      recovery_generation_ = input.predictor_generation;
+      recovery_healthy_samples_ = 0;
+      return level_;
+    }
+
+    if (level_ != HighRateOdomLevel::StateUnusable) {
+      level_ = HighRateOdomLevel::Good;
+      reason_ = HighRateOdomReason::None;
+      return level_;
+    }
+
+    // Latched: require the age to come back below the recovery threshold and a
+    // predictor generation that actually advanced past the faulting one.
+    if (input.predictor_age_s >= recover_age_s_ ||
+      input.predictor_generation <= recovery_generation_)
+    {
+      recovery_healthy_samples_ = 0;
+      recovery_generation_ = std::max(recovery_generation_, input.predictor_generation);
+      return level_;
+    }
+    if (++recovery_healthy_samples_ >= recovery_healthy_samples_required_) {
+      level_ = HighRateOdomLevel::Good;
+      reason_ = HighRateOdomReason::None;
+      recovery_healthy_samples_ = 0;
+    }
+    return level_;
+  }
+
+  HighRateOdomLevel level() const { return level_; }
+  HighRateOdomReason reason() const { return reason_; }
+
+  void reset()
+  {
+    level_ = HighRateOdomLevel::Good;
+    reason_ = HighRateOdomReason::None;
+    recovery_generation_ = 0;
+    recovery_healthy_samples_ = 0;
+  }
+
+private:
+  double fault_age_s_;
+  double recover_age_s_;
+  std::size_t recovery_healthy_samples_required_;
+  HighRateOdomLevel level_{HighRateOdomLevel::Good};
+  HighRateOdomReason reason_{HighRateOdomReason::None};
+  std::uint64_t recovery_generation_{0};
+  std::size_t recovery_healthy_samples_{0};
+};
+
+// Merge the two independent axes into one consistent snapshot. The level is the
+// max (most degraded) of the two, and the reason follows whichever axis is
+// responsible, with the predictor axis winning ties because it is the axis that
+// can take EV away.
+inline void merge_health_axes(
+  LocalizationHealthSnapshot & snapshot,
+  HighRateOdomLevel anchor_level, HighRateOdomReason anchor_reason,
+  HighRateOdomLevel predictor_level, HighRateOdomReason predictor_reason)
+{
+  if (predictor_level > HighRateOdomLevel::Good && predictor_level >= anchor_level) {
+    snapshot.level = predictor_level;
+    snapshot.reason = predictor_reason;
+  } else {
+    snapshot.level = anchor_level;
+    snapshot.reason = anchor_reason;
+  }
+  snapshot.ev_usable = ev_usable_at(snapshot.level);
+  snapshot.planner_usable = planner_usable_at(snapshot.level);
+}
 
 struct HighRateCorrectionDiagnostic
 {
@@ -319,6 +671,8 @@ struct HighRateCorrectionDiagnostic
   Eigen::Vector3d output_velocity_before{Eigen::Vector3d::Zero()};
   Eigen::Vector3d output_velocity_after{Eigen::Vector3d::Zero()};
   Eigen::Vector3d correction_offset_velocity{Eigen::Vector3d::Zero()};
+  std::uint64_t mutex_wait_us{0};
+  std::uint64_t mutex_hold_us{0};
 };
 
 class HighRateOdomPropagator
@@ -327,7 +681,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   HighRateOdomPropagator(
-    HighRateOdomNoise noise = {}, double warn_anchor_age_s = 0.15,
+    HighRateOdomNoise noise = {}, double warn_anchor_age_s = 0.18,
     double max_anchor_age_s = 0.40, double history_duration_s = 5.0,
     HighRateAccelFilterConfig accel_filter = {},
     double correction_smoothing_s = 0.0)
@@ -348,9 +702,15 @@ public:
 
   bool reset_from_lidar(const HighRateOdomState & corrected_state)
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const auto lock_requested_at = std::chrono::steady_clock::now();
+    std::unique_lock<std::mutex> lock(mutex_);
+    const auto lock_acquired_at = std::chrono::steady_clock::now();
+    const auto mutex_wait_us = static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::microseconds>(
+        lock_acquired_at - lock_requested_at).count());
     std::optional<HighRateOdomState> previous_output;
     const Eigen::Vector3d propagated_velocity = state_.velocity;
+    const Eigen::Vector3d propagated_angular_velocity = last_body_angular_velocity_;
     const double propagated_timestamp = state_.timestamp;
     double smoothing_elapsed_before = 0.0;
     if (initialized_ && previous_input_) {
@@ -364,26 +724,38 @@ public:
       return false;
     }
 
-    // The current published state is the only valid starting point for a new
-    // correction. Clear the old epoch before applying the posterior so an
-    // unfinished correction can never be added to the next one.
-    clear_correction_smoothing_locked();
+    // Snapshot the replay inputs while locked, then perform the expensive
+    // IMU replay on a private state outside the shared mutex.
+    const auto history_snapshot = history_;
+    const auto anchor_input = input_at_locked(corrected_state.timestamp);
+    const auto first_lock_released_at = std::chrono::steady_clock::now();
+    const auto mutex_hold_us = static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::microseconds>(
+        first_lock_released_at - lock_acquired_at).count());
+    lock.unlock();
 
-    state_ = corrected_state;
-    state_.rotation = orthonormalized(state_.rotation);
-    state_.covariance = sanitized_covariance(state_.covariance);
-    lidar_anchor_timestamp_ = corrected_state.timestamp;
-    initialized_ = true;
-
-    previous_input_ = input_at_locked(corrected_state.timestamp);
-    if (previous_input_) {
-      for (const auto & sample : history_) {
-        if (sample.timestamp <= corrected_state.timestamp) {
-          continue;
-        }
-        propagate_locked(sample);
+    HighRateOdomState replay_state = corrected_state;
+    replay_state.rotation = orthonormalized(replay_state.rotation);
+    replay_state.covariance = sanitized_covariance(replay_state.covariance);
+    std::optional<HighRateImuSample> replay_input = anchor_input;
+    Eigen::Vector3d replay_angular_velocity = propagated_angular_velocity;
+    for (const auto & sample : history_snapshot) {
+      if (sample.timestamp > corrected_state.timestamp) {
+        propagate_state(
+          replay_state, replay_input, replay_angular_velocity, sample, noise_);
       }
     }
+
+    // Commit the fully replayed local state with a short lock. IMU callbacks
+    // can run during the replay; their history remains authoritative and the
+    // next callback will continue from this committed timestamp.
+    lock.lock();
+    clear_correction_smoothing_locked();
+    state_ = replay_state;
+    previous_input_ = replay_input;
+    last_body_angular_velocity_ = replay_angular_velocity;
+    lidar_anchor_timestamp_ = corrected_state.timestamp;
+    initialized_ = true;
 
     // LiDAR corrections are authoritative for the estimator, but publishing
     // the corrected state immediately would turn a centimetre-scale map
@@ -419,6 +791,8 @@ public:
       previous_output->velocity : propagated_velocity;
     diagnostic.output_velocity_after = output_state_locked().velocity;
     diagnostic.correction_offset_velocity = correction_offset_velocity_;
+    diagnostic.mutex_wait_us = mutex_wait_us;
+    diagnostic.mutex_hold_us = mutex_hold_us;
     last_correction_diagnostic_ = diagnostic;
     return true;
   }
@@ -433,7 +807,9 @@ public:
 
   std::optional<HighRateOdomResult> add_imu(const HighRateImuSample & sample)
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const auto lock_requested_at = std::chrono::steady_clock::now();
+    std::unique_lock<std::mutex> lock(mutex_);
+    const auto lock_acquired_at = std::chrono::steady_clock::now();
     if (!sample_is_valid(sample)) {
       return std::nullopt;
     }
@@ -454,19 +830,41 @@ public:
     }
 
     const HighRateImuSample filtered_sample = filter_acceleration_locked(sample);
-    return add_filtered_imu_locked(filtered_sample);
+    auto result = add_filtered_imu_locked(filtered_sample);
+    stamp_mutex_timing(result, lock_requested_at, lock_acquired_at);
+    return result;
   }
 
   // In production this is fed by HighRateImuPreprocessor so the main ESKF
   // and high-rate replay consume the exact same used acceleration.
   std::optional<HighRateOdomResult> add_filtered_imu(const HighRateImuSample & sample)
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const auto lock_requested_at = std::chrono::steady_clock::now();
+    std::unique_lock<std::mutex> lock(mutex_);
+    const auto lock_acquired_at = std::chrono::steady_clock::now();
     if (!sample_is_valid(sample)) return std::nullopt;
-    return add_filtered_imu_locked(sample);
+    auto result = add_filtered_imu_locked(sample);
+    stamp_mutex_timing(result, lock_requested_at, lock_acquired_at);
+    return result;
   }
 
 private:
+  static void stamp_mutex_timing(
+    std::optional<HighRateOdomResult> & result,
+    const std::chrono::steady_clock::time_point & lock_requested_at,
+    const std::chrono::steady_clock::time_point & lock_acquired_at)
+  {
+    if (!result) {
+      return;
+    }
+    result->mutex_wait_us = static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::microseconds>(
+        lock_acquired_at - lock_requested_at).count());
+    result->mutex_hold_us = static_cast<std::uint64_t>(
+      std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - lock_acquired_at).count());
+  }
+
   std::optional<HighRateOdomResult> add_filtered_imu_locked(const HighRateImuSample & sample)
   {
     if (!history_.empty() && sample.timestamp <= history_.back().timestamp) {
@@ -506,8 +904,13 @@ private:
       return std::nullopt;
     }
 
+    const Eigen::Vector3d propagation_velocity_before = state_.velocity;
     propagate_locked(sample);
-    return make_result_locked();
+    auto result = make_result_locked();
+    result.propagation_velocity_before = propagation_velocity_before;
+    result.propagation_velocity_after = state_.velocity;
+    result.sample_propagated = true;
+    return result;
   }
 
 public:
@@ -751,36 +1154,39 @@ private:
     return nearest;
   }
 
-  void propagate_locked(const HighRateImuSample & sample)
+  static void propagate_state(
+    HighRateOdomState & state, std::optional<HighRateImuSample> & previous_input,
+    Eigen::Vector3d & last_body_angular_velocity, const HighRateImuSample & sample,
+    const HighRateOdomNoise & noise)
   {
-    const double dt = sample.timestamp - state_.timestamp;
-    if (dt <= 0.0 || !previous_input_) {
+    const double dt = sample.timestamp - state.timestamp;
+    if (dt <= 0.0 || !previous_input) {
       return;
     }
 
     const Eigen::Vector3d omega_previous =
-      previous_input_->angular_velocity - state_.gyro_bias;
-    const Eigen::Vector3d omega_current = sample.angular_velocity - state_.gyro_bias;
+      previous_input->angular_velocity - state.gyro_bias;
+    const Eigen::Vector3d omega_current = sample.angular_velocity - state.gyro_bias;
     const Eigen::Vector3d omega = 0.5 * (omega_previous + omega_current);
     const Eigen::Vector3d accel_previous =
-      previous_input_->acceleration - state_.accel_bias;
-    const Eigen::Vector3d accel_current = sample.acceleration - state_.accel_bias;
+      previous_input->acceleration - state.accel_bias;
+    const Eigen::Vector3d accel_current = sample.acceleration - state.accel_bias;
     const Eigen::Vector3d accel_body = 0.5 * (accel_previous + accel_current);
 
-    const Eigen::Matrix3d rotation_previous = state_.rotation;
+    const Eigen::Matrix3d rotation_previous = state.rotation;
     const Eigen::Matrix3d rotation_current =
       rotation_previous * Exp(omega, dt);
     const Eigen::Vector3d acceleration_world_previous =
-      rotation_previous * accel_previous + state_.gravity;
+      rotation_previous * accel_previous + state.gravity;
     const Eigen::Vector3d acceleration_world_current =
-      rotation_current * accel_current + state_.gravity;
+      rotation_current * accel_current + state.gravity;
     const Eigen::Vector3d acceleration_world =
       0.5 * (acceleration_world_previous + acceleration_world_current);
 
-    const Eigen::Vector3d velocity_previous = state_.velocity;
-    state_.position += velocity_previous * dt + 0.5 * acceleration_world * dt * dt;
-    state_.velocity += acceleration_world * dt;
-    state_.rotation = orthonormalized(rotation_current);
+    const Eigen::Vector3d velocity_previous = state.velocity;
+    state.position += velocity_previous * dt + 0.5 * acceleration_world * dt * dt;
+    state.velocity += acceleration_world * dt;
+    state.rotation = orthonormalized(rotation_current);
 
     Covariance transition = Covariance::Identity();
     transition.block<3, 3>(0, 3) =
@@ -796,8 +1202,8 @@ private:
     transition.block<3, 3>(6, 15) = Eigen::Matrix3d::Identity() * dt;
 
     Covariance process_noise = Covariance::Zero();
-    const double gyro_variance = std::max(0.0, noise_.gyro_variance);
-    const double accel_variance = std::max(0.0, noise_.accel_variance);
+    const double gyro_variance = std::max(0.0, noise.gyro_variance);
+    const double accel_variance = std::max(0.0, noise.accel_variance);
     process_noise.block<3, 3>(0, 0) =
       Eigen::Matrix3d::Identity() * accel_variance * dt * dt * dt / 3.0;
     process_noise.block<3, 3>(0, 6) =
@@ -808,15 +1214,29 @@ private:
     process_noise.block<3, 3>(6, 6) =
       Eigen::Matrix3d::Identity() * accel_variance * dt;
     process_noise.block<3, 3>(9, 9) = Eigen::Matrix3d::Identity() *
-      std::max(0.0, noise_.gyro_bias_variance) * dt;
+      std::max(0.0, noise.gyro_bias_variance) * dt;
     process_noise.block<3, 3>(12, 12) = Eigen::Matrix3d::Identity() *
-      std::max(0.0, noise_.accel_bias_variance) * dt;
+      std::max(0.0, noise.accel_bias_variance) * dt;
 
-    state_.covariance = sanitized_covariance(
-      transition * state_.covariance * transition.transpose() + process_noise);
-    state_.timestamp = sample.timestamp;
-    previous_input_ = sample;
-    last_body_angular_velocity_ = omega_current;
+    state.covariance = sanitized_covariance(
+      transition * state.covariance * transition.transpose() + process_noise);
+    state.timestamp = sample.timestamp;
+    previous_input = sample;
+    last_body_angular_velocity = omega_current;
+  }
+
+  void propagate_locked(const HighRateImuSample & sample)
+  {
+    const Eigen::Vector3d previous_position = state_.position;
+    const Eigen::Vector3d previous_velocity = state_.velocity;
+    propagate_state(state_, previous_input_, last_body_angular_velocity_, sample, noise_);
+    // A generation increment means "the predictor actually advanced its state
+    // to a newer IMU sample".  The predictor health gate needs this to tell a
+    // recovering predictor from one that merely reports a small age because
+    // nothing is arriving at all.
+    ++predictor_generation_;
+    last_position_jump_m_ = (state_.position - previous_position).norm();
+    last_velocity_jump_mps_ = (state_.velocity - previous_velocity).norm();
   }
 
   HighRateOdomState output_state_locked() const
@@ -832,18 +1252,16 @@ private:
       return output;
     }
 
-    // Cubic Hermite transition: preserve both pose and velocity at the first
-    // sample, then reach the corrected trajectory with zero residual offset.
+    // Smooth only the published position. Velocity remains the estimator's
+    // latest LiDAR-posterior replay velocity at this sensor timestamp; the
+    // derivative of this presentation-layer position offset is not a measured
+    // or propagated velocity.
     const double u2 = u * u;
     const double u3 = u2 * u;
     const double h00 = 2.0 * u3 - 3.0 * u2 + 1.0;
     const double h10 = u3 - 2.0 * u2 + u;
-    const double dh00 = (6.0 * u2 - 6.0 * u) / correction_smoothing_s_;
-    const double dh10 = 3.0 * u2 - 4.0 * u + 1.0;
     output.position += h00 * correction_offset_position_ +
       h10 * correction_smoothing_s_ * correction_offset_velocity_;
-    output.velocity += dh00 * correction_offset_position_ +
-      dh10 * correction_offset_velocity_;
     return output;
   }
 
@@ -868,6 +1286,8 @@ private:
   {
     HighRateOdomResult result;
     result.state = output_state_locked();
+    result.propagation_velocity_before = state_.velocity;
+    result.propagation_velocity_after = state_.velocity;
     result.body_angular_velocity = last_body_angular_velocity_;
     result.lidar_anchor_age_s = state_.timestamp - lidar_anchor_timestamp_;
     result.accel_spike_rejection_count = accel_spike_rejection_count_;
@@ -877,16 +1297,36 @@ private:
     result.accel_spike_rejected = last_accel_spike_rejected_;
     result.accel_norm_limit_exceeded = last_accel_norm_limit_exceeded_;
     result.accel_deviation_limit_exceeded = last_accel_deviation_limit_exceeded_;
-    if (result.lidar_anchor_age_s > max_anchor_age_s_) {
+    result.predictor_generation = predictor_generation_;
+    result.state_finite = state_is_valid(result.state);
+    result.position_jump_m = last_position_jump_m_;
+    result.velocity_jump_mps = last_velocity_jump_mps_;
+    // A stale LiDAR posterior is expressed as a level, never as a dropout.
+    // `publish` now only reports whether there is a real state to publish: it
+    // is false only when the state itself is unusable.  The old
+    // `anchor_age > max ==> publish=false` rule turned a late map correction
+    // into an EV transport interruption, which is exactly the cascade this
+    // gate topology is meant to prevent.
+    if (result.lidar_anchor_age_s > max_anchor_age_s_ ||
+      !std::isfinite(result.lidar_anchor_age_s))
+    {
       result.health = HighRateOdomHealth::StaleLidar;
-      result.publish = false;
+      result.level = HighRateOdomLevel::PlannerUnusable;
+      result.reason = HighRateOdomReason::AnchorStale;
     } else if (result.lidar_anchor_age_s > warn_anchor_age_s_) {
       result.health = HighRateOdomHealth::Suspect;
-      result.publish = true;
+      result.level = HighRateOdomLevel::Degraded;
+      result.reason = HighRateOdomReason::AnchorSuspect;
     } else {
       result.health = HighRateOdomHealth::Healthy;
-      result.publish = true;
+      result.level = HighRateOdomLevel::Good;
+      result.reason = HighRateOdomReason::None;
     }
+    if (!result.state_finite) {
+      result.level = HighRateOdomLevel::StateUnusable;
+      result.reason = HighRateOdomReason::NonFiniteState;
+    }
+    result.publish = result.state_finite;
     return result;
   }
 
@@ -899,7 +1339,7 @@ private:
   }
 
   HighRateOdomNoise noise_;
-  double warn_anchor_age_s_{0.15};
+  double warn_anchor_age_s_{0.18};
   double max_anchor_age_s_{0.40};
   double history_duration_s_{5.0};
   double correction_smoothing_s_{0.0};
@@ -922,6 +1362,9 @@ private:
   std::size_t accel_candidate_count_{0};
   bool sustained_accel_confirmed_{false};
   double lidar_anchor_timestamp_{0.0};
+  std::uint64_t predictor_generation_{0};
+  double last_position_jump_m_{0.0};
+  double last_velocity_jump_mps_{0.0};
   bool initialized_{false};
   Eigen::Vector3d correction_offset_position_{Eigen::Vector3d::Zero()};
   Eigen::Vector3d correction_offset_velocity_{Eigen::Vector3d::Zero()};

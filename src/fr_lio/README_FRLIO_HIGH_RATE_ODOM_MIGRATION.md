@@ -375,7 +375,9 @@ anchor_age = imu_stamp - last_valid_lidar_update_stamp
 
 ```yaml
 high_rate_odom:
-  warn_anchor_age_s: 0.15
+  warn_anchor_age_s: 0.18
+  suspect_exit_anchor_age_s: 0.12
+  recovery_healthy_samples: 3
   max_anchor_age_s: 0.40
 ```
 
@@ -448,7 +450,7 @@ anchor_age > max：停止 `/Odometry/healthy`，触发 FAULT，不得仅滚动 I
 - `/Odometry` 参数化为正式输出，使用 `SensorDataQoS().keep_last(5)`。
 - 输出固定为 `odom -> body`、ENU/FLU；线速度和去 bias 角速度均为 body/FLU。
 - IMU 单位默认 `unconfirmed`，静置统计 10 秒后只报告建议，不自动切换、不发布高频 odom。
-- LiDAR 锚点 0.15 秒进入 SUSPECT，0.40 秒进入 FAULT 并停止 `/Odometry`。
+- LiDAR 锚点超过 0.18 秒进入 SUSPECT，低于 0.12 秒退出 SUSPECT；超过 0.40 秒进入 FAULT 并停止 `/Odometry`。FAULT 恢复还要求新的 LiDAR posterior 成功提交，并连续 3 个健康样本。
 - 默认关闭额外 LiDAR 累积、低通滤波、回环、影子地图、地图修正和工作树重建。
 - GTSAM 回环改为 `FR_LIO_ENABLE_LOOP_CLOSURE=ON` 时才构建，默认不依赖 GTSAM。
 - 已通过 ROS 包构建；地图修正 9 项测试和高频传播 13 项测试全部通过。
@@ -500,7 +502,7 @@ anchor_age > max：停止 `/Odometry/healthy`，触发 FAULT，不得仅滚动 I
 
 ### 7. LiDAR 锚点超时策略
 
-- **7A（推荐）**：0.15 s 后 SUSPECT，0.30 s 后 FAULT，并停止向 MAVROS 发布健康 odom。
+- **7A（推荐）**：0.18 s 后 SUSPECT，0.40 s 后 FAULT，并停止向 MAVROS 发布健康 odom；恢复采用 0.12 s 退出阈值和连续健康样本确认。
 - 7B：使用其他门限；请给出正常 LiDAR 更新频率及允许的最大纯惯性维持时间。
 
 ### 8. frame 与杆臂职责

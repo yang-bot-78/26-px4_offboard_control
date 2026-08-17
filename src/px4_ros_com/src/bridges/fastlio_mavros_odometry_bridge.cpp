@@ -1,10 +1,13 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <px4_ros_com/lever_arm_compensation.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <stdexcept>
@@ -14,6 +17,17 @@ using nav_msgs::msg::Odometry;
 
 namespace
 {
+
+double steady_clock_seconds()
+{
+	return std::chrono::duration<double>(
+		std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+double stamp_to_seconds(const builtin_interfaces::msg::Time &stamp)
+{
+	return static_cast<double>(stamp.sec) + static_cast<double>(stamp.nanosec) * 1e-9;
+}
 
 geometry_msgs::msg::Quaternion yaw_quaternion(double yaw_rad)
 {
@@ -117,6 +131,9 @@ public:
 		body_to_sensor_y_m_ = declare_parameter<double>("body_to_sensor_y_m", 0.0);
 		body_to_sensor_z_m_ = declare_parameter<double>("body_to_sensor_z_m", 0.0);
 		body_to_fastlio_yaw_rad_ = declare_parameter<double>("body_to_fastlio_yaw_rad", 0.0);
+		timing_alignment_enabled_ = declare_parameter<bool>("timing_alignment_enabled", false);
+		frlio_anchor_age_topic_ = declare_parameter<std::string>(
+			"frlio_anchor_age_topic", "/frlio/high_rate_odom/anchor_age");
 
 		const px4_ros_com::lever_arm::Vector3 lever_arm{
 			body_to_sensor_x_m_, body_to_sensor_y_m_, body_to_sensor_z_m_};
@@ -136,22 +153,33 @@ public:
 		odometry_subscription_ = create_subscription<Odometry>(
 			input_topic_, odom_qos,
 			std::bind(&FastlioMavrosOdometryBridge::odometry_callback, this, std::placeholders::_1));
+		if (timing_alignment_enabled_) {
+			frlio_anchor_age_subscription_ = create_subscription<std_msgs::msg::Float64>(
+				frlio_anchor_age_topic_, odom_qos,
+				[this](const std_msgs::msg::Float64::SharedPtr msg) {
+					last_frlio_anchor_age_s_.store(msg->data);
+				});
+		}
 		uniqueness_timer_ = create_wall_timer(
 			std::chrono::seconds(1),
 			std::bind(&FastlioMavrosOdometryBridge::check_single_ev_writer, this));
 
-		RCLCPP_INFO(get_logger(), "Bridging %s -> %s as MAVLink ODOMETRY at %.1f Hz",
-			input_topic_.c_str(), output_topic_.c_str(), max_publish_rate_hz_);
+		RCLCPP_INFO(get_logger(),
+			"Bridging %s -> %s as MAVLink ODOMETRY at %.1f Hz (timing_alignment=%s)",
+			input_topic_.c_str(), output_topic_.c_str(), max_publish_rate_hz_,
+			timing_alignment_enabled_ ? "true" : "false");
 	}
 
 private:
 	rclcpp::Subscription<Odometry>::SharedPtr odometry_subscription_;
+	rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr frlio_anchor_age_subscription_;
 	rclcpp::Publisher<Odometry>::SharedPtr odometry_publisher_;
 	rclcpp::TimerBase::SharedPtr uniqueness_timer_;
 	std::string input_topic_;
 	std::string output_topic_;
 	std::string world_frame_id_;
 	std::string body_frame_id_;
+	std::string frlio_anchor_age_topic_;
 	bool restamp_message_{false};
 	double max_publish_rate_hz_{50.0};
 	std::chrono::steady_clock::duration min_publish_interval_{};
@@ -162,6 +190,10 @@ private:
 	double body_to_sensor_z_m_{0.0};
 	double body_to_fastlio_yaw_rad_{0.0};
 	bool duplicate_writer_{false};
+	bool timing_alignment_enabled_{false};
+	std::atomic<double> last_frlio_anchor_age_s_{0.0};
+	std::uint64_t timing_sequence_{0};
+	double last_timing_publish_steady_s_{0.0};
 
 	void check_single_ev_writer()
 	{
@@ -285,6 +317,23 @@ private:
 			output.twist.covariance, fastlio_to_body);
 
 		odometry_publisher_->publish(output);
+		if (timing_alignment_enabled_) {
+			const double published_steady_s = steady_clock_seconds();
+			const auto gap_us = static_cast<std::uint64_t>(
+				last_timing_publish_steady_s_ > 0.0 ?
+				(published_steady_s - last_timing_publish_steady_s_) * 1e6 : 0.0);
+			last_timing_publish_steady_s_ = published_steady_s;
+			RCLCPP_INFO(
+				get_logger(),
+				"FRLIO_TIMING stage=mavros_odometry_publish steady_clock_now=%.9f "
+				"sensor_timestamp=%.9f sequence=%llu anchor_age=%.6f queue_size=0 "
+				"lidar_queue=0 imu_queue=0 mutex_wait_us=0 mutex_hold_us=0 "
+				"gap_us=%llu buffer_mutex_wait_us=0 buffer_mutex_hold_us=0",
+				published_steady_s, stamp_to_seconds(output.header.stamp),
+				static_cast<unsigned long long>(++timing_sequence_),
+				last_frlio_anchor_age_s_.load(),
+				static_cast<unsigned long long>(gap_us));
+		}
 	}
 };
 

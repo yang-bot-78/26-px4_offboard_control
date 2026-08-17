@@ -115,7 +115,7 @@ def generate_launch_description():
         description='Frame used for the static planning map'
     )
     fast_lio_odom_topic_arg = DeclareLaunchArgument(
-        'fast_lio_odom_topic', default_value='/Odometry',
+        'fast_lio_odom_topic', default_value='/Odometry/healthy',
         description='Odometry input for the race mapping bridge'
     )
 
@@ -186,6 +186,13 @@ def generate_launch_description():
             'body_to_fastlio_yaw_rad': LaunchConfiguration('body_to_fastlio_yaw_rad'),
             'world_yaw_alignment_rad': LaunchConfiguration('world_yaw_alignment_rad'),
             'odom_topic': LaunchConfiguration('fast_lio_odom_topic'),
+            'health_status_topic': '/frlio/high_rate_odom/status',
+            'planner_usable_topic': '/frlio/high_rate_odom/planner_usable',
+            'require_health_status': True,
+            'recovery_healthy_sec': 1.0,
+            'max_position_jump_m': 0.25,
+            'max_speed_mps': 1.5,
+            'max_dt_s': 0.5,
         }]
         , condition=IfCondition(LaunchConfiguration('publish_fastlio_bridge'))
     )

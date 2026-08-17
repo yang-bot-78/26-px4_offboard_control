@@ -148,6 +148,7 @@ namespace ego_planner
     bool have_local_goal_heading_{false};
     struct LocalPathReference
     {
+      uint64_t global_goal_id{0};
       uint64_t global_path_id{0};
       uint64_t local_goal_seq{0};
       Eigen::Vector3d local_goal{Eigen::Vector3d::Zero()};

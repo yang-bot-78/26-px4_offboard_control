@@ -4,6 +4,11 @@
     # 全量插件在当前机载机上初始化超过 90 秒，会导致启动脚本误判连接超时。
     plugin_allowlist:
       - command
+      # PX4 local-position reset events use the standard DEBUG_VECT message
+      # and are decoded directly by MAVROS' debug_value plugin.
+      # Keep debug_value enabled because navigation consumes that stable ROS
+      # interface, while the reset event itself no longer depends on uXRCE DDS.
+      - debug_value
       - imu
       - local_position
       - odometry

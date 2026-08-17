@@ -39,8 +39,10 @@
 // Copyright (c) HKU MARS Lab.
 
 #include <omp.h>
+#include <atomic>
 #include <mutex>
 #include <cmath>
+#include <cstdint>
 #include <thread>
 #include <unordered_set>
 #include <fstream>
@@ -53,9 +55,16 @@
 #include "imu_processing.hpp"
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/float64.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/u_int64.hpp>
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <fr_lio/msg/high_rate_correction_trace.hpp>
+#include <fr_lio/msg/high_rate_imu_trace.hpp>
+#include <fr_lio/msg/high_rate_lidar_update_trace.hpp>
+#include <cstdio>
+#include <limits>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -131,12 +140,147 @@ double point_range_noise_var = 0.0004;
 
 mutex mtx_buffer;
 condition_variable sig_buffer;
-/* Working ikd-Tree mutex. Only acquired from the LC thread when
-   correct_working_tree is enabled — the IESKF hot path (h_share_model,
-   incremental insert) does NOT lock it, matching upstream FAST-LIO2's
-   single-threaded assumption. Concurrent rebuild from LC thread can race
-   with hot-path Nearest_Search → filter divergence is possible. The
-   correct_working_tree flag must therefore stay off for flight. */
+constexpr std::uint64_t kTimingSlowMutexUs = 2000;
+constexpr std::uint64_t kTimingPrintUs = 5000;
+// Normal LiDAR arrivals have no expensive stage to trigger the timing logger,
+// but their source timestamps are required to verify monotonicity.  Emit a
+// bounded periodic sample from that path instead of logging every scan.
+constexpr std::uint64_t kTimingLidarSamplePeriod = 10;
+std::atomic<bool> timing_alignment_enabled{false};
+std::atomic<std::uint64_t> timing_imu_sequence{0};
+std::atomic<std::uint64_t> timing_lidar_sequence{0};
+std::atomic<std::size_t> timing_imu_queue_size{0};
+std::atomic<std::size_t> timing_lidar_queue_size{0};
+std::atomic<double> timing_anchor_age_s{0.0};
+std::atomic<double> timing_sensor_to_steady_offset_s{0.0};
+std::atomic<bool> timing_sensor_to_steady_offset_set{false};
+std::atomic<std::uint64_t> timing_lidar_processing_total_us{0};
+std::atomic<std::uint64_t> timing_lidar_queue_wait_us{0};
+std::atomic<std::uint64_t> timing_imu_queue_drain_count{0};
+std::atomic<std::uint64_t> timing_imu_queue_drain_us{0};
+std::atomic<std::uint64_t> timing_eskf_predict_us{0};
+std::atomic<std::uint64_t> timing_eskf_update_us{0};
+std::atomic<std::uint64_t> timing_map_search_us{0};
+std::atomic<std::uint64_t> timing_kdtree_update_us{0};
+std::atomic<std::uint64_t> timing_posterior_commit_us{0};
+std::atomic<std::uint64_t> timing_high_rate_predict_us{0};
+std::atomic<std::uint64_t> timing_high_rate_publish_us{0};
+std::atomic<std::uint64_t> timing_executor_callback_delay_us{0};
+std::atomic<std::uint64_t> timing_predictor_state_age_us{0};
+
+double steady_clock_seconds()
+{
+    return std::chrono::duration<double>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+void log_timing_event(
+    const rclcpp::Logger & logger, const char * stage, double steady_now_s,
+    double sensor_timestamp_s, std::uint64_t sequence, double anchor_age_s,
+    std::size_t queue_size, std::uint64_t mutex_wait_us,
+    std::uint64_t mutex_hold_us, std::uint64_t gap_us = 0,
+    std::uint64_t buffer_mutex_wait_us = 0,
+    std::uint64_t buffer_mutex_hold_us = 0,
+    std::uint64_t lidar_processing_total_us = 0,
+    std::uint64_t lidar_queue_wait_us = 0,
+    std::uint64_t imu_queue_drain_count = 0,
+    std::uint64_t imu_queue_drain_us = 0,
+    std::uint64_t eskf_predict_us = 0,
+    std::uint64_t eskf_update_us = 0,
+    std::uint64_t map_search_us = 0,
+    std::uint64_t kdtree_update_us = 0,
+    std::uint64_t posterior_commit_us = 0,
+    std::uint64_t high_rate_predict_us = 0,
+    std::uint64_t high_rate_publish_us = 0,
+    std::uint64_t executor_callback_delay_us = 0,
+    std::uint64_t predictor_state_age_us = 0,
+    bool periodic_sample = false)
+{
+    if (!timing_alignment_enabled.load()) {
+        return;
+    }
+    const std::uint64_t max_stage_us = std::max({
+        mutex_wait_us, mutex_hold_us, gap_us, buffer_mutex_wait_us,
+        buffer_mutex_hold_us, lidar_processing_total_us, lidar_queue_wait_us,
+        imu_queue_drain_us, eskf_predict_us, eskf_update_us, map_search_us,
+        kdtree_update_us, posterior_commit_us, high_rate_predict_us,
+        high_rate_publish_us, executor_callback_delay_us, predictor_state_age_us});
+    if (max_stage_us < kTimingPrintUs && !periodic_sample) {
+        return;
+    }
+    RCLCPP_INFO(
+        logger,
+        "FRLIO_TIMING stage=%s steady_clock_now=%.9f sensor_timestamp=%.9f "
+        "sequence=%llu anchor_age=%.6f queue_size=%zu lidar_queue=%zu imu_queue=%zu "
+        "mutex_wait_us=%llu mutex_hold_us=%llu gap_us=%llu "
+        "buffer_mutex_wait_us=%llu buffer_mutex_hold_us=%llu "
+        "lidar_processing_total_us=%llu lidar_queue_wait_us=%llu "
+        "imu_queue_drain_count=%llu imu_queue_drain_us=%llu "
+        "eskf_predict_us=%llu eskf_update_us=%llu map_search_us=%llu "
+        "kdtree_update_us=%llu posterior_commit_us=%llu "
+        "high_rate_predict_us=%llu high_rate_publish_us=%llu "
+        "executor_callback_delay_us=%llu predictor_state_age_us=%llu "
+        "threshold_us=%llu",
+        stage, steady_now_s, sensor_timestamp_s,
+        static_cast<unsigned long long>(sequence), anchor_age_s, queue_size,
+        timing_lidar_queue_size.load(), timing_imu_queue_size.load(),
+        static_cast<unsigned long long>(mutex_wait_us),
+        static_cast<unsigned long long>(mutex_hold_us),
+        static_cast<unsigned long long>(gap_us),
+        static_cast<unsigned long long>(buffer_mutex_wait_us),
+        static_cast<unsigned long long>(buffer_mutex_hold_us),
+        static_cast<unsigned long long>(lidar_processing_total_us),
+        static_cast<unsigned long long>(lidar_queue_wait_us),
+        static_cast<unsigned long long>(imu_queue_drain_count),
+        static_cast<unsigned long long>(imu_queue_drain_us),
+        static_cast<unsigned long long>(eskf_predict_us),
+        static_cast<unsigned long long>(eskf_update_us),
+        static_cast<unsigned long long>(map_search_us),
+        static_cast<unsigned long long>(kdtree_update_us),
+        static_cast<unsigned long long>(posterior_commit_us),
+        static_cast<unsigned long long>(high_rate_predict_us),
+        static_cast<unsigned long long>(high_rate_publish_us),
+        static_cast<unsigned long long>(executor_callback_delay_us),
+        static_cast<unsigned long long>(predictor_state_age_us),
+        static_cast<unsigned long long>(max_stage_us));
+}
+
+double executor_callback_delay_seconds(double sensor_timestamp_s, double arrival_steady_s)
+{
+    if (!std::isfinite(sensor_timestamp_s) || sensor_timestamp_s <= 0.0) return 0.0;
+    if (!timing_sensor_to_steady_offset_set.load()) {
+        timing_sensor_to_steady_offset_s.store(arrival_steady_s - sensor_timestamp_s);
+        timing_sensor_to_steady_offset_set.store(true);
+        return 0.0;
+    }
+    return std::max(0.0, arrival_steady_s -
+        (sensor_timestamp_s + timing_sensor_to_steady_offset_s.load()));
+}
+
+void log_slow_mutex(
+    const rclcpp::Logger & logger, const char * stage, double sensor_timestamp_s,
+    std::uint64_t sequence, std::uint64_t mutex_wait_us,
+    std::uint64_t mutex_hold_us)
+{
+    if (!timing_alignment_enabled.load() ||
+        (mutex_wait_us <= kTimingSlowMutexUs && mutex_hold_us <= kTimingSlowMutexUs)) {
+        return;
+    }
+    RCLCPP_WARN(
+        logger,
+        "FRLIO_SLOW_MUTEX stage=%s steady_clock_now=%.9f sensor_timestamp=%.9f "
+        "sequence=%llu mutex_wait_us=%llu mutex_hold_us=%llu lidar_queue=%zu imu_queue=%zu",
+        stage, steady_clock_seconds(), sensor_timestamp_s,
+        static_cast<unsigned long long>(sequence),
+        static_cast<unsigned long long>(mutex_wait_us),
+        static_cast<unsigned long long>(mutex_hold_us),
+        timing_lidar_queue_size.load(), timing_imu_queue_size.load());
+}
+/* Working ikd-Tree mutex. The flight configuration keeps
+   correct_working_tree disabled, so the OpenMP nearest-neighbour loop follows
+   upstream FAST-LIO2 and performs concurrent read-only searches without this
+   lock. The optional working-tree rebuild path is the only cross-thread writer;
+   when enabled it retains the mutex around both searches and mutations. */
 mutex mtx_ikdtree;
 
 string root_dir = ROOT_DIR;
@@ -161,8 +305,11 @@ vector<double>       extrinT(3, 0.0);
 vector<double>       extrinR(9, 0.0);
 deque<double>                     time_buffer;
 deque<PointCloudXYZI::Ptr>        lidar_buffer;
+deque<std::uint64_t>              lidar_sequence_buffer;
+deque<double>                     lidar_arrival_steady_buffer;
 deque<sensor_msgs::msg::Imu::ConstSharedPtr> imu_buffer;
 deque<double> imu_process_noise_scale_buffer;
+std::uint64_t processing_lidar_sequence{0};
 
 PointCloudXYZI::Ptr featsFromMap(new PointCloudXYZI());
 PointCloudXYZI::Ptr feats_undistort(new PointCloudXYZI());
@@ -594,7 +741,11 @@ void lasermap_fov_segment()
 
 void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
 {
+    const double arrival_steady_s = steady_clock_seconds();
+    const std::uint64_t sequence = timing_lidar_sequence.fetch_add(1) + 1;
     double cur_time = get_time_sec(msg->header.stamp);
+    const auto callback_delay_us = static_cast<std::uint64_t>(
+        std::max(0.0, executor_callback_delay_seconds(cur_time, arrival_steady_s) * 1e6));
     double preprocess_start_time = omp_get_wtime();
 
     PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
@@ -602,30 +753,57 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
 
     double preprocess_elapsed = omp_get_wtime() - preprocess_start_time;
 
+    const auto lock_requested_at = std::chrono::steady_clock::now();
     mtx_buffer.lock();
+    const auto lock_acquired_at = std::chrono::steady_clock::now();
     scan_count++;
     if (!is_first_lidar && cur_time < last_timestamp_lidar)
     {
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         lidar_buffer.clear();
+        lidar_sequence_buffer.clear();
+        lidar_arrival_steady_buffer.clear();
     }
     if (is_first_lidar)
     {
         is_first_lidar = false;
     }
     lidar_buffer.push_back(ptr);
+    lidar_sequence_buffer.push_back(sequence);
+    lidar_arrival_steady_buffer.push_back(arrival_steady_s);
     time_buffer.push_back(cur_time);
     last_timestamp_lidar = cur_time;
     s_plot11[scan_count] = preprocess_elapsed;
+    timing_lidar_queue_size.store(lidar_buffer.size());
+    const auto lock_released_at = std::chrono::steady_clock::now();
     mtx_buffer.unlock();
     sig_buffer.notify_all();
+    const auto mutex_wait_us = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            lock_acquired_at - lock_requested_at).count());
+    const auto mutex_hold_us = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            lock_released_at - lock_acquired_at).count());
+    log_timing_event(
+        rclcpp::get_logger("laser_mapping"), "lidar_frame_arrival", arrival_steady_s,
+        cur_time, sequence, timing_anchor_age_s.load(), timing_lidar_queue_size.load(),
+        mutex_wait_us, mutex_hold_us,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        callback_delay_us, 0, sequence % kTimingLidarSamplePeriod == 0);
+    log_slow_mutex(
+        rclcpp::get_logger("laser_mapping"), "buffer_lidar_arrival", cur_time, sequence,
+        mutex_wait_us, mutex_hold_us);
 }
 
 double timediff_lidar_wrt_imu = 0.0;
 bool   timediff_set_flg = false;
 void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
 {
+    const double arrival_steady_s = steady_clock_seconds();
+    const std::uint64_t sequence = timing_lidar_sequence.fetch_add(1) + 1;
     double cur_time = get_time_sec(msg->header.stamp);
+    const auto callback_delay_us = static_cast<std::uint64_t>(
+        std::max(0.0, executor_callback_delay_seconds(cur_time, arrival_steady_s) * 1e6));
     double preprocess_start_time = omp_get_wtime();
 
     PointCloudXYZI::Ptr ptr(new PointCloudXYZI());
@@ -633,12 +811,16 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
 
     double preprocess_elapsed = omp_get_wtime() - preprocess_start_time;
 
+    const auto lock_requested_at = std::chrono::steady_clock::now();
     mtx_buffer.lock();
+    const auto lock_acquired_at = std::chrono::steady_clock::now();
     scan_count++;
     if (!is_first_lidar && cur_time < last_timestamp_lidar)
     {
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         lidar_buffer.clear();
+        lidar_sequence_buffer.clear();
+        lidar_arrival_steady_buffer.clear();
     }
     if (is_first_lidar)
     {
@@ -659,18 +841,56 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
     }
 
     lidar_buffer.push_back(ptr);
+    lidar_sequence_buffer.push_back(sequence);
+    lidar_arrival_steady_buffer.push_back(arrival_steady_s);
     time_buffer.push_back(last_timestamp_lidar);
     s_plot11[scan_count] = preprocess_elapsed;
+    timing_lidar_queue_size.store(lidar_buffer.size());
+    const auto lock_released_at = std::chrono::steady_clock::now();
     mtx_buffer.unlock();
     sig_buffer.notify_all();
+    const auto mutex_wait_us = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            lock_acquired_at - lock_requested_at).count());
+    const auto mutex_hold_us = static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            lock_released_at - lock_acquired_at).count());
+    log_timing_event(
+        rclcpp::get_logger("laser_mapping"), "lidar_frame_arrival", arrival_steady_s,
+        cur_time, sequence, timing_anchor_age_s.load(), timing_lidar_queue_size.load(),
+        mutex_wait_us, mutex_hold_us,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        callback_delay_us, 0, sequence % kTimingLidarSamplePeriod == 0);
+    log_slow_mutex(
+        rclcpp::get_logger("laser_mapping"), "buffer_lidar_arrival", cur_time, sequence,
+        mutex_wait_us, mutex_hold_us);
 }
 
 double lidar_mean_scantime = 0.0;
 int    scan_num = 0;
 bool sync_packages(MeasureGroup &meas)
 {
-    std::lock_guard<std::mutex> lock(mtx_buffer);
+    const auto lock_requested_at = std::chrono::steady_clock::now();
+    std::unique_lock<std::mutex> lock(mtx_buffer);
+    const auto lock_acquired_at = std::chrono::steady_clock::now();
+    const auto release_with_timing = [&]() {
+        timing_lidar_queue_size.store(lidar_buffer.size());
+        timing_imu_queue_size.store(imu_buffer.size());
+        const auto released_at = std::chrono::steady_clock::now();
+        lock.unlock();
+        const auto mutex_wait_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                lock_acquired_at - lock_requested_at).count());
+        const auto mutex_hold_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                released_at - lock_acquired_at).count());
+        log_slow_mutex(
+            rclcpp::get_logger("laser_mapping"), "buffer_sync_packages",
+            lidar_pushed ? meas.lidar_end_time : 0.0, processing_lidar_sequence,
+            mutex_wait_us, mutex_hold_us);
+    };
     if (lidar_buffer.empty() || imu_buffer.empty()) {
+        release_with_timing();
         return false;
     }
 
@@ -681,6 +901,8 @@ bool sync_packages(MeasureGroup &meas)
         while (lidar_buffer.size() > 1)
         {
             lidar_buffer.pop_front();
+            lidar_sequence_buffer.pop_front();
+            lidar_arrival_steady_buffer.pop_front();
             time_buffer.pop_front();
         }
     }
@@ -690,6 +912,9 @@ bool sync_packages(MeasureGroup &meas)
     {
         meas.lidar = lidar_buffer.front();
         meas.lidar_beg_time = time_buffer.front();
+        processing_lidar_sequence = lidar_sequence_buffer.front();
+        timing_lidar_queue_wait_us.store(static_cast<std::uint64_t>(
+            std::max(0.0, (steady_clock_seconds() - lidar_arrival_steady_buffer.front()) * 1e6)));
         if (meas.lidar->points.size() <= 1) // time too little
         {
             lidar_end_time = meas.lidar_beg_time + lidar_mean_scantime;
@@ -713,10 +938,13 @@ bool sync_packages(MeasureGroup &meas)
 
     if (last_timestamp_imu < lidar_end_time)
     {
+        release_with_timing();
         return false;
     }
 
     /*** push imu data, and pop from imu buffer ***/
+    const auto imu_drain_begin = std::chrono::steady_clock::now();
+    std::uint64_t imu_drain_count = 0;
     double imu_time = get_time_sec(imu_buffer.front()->header.stamp);
     meas.imu.clear();
     meas.imu_process_noise_scale.clear();
@@ -729,14 +957,22 @@ bool sync_packages(MeasureGroup &meas)
             imu_process_noise_scale_buffer.empty() ? 1.0 :
             imu_process_noise_scale_buffer.front());
         imu_buffer.pop_front();
+        ++imu_drain_count;
         if (!imu_process_noise_scale_buffer.empty()) {
             imu_process_noise_scale_buffer.pop_front();
         }
     }
 
     lidar_buffer.pop_front();
+    lidar_sequence_buffer.pop_front();
+    lidar_arrival_steady_buffer.pop_front();
     time_buffer.pop_front();
+    timing_imu_queue_drain_count.store(imu_drain_count);
+    timing_imu_queue_drain_us.store(static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(
+            std::chrono::steady_clock::now() - imu_drain_begin).count()));
     lidar_pushed = false;
+    release_with_timing();
     return true;
 }
 
@@ -980,6 +1216,8 @@ void map_incremental()
     }
     add_point_size = PointToAdd.size() + PointNoNeedDownsample.size();
     kdtree_incremental_time = omp_get_wtime() - st_time;
+    timing_kdtree_update_us.store(static_cast<std::uint64_t>(
+        std::max(0.0, kdtree_incremental_time * 1e6)));
 }
 
 PointCloudXYZI::Ptr pcl_wait_pub(new PointCloudXYZI());
@@ -1000,11 +1238,6 @@ void set_posestamp(T & out)
 
 void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_data)
 {
-    // Held for the full per-scan matching. Serializes against any LC-thread
-    // rebuild of the working ikd-Tree (correct_working_tree path). Acquired
-    // once at function entry so the OMP parallel Nearest_Search loop below
-    // doesn't pay per-point lock overhead.
-    std::lock_guard<std::mutex> lock(mtx_ikdtree);
     double match_start = omp_get_wtime();
     laserCloudOri->clear();
     corr_normvect->clear();
@@ -1035,7 +1268,19 @@ void h_share_model(state_ikfom &s, esekfom::dyn_share_datastruct<double> &ekfom_
         if (ekfom_data.converge)
         {
             /** Find the closest surfaces in the map **/
-            ikdtree.nearest_search(point_world, NUM_MATCH_POINTS, points_near, pointSearchSqDis);
+            const double map_search_begin = omp_get_wtime();
+            if (correct_working_tree) {
+                std::lock_guard<std::mutex> lock(mtx_ikdtree);
+                ikdtree.nearest_search(
+                    point_world, NUM_MATCH_POINTS, points_near, pointSearchSqDis);
+            } else {
+                // The production path has no concurrent working-tree writer.
+                // Locking here serialized every point in this OpenMP loop.
+                ikdtree.nearest_search(
+                    point_world, NUM_MATCH_POINTS, points_near, pointSearchSqDis);
+            }
+            timing_map_search_us.fetch_add(static_cast<std::uint64_t>(
+                std::max(0.0, (omp_get_wtime() - map_search_begin) * 1e6)));
             point_selected_surf[i] = points_near.size() < NUM_MATCH_POINTS ? false : pointSearchSqDis[NUM_MATCH_POINTS - 1] > 5 ? false : true;
         }
 
@@ -1177,6 +1422,15 @@ double lidar_residual_rms()
     return finite_count > 0 ? std::sqrt(squared_sum / finite_count) : 0.0;
 }
 
+geometry_msgs::msg::Vector3 to_ros_vector3(const Eigen::Vector3d & value)
+{
+    geometry_msgs::msg::Vector3 message;
+    message.x = value.x();
+    message.y = value.y();
+    message.z = value.z();
+    return message;
+}
+
 class LaserMappingNode : public rclcpp::Node
 {
 public:
@@ -1205,8 +1459,20 @@ public:
         this->declare_parameter<double>("imu.unit_report_duration_s", 10.0);
         this->declare_parameter<double>("imu.rejected_accel_process_noise_scale", 10.0);
         this->declare_parameter<bool>("high_rate_odom.enabled", true);
-        this->declare_parameter<double>("high_rate_odom.warn_anchor_age_s", 0.15);
+        this->declare_parameter<double>("high_rate_odom.warn_anchor_age_s", 0.18);
+        this->declare_parameter<double>("high_rate_odom.suspect_exit_anchor_age_s", 0.12);
+        this->declare_parameter<int>("high_rate_odom.recovery_healthy_samples", 3);
         this->declare_parameter<double>("high_rate_odom.max_anchor_age_s", 0.40);
+        // Predictor axis. This is the only axis that may declare EV unusable,
+        // so its thresholds are about IMU propagation latency, not LiDAR.
+        this->declare_parameter<double>("high_rate_odom.max_predictor_age_s", 0.15);
+        this->declare_parameter<double>("high_rate_odom.predictor_recover_age_s", 0.10);
+        this->declare_parameter<int>(
+            "high_rate_odom.predictor_recovery_healthy_samples", 3);
+        this->declare_parameter<double>(
+            "high_rate_odom.stale_covariance_growth_per_s", 4.0);
+        this->declare_parameter<double>(
+            "high_rate_odom.stale_covariance_max_multiplier", 100.0);
         this->declare_parameter<double>("high_rate_odom.imu_history_s", 5.0);
         this->declare_parameter<double>("high_rate_odom.correction_smoothing_s", 0.25);
         this->declare_parameter<bool>("high_rate_odom.accel_filter.enabled", true);
@@ -1216,8 +1482,13 @@ public:
             "high_rate_odom.accel_filter.max_deviation_mps2", 5.0);
         this->declare_parameter<double>(
             "high_rate_odom.accel_filter.max_norm_mps2", 19.62);
+        this->declare_parameter<int>(
+            "high_rate_odom.accel_filter.max_consecutive_rejections", 5);
         this->declare_parameter<bool>(
             "high_rate_odom.correction_diagnostics", true);
+        this->declare_parameter<bool>("high_rate_odom.trace_enabled", true);
+        this->declare_parameter<bool>(
+            "diagnostics.timing_alignment_enabled", false);
         this->declare_parameter<bool>("mapping.update_diagnostics", true);
         this->declare_parameter<double>("filter_size_corner", 0.5);
         this->declare_parameter<double>("filter_size_surf", 0.5);
@@ -1296,9 +1567,26 @@ public:
             "imu.rejected_accel_process_noise_scale", rejected_accel_process_noise_scale_, 10.0);
         this->get_parameter_or<bool>("high_rate_odom.enabled", high_rate_odom_enabled_, true);
         this->get_parameter_or<double>(
-            "high_rate_odom.warn_anchor_age_s", warn_anchor_age_s_, 0.15);
+            "high_rate_odom.warn_anchor_age_s", warn_anchor_age_s_, 0.18);
+        this->get_parameter_or<double>(
+            "high_rate_odom.suspect_exit_anchor_age_s", suspect_exit_anchor_age_s_, 0.12);
+        this->get_parameter_or<int>(
+            "high_rate_odom.recovery_healthy_samples", recovery_healthy_samples_, 3);
         this->get_parameter_or<double>(
             "high_rate_odom.max_anchor_age_s", max_anchor_age_s_, 0.40);
+        this->get_parameter_or<double>(
+            "high_rate_odom.max_predictor_age_s", max_predictor_age_s_, 0.15);
+        this->get_parameter_or<double>(
+            "high_rate_odom.predictor_recover_age_s", predictor_recover_age_s_, 0.10);
+        this->get_parameter_or<int>(
+            "high_rate_odom.predictor_recovery_healthy_samples",
+            predictor_recovery_healthy_samples_, 3);
+        this->get_parameter_or<double>(
+            "high_rate_odom.stale_covariance_growth_per_s",
+            stale_covariance_growth_per_s_, 4.0);
+        this->get_parameter_or<double>(
+            "high_rate_odom.stale_covariance_max_multiplier",
+            stale_covariance_max_multiplier_, 100.0);
         this->get_parameter_or<double>("high_rate_odom.imu_history_s", imu_history_s_, 5.0);
         this->get_parameter_or<double>(
             "high_rate_odom.correction_smoothing_s", correction_smoothing_s_, 0.25);
@@ -1313,8 +1601,16 @@ public:
             accel_filter_max_deviation_mps2_, 5.0);
         this->get_parameter_or<double>(
             "high_rate_odom.accel_filter.max_norm_mps2", accel_filter_max_norm_mps2_, 19.62);
+        this->get_parameter_or<int>(
+            "high_rate_odom.accel_filter.max_consecutive_rejections",
+            accel_filter_max_consecutive_rejections_, 5);
         this->get_parameter_or<bool>(
             "high_rate_odom.correction_diagnostics", correction_diagnostics_, true);
+        this->get_parameter_or<bool>(
+            "high_rate_odom.trace_enabled", high_rate_trace_enabled_, true);
+        this->get_parameter_or<bool>(
+            "diagnostics.timing_alignment_enabled", timing_alignment_enabled_, false);
+        timing_alignment_enabled.store(timing_alignment_enabled_);
         this->get_parameter_or<bool>(
             "mapping.update_diagnostics", update_diagnostics_, true);
         this->get_parameter_or<double>("filter_size_corner",filter_size_corner_min,0.5);
@@ -1334,14 +1630,28 @@ public:
         }
         imu_acceleration_unit_ = *acceleration_unit;
         imu_acceleration_scale_ = fr_lio::acceleration_scale(imu_acceleration_unit_);
-        if (warn_anchor_age_s_ <= 0.0 || max_anchor_age_s_ <= warn_anchor_age_s_ ||
-            imu_history_s_ <= max_anchor_age_s_) {
+        if (warn_anchor_age_s_ <= suspect_exit_anchor_age_s_ ||
+            suspect_exit_anchor_age_s_ < 0.0 ||
+            max_anchor_age_s_ <= warn_anchor_age_s_ || recovery_healthy_samples_ < 1 ||
+            imu_history_s_ <= max_anchor_age_s_ ||
+            stale_covariance_growth_per_s_ < 0.0 ||
+            stale_covariance_max_multiplier_ < 1.0) {
             throw std::invalid_argument(
-                "high_rate_odom requires 0 < warn_anchor_age_s < max_anchor_age_s < imu_history_s");
+                "high_rate_odom requires 0 <= suspect_exit_anchor_age_s < "
+                "warn_anchor_age_s < max_anchor_age_s < imu_history_s and "
+                "recovery_healthy_samples >= 1; stale covariance parameters "
+                "must be non-negative and >= 1");
         }
         if (correction_smoothing_s_ < 0.0) {
             throw std::invalid_argument(
                 "high_rate_odom.correction_smoothing_s must be non-negative");
+        }
+        if (predictor_recover_age_s_ <= 0.0 ||
+            max_predictor_age_s_ <= predictor_recover_age_s_ ||
+            predictor_recovery_healthy_samples_ < 1) {
+            throw std::invalid_argument(
+                "high_rate_odom requires 0 < predictor_recover_age_s < "
+                "max_predictor_age_s and predictor_recovery_healthy_samples >= 1");
         }
         if (rejected_accel_process_noise_scale_ < 1.0) {
             throw std::invalid_argument(
@@ -1351,10 +1661,12 @@ public:
             (accel_filter_window_size_ < 3 || accel_filter_window_size_ % 2 == 0 ||
             accel_filter_min_samples_ < 1 ||
             accel_filter_min_samples_ > accel_filter_window_size_ ||
-            accel_filter_max_deviation_mps2_ <= 0.0 || accel_filter_max_norm_mps2_ <= 0.0)) {
+            accel_filter_max_deviation_mps2_ <= 0.0 || accel_filter_max_norm_mps2_ <= 0.0 ||
+            accel_filter_max_consecutive_rejections_ < 1)) {
             throw std::invalid_argument(
                 "high_rate_odom.accel_filter requires an odd window_size >= 3, "
-                "1 <= min_samples <= window_size, and positive acceleration limits");
+                "1 <= min_samples <= window_size, positive acceleration limits, and "
+                "max_consecutive_rejections >= 1");
         }
         fr_lio::HighRateOdomNoise propagation_noise;
         propagation_noise.gyro_variance = gyr_cov;
@@ -1371,6 +1683,12 @@ public:
         high_rate_propagator_ = std::make_unique<fr_lio::HighRateOdomPropagator>(
             propagation_noise, warn_anchor_age_s_, max_anchor_age_s_, imu_history_s_,
             accel_filter, correction_smoothing_s_);
+        high_rate_health_gate_ = fr_lio::HighRateOdomHealthGate(
+            warn_anchor_age_s_, suspect_exit_anchor_age_s_, max_anchor_age_s_,
+            static_cast<std::size_t>(recovery_healthy_samples_));
+        predictor_health_gate_ = fr_lio::PredictorHealthGate(
+            max_predictor_age_s_, predictor_recover_age_s_,
+            static_cast<std::size_t>(predictor_recovery_healthy_samples_));
         imu_unit_report_ = std::make_unique<fr_lio::AccelerationUnitReport>(
             imu_unit_report_duration_s_);
         high_rate_publish_enabled_ =
@@ -1445,16 +1763,31 @@ public:
         RCLCPP_INFO(this->get_logger(), "imu.acceleration_unit: %s", imu_acceleration_unit_name_.c_str());
         RCLCPP_INFO(this->get_logger(), "high_rate_odom.enabled: %d", high_rate_odom_enabled_);
         RCLCPP_INFO(this->get_logger(), "high_rate_odom.publish_enabled: %d", high_rate_publish_enabled_);
-        RCLCPP_INFO(this->get_logger(), "high_rate_odom.warn_anchor_age_s: %.3f", warn_anchor_age_s_);
+        RCLCPP_INFO(this->get_logger(), "high_rate_odom.suspect_enter_anchor_age_s: %.3f", warn_anchor_age_s_);
+        RCLCPP_INFO(this->get_logger(), "high_rate_odom.suspect_exit_anchor_age_s: %.3f", suspect_exit_anchor_age_s_);
         RCLCPP_INFO(this->get_logger(), "high_rate_odom.max_anchor_age_s: %.3f", max_anchor_age_s_);
+        RCLCPP_INFO(
+            this->get_logger(),
+            "high_rate_odom.predictor: max_age=%.3f recover_age=%.3f samples=%d "
+            "(only this axis may set ev_usable=false)",
+            max_predictor_age_s_, predictor_recover_age_s_,
+            predictor_recovery_healthy_samples_);
+        RCLCPP_INFO(
+            this->get_logger(),
+            "high_rate_odom.stale_covariance: growth=%.3f/s max=%.1f",
+            stale_covariance_growth_per_s_, stale_covariance_max_multiplier_);
+        RCLCPP_INFO(this->get_logger(), "high_rate_odom.recovery_healthy_samples: %d", recovery_healthy_samples_);
+        RCLCPP_INFO(this->get_logger(), "diagnostics.timing_alignment_enabled: %s",
+            timing_alignment_enabled_ ? "true" : "false");
         RCLCPP_INFO(
             this->get_logger(), "high_rate_odom.correction_smoothing_s: %.3f",
             correction_smoothing_s_);
         RCLCPP_INFO(this->get_logger(),
             "high_rate_odom.accel_filter: enabled=%d window=%d min_samples=%d "
-            "max_deviation=%.3f m/s^2 max_norm=%.3f m/s^2",
+            "max_deviation=%.3f m/s^2 max_norm=%.3f m/s^2 max_consecutive=%d",
             accel_filter_enabled_, accel_filter_window_size_, accel_filter_min_samples_,
-            accel_filter_max_deviation_mps2_, accel_filter_max_norm_mps2_);
+            accel_filter_max_deviation_mps2_, accel_filter_max_norm_mps2_,
+            accel_filter_max_consecutive_rejections_);
         RCLCPP_INFO(this->get_logger(),
             "imu.rejected_accel_process_noise_scale: %.2f",
             rejected_accel_process_noise_scale_);
@@ -1588,7 +1921,11 @@ public:
         /*** ROS subscribe initialization ***/
         if (p_pre->lidar_type == AVIA)
         {
-            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(lid_topic, 20, livox_pcl_cbk);
+            // Livox is a sensor stream; match the driver's best-effort QoS so
+            // a transient DDS delay cannot turn into reliable retransmission
+            // pressure on the publisher.
+            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(
+                lid_topic, rclcpp::SensorDataQoS().keep_last(20), livox_pcl_cbk);
         }
         else
         {
@@ -1619,9 +1956,41 @@ public:
             rclcpp::QoS(1).reliable().transient_local());
         pubAnchorAge_ = this->create_publisher<std_msgs::msg::Float64>(
             "/frlio/high_rate_odom/anchor_age", odom_qos);
+        pubPredictorAge_ = this->create_publisher<std_msgs::msg::Float64>(
+            "/frlio/high_rate_odom/predictor_age", odom_qos);
         pubAccelSpikeRejections_ = this->create_publisher<std_msgs::msg::UInt64>(
             "/frlio/high_rate_odom/accel_spike_rejections",
             rclcpp::QoS(1).reliable().transient_local());
+        // ev_usable and planner_usable are separate latched flags on purpose:
+        // PX4 and the planner must be able to disagree.
+        const auto usable_qos = rclcpp::QoS(1).reliable().transient_local();
+        pubEvUsable_ = this->create_publisher<std_msgs::msg::Bool>(
+            "/frlio/high_rate_odom/ev_usable", usable_qos);
+        pubPlannerUsable_ = this->create_publisher<std_msgs::msg::Bool>(
+            "/frlio/high_rate_odom/planner_usable", usable_qos);
+        pubLocalizationHealth_ =
+            this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
+            "/frlio/high_rate_odom/localization_health", odom_qos);
+        // These traces use source timestamps, not executor arrival time. They
+        // are the evidence chain from the IMU gate through LiDAR correction
+        // and smoothing to the Odometry sample consumed by MAVROS/PX4.
+        const auto trace_qos = rclcpp::SensorDataQoS().keep_last(100);
+        pubHighRateImuTrace_ = this->create_publisher<fr_lio::msg::HighRateImuTrace>(
+            "/frlio/high_rate_odom/imu_trace", trace_qos);
+        pubHighRateLidarUpdateTrace_ =
+            this->create_publisher<fr_lio::msg::HighRateLidarUpdateTrace>(
+            "/frlio/high_rate_odom/lidar_update_trace", trace_qos);
+        pubHighRateCorrectionTrace_ =
+            this->create_publisher<fr_lio::msg::HighRateCorrectionTrace>(
+            "/frlio/high_rate_odom/correction_trace", trace_qos);
+        {
+            // Fail closed until the first real snapshot: the planner may not
+            // plan, and EV is not yet trustworthy either.
+            std_msgs::msg::Bool initial;
+            initial.data = false;
+            pubEvUsable_->publish(initial);
+            pubPlannerUsable_->publish(initial);
+        }
         std_msgs::msg::UInt64 initial_rejection_count;
         initial_rejection_count.data = 0;
         pubAccelSpikeRejections_->publish(initial_rejection_count);
@@ -1817,15 +2186,86 @@ private:
         pubLaserCloudMap_->publish(laserCloudmsg);
     }
 
+    // The health snapshot is normally produced by the IMU callback. If the IMU
+    // stream itself stops, that callback never runs and the latched status would
+    // keep claiming the last level forever -- a completely dead predictor would
+    // read as HEALTHY downstream. This watchdog runs on the independent 100 Hz
+    // timer and is the only thing that can report "no IMU at all".
+    void check_predictor_watchdog()
+    {
+        if (!high_rate_publish_enabled_) {
+            return;
+        }
+        const double now_s = steady_clock_seconds();
+        const double last_imu_s = last_imu_arrival_steady_s_.load();
+        if (last_imu_s <= 0.0) {
+            // Nothing has arrived yet; startup is covered by WAITING_FOR_LIDAR.
+            return;
+        }
+        const double imu_silence_s = now_s - last_imu_s;
+        if (imu_silence_s <= max_predictor_age_s_) {
+            return;
+        }
+        fr_lio::PredictorHealthGate::Input input;
+        input.predictor_age_s = imu_silence_s;
+        input.predictor_generation = last_valid_predictor_generation_.load();
+        input.state_finite = true;
+        input.timestamp_monotonic = true;
+        input.initialized = input.predictor_generation > 0;
+        const auto level = predictor_health_gate_.update(input);
+
+        fr_lio::LocalizationHealthSnapshot snapshot;
+        snapshot.steady_clock_now_s = now_s;
+        snapshot.sequence = timing_imu_sequence.load();
+        snapshot.anchor_age_s = timing_anchor_age_s.load();
+        snapshot.predictor_age_s = imu_silence_s;
+        snapshot.imu_queue_size = timing_imu_queue_size.load();
+        snapshot.posterior_generation =
+            high_rate_correction_generation_.load(std::memory_order_acquire);
+        snapshot.predictor_generation = input.predictor_generation;
+        snapshot.state_finite = true;
+        fr_lio::merge_health_axes(
+            snapshot, high_rate_health_gate_.anchorLevel(),
+            high_rate_health_gate_.anchorReason(), level,
+            predictor_health_gate_.reason());
+        publish_localization_health(snapshot);
+        RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+            "IMU stream silent for %.3fs (limit %.3fs); predictor cannot be "
+            "propagated to now, so EV must not be trusted",
+            imu_silence_s, max_predictor_age_s_);
+    }
+
     void timer_callback()
     {
+        check_predictor_watchdog();
         if(sync_packages(Measures))
         {
+            const double lidar_processing_begin_s = steady_clock_seconds();
+            timing_map_search_us.store(0);
+            timing_kdtree_update_us.store(0);
+            timing_eskf_predict_us.store(0);
+            timing_eskf_update_us.store(0);
+            timing_posterior_commit_us.store(0);
+            auto emit_lidar_timing = [&]() {
+                const auto total_us = static_cast<std::uint64_t>(std::max(
+                    0.0, (steady_clock_seconds() - lidar_processing_begin_s) * 1e6));
+                timing_lidar_processing_total_us.store(total_us);
+                log_timing_event(
+                    this->get_logger(), "lidar_processing", steady_clock_seconds(),
+                    Measures.lidar_end_time, processing_lidar_sequence,
+                    timing_anchor_age_s.load(), timing_lidar_queue_size.load(), 0, 0,
+                    0, 0, 0, total_us, timing_lidar_queue_wait_us.load(),
+                    timing_imu_queue_drain_count.load(), timing_imu_queue_drain_us.load(),
+                    timing_eskf_predict_us.load(), timing_eskf_update_us.load(),
+                    timing_map_search_us.load(), timing_kdtree_update_us.load(),
+                    timing_posterior_commit_us.load());
+            };
             if (flg_first_scan)
             {
                 first_lidar_time = Measures.lidar_beg_time;
                 p_imu->first_lidar_time = first_lidar_time;
                 flg_first_scan = false;
+                emit_lidar_timing();
                 return;
             }
 
@@ -1839,12 +2279,15 @@ private:
             t0 = omp_get_wtime();
 
             p_imu->Process(Measures, kf, feats_undistort);
+            timing_eskf_predict_us.store(static_cast<std::uint64_t>(std::max(
+                0.0, (omp_get_wtime() - t0) * 1e6)));
             state_point = kf.get_x();
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
 
             if (feats_undistort->empty() || (feats_undistort == NULL))
             {
                 RCLCPP_WARN(this->get_logger(), "No point, skip this scan!\n");
+                emit_lidar_timing();
                 return;
             }
 
@@ -1875,6 +2318,9 @@ private:
                         global_ikdtree.set_downsample_param(filter_size_map_min);
                     }
                 }
+                timing_kdtree_update_us.store(static_cast<std::uint64_t>(std::max(
+                    0.0, (omp_get_wtime() - t1) * 1e6)));
+                emit_lidar_timing();
                 return;
             }
             int featsFromMapNum = ikdtree.validnum();
@@ -1886,6 +2332,7 @@ private:
             if (feats_down_size < 5)
             {
                 RCLCPP_WARN(this->get_logger(), "No point, skip this scan!\n");
+                emit_lidar_timing();
                 return;
             }
 
@@ -1921,6 +2368,8 @@ private:
             const state_ikfom lidar_prior = kf.get_x();
             const auto covariance_prior = kf.get_P();
             kf.update_iterated_dyn_share_modified(R_for_filter, solve_H_time);
+            timing_eskf_update_us.store(static_cast<std::uint64_t>(std::max(
+                0.0, (omp_get_wtime() - t_update_start) * 1e6)));
 
             state_point = kf.get_x();
             const auto covariance_posterior = kf.get_P();
@@ -1973,6 +2422,20 @@ private:
                     pre_pvp_z, post_pvp_z,
                     pre_pvtheta_z, post_pvtheta_z,
                     pre_pvba_z, post_pvba_z);
+            }
+            if (high_rate_trace_enabled_) {
+                fr_lio::msg::HighRateLidarUpdateTrace trace;
+                trace.header.stamp = get_ros_time(lidar_end_time);
+                trace.header.frame_id = frame_prefix_ + odom_frame_;
+                trace.pre_velocity = to_ros_vector3(lidar_prior.vel);
+                trace.posterior_velocity = to_ros_vector3(state_point.vel);
+                trace.delta_velocity = to_ros_vector3(state_point.vel - lidar_prior.vel);
+                trace.residual_rms = lidar_residual_rms();
+                trace.delta_position_z = state_point.pos(2) - lidar_prior.pos(2);
+                trace.delta_accel_bias_z = state_point.ba(2) - lidar_prior.ba(2);
+                trace.effective_points = static_cast<std::uint32_t>(
+                    std::max(0, effct_feat_num));
+                pubHighRateLidarUpdateTrace_->publish(trace);
             }
 
             if (use_scan_to_scan_cov && flg_EKF_inited) {
@@ -2091,41 +2554,93 @@ private:
                     rotation_world_body;
             }
             if (high_rate_publish_enabled_) {
+                const auto posterior_commit_begin = std::chrono::steady_clock::now();
                 const bool correction_accepted =
                     high_rate_propagator_->reset_from_lidar(corrected_state);
+                timing_posterior_commit_us.store(static_cast<std::uint64_t>(
+                    std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now() - posterior_commit_begin).count()));
                 if (!correction_accepted) {
                     RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
                         "Rejected non-monotonic or invalid LiDAR correction at %.6f",
                         lidar_end_time);
-                } else if (correction_diagnostics_) {
+                } else {
+                    // A generation change is the explicit recovery prerequisite
+                    // for the latched high-rate health gate.
+                    high_rate_correction_generation_.fetch_add(
+                        1, std::memory_order_release);
+                }
+                if (correction_accepted &&
+                    (correction_diagnostics_ || timing_alignment_enabled_ || high_rate_trace_enabled_)) {
                     const auto diagnostic =
                         high_rate_propagator_->take_last_correction_diagnostic();
                     if (diagnostic) {
                         const auto &d = *diagnostic;
-                        RCLCPP_WARN(this->get_logger(),
-                            "HIGH_RATE_CORRECTION anchor=%.6f propagated_t=%.6f "
-                            "propagated_v=(%.6f,%.6f,%.6f) "
-                            "anchor_posterior_v=(%.6f,%.6f,%.6f) "
-                            "posterior_v=(%.6f,%.6f,%.6f) "
-                            "output_before_v=(%.6f,%.6f,%.6f) "
-                            "output_after_v=(%.6f,%.6f,%.6f) "
-                            "offset_v=(%.6f,%.6f,%.6f) "
-                            "smoothing=%d elapsed_before=%.6f duration=%.6f",
-                            d.anchor_timestamp, d.propagated_timestamp,
-                            d.propagated_velocity.x(), d.propagated_velocity.y(),
-                            d.propagated_velocity.z(),
-                            d.anchor_posterior_velocity.x(), d.anchor_posterior_velocity.y(),
-                            d.anchor_posterior_velocity.z(),
-                            d.posterior_velocity.x(), d.posterior_velocity.y(),
-                            d.posterior_velocity.z(),
-                            d.output_velocity_before.x(), d.output_velocity_before.y(),
-                            d.output_velocity_before.z(),
-                            d.output_velocity_after.x(), d.output_velocity_after.y(),
-                            d.output_velocity_after.z(),
-                            d.correction_offset_velocity.x(), d.correction_offset_velocity.y(),
-                            d.correction_offset_velocity.z(),
-                            d.smoothing_enabled, d.smoothing_elapsed_before,
-                            d.smoothing_duration);
+                        if (high_rate_trace_enabled_) {
+                            fr_lio::msg::HighRateCorrectionTrace trace;
+                            trace.header.stamp = get_ros_time(d.anchor_timestamp);
+                            trace.header.frame_id = frame_prefix_ + odom_frame_;
+                            trace.propagated_timestamp = d.propagated_timestamp;
+                            trace.smoothing_elapsed_before = d.smoothing_elapsed_before;
+                            trace.smoothing_duration = d.smoothing_duration;
+                            trace.propagated_velocity = to_ros_vector3(d.propagated_velocity);
+                            trace.anchor_posterior_velocity =
+                                to_ros_vector3(d.anchor_posterior_velocity);
+                            trace.posterior_velocity = to_ros_vector3(d.posterior_velocity);
+                            trace.output_velocity_before =
+                                to_ros_vector3(d.output_velocity_before);
+                            trace.output_velocity_after =
+                                to_ros_vector3(d.output_velocity_after);
+                            trace.correction_offset_velocity =
+                                to_ros_vector3(d.correction_offset_velocity);
+                            trace.smoothing_enabled = d.smoothing_enabled;
+                            pubHighRateCorrectionTrace_->publish(trace);
+                        }
+                        const double event_steady_s = steady_clock_seconds();
+                        const auto event_gap_us = static_cast<std::uint64_t>(
+                            last_lidar_posterior_steady_s_ > 0.0 ?
+                            (event_steady_s - last_lidar_posterior_steady_s_) * 1e6 : 0.0);
+                        last_lidar_posterior_steady_s_ = event_steady_s;
+                        timing_anchor_age_s.store(0.0);
+                        log_timing_event(
+                            this->get_logger(), "lidar_posterior_finished", event_steady_s,
+                            d.anchor_timestamp, processing_lidar_sequence, 0.0,
+                            timing_lidar_queue_size.load(), d.mutex_wait_us,
+                            d.mutex_hold_us, event_gap_us, 0, 0, 0, 0, 0, 0, 0, 0,
+                            timing_posterior_commit_us.load());
+                        log_slow_mutex(
+                            this->get_logger(), "high_rate_reset_from_lidar",
+                            d.anchor_timestamp, processing_lidar_sequence,
+                            d.mutex_wait_us, d.mutex_hold_us);
+                        if (correction_diagnostics_) {
+                            RCLCPP_WARN(this->get_logger(),
+                                "HIGH_RATE_CORRECTION anchor=%.6f propagated_t=%.6f "
+                                "propagated_v=(%.6f,%.6f,%.6f) "
+                                "anchor_posterior_v=(%.6f,%.6f,%.6f) "
+                                "posterior_v=(%.6f,%.6f,%.6f) "
+                                "output_before_v=(%.6f,%.6f,%.6f) "
+                                "output_after_v=(%.6f,%.6f,%.6f) "
+                                "offset_v=(%.6f,%.6f,%.6f) "
+                                "smoothing=%d elapsed_before=%.6f duration=%.6f "
+                                "mutex_wait_us=%llu mutex_hold_us=%llu",
+                                d.anchor_timestamp, d.propagated_timestamp,
+                                d.propagated_velocity.x(), d.propagated_velocity.y(),
+                                d.propagated_velocity.z(),
+                                d.anchor_posterior_velocity.x(), d.anchor_posterior_velocity.y(),
+                                d.anchor_posterior_velocity.z(),
+                                d.posterior_velocity.x(), d.posterior_velocity.y(),
+                                d.posterior_velocity.z(),
+                                d.output_velocity_before.x(), d.output_velocity_before.y(),
+                                d.output_velocity_before.z(),
+                                d.output_velocity_after.x(), d.output_velocity_after.y(),
+                                d.output_velocity_after.z(),
+                                d.correction_offset_velocity.x(), d.correction_offset_velocity.y(),
+                                d.correction_offset_velocity.z(),
+                                d.smoothing_enabled, d.smoothing_elapsed_before,
+                                d.smoothing_duration,
+                                static_cast<unsigned long long>(d.mutex_wait_us),
+                                static_cast<unsigned long long>(d.mutex_hold_us));
+                        }
                     }
                 }
             }
@@ -2178,6 +2693,7 @@ private:
                 <<" "<<state_point.bg.transpose()<<" "<<state_point.ba.transpose()<<" "<<state_point.grav<<" "<<feats_undistort->points.size()<<endl;
                 dump_lio_state_to_log(fp);
             }
+            emit_lidar_timing();
         }
     }
 
@@ -2590,6 +3106,10 @@ private:
 
     void imu_cbk(const sensor_msgs::msg::Imu::UniquePtr msg_in)
     {
+        const double arrival_steady_s = steady_clock_seconds();
+        const std::uint64_t sequence = timing_imu_sequence.fetch_add(1) + 1;
+        std::uint64_t buffer_mutex_wait_us = 0;
+        std::uint64_t buffer_mutex_hold_us = 0;
         publish_count++;
         sensor_msgs::msg::Imu::SharedPtr msg(new sensor_msgs::msg::Imu(*msg_in));
 
@@ -2601,6 +3121,8 @@ private:
         }
 
         double timestamp = get_time_sec(msg->header.stamp);
+        const std::uint64_t executor_callback_delay_us = static_cast<std::uint64_t>(
+            std::max(0.0, executor_callback_delay_seconds(timestamp, arrival_steady_s) * 1e6));
         const V3D raw_acceleration(
             msg->linear_acceleration.x,
             msg->linear_acceleration.y,
@@ -2623,16 +3145,26 @@ private:
         msg->linear_acceleration.z *= imu_acceleration_scale_;
 
         bool timestamp_rollback = false;
+        const auto first_lock_requested_at = std::chrono::steady_clock::now();
         mtx_buffer.lock();
+        const auto first_lock_acquired_at = std::chrono::steady_clock::now();
         if (timestamp < last_timestamp_imu)
         {
             std::cerr << "IMU timestamp loop back, clear buffer and high-rate state" << std::endl;
             imu_buffer.clear();
             imu_process_noise_scale_buffer.clear();
+            timing_imu_queue_size.store(0);
             timestamp_rollback = true;
         }
         last_timestamp_imu = timestamp;
+        const auto first_lock_released_at = std::chrono::steady_clock::now();
         mtx_buffer.unlock();
+        buffer_mutex_wait_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                first_lock_acquired_at - first_lock_requested_at).count());
+        buffer_mutex_hold_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                first_lock_released_at - first_lock_acquired_at).count());
 
         fr_lio::HighRateImuSample sample;
         sample.timestamp = timestamp;
@@ -2655,6 +3187,15 @@ private:
         msg->linear_acceleration.z = used_sample.acceleration.z();
         const double process_noise_scale = used_sample.accel_spike_rejected ?
             rejected_accel_process_noise_scale_ : 1.0;
+        const bool accel_spike_burst = used_sample.accel_spike_rejected &&
+            used_sample.consecutive_accel_spike_rejections >=
+            static_cast<std::size_t>(accel_filter_max_consecutive_rejections_);
+        if (accel_spike_burst) {
+            // Replacing one outlier with the recent median is safe. Replacing a
+            // sustained burst would fabricate a trajectory, so require a new
+            // LiDAR posterior before the predictor becomes usable again.
+            high_rate_propagator_->invalidate();
+        }
         RCLCPP_DEBUG(this->get_logger(),
             "IMU_PREPROCESS t=%.9f raw=(%.6f,%.6f,%.6f) used=(%.6f,%.6f,%.6f) "
             "rejected=%d q_scale=%.2f",
@@ -2662,25 +3203,132 @@ private:
             used_sample.raw_acceleration.z(), used_sample.acceleration.x(),
             used_sample.acceleration.y(), used_sample.acceleration.z(),
             used_sample.accel_spike_rejected, process_noise_scale);
+        const auto high_rate_predict_begin = std::chrono::steady_clock::now();
         const auto result = high_rate_publish_enabled_ ?
             high_rate_propagator_->add_filtered_imu(used_sample) :
             std::optional<fr_lio::HighRateOdomResult>();
+        const std::uint64_t high_rate_predict_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - high_rate_predict_begin).count());
+        timing_high_rate_predict_us.store(high_rate_predict_us);
+        if (high_rate_trace_enabled_) {
+            fr_lio::msg::HighRateImuTrace trace;
+            trace.header.stamp = get_ros_time(timestamp);
+            trace.header.frame_id = frame_prefix_ + odom_frame_;
+            trace.raw_acceleration = to_ros_vector3(used_sample.raw_acceleration);
+            trace.used_acceleration = to_ros_vector3(used_sample.acceleration);
+            trace.raw_acceleration_norm_mps2 = used_sample.raw_acceleration_norm_mps2;
+            trace.acceleration_deviation_mps2 = used_sample.acceleration_deviation_mps2;
+            trace.process_noise_scale = process_noise_scale;
+            trace.rejection_count = used_sample.accel_spike_rejection_count;
+            trace.consecutive_rejections = used_sample.consecutive_accel_spike_rejections;
+            trace.accel_spike_rejected = used_sample.accel_spike_rejected;
+            trace.accel_norm_limit_exceeded = used_sample.accel_norm_limit_exceeded;
+            trace.accel_deviation_limit_exceeded =
+                used_sample.accel_deviation_limit_exceeded;
+            if (result) {
+                trace.sample_propagated = result->sample_propagated;
+                trace.propagation_velocity_before =
+                    to_ros_vector3(result->propagation_velocity_before);
+                trace.propagation_velocity_after =
+                    to_ros_vector3(result->propagation_velocity_after);
+                trace.propagation_delta_velocity = to_ros_vector3(
+                    result->propagation_velocity_after - result->propagation_velocity_before);
+                trace.output_velocity = to_ros_vector3(result->state.velocity);
+            }
+            pubHighRateImuTrace_->publish(trace);
+        }
 
         // Expose the sample to LiDAR synchronization only after it is in the
         // replay history. A delayed LiDAR correction can now never miss an
         // IMU that it already consumed from imu_buffer.
+        const auto second_lock_requested_at = std::chrono::steady_clock::now();
         mtx_buffer.lock();
+        const auto second_lock_acquired_at = std::chrono::steady_clock::now();
         imu_buffer.push_back(msg);
         imu_process_noise_scale_buffer.push_back(process_noise_scale);
+        timing_imu_queue_size.store(imu_buffer.size());
+        const auto second_lock_released_at = std::chrono::steady_clock::now();
         mtx_buffer.unlock();
         sig_buffer.notify_all();
 
+        const auto second_mutex_wait_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                second_lock_acquired_at - second_lock_requested_at).count());
+        const auto second_mutex_hold_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                second_lock_released_at - second_lock_acquired_at).count());
+        buffer_mutex_wait_us = std::max(buffer_mutex_wait_us, second_mutex_wait_us);
+        buffer_mutex_hold_us = std::max(buffer_mutex_hold_us, second_mutex_hold_us);
+        if (result) {
+            timing_anchor_age_s.store(result->lidar_anchor_age_s);
+        }
+        const std::uint64_t predictor_state_age_us = result ? static_cast<std::uint64_t>(
+            std::max(0.0, executor_callback_delay_seconds(
+                result->state.timestamp, arrival_steady_s) * 1e6)) : 0;
+        timing_predictor_state_age_us.store(predictor_state_age_us);
+        const double previous_imu_arrival_steady_s = last_imu_arrival_steady_s_.load();
+        const auto imu_gap_us = static_cast<std::uint64_t>(
+            previous_imu_arrival_steady_s > 0.0 ?
+            (arrival_steady_s - previous_imu_arrival_steady_s) * 1e6 : 0.0);
+        last_imu_arrival_steady_s_.store(arrival_steady_s);
+        const std::uint64_t high_rate_mutex_wait_us = result ? result->mutex_wait_us : 0;
+        const std::uint64_t high_rate_mutex_hold_us = result ? result->mutex_hold_us : 0;
+        const double anchor_age_s = result ? result->lidar_anchor_age_s : timing_anchor_age_s.load();
+        log_timing_event(
+            this->get_logger(), "imu_callback_arrival", arrival_steady_s, timestamp,
+            sequence, anchor_age_s, timing_imu_queue_size.load(), high_rate_mutex_wait_us,
+            high_rate_mutex_hold_us, imu_gap_us, buffer_mutex_wait_us, buffer_mutex_hold_us,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, high_rate_predict_us, 0,
+            executor_callback_delay_us, predictor_state_age_us);
+        log_slow_mutex(
+            this->get_logger(), "high_rate_add_filtered_imu", timestamp, sequence,
+            high_rate_mutex_wait_us, high_rate_mutex_hold_us);
+        log_slow_mutex(
+            this->get_logger(), "buffer_imu_callback", timestamp, sequence,
+            buffer_mutex_wait_us, buffer_mutex_hold_us);
+
         if (!high_rate_publish_enabled_) return;
-        if (!result) return;
+        if (!result) {
+            // No propagated state for this sample: either the predictor is not
+            // initialised yet, or the sample was rejected as non-monotonic.
+            // Both mean "there is no current state", which is the predictor axis
+            // reaching STATE_UNUSABLE.  Previously this path returned silently
+            // and the latched status kept claiming the previous level, so a dead
+            // predictor could still read HEALTHY downstream.
+            fr_lio::PredictorHealthGate::Input dead_input;
+            dead_input.predictor_age_s = std::numeric_limits<double>::infinity();
+            dead_input.predictor_generation = 0;
+            dead_input.state_finite = false;
+            dead_input.timestamp_monotonic = !timestamp_rollback;
+            dead_input.initialized = false;
+            const auto dead_level = predictor_health_gate_.update(dead_input);
+            fr_lio::LocalizationHealthSnapshot dead_snapshot;
+            dead_snapshot.steady_clock_now_s = arrival_steady_s;
+            dead_snapshot.sequence = sequence;
+            dead_snapshot.anchor_age_s = timing_anchor_age_s.load();
+            dead_snapshot.predictor_age_s = std::numeric_limits<double>::infinity();
+            dead_snapshot.imu_backlog_age_s =
+                static_cast<double>(executor_callback_delay_us) * 1e-6;
+            dead_snapshot.imu_queue_size = timing_imu_queue_size.load();
+            dead_snapshot.posterior_generation =
+                high_rate_correction_generation_.load(std::memory_order_acquire);
+            dead_snapshot.timestamp_monotonic = !timestamp_rollback;
+            dead_snapshot.state_finite = false;
+            fr_lio::merge_health_axes(
+                dead_snapshot, high_rate_health_gate_.anchorLevel(),
+                high_rate_health_gate_.anchorReason(), dead_level,
+                predictor_health_gate_.reason());
+            publish_localization_health(dead_snapshot);
+            return;
+        }
 
         std_msgs::msg::Float64 anchor_age;
         anchor_age.data = result->lidar_anchor_age_s;
         pubAnchorAge_->publish(anchor_age);
+        std_msgs::msg::Float64 predictor_age;
+        predictor_age.data = static_cast<double>(predictor_state_age_us) * 1e-6;
+        pubPredictorAge_->publish(predictor_age);
         if (result->accel_spike_rejected) {
             std_msgs::msg::UInt64 rejection_count;
             rejection_count.data = result->accel_spike_rejection_count;
@@ -2696,16 +3344,68 @@ private:
                 result->consecutive_accel_spike_rejections,
                 result->accel_spike_rejection_count);
         }
-        if (result->health == fr_lio::HighRateOdomHealth::StaleLidar) {
-            publish_high_rate_status("FAULT_STALE_LIDAR");
+        // Two independent axes, merged into one snapshot. The anchor axis can
+        // reach PLANNER_UNUSABLE at most; only the predictor axis may declare
+        // the propagated state itself unusable and thereby take EV away.
+        const std::uint64_t posterior_generation =
+            high_rate_correction_generation_.load(std::memory_order_acquire);
+        const auto anchor_level = high_rate_health_gate_.update_anchor(
+            result->lidar_anchor_age_s, posterior_generation);
+        const double predictor_age_s =
+            static_cast<double>(predictor_state_age_us) * 1e-6;
+        fr_lio::PredictorHealthGate::Input predictor_input;
+        predictor_input.predictor_age_s = predictor_age_s;
+        predictor_input.predictor_generation = result->predictor_generation;
+        predictor_input.state_finite = result->state_finite;
+        predictor_input.timestamp_monotonic = !timestamp_rollback;
+        predictor_input.initialized = true;
+        const auto predictor_level = predictor_health_gate_.update(predictor_input);
+        last_valid_predictor_generation_.store(
+            result->predictor_generation, std::memory_order_release);
+
+        fr_lio::LocalizationHealthSnapshot health_snapshot;
+        health_snapshot.steady_clock_now_s = arrival_steady_s;
+        health_snapshot.sequence = sequence;
+        health_snapshot.anchor_age_s = result->lidar_anchor_age_s;
+        health_snapshot.predictor_age_s = predictor_age_s;
+        health_snapshot.imu_backlog_age_s =
+            static_cast<double>(executor_callback_delay_us) * 1e-6;
+        health_snapshot.imu_queue_size = timing_imu_queue_size.load();
+        health_snapshot.posterior_generation = posterior_generation;
+        health_snapshot.predictor_generation = result->predictor_generation;
+        health_snapshot.timestamp_monotonic = !timestamp_rollback;
+        health_snapshot.state_finite = result->state_finite;
+        health_snapshot.position_jump_m = result->position_jump_m;
+        health_snapshot.velocity_jump_mps = result->velocity_jump_mps;
+        fr_lio::merge_health_axes(
+            health_snapshot, anchor_level, high_rate_health_gate_.anchorReason(),
+            predictor_level, predictor_health_gate_.reason());
+        publish_localization_health(health_snapshot);
+
+        // Covariance inflation follows the anchor axis: a stale posterior means
+        // the position is drifting on IMU alone, which is exactly what a larger
+        // covariance tells EKF2. It is not a reason to stop publishing.
+        const bool stale_lidar =
+            anchor_level >= fr_lio::HighRateOdomLevel::PlannerUnusable;
+        if (stale_lidar) {
             RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-                "High-rate Odometry inhibited: LiDAR correction anchor is %.3fs old "
-                "(limit %.3fs)", result->lidar_anchor_age_s, max_anchor_age_s_);
-            return;
+                "High-rate Odometry degraded: LiDAR correction anchor is %.3fs old "
+                "(limit %.3fs); publishing IMU prediction with inflated covariance. "
+                "predictor_age=%.3fs ev_usable=%d planner_usable=%d",
+                result->lidar_anchor_age_s, max_anchor_age_s_, predictor_age_s,
+                health_snapshot.ev_usable, health_snapshot.planner_usable);
         }
-        publish_high_rate_status(
-            result->health == fr_lio::HighRateOdomHealth::Suspect ?
-            "SUSPECT_STALE_LIDAR" : "HEALTHY");
+        if (!health_snapshot.ev_usable) {
+            RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                "High-rate Odometry STATE_UNUSABLE reason=%s predictor_age=%.3fs "
+                "state_finite=%d monotonic=%d; EV must not be trusted",
+                fr_lio::high_rate_reason_name(health_snapshot.reason), predictor_age_s,
+                health_snapshot.state_finite, health_snapshot.timestamp_monotonic);
+        }
+        // A state that is not finite has nothing meaningful to publish. Every
+        // other level keeps the stream continuous: the real propagated state,
+        // its real timestamp, and a covariance that reflects the degradation.
+        if (!result->state_finite) return;
 
         const auto & state = result->state;
         const V3D velocity_body = state.rotation.transpose() * state.velocity;
@@ -2724,9 +3424,14 @@ private:
         odom.pose.pose.orientation.z = q.z();
         odom.pose.pose.orientation.w = q.w();
 
-        const auto pose_covariance =
+        const double stale_age_s = std::max(
+            0.0, result->lidar_anchor_age_s - warn_anchor_age_s_);
+        const double covariance_multiplier = stale_lidar ? std::min(
+            stale_covariance_max_multiplier_,
+            1.0 + stale_covariance_growth_per_s_ * stale_age_s) : 1.0;
+        const auto pose_covariance = covariance_multiplier *
             fr_lio::HighRateOdomPropagator::pose_covariance(state);
-        const auto twist_covariance =
+        const auto twist_covariance = covariance_multiplier *
             fr_lio::HighRateOdomPropagator::twist_covariance(
                 state, result->body_angular_velocity, gyr_cov);
 
@@ -2744,7 +3449,24 @@ private:
         odom.twist.twist.angular.y = result->body_angular_velocity.y();
         odom.twist.twist.angular.z = result->body_angular_velocity.z();
 
+        const auto high_rate_publish_begin = std::chrono::steady_clock::now();
         pubOdomAftMapped_->publish(odom);
+        const double odom_publish_steady_s = steady_clock_seconds();
+        const auto odom_publish_gap_us = static_cast<std::uint64_t>(
+            last_high_rate_odom_publish_steady_s_ > 0.0 ?
+            (odom_publish_steady_s - last_high_rate_odom_publish_steady_s_) * 1e6 : 0.0);
+        last_high_rate_odom_publish_steady_s_ = odom_publish_steady_s;
+        const std::uint64_t high_rate_publish_us = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - high_rate_publish_begin).count());
+        timing_high_rate_publish_us.store(high_rate_publish_us);
+        log_timing_event(
+            this->get_logger(), "high_rate_odom_publish", odom_publish_steady_s,
+            state.timestamp, sequence, result->lidar_anchor_age_s,
+            timing_imu_queue_size.load(), result->mutex_wait_us, result->mutex_hold_us,
+            odom_publish_gap_us, buffer_mutex_wait_us, buffer_mutex_hold_us,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, high_rate_predict_us,
+            high_rate_publish_us, executor_callback_delay_us, predictor_state_age_us);
 
         if (unfiltered_odom_en_ && pubOdomUnfiltered_->get_subscription_count() > 0) {
             pubOdomUnfiltered_->publish(odom);
@@ -2828,7 +3550,117 @@ private:
         }
     }
 
+    // Wire name for a level. The legacy strings are preserved so existing
+    // consumers keep working, and the two new ones are additive:
+    //   GOOD              -> "HEALTHY"
+    //   DEGRADED          -> "SUSPECT_STALE_LIDAR"
+    //   PLANNER_UNUSABLE  -> "FAULT_STALE_LIDAR"   (EV still usable!)
+    //   STATE_UNUSABLE    -> "FAULT_STATE_UNUSABLE" (EV genuinely unusable)
+    static const char * level_status_name(fr_lio::HighRateOdomLevel level)
+    {
+        switch (level) {
+            case fr_lio::HighRateOdomLevel::Good: return "HEALTHY";
+            case fr_lio::HighRateOdomLevel::Degraded: return "SUSPECT_STALE_LIDAR";
+            case fr_lio::HighRateOdomLevel::PlannerUnusable: return "FAULT_STALE_LIDAR";
+            case fr_lio::HighRateOdomLevel::StateUnusable: return "FAULT_STATE_UNUSABLE";
+        }
+        return "FAULT_STATE_UNUSABLE";
+    }
+
+    // Publish the whole snapshot atomically: one status string, one usability
+    // pair, one set of ages. Every field comes from the same snapshot, so a
+    // consumer can never see "HEALTHY together with anchor_age=1.1s".
+    void publish_localization_health(const fr_lio::LocalizationHealthSnapshot & snapshot)
+    {
+        // Called from the IMU callback thread and from the main timer's
+        // predictor watchdog, so the rate-limit state below needs guarding.
+        // Without this, the two threads can interleave and publish
+        // contradicting status strings.
+        std::lock_guard<std::mutex> lock(health_publish_mutex_);
+        publish_high_rate_status_locked(level_status_name(snapshot.level));
+
+        // The usability flags are consumed as a liveness signal downstream, so
+        // they are republished periodically even when unchanged -- but at the
+        // status cadence, not at the 200 Hz IMU rate.
+        const auto now = std::chrono::steady_clock::now();
+        const bool usable_changed =
+            !health_publish_state_valid_ ||
+            last_published_ev_usable_ != snapshot.ev_usable ||
+            last_published_planner_usable_ != snapshot.planner_usable;
+        const bool usable_due =
+            last_usable_publish_time_ == std::chrono::steady_clock::time_point{} ||
+            now - last_usable_publish_time_ >= std::chrono::milliseconds(100);
+        if (usable_changed || usable_due) {
+            std_msgs::msg::Bool usable;
+            usable.data = snapshot.ev_usable;
+            pubEvUsable_->publish(usable);
+            usable.data = snapshot.planner_usable;
+            pubPlannerUsable_->publish(usable);
+            last_published_ev_usable_ = snapshot.ev_usable;
+            last_published_planner_usable_ = snapshot.planner_usable;
+            last_usable_publish_time_ = now;
+            health_publish_state_valid_ = true;
+        }
+        if (!usable_changed &&
+            last_localization_health_publish_time_ !=
+            std::chrono::steady_clock::time_point{} &&
+            now - last_localization_health_publish_time_ < std::chrono::milliseconds(100))
+        {
+            return;
+        }
+        last_localization_health_publish_time_ = now;
+
+        diagnostic_msgs::msg::DiagnosticArray array;
+        array.header.stamp = this->get_clock()->now();
+        diagnostic_msgs::msg::DiagnosticStatus status;
+        status.name = "frlio_localization_health";
+        status.hardware_id = "frlio_high_rate_odom";
+        status.level = snapshot.level == fr_lio::HighRateOdomLevel::Good ?
+            diagnostic_msgs::msg::DiagnosticStatus::OK :
+            (snapshot.ev_usable ? diagnostic_msgs::msg::DiagnosticStatus::WARN :
+            diagnostic_msgs::msg::DiagnosticStatus::ERROR);
+        status.message = std::string(fr_lio::high_rate_level_name(snapshot.level)) +
+            ": " + fr_lio::high_rate_reason_name(snapshot.reason);
+        const auto add = [&status](const char * key, const std::string & value) {
+            diagnostic_msgs::msg::KeyValue item;
+            item.key = key;
+            item.value = value;
+            status.values.push_back(item);
+        };
+        const auto number = [](double value) {
+            char buffer[32];
+            std::snprintf(buffer, sizeof(buffer), "%.6f", value);
+            return std::string(buffer);
+        };
+        add("level", fr_lio::high_rate_level_name(snapshot.level));
+        add("reason", fr_lio::high_rate_reason_name(snapshot.reason));
+        add("ev_usable", snapshot.ev_usable ? "true" : "false");
+        add("planner_usable", snapshot.planner_usable ? "true" : "false");
+        add("steady_clock_now_s", number(snapshot.steady_clock_now_s));
+        add("sequence", std::to_string(snapshot.sequence));
+        add("anchor_age_s", number(snapshot.anchor_age_s));
+        add("predictor_age_s", number(snapshot.predictor_age_s));
+        add("imu_backlog_age_s", number(snapshot.imu_backlog_age_s));
+        add("imu_queue_size", std::to_string(snapshot.imu_queue_size));
+        add("posterior_generation", std::to_string(snapshot.posterior_generation));
+        add("predictor_generation", std::to_string(snapshot.predictor_generation));
+        add("timestamp_monotonic", snapshot.timestamp_monotonic ? "true" : "false");
+        add("state_finite", snapshot.state_finite ? "true" : "false");
+        add("position_jump_m", number(snapshot.position_jump_m));
+        add("velocity_jump_mps", number(snapshot.velocity_jump_mps));
+        array.status.push_back(status);
+        pubLocalizationHealth_->publish(array);
+    }
+
+    // Public entry point: takes the lock, then delegates. Safe from any thread.
     void publish_high_rate_status(const std::string & status)
+    {
+        std::lock_guard<std::mutex> lock(health_publish_mutex_);
+        publish_high_rate_status_locked(status);
+    }
+
+    // Caller must hold health_publish_mutex_.
+    void publish_high_rate_status_locked(const std::string & status)
     {
         const auto now = std::chrono::steady_clock::now();
         if (status == last_high_rate_status_ &&
@@ -2853,7 +3685,17 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pubHighRateStatus_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubAnchorAge_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubPredictorAge_;
     rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr pubAccelSpikeRejections_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pubEvUsable_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pubPlannerUsable_;
+    rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
+        pubLocalizationHealth_;
+    rclcpp::Publisher<fr_lio::msg::HighRateImuTrace>::SharedPtr pubHighRateImuTrace_;
+    rclcpp::Publisher<fr_lio::msg::HighRateLidarUpdateTrace>::SharedPtr
+        pubHighRateLidarUpdateTrace_;
+    rclcpp::Publisher<fr_lio::msg::HighRateCorrectionTrace>::SharedPtr
+        pubHighRateCorrectionTrace_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
     rclcpp::CallbackGroup::SharedPtr imu_cb_group_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_pcl_pc_;
@@ -2879,11 +3721,19 @@ private:
     bool unfiltered_odom_en_ = false;
     bool high_rate_odom_enabled_ = true;
     bool high_rate_publish_enabled_ = false;
+    bool high_rate_trace_enabled_ = true;
     bool imu_unit_report_published_ = false;
     double imu_unit_report_duration_s_ = 10.0;
     double rejected_accel_process_noise_scale_ = 10.0;
-    double warn_anchor_age_s_ = 0.15;
+    double warn_anchor_age_s_ = 0.18;
+    double suspect_exit_anchor_age_s_ = 0.12;
+    int recovery_healthy_samples_ = 3;
     double max_anchor_age_s_ = 0.40;
+    double max_predictor_age_s_ = 0.15;
+    double predictor_recover_age_s_ = 0.10;
+    int predictor_recovery_healthy_samples_ = 3;
+    double stale_covariance_growth_per_s_ = 4.0;
+    double stale_covariance_max_multiplier_ = 100.0;
     double imu_history_s_ = 5.0;
     double correction_smoothing_s_ = 0.25;
     bool accel_filter_enabled_ = true;
@@ -2891,7 +3741,9 @@ private:
     int accel_filter_min_samples_ = 7;
     double accel_filter_max_deviation_mps2_ = 5.0;
     double accel_filter_max_norm_mps2_ = 19.62;
+    int accel_filter_max_consecutive_rejections_ = 5;
     bool correction_diagnostics_ = true;
+    bool timing_alignment_enabled_ = false;
     bool update_diagnostics_ = true;
     double imu_acceleration_scale_ = 1.0;
     fr_lio::AccelerationUnit imu_acceleration_unit_ =
@@ -2899,8 +3751,23 @@ private:
     std::unique_ptr<fr_lio::AccelerationUnitReport> imu_unit_report_;
     std::unique_ptr<fr_lio::HighRateImuPreprocessor> imu_preprocessor_;
     std::unique_ptr<fr_lio::HighRateOdomPropagator> high_rate_propagator_;
+    fr_lio::HighRateOdomHealthGate high_rate_health_gate_;
+    fr_lio::PredictorHealthGate predictor_health_gate_;
+    std::atomic<std::uint64_t> high_rate_correction_generation_{0};
     string last_high_rate_status_;
     std::chrono::steady_clock::time_point last_high_rate_status_publish_time_{};
+    std::mutex health_publish_mutex_;
+    std::chrono::steady_clock::time_point last_usable_publish_time_{};
+    std::chrono::steady_clock::time_point last_localization_health_publish_time_{};
+    bool last_published_ev_usable_{false};
+    bool last_published_planner_usable_{false};
+    bool health_publish_state_valid_{false};
+    // Written by the IMU callback thread, read by the main timer's predictor
+    // watchdog, so it must be atomic.
+    std::atomic<double> last_imu_arrival_steady_s_{0.0};
+    std::atomic<std::uint64_t> last_valid_predictor_generation_{0};
+    double last_lidar_posterior_steady_s_{0.0};
+    double last_high_rate_odom_publish_steady_s_{0.0};
     bool effect_pub_en = false, map_pub_en = false;
     int effect_feat_num = 0, frame_num = 0;
     double deltaT, deltaR, aver_time_consu = 0, aver_time_icp = 0, aver_time_match = 0, aver_time_incre = 0, aver_time_solve = 0, aver_time_const_H_time = 0;

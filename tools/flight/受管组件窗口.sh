@@ -30,6 +30,7 @@ component_pid=""
 component_pgid=""
 owner_watchdog_pid=""
 cleanup_started=false
+component_cpu_affinity="${COMPONENT_CPU_AFFINITY:-}"
 
 owner_is_alive() {
   local current_start_ticks
@@ -54,6 +55,7 @@ write_runtime_state() {
     printf 'owner_pid=%s\n' "${owner_pid}"
     printf 'pid=%s\n' "${component_pid}"
     printf 'pgid=%s\n' "${component_pgid}"
+    printf 'cpu_affinity=%s\n' "${component_cpu_affinity}"
     printf 'title=%s\n' "${title}"
   } >"${temporary_file}"
   mv -f "${temporary_file}" "${runtime_file}"
@@ -124,7 +126,20 @@ printf '[%s] command:' "${title}"
 printf ' %q' "$@"
 printf '\n'
 
-setsid "$@" &
+if [[ -n "${component_cpu_affinity}" ]]; then
+  if ! command -v taskset >/dev/null 2>&1; then
+    echo "[${title}] COMPONENT_CPU_AFFINITY=${component_cpu_affinity} but taskset is unavailable" >&2
+    exit 1
+  fi
+  if ! taskset --cpu-list "${component_cpu_affinity}" true >/dev/null 2>&1; then
+    echo "[${title}] invalid CPU affinity: ${component_cpu_affinity}" >&2
+    exit 1
+  fi
+  echo "[${title}] CPU affinity=${component_cpu_affinity}"
+  setsid taskset --cpu-list "${component_cpu_affinity}" "$@" &
+else
+  setsid "$@" &
+fi
 component_pid=$!
 # 这个子进程在 setsid(1) 之前不是进程组长，所以 setsid 成功后它的 PID 就是新的
 # 会话 ID 和进程组 ID。要立刻记下来：短命的 launch 父进程可能在 ps(1) 来得及

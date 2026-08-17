@@ -100,12 +100,41 @@ High-rate health is exposed on:
 ```text
 /frlio/high_rate_odom/status
 /frlio/high_rate_odom/anchor_age
+/frlio/high_rate_odom/predictor_age
+/frlio/high_rate_odom/ev_usable
+/frlio/high_rate_odom/planner_usable
+/frlio/high_rate_odom/localization_health   (diagnostic_msgs/DiagnosticArray)
 ```
 
-The state becomes `SUSPECT_STALE_LIDAR` after 0.15 s without a LiDAR anchor.
-At 0.40 s it becomes `FAULT_STALE_LIDAR` and `/Odometry` publication stops.
-An IMU timestamp rollback also invalidates propagation until a new LiDAR
-anchor arrives.
+Health is graded on two independent axes, because "the LiDAR posterior is late"
+and "the propagated state is unusable" are different failures with different
+correct responses:
+
+| Level | Status string | `ev_usable` | `planner_usable` | Trigger |
+| --- | --- | --- | --- | --- |
+| L0 GOOD | `HEALTHY` | yes | yes | `anchor_age < 0.18 s` |
+| L1 DEGRADED | `SUSPECT_STALE_LIDAR` | yes | yes | `anchor_age > 0.18 s`, exits below 0.12 s |
+| L2 PLANNER_UNUSABLE | `FAULT_STALE_LIDAR` | **yes** | no | `anchor_age > 0.40 s` |
+| L3 STATE_UNUSABLE | `FAULT_STATE_UNUSABLE` | no | no | `predictor_age > 0.15 s`, timestamp rollback, NaN/Inf, uninitialised |
+
+`/Odometry` publication does **not** stop at L2. A stale LiDAR anchor means the
+pose is propagating on IMU alone: the covariance is inflated (up to
+`stale_covariance_max_multiplier`) and the planner stops switching trajectories,
+but the stream stays continuous with its real timestamps so PX4 EKF2 keeps a
+position estimate and decides for itself whether to fuse. Publication stops only
+when the state itself is not finite, which is L3.
+
+Recovery from L2 requires a newer committed LiDAR posterior plus
+`recovery_healthy_samples` consecutive low-age samples — age alone is not enough,
+because the age resets when a replay starts, before the posterior is committed.
+Recovery from L3 requires the predictor age to fall below
+`predictor_recover_age_s` with an advancing predictor generation for
+`predictor_recovery_healthy_samples` samples; a frozen predictor reporting a
+small age therefore cannot recover on its own.
+
+Every field in `localization_health` comes from one snapshot taken at a single
+instant, so a consumer can never observe a contradiction such as `HEALTHY`
+together with `anchor_age = 1.1 s`.
 
 ### Build boundary and LiDAR input
 

@@ -15,9 +15,11 @@
 #include <mavros_msgs/msg/state.hpp>
 #include <quadrotor_msgs/msg/position_command.hpp>
 #include <race_msgs/msg/flight_altitude_reference.hpp>
+#include <race_msgs/msg/local_path_reference.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/u_int64.hpp>
 #include <traj_utils/msg/bspline.hpp>
 #include <visualization_msgs/msg/marker.hpp>
@@ -36,6 +38,8 @@ public:
     position_command_topic_ = declare_parameter<std::string>(
       "position_command_topic", "/race/ego/position_command");
     bspline_topic_ = declare_parameter<std::string>("bspline_topic", "/race/ego/bspline");
+    local_path_reference_topic_ = declare_parameter<std::string>(
+      "local_path_reference_topic", "/race/ego/local_path_reference");
     validated_bspline_topic_ = declare_parameter<std::string>(
       "validated_bspline_topic", "/race/ego/validated_bspline");
     output_topic_ = declare_parameter<std::string>(
@@ -55,8 +59,8 @@ public:
     active_recheck_history_sec_ = std::clamp(active_recheck_history_sec_, 0.0, 2.0);
     flight_mode_ = declare_parameter<std::string>("flight_mode", "flat");
     flight_height_ = declare_parameter<double>("flight_height", 0.78);
-    max_velocity_ = declare_parameter<double>("max_velocity", 0.60);
-    max_acceleration_ = declare_parameter<double>("max_acceleration", 0.80);
+    max_velocity_ = declare_parameter<double>("max_velocity", 0.40);
+    max_acceleration_ = declare_parameter<double>("max_acceleration", 0.60);
     braking_deceleration_mps2_ = declare_parameter<double>(
       "braking_deceleration_mps2", 0.80);
     reaction_time_sec_ = declare_parameter<double>("reaction_time_sec", 0.15);
@@ -76,15 +80,34 @@ public:
     replan_reanchor_stable_sec_ = declare_parameter<double>(
       "replan_reanchor_stable_sec", 0.50);
     switch_position_tolerance_m_ = declare_parameter<double>(
-      "switch_position_tolerance_m", 0.10);
+      "switch_position_tolerance_m", 0.20);
     switch_velocity_tolerance_mps_ = declare_parameter<double>(
       "switch_velocity_tolerance_mps", 0.10);
     switch_acceleration_tolerance_mps2_ = declare_parameter<double>(
       "switch_acceleration_tolerance_mps2", 0.20);
+    // Diagnostic threshold only: exceeding it logs a tracking/localization
+    // observation and never rejects a trajectory. Deliberately larger than the
+    // splice tolerance -- following error during normal flight is expected,
+    // whereas a splice discontinuity is not.
+    tracking_error_report_threshold_m_ = declare_parameter<double>(
+      "tracking_error_report_threshold_m", 0.30);
+    frlio_status_topic_ = declare_parameter<std::string>(
+      "frlio_status_topic", "/frlio/high_rate_odom/status");
+    frlio_planner_usable_topic_ = declare_parameter<std::string>(
+      "frlio_planner_usable_topic", "/frlio/high_rate_odom/planner_usable");
+    require_frlio_health_ = declare_parameter<bool>("require_frlio_health", true);
+    frlio_recovery_healthy_sec_ = declare_parameter<double>(
+      "frlio_recovery_healthy_sec", 1.0);
+    frlio_status_timeout_sec_ = declare_parameter<double>(
+      "frlio_status_timeout_sec", 0.5);
     if (switch_position_tolerance_m_ <= 0.0 || switch_velocity_tolerance_mps_ <= 0.0 ||
       switch_acceleration_tolerance_mps2_ <= 0.0)
     {
       throw std::runtime_error("trajectory switch tolerances must be > 0");
+    }
+    if (tracking_error_report_threshold_m_ <= 0.0 || frlio_recovery_healthy_sec_ <= 0.0 ||
+      frlio_status_timeout_sec_ <= 0.0) {
+      throw std::runtime_error("trajectory and FR-LIO health thresholds must be > 0");
     }
     if (replan_reanchor_max_horizontal_speed_mps_ <= 0.0 ||
       replan_reanchor_stable_sec_ <= 0.0 ||
@@ -112,7 +135,11 @@ public:
       "[BRIDGE_CLEARANCE_THRESHOLD] hard_clearance=%.9f",
       rejection_clearance_);
     command_timeout_sec_ = declare_parameter<double>("command_timeout_sec", 0.20);
+    command_hold_grace_sec_ = declare_parameter<double>("command_hold_grace_sec", 0.60);
     bspline_timeout_sec_ = declare_parameter<double>("bspline_timeout_sec", 0.20);
+    candidate_max_age_sec_ = declare_parameter<double>("candidate_max_age_sec", 0.40);
+    active_trajectory_min_remaining_sec_ = declare_parameter<double>(
+      "active_trajectory_min_remaining_sec", 0.50);
     odom_timeout_sec_ = declare_parameter<double>("odom_timeout_sec", 0.25);
     min_planning_height_ = declare_parameter<double>("min_planning_height", -0.15);
     min_height_ = declare_parameter<double>("min_height", 0.50);
@@ -133,8 +160,10 @@ public:
     if (flight_mode_ != "flat" && flight_mode_ != "3d") {
       throw std::runtime_error("flight_mode must be flat or 3d");
     }
-    if (bspline_timeout_sec_ <= 0.0) {
-      throw std::runtime_error("bspline_timeout_sec must be > 0");
+    if (bspline_timeout_sec_ <= 0.0 || command_hold_grace_sec_ <= 0.0 ||
+      candidate_max_age_sec_ <= 0.0 || active_trajectory_min_remaining_sec_ <= 0.0)
+    {
+      throw std::runtime_error("trajectory freshness and preservation thresholds must be > 0");
     }
     if (max_yaw_rate_rad_s_ <= 0.0) {
       throw std::runtime_error("max_yaw_rate_rad_s must be > 0");
@@ -183,7 +212,7 @@ public:
       position_command_topic_, 50,
       std::bind(&EgoTrajectoryBridge::commandCallback, this, std::placeholders::_1));
     bspline_subscription_ = create_subscription<traj_utils::msg::Bspline>(
-      bspline_topic_, 10,
+      bspline_topic_, rclcpp::QoS(1).reliable(),
       std::bind(&EgoTrajectoryBridge::bsplineCallback, this, std::placeholders::_1));
     auto map_qos = rclcpp::QoS(5).reliable();
     map_subscription_ = create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -192,12 +221,22 @@ public:
     planner_safety_subscription_ = create_subscription<std_msgs::msg::String>(
       "/race/ego/planner_safety_status", rclcpp::QoS(1).reliable().transient_local(),
       std::bind(&EgoTrajectoryBridge::plannerSafetyCallback, this, std::placeholders::_1));
+    frlio_status_subscription_ = create_subscription<std_msgs::msg::String>(
+      frlio_status_topic_, rclcpp::QoS(1).reliable().transient_local(),
+      std::bind(&EgoTrajectoryBridge::frlioStatusCallback, this, std::placeholders::_1));
+    frlio_planner_usable_subscription_ = create_subscription<std_msgs::msg::Bool>(
+      frlio_planner_usable_topic_, rclcpp::QoS(1).reliable().transient_local(),
+      std::bind(&EgoTrajectoryBridge::frlioPlannerUsableCallback, this, std::placeholders::_1));
     odom_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
       "/race/ego/odom", 10,
       std::bind(&EgoTrajectoryBridge::odomCallback, this, std::placeholders::_1));
     goal_subscription_ = create_subscription<geometry_msgs::msg::PoseStamped>(
       "/race/ego/goal", 10,
       std::bind(&EgoTrajectoryBridge::goalCallback, this, std::placeholders::_1));
+    local_path_reference_subscription_ =
+      create_subscription<race_msgs::msg::LocalPathReference>(
+      local_path_reference_topic_, rclcpp::QoS(1).reliable(),
+      std::bind(&EgoTrajectoryBridge::localPathReferenceCallback, this, std::placeholders::_1));
     // Was /fmu/out/vehicle_local_position_v1, which does not exist on this
     // aircraft (MAVROS, not PX4 DDS), so the health gate never fired.  MAVROS
     // exposes link health on /mavros/state instead of per-sample estimator flags.
@@ -216,6 +255,91 @@ public:
   }
 
 private:
+  bool frlioHealthReady() const
+  {
+    if (!require_frlio_health_) {
+      return true;
+    }
+    if (!frlio_status_seen_ || !frlio_planner_usable_seen_ || !frlio_planner_usable_ ||
+      !frlioStatusNominal())
+    {
+      return false;
+    }
+    if ((now() - frlio_status_time_).seconds() > frlio_status_timeout_sec_ ||
+      (now() - frlio_planner_usable_time_).seconds() > frlio_status_timeout_sec_)
+    {
+      return false;
+    }
+    if (frlio_health_since_.nanoseconds() == 0) {
+      return false;
+    }
+    return (now() - frlio_health_since_).seconds() >= frlio_recovery_healthy_sec_;
+  }
+
+  void blockForFrlio(const char * reason)
+  {
+    if (!frlio_planner_blocked_) {
+      const int64_t old_trajectory_id = validated_trajectory_id_;
+      // FR-LIO recovery may relocalize in a different estimate.  The prior
+      // trajectory and its local-goal transaction therefore cannot be used as
+      // a splice baseline, even if it was collision-free before the fault.
+      frlio_recovery_reanchor_required_ = true;
+      frlio_recovery_required_after_local_goal_seq_ = local_goal_seq_;
+      frlio_fresh_local_goal_received_at_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      invalidateTrajectoryContext();
+      beginPlannerReplanHold();
+      RCLCPP_WARN(
+        get_logger(),
+        "[EGO_FRLIO_HOLD] reason=%s old_trajectory_id=%ld local_goal_seq=%lu; "
+        "old trajectory revoked, require fresh local_goal_seq>%lu after measured-state reanchor",
+        reason, old_trajectory_id, local_goal_seq_,
+        frlio_recovery_required_after_local_goal_seq_);
+    }
+    frlio_planner_blocked_ = true;
+    setStatus("FRLIO_HOLD");
+  }
+
+  bool frlioStatusNominal() const
+  {
+    return frlio_status_ == "HEALTHY" || frlio_status_ == "SUSPECT_STALE_LIDAR" ||
+      frlio_status_ == "DEGRADED";
+  }
+
+  void refreshFrlioRecoveryWindow()
+  {
+    if (frlio_status_seen_ && frlio_planner_usable_seen_ && frlio_planner_usable_ &&
+      frlioStatusNominal() && frlio_health_since_.nanoseconds() == 0)
+    {
+      frlio_health_since_ = now();
+    }
+  }
+
+  void frlioStatusCallback(const std_msgs::msg::String::SharedPtr msg)
+  {
+    frlio_status_ = msg->data;
+    frlio_status_seen_ = true;
+    frlio_status_time_ = now();
+    if (!frlioStatusNominal()) {
+      frlio_health_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      blockForFrlio(frlio_status_.c_str());
+      return;
+    }
+    refreshFrlioRecoveryWindow();
+  }
+
+  void frlioPlannerUsableCallback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    frlio_planner_usable_ = msg->data;
+    frlio_planner_usable_seen_ = true;
+    frlio_planner_usable_time_ = now();
+    if (!frlio_planner_usable_) {
+      frlio_health_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      blockForFrlio("planner_usable=false");
+      return;
+    }
+    refreshFrlioRecoveryWindow();
+  }
+
   double effectiveFlightHeight() const
   {
     return altitude_reference_valid_ ? target_z_map_ : flight_height_;
@@ -264,12 +388,74 @@ private:
     replan_hold_reanchored_ = false;
   }
 
+  // A bridge rejection must revoke every item that authorizes PositionCommand
+  // forwarding. Keeping an old validated ID would allow a stale stream to
+  // resume after a failed handover.
+  void invalidateTrajectoryContext()
+  {
+    frlio_resume_validation_pending_ = false;
+    have_trajectory_ = false;
+    have_bootstrap_setpoint_ = false;
+    trajectory_collision_free_ = false;
+    trajectory_id_ = 0;
+    validated_trajectory_id_ = -1;
+    validated_local_goal_seq_ = 0;
+    predicted_points_.clear();
+    predicted_sample_times_.clear();
+    trajectory_stamp_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    trajectory_duration_sec_ = 0.0;
+    last_trajectory_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    last_command_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    dynamic_invalid_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    dynamic_invalid_trajectory_id_ = -1;
+    command_dynamics_valid_ = true;
+    have_last_valid_output_ = false;
+  }
+
+  void latchTrajectoryCollision(const std::string & reason)
+  {
+    collision_latched_ = true;
+    collision_reason_ = reason.empty() ? "EGO_TRAJECTORY_COLLISION" : reason;
+    invalidateTrajectoryContext();
+    clearPlannerReplanHold();
+    setStatus(collision_reason_);
+  }
+
   double currentHorizontalSpeed() const
   {
     if (!race_ego_bridge::finite(current_velocity_)) {
       return std::numeric_limits<double>::infinity();
     }
     return std::hypot(current_velocity_.x, current_velocity_.y);
+  }
+
+  double activeTrajectoryRemainingSec() const
+  {
+    if (!have_trajectory_ || trajectory_stamp_.nanoseconds() == 0 ||
+      !std::isfinite(trajectory_duration_sec_) || trajectory_duration_sec_ <= 0.0)
+    {
+      return -std::numeric_limits<double>::infinity();
+    }
+    return trajectory_duration_sec_ - std::max(0.0, (now() - trajectory_stamp_).seconds());
+  }
+
+  // Measured position versus the command the bridge is currently issuing.
+  // Diagnostic only: see classifyTrajectoryFault(). Returns NaN when there is
+  // no command to compare against, which classifyTrajectoryFault() reads as
+  // "unknown", not as "bad".
+  double currentTrackingError() const
+  {
+    if (!have_last_valid_output_ || !have_odom_ ||
+      !race_ego_bridge::finite(current_position_))
+    {
+      return std::numeric_limits<double>::quiet_NaN();
+    }
+    const auto commanded_map = race_ego_bridge::enuToMap(
+      {last_valid_output_.position.x, last_valid_output_.position.y,
+        last_valid_output_.position.z});
+    return std::hypot(
+      std::hypot(current_position_.x - commanded_map.x, current_position_.y - commanded_map.y),
+      current_position_.z - commanded_map.z);
   }
 
   void altitudeReferenceCallback(
@@ -279,11 +465,8 @@ private:
       if (altitude_reference_valid_ && msg->flight_id == altitude_reference_flight_id_) {
         altitude_reference_valid_ = false;
         have_goal_ = false;
-        have_trajectory_ = false;
-        have_bootstrap_setpoint_ = false;
+        invalidateTrajectoryContext();
         clearPlannerReplanHold();
-        have_last_valid_output_ = false;
-        validated_trajectory_id_ = -1;
         setStatus("WAIT_ALTITUDE_REFERENCE");
       }
       return;
@@ -370,9 +553,8 @@ private:
     if (have_trajectory_) {
       trajectory_collision_free_ = checkActivePredictedPathCollision();
       if (!trajectory_collision_free_) {
-        have_bootstrap_setpoint_ = false;
         logTrajectoryCollision();
-        setStatus(collision_reason_);
+        latchTrajectoryCollision(collision_reason_);
       }
     }
     if (have_bootstrap_setpoint_ && !pointCollisionFree(
@@ -404,12 +586,7 @@ private:
     if (msg->data == "EGO_TRAJECTORY_COLLISION" || msg->data == "EGO_OCCUPANCY_STALE" ||
       msg->data == "EGO_TRAJECTORY_INVALID" || msg->data == "EGO_REPLAN_REANCHOR_FAILED")
     {
-      collision_reason_ = msg->data;
-      trajectory_collision_free_ = false;
-      have_trajectory_ = false;
-      have_bootstrap_setpoint_ = false;
-      clearPlannerReplanHold();
-      setStatus(msg->data);
+      latchTrajectoryCollision(msg->data);
     }
   }
 
@@ -446,18 +623,20 @@ private:
         occupancy_check_position, &collision_nearest_obstacle_, &collision_clearance_,
         &collision_nearby_occupied_))
     {
-      trajectory_collision_free_ = false;
-      have_bootstrap_setpoint_ = false;
       collision_point_ = occupancy_check_position;
       collision_sample_index_ = 0;
       collision_reason_ = "EGO_TRAJECTORY_COLLISION";
       logTrajectoryCollision();
-      setStatus("EGO_TRAJECTORY_COLLISION");
+      latchTrajectoryCollision(collision_reason_);
     }
   }
 
   void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
+    if (!frlioHealthReady()) {
+      blockForFrlio("goal while localization gate closed");
+      return;
+    }
     if (flight_mode_ == "flat" && !altitude_reference_valid_) {
       have_goal_ = false;
       setStatus("WAIT_ALTITUDE_REFERENCE");
@@ -478,13 +657,81 @@ private:
       ++local_goal_seq_;
     }
     if (!goal_frame_valid_) {
-      have_trajectory_ = false;
+      invalidateTrajectoryContext();
       clearPlannerReplanHold();
-      trajectory_collision_free_ = false;
-      validated_trajectory_id_ = -1;
-      have_bootstrap_setpoint_ = false;
       setStatus("OUT_OF_GEOFENCE");
     }
+  }
+
+  void localPathReferenceCallback(const race_msgs::msg::LocalPathReference::SharedPtr msg)
+  {
+    if (!frlioHealthReady()) {
+      blockForFrlio("local path while localization gate closed");
+      return;
+    }
+    if (msg->header.frame_id != frame_id_ || msg->global_goal_id == 0 ||
+      msg->global_path_id == 0)
+    {
+      return;
+    }
+    const race_ego_bridge::Vec3 reference_goal{
+      msg->local_goal.x, msg->local_goal.y, msg->local_goal.z};
+    if (!race_ego_bridge::insideGeofence(
+        reference_goal, min_x_, max_x_, min_y_, max_y_, effectiveMinHeight(),
+        effectiveMaxHeight()))
+    {
+      return;
+    }
+    if (frlio_recovery_reanchor_required_ &&
+      race_ego_bridge::frlioRecoveryNeedsFreshLocalGoal(
+        msg->local_goal_seq, frlio_recovery_required_after_local_goal_seq_))
+    {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[BRIDGE_FRLIO_STALE_LOCAL_GOAL_REJECT] received_seq=%lu required_after=%lu",
+        static_cast<unsigned long>(msg->local_goal_seq),
+        static_cast<unsigned long>(frlio_recovery_required_after_local_goal_seq_));
+      return;
+    }
+    if (frlio_recovery_reanchor_required_) {
+      frlio_fresh_local_goal_received_at_ = now();
+    }
+    const bool new_global_goal = have_global_goal_id_ &&
+      msg->global_goal_id != active_global_goal_id_;
+    have_global_goal_id_ = true;
+    active_global_goal_id_ = msg->global_goal_id;
+    have_global_path_id_ = true;
+    active_global_path_id_ = msg->global_path_id;
+    current_goal_ = reference_goal;
+    have_goal_ = true;
+    goal_frame_valid_ = true;
+    local_goal_seq_ = msg->local_goal_seq;
+    if (!new_global_goal) {
+      RCLCPP_DEBUG(
+        get_logger(),
+        "[BRIDGE_PATH_REVISION_ACCEPTED] global_goal_id=%lu global_path_id=%lu "
+        "local_goal_seq=%lu preserve_active=%s",
+        static_cast<unsigned long>(msg->global_goal_id),
+        static_cast<unsigned long>(msg->global_path_id),
+        static_cast<unsigned long>(msg->local_goal_seq),
+        have_trajectory_ ? "true" : "false");
+      return;
+    }
+
+    // A path revision may be published for obstacle avoidance while the user
+    // target is unchanged. Only a new user-goal transaction preempts the
+    // active trajectory; revisions merely update the next local reference.
+    invalidateTrajectoryContext();
+    beginPlannerReplanHold();
+    RCLCPP_WARN(
+      get_logger(),
+      "[BRIDGE_NEW_GLOBAL_GOAL_PREEMPT] global_goal_id=%lu global_path_id=%lu "
+      "local_goal_seq=%lu; "
+      "old trajectory, local goal, and setpoint context cleared",
+      static_cast<unsigned long>(msg->global_goal_id),
+      static_cast<unsigned long>(msg->global_path_id),
+      static_cast<unsigned long>(msg->local_goal_seq));
+    setStatus("NEW_GLOBAL_GOAL_PREEMPTED");
   }
 
   void healthCallback(const mavros_msgs::msg::State::SharedPtr msg)
@@ -497,13 +744,53 @@ private:
 
   void bsplineCallback(const traj_utils::msg::Bspline::SharedPtr msg)
   {
-    if (validated_trajectory_id_ >= 0 && msg->traj_id <= validated_trajectory_id_) {
-      RCLCPP_WARN(
-        get_logger(),
-        "[BRIDGE_STALE_CANDIDATE] candidate_id=%ld active_id=%ld",
-        static_cast<int64_t>(msg->traj_id), validated_trajectory_id_);
+    if (!frlioHealthReady()) {
+      blockForFrlio("trajectory while localization gate closed");
       return;
     }
+    const rclcpp::Time candidate_start(msg->start_time, get_clock()->get_clock_type());
+    const double candidate_age = (now() - candidate_start).seconds();
+    if (!std::isfinite(candidate_age) || candidate_age > candidate_max_age_sec_) {
+      RCLCPP_WARN(
+        get_logger(),
+        "[BRIDGE_STALE_CANDIDATE] candidate_id=%ld age=%.3f limit=%.3f",
+        static_cast<int64_t>(msg->traj_id), candidate_age, candidate_max_age_sec_);
+      return;
+    }
+    if (msg->traj_id <= last_seen_candidate_id_) {
+      RCLCPP_WARN(
+        get_logger(),
+        "[BRIDGE_SUPERSEDED_CANDIDATE] candidate_id=%ld newest_id=%ld",
+        static_cast<int64_t>(msg->traj_id), last_seen_candidate_id_);
+      return;
+    }
+    if (frlio_recovery_reanchor_required_ &&
+      race_ego_bridge::frlioRecoveryNeedsFreshLocalGoal(
+        local_goal_seq_, frlio_recovery_required_after_local_goal_seq_))
+    {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[BRIDGE_FRLIO_WAIT_FRESH_LOCAL_GOAL] candidate_id=%ld local_goal_seq=%lu "
+        "required_after=%lu",
+        static_cast<int64_t>(msg->traj_id), static_cast<unsigned long>(local_goal_seq_),
+        static_cast<unsigned long>(frlio_recovery_required_after_local_goal_seq_));
+      setStatus("FRLIO_RECOVERY_WAIT_FRESH_LOCAL_GOAL");
+      return;
+    }
+    if (frlio_recovery_reanchor_required_ &&
+      frlio_fresh_local_goal_received_at_.nanoseconds() != 0 &&
+      candidate_start < frlio_fresh_local_goal_received_at_)
+    {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[BRIDGE_FRLIO_OLD_CANDIDATE_REJECT] candidate_id=%ld start=%.3f "
+        "fresh_local_goal_at=%.3f",
+        static_cast<int64_t>(msg->traj_id), candidate_start.seconds(),
+        frlio_fresh_local_goal_received_at_.seconds());
+      setStatus("FRLIO_RECOVERY_WAIT_FRESH_LOCAL_GOAL");
+      return;
+    }
+    last_seen_candidate_id_ = msg->traj_id;
     if (msg->order < 2 || msg->pos_pts.size() <= static_cast<std::size_t>(msg->order) ||
       msg->knots.size() <= msg->pos_pts.size())
     {
@@ -573,7 +860,6 @@ private:
       return;
     }
 
-    const rclcpp::Time candidate_start(msg->start_time, get_clock()->get_clock_type());
     if (planner_replan_hold_ && replan_hold_reanchored_ &&
       !race_ego_bridge::candidateStartsAfterReplanReady(
         candidate_start.seconds(), replan_ready_time_.seconds()))
@@ -593,6 +879,13 @@ private:
     // observed as 0.4--0.5 m position-target jumps and must enter the existing
     // measured-position hold/replan path instead of reaching PX4.
     const bool rebase_candidate_start = planner_replan_hold_;
+    if ((frlio_resume_validation_pending_ || frlio_recovery_reanchor_required_) &&
+      (!have_odom_ || race_ego_bridge::timedOut(
+        (now() - last_odom_time_).seconds(), odom_timeout_sec_)))
+    {
+      setStatus("FRLIO_RESUME_WAIT_ODOM");
+      return;
+    }
     if (have_last_valid_output_ && (have_trajectory_ || planner_replan_hold_)) {
       auto velocity_trajectory = trajectory.getDerivative();
       auto acceleration_trajectory = velocity_trajectory.getDerivative();
@@ -601,14 +894,23 @@ private:
       const auto position_eigen = trajectory.evaluateDeBoorT(candidate_time);
       const auto velocity_eigen = velocity_trajectory.evaluateDeBoorT(candidate_time);
       const auto acceleration_eigen = acceleration_trajectory.evaluateDeBoorT(candidate_time);
-      race_ego_bridge::TrajectoryState previous{
-        {last_valid_output_.position.x, last_valid_output_.position.y,
-          last_valid_output_.position.z},
-        {last_valid_output_.velocity.x, last_valid_output_.velocity.y,
-          last_valid_output_.velocity.z},
-        {last_valid_output_.acceleration_or_force.x,
-          last_valid_output_.acceleration_or_force.y,
-          last_valid_output_.acceleration_or_force.z}};
+      race_ego_bridge::TrajectoryState previous;
+      if (frlio_resume_validation_pending_ || frlio_recovery_reanchor_required_) {
+        previous = {current_position_, current_velocity_, {0.0, 0.0, 0.0}};
+        if (flight_mode_ == "flat") {
+          previous.position.z = effectiveFlightHeight();
+          previous.velocity.z = 0.0;
+        }
+      } else {
+        previous = {
+          {last_valid_output_.position.x, last_valid_output_.position.y,
+            last_valid_output_.position.z},
+          {last_valid_output_.velocity.x, last_valid_output_.velocity.y,
+            last_valid_output_.velocity.z},
+          {last_valid_output_.acceleration_or_force.x,
+            last_valid_output_.acceleration_or_force.y,
+            last_valid_output_.acceleration_or_force.z}};
+      }
       race_ego_bridge::TrajectoryState candidate{
         {position_eigen.x(), position_eigen.y(), position_eigen.z()},
         {velocity_eigen.x(), velocity_eigen.y(), velocity_eigen.z()},
@@ -618,22 +920,56 @@ private:
         candidate.velocity.z = 0.0;
         candidate.acceleration.z = 0.0;
       }
+      // splice_error: candidate vs the command the bridge currently owns. This
+      // is a pure trajectory-to-trajectory comparison and is the ONLY thing
+      // allowed to reject the candidate.
       const auto transition = race_ego_bridge::transitionStateContinuous(
         previous, candidate, switch_position_tolerance_m_,
         switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
+      // tracking_error: measured position vs the command being tracked right
+      // now. Computed only to classify the fault; it never rejects anything,
+      // because a tracking problem is a localization/control problem and
+      // rejecting trajectories cannot fix it.
+      const double tracking_error = currentTrackingError();
+      const auto fault_class = race_ego_bridge::classifyTrajectoryFault(
+        transition.position_error, switch_position_tolerance_m_,
+        tracking_error, tracking_error_report_threshold_m_);
       if (!transition.continuous) {
-        beginPlannerReplanHold();
         RCLCPP_ERROR(
           get_logger(),
           "[BRIDGE_SWITCH_REJECTED] candidate_id=%ld active_id=%ld "
-          "errors=(position=%.3f velocity=%.3f acceleration=%.3f) "
-          "limits=(%.3f %.3f %.3f); hold measured position and replan",
+          "fault_class=%s splice=(position=%.3f velocity=%.3f acceleration=%.3f) "
+          "limits=(%.3f %.3f %.3f) tracking_error=%.3f; "
+          "reject candidate and preserve the current safe trajectory when possible",
           static_cast<int64_t>(msg->traj_id), validated_trajectory_id_,
+          race_ego_bridge::trajectoryFaultClassName(fault_class),
           transition.position_error, transition.velocity_error,
           transition.acceleration_error, switch_position_tolerance_m_,
-          switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
-        setStatus("REPLAN_SWITCH_DISCONTINUITY");
+          switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_,
+          tracking_error);
+        rejectCandidate("BRIDGE_SWITCH_REJECTED", msg->traj_id);
         return;
+      }
+      if (frlio_resume_validation_pending_) {
+        frlio_resume_validation_pending_ = false;
+        RCLCPP_INFO(
+          get_logger(),
+          "[BRIDGE_FRLIO_RESUME_ACCEPTED] replacement trajectory_id=%ld is continuous "
+          "with measured state; keep local_goal_seq=%lu",
+          static_cast<int64_t>(msg->traj_id), local_goal_seq_);
+      }
+      // Splice is fine but the vehicle is not following the active trajectory:
+      // report it as a tracking/localization observation and accept the
+      // candidate. Rejecting here would blame trajectory handoff for a
+      // localization problem, and would deny the planner the very replacement
+      // trajectory that could reduce the tracking error.
+      if (fault_class == race_ego_bridge::TrajectoryFaultClass::LocalizationTracking) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 1000,
+          "[BRIDGE_TRACKING_ERROR] candidate_id=%ld splice=%.3f tracking_error=%.3f "
+          "threshold=%.3f; localization/tracking issue, candidate still accepted",
+          static_cast<int64_t>(msg->traj_id), transition.position_error,
+          tracking_error, tracking_error_report_threshold_m_);
       }
     }
 
@@ -654,10 +990,23 @@ private:
     }
     trajectory_stamp_ = rclcpp::Time(
       validated_message.start_time, get_clock()->get_clock_type());
+    trajectory_duration_sec_ = duration;
     last_trajectory_time_ = now();
     trajectory_collision_free_ = true;
     have_trajectory_ = true;
+    collision_latched_ = false;
+    collision_reason_.clear();
     clearPlannerReplanHold();
+    if (frlio_recovery_reanchor_required_) {
+      frlio_recovery_reanchor_required_ = false;
+      frlio_fresh_local_goal_received_at_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      RCLCPP_INFO(
+        get_logger(),
+        "[BRIDGE_FRLIO_RECOVERY_REANCHORED] trajectory_id=%ld local_goal_seq=%lu "
+        "fresh_after=%lu baseline=measured_position_velocity",
+        trajectory_id_, static_cast<unsigned long>(validated_local_goal_seq_),
+        static_cast<unsigned long>(frlio_recovery_required_after_local_goal_seq_));
+    }
     active_rejection_clearance_ = candidate_clearance;
     have_bootstrap_setpoint_ = prepareBootstrapSetpoint(candidate_clearance);
     publishPredictedPath();
@@ -679,22 +1028,40 @@ private:
     const std::string candidate_reason = reason;
     const bool active_still_safe = have_trajectory_ && checkActivePredictedPathCollision();
     trajectory_collision_free_ = active_still_safe;
-    if (active_still_safe) {
+    const double remaining_sec = activeTrajectoryRemainingSec();
+    if (active_still_safe && remaining_sec >= active_trajectory_min_remaining_sec_) {
       RCLCPP_WARN(
         get_logger(),
         "[BRIDGE_CANDIDATE_REJECTED_ACTIVE_PRESERVED] candidate_id=%ld "
-        "active_id=%ld reason=%s",
-        candidate_id, validated_trajectory_id_, candidate_reason.c_str());
+        "active_id=%ld reason=%s remaining_sec=%.3f",
+        candidate_id, validated_trajectory_id_, candidate_reason.c_str(), remaining_sec);
       setStatus(control_enabled_ ? "TRACKING" : "SHADOW_TRACKING");
       return;
     }
     have_bootstrap_setpoint_ = false;
+    if (have_trajectory_ && !active_still_safe &&
+      (collision_reason_ == "EGO_TRAJECTORY_COLLISION" ||
+      collision_reason_ == "OUT_OF_GEOFENCE"))
+    {
+      logTrajectoryCollision();
+      latchTrajectoryCollision(collision_reason_);
+      return;
+    }
+    // No collision-checked active route remains. The measured-position hold
+    // owns the output until it can safely reanchor; never clear context just
+    // because this candidate was rejected.
+    beginPlannerReplanHold();
     // The active recheck just ran and its own failure reason is the more recent
     // and more relevant one; fall back to the candidate's reason when the
     // recheck did not run (no active trajectory) or reported nothing.
     const std::string active_reason =
       collision_reason_.empty() ? candidate_reason : collision_reason_;
-    setStatus(active_reason.empty() ? "NO_SAFE_TRAJECTORY" : active_reason);
+    RCLCPP_WARN(
+      get_logger(),
+      "[BRIDGE_CANDIDATE_REJECTED_REANCHOR] candidate_id=%ld active_id=%ld "
+      "reason=%s remaining_sec=%.3f",
+      candidate_id, validated_trajectory_id_, active_reason.c_str(), remaining_sec);
+    setStatus("PLANNING_HOLD");
   }
 
   void sampleTrajectory(
@@ -993,6 +1360,10 @@ private:
     }
     if (!have_map_) {setStatus("WAIT_MAP"); return false;}
     if (!have_odom_) {setStatus("WAIT_ODOM"); return false;}
+    if (collision_latched_) {
+      setStatus(collision_reason_.empty() ? "EGO_TRAJECTORY_COLLISION" : collision_reason_);
+      return false;
+    }
     if (have_trajectory_ && !trajectory_collision_free_) {
       setStatus(collision_reason_.empty() ? "NO_SAFE_TRAJECTORY" : collision_reason_);
       return false;
@@ -1027,7 +1398,10 @@ private:
 
   void commandCallback(const quadrotor_msgs::msg::PositionCommand::SharedPtr msg)
   {
-    last_command_time_ = now();
+    if (!frlioHealthReady()) {
+      blockForFrlio("setpoint while localization gate closed");
+      return;
+    }
     if (!race_ego_bridge::frameMatches(msg->header.frame_id, frame_id_)) {
       setStatus("FRAME_MISMATCH");
       return;
@@ -1048,6 +1422,10 @@ private:
     if (!prerequisitesReady()) {
       return;
     }
+    // Only a command for the currently validated trajectory is allowed to
+    // extend its freshness lease. Rejected/stale command traffic must not mask
+    // a real command timeout.
+    last_command_time_ = now();
 
     race_ego_bridge::Vec3 position{
       msg->position.x, msg->position.y, msg->position.z};
@@ -1059,6 +1437,33 @@ private:
       position.z = effectiveFlightHeight();
       velocity.z = 0.0;
       acceleration.z = 0.0;
+    }
+    const bool validating_frlio_resume = frlio_resume_validation_pending_;
+    if (validating_frlio_resume) {
+      race_ego_bridge::TrajectoryState measured{
+        current_position_, current_velocity_, {0.0, 0.0, 0.0}};
+      if (flight_mode_ == "flat") {
+        measured.position.z = effectiveFlightHeight();
+        measured.velocity.z = 0.0;
+      }
+      const race_ego_bridge::TrajectoryState resumed{position, velocity, acceleration};
+      const auto transition = race_ego_bridge::transitionStateContinuous(
+        measured, resumed, switch_position_tolerance_m_,
+        switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
+      if (!transition.continuous) {
+        const int64_t old_trajectory_id = validated_trajectory_id_;
+        invalidateTrajectoryContext();
+        beginPlannerReplanHold();
+        RCLCPP_WARN(
+          get_logger(),
+          "[BRIDGE_FRLIO_RESUME_REANCHOR] trajectory_id=%ld local_goal_seq=%lu "
+          "resume_error=(position=%.3f velocity=%.3f acceleration=%.3f); "
+          "keep the same local goal and reanchor from measured position",
+          old_trajectory_id, local_goal_seq_, transition.position_error,
+          transition.velocity_error, transition.acceleration_error);
+        setStatus("FRLIO_RESUME_REANCHOR");
+        return;
+      }
     }
     if (!race_ego_bridge::insideGeofence(
         position, min_x_, max_x_, min_y_, max_y_, effectiveMinHeight(), effectiveMaxHeight()))
@@ -1130,13 +1535,20 @@ private:
         position, &collision_nearest_obstacle_, &collision_clearance_,
         &collision_nearby_occupied_))
     {
-      trajectory_collision_free_ = false;
       collision_point_ = position;
       collision_sample_index_ = 0;
       collision_reason_ = "EGO_TRAJECTORY_COLLISION";
       logTrajectoryCollision();
-      setStatus("EGO_TRAJECTORY_COLLISION");
+      latchTrajectoryCollision(collision_reason_);
       return;
+    }
+    if (validating_frlio_resume) {
+      frlio_resume_validation_pending_ = false;
+      RCLCPP_INFO(
+        get_logger(),
+        "[BRIDGE_FRLIO_RESUME_ACCEPTED] trajectory_id=%ld remains continuous and safe; "
+        "resume local_goal_seq=%lu",
+        validated_trajectory_id_, local_goal_seq_);
     }
 
     // PositionTarget is ENU; the Offboard node converts at its boundary.  The
@@ -1203,9 +1615,33 @@ private:
 
   void statusTimer()
   {
+    if (!frlioHealthReady()) {
+      blockForFrlio("health timeout or recovery window");
+      return;
+    }
+    if (frlio_planner_blocked_) {
+      frlio_planner_blocked_ = false;
+      if (frlio_recovery_reanchor_required_) {
+        // Do not count the localization outage against the measured-state
+        // reanchor timeout. The existing hold remains authoritative.
+        planner_replan_hold_since_ = now();
+        replan_hold_stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        replan_hold_reanchored_ = false;
+        replan_ready_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        replan_ready_token_ = 0;
+        setStatus("FRLIO_RECOVERY_REPLAN_REQUIRED");
+      } else if (!frlio_resume_validation_pending_) {
+        clearPlannerReplanHold();
+        setStatus("FRLIO_RECOVERING");
+      }
+    }
+    if (frlio_resume_validation_pending_) {
+      setStatus("FRLIO_RESUME_VALIDATION");
+      return;
+    }
     if (planner_replan_hold_) {
       const double hold_age = (now() - planner_replan_hold_since_).seconds();
-      if (!have_map_ || !have_odom_ || !have_goal_ ||
+      if (!have_map_ || !have_odom_ ||
         race_ego_bridge::timedOut(occupancyMapAge(), occupancy_timeout_sec_) ||
         hold_age > replan_hold_timeout_sec_)
       {
@@ -1220,11 +1656,10 @@ private:
       if (!pointCollisionFree(
           hold_point, nullptr, nullptr, nullptr, active_rejection_clearance_))
       {
-        clearPlannerReplanHold();
         collision_point_ = hold_point;
         collision_reason_ = "EGO_TRAJECTORY_COLLISION";
         logTrajectoryCollision();
-        setStatus(collision_reason_);
+        latchTrajectoryCollision(collision_reason_);
         return;
       }
       mavros_msgs::msg::PositionTarget output{};
@@ -1312,9 +1747,36 @@ private:
         return;
       }
     }
-    if (last_command_time_.nanoseconds() == 0 || race_ego_bridge::timedOut(
-        (now() - last_command_time_).seconds(), command_timeout_sec_))
-    {
+    const double command_age = last_command_time_.nanoseconds() == 0 ?
+      std::numeric_limits<double>::infinity() : (now() - last_command_time_).seconds();
+    if (race_ego_bridge::timedOut(command_age, command_timeout_sec_)) {
+      if (command_age <= command_timeout_sec_ + command_hold_grace_sec_ &&
+        have_last_valid_output_ && have_trajectory_ &&
+        !race_ego_bridge::timedOut(occupancyMapAge(), occupancy_timeout_sec_) &&
+        checkActivePredictedPathCollision())
+      {
+        auto hold_output = last_valid_output_;
+        hold_output.header.stamp = now();
+        hold_output.velocity.x = 0.0;
+        hold_output.velocity.y = 0.0;
+        hold_output.velocity.z = 0.0;
+        hold_output.acceleration_or_force.x = 0.0;
+        hold_output.acceleration_or_force.y = 0.0;
+        hold_output.acceleration_or_force.z = 0.0;
+        if (publish_setpoint_) {
+          output_publisher_->publish(hold_output);
+        }
+        last_valid_output_time_ = now();
+        last_valid_output_ = hold_output;
+        have_last_valid_output_ = true;
+        setStatus("COMMAND_TIMEOUT_HOLD");
+        return;
+      }
+      if (have_trajectory_ && collision_reason_ == "EGO_TRAJECTORY_COLLISION") {
+        logTrajectoryCollision();
+        latchTrajectoryCollision(collision_reason_);
+        return;
+      }
       setStatus("TRAJECTORY_TIMEOUT");
     }
   }
@@ -1418,8 +1880,11 @@ private:
   std::string frame_id_;
   std::string position_command_topic_;
   std::string bspline_topic_;
+  std::string local_path_reference_topic_;
   std::string validated_bspline_topic_;
   std::string output_topic_;
+  std::string frlio_status_topic_;
+  std::string frlio_planner_usable_topic_;
   std::string map_source_;
   std::string occupancy_topic_;
   std::string flight_mode_;
@@ -1429,8 +1894,8 @@ private:
   double occupancy_timeout_sec_{1.0};
   double active_recheck_history_sec_{0.5};
   double flight_height_{0.78};
-  double max_velocity_{0.60};
-  double max_acceleration_{0.80};
+  double max_velocity_{0.40};
+  double max_acceleration_{0.60};
   double braking_deceleration_mps2_{0.80};
   double reaction_time_sec_{0.15};
   double minimum_reliable_detection_range_m_{0.725};
@@ -1440,7 +1905,10 @@ private:
   double replan_hold_timeout_sec_{3.0};
   double replan_reanchor_max_horizontal_speed_mps_{0.08};
   double replan_reanchor_stable_sec_{0.50};
-  double switch_position_tolerance_m_{0.10};
+  double switch_position_tolerance_m_{0.20};
+  double tracking_error_report_threshold_m_{0.30};
+  double frlio_recovery_healthy_sec_{1.0};
+  double frlio_status_timeout_sec_{0.5};
   double switch_velocity_tolerance_mps_{0.10};
   double switch_acceleration_tolerance_mps2_{0.20};
   double rejection_clearance_{0.30};
@@ -1448,7 +1916,10 @@ private:
   double constrained_clearance_{0.25};
   double active_rejection_clearance_{0.30};
   double command_timeout_sec_{0.20};
+  double command_hold_grace_sec_{0.60};
   double bspline_timeout_sec_{0.20};
+  double candidate_max_age_sec_{0.40};
+  double active_trajectory_min_remaining_sec_{0.50};
   double odom_timeout_sec_{0.25};
   double min_planning_height_{-0.15};
   double min_height_{0.50};
@@ -1473,18 +1944,34 @@ private:
   bool goal_frame_valid_{false};
   bool px4_healthy_{false};
   bool trajectory_collision_free_{false};
+  bool collision_latched_{false};
   bool have_bootstrap_setpoint_{false};
   bool command_dynamics_valid_{true};
+  bool require_frlio_health_{true};
+  bool frlio_status_seen_{false};
+  bool frlio_planner_usable_seen_{false};
+  bool frlio_planner_usable_{false};
+  bool frlio_planner_blocked_{true};
+  bool frlio_resume_validation_pending_{false};
+  bool frlio_recovery_reanchor_required_{false};
+  std::string frlio_status_;
   bool planner_replan_hold_{false};
   bool replan_hold_reanchored_{false};
   bool altitude_reference_valid_{false};
   int64_t trajectory_id_{0};
+  int64_t last_seen_candidate_id_{-1};
   rclcpp::Time trajectory_stamp_{0, 0, RCL_ROS_TIME};
+  double trajectory_duration_sec_{0.0};
   int64_t validated_trajectory_id_{-1};
   uint64_t validated_local_goal_seq_{0};
+  uint64_t frlio_recovery_required_after_local_goal_seq_{0};
   int64_t dynamic_invalid_trajectory_id_{-1};
   int64_t last_logged_collision_trajectory_id_{-1};
   uint64_t local_goal_seq_{0};
+  uint64_t active_global_goal_id_{0};
+  bool have_global_goal_id_{false};
+  uint64_t active_global_path_id_{0};
+  bool have_global_path_id_{false};
   uint64_t replan_token_{0};
   uint64_t replan_ready_token_{0};
   std::string status_;
@@ -1497,6 +1984,10 @@ private:
   double collision_required_clearance_{0.30};
   int collision_nearby_occupied_{0};
   rclcpp::Time last_odom_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time frlio_health_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time frlio_status_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time frlio_planner_usable_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time frlio_fresh_local_goal_received_at_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_px4_healthy_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_trajectory_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_command_time_{0, 0, RCL_ROS_TIME};
@@ -1535,8 +2026,12 @@ private:
   rclcpp::Subscription<traj_utils::msg::Bspline>::SharedPtr bspline_subscription_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr map_subscription_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr planner_safety_subscription_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr frlio_status_subscription_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr frlio_planner_usable_subscription_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_subscription_;
+  rclcpp::Subscription<race_msgs::msg::LocalPathReference>::SharedPtr
+    local_path_reference_subscription_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr health_subscription_;
   rclcpp::Subscription<race_msgs::msg::FlightAltitudeReference>::SharedPtr
     altitude_reference_subscription_;

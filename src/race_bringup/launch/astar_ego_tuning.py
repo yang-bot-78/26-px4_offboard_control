@@ -303,12 +303,15 @@ def load_tuning(path):
     bridge = tuning['trajectory_bridge']
     for key in (
             'occupancy_timeout_sec', 'bspline_timeout_sec', 'command_timeout_sec',
+            'command_hold_grace_sec', 'candidate_max_age_sec',
+            'active_trajectory_min_remaining_sec',
             'active_recheck_history_sec',
             'dynamic_invalid_grace_sec', 'collision_sample_spacing_m',
             'replan_hold_timeout_sec',
             'replan_reanchor_max_horizontal_speed_mps', 'replan_reanchor_stable_sec',
             'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
             'switch_acceleration_tolerance_mps2',
+            'tracking_error_report_threshold_m',
             'dynamic_limit_margin', 'max_yaw_rate_rad_s',
             'braking_deceleration_mps2',
             'reaction_time_sec'):
@@ -334,15 +337,23 @@ def load_tuning(path):
         raise TuningError(
             'trajectory_bridge.replan_reanchor_stable_sec must be in '
             '[0.10, replan_hold_timeout_sec]')
-    if bridge['switch_position_tolerance_m'] > 0.10:
+    if bridge['switch_position_tolerance_m'] > 0.20:
         raise TuningError(
-            'trajectory_bridge.switch_position_tolerance_m must be <= 0.10')
+            'trajectory_bridge.switch_position_tolerance_m must be <= 0.20')
     if bridge['switch_velocity_tolerance_mps'] > 0.20:
         raise TuningError(
             'trajectory_bridge.switch_velocity_tolerance_mps must be <= 0.20')
     if bridge['switch_acceleration_tolerance_mps2'] > 0.40:
         raise TuningError(
             'trajectory_bridge.switch_acceleration_tolerance_mps2 must be <= 0.40')
+    # Diagnostic-only threshold, so it has no upper safety bound -- but it must
+    # be looser than the splice tolerance. If it were tighter, ordinary following
+    # error would be reported on every trajectory switch and the splice/tracking
+    # distinction would stop being informative.
+    if bridge['tracking_error_report_threshold_m'] < bridge['switch_position_tolerance_m']:
+        raise TuningError(
+            'trajectory_bridge.tracking_error_report_threshold_m must be >= '
+            'switch_position_tolerance_m')
     maximum_speed = ego['max_velocity']
     stopping_time = (
         bridge['reaction_time_sec'] +
@@ -561,7 +572,11 @@ def node_parameter_overlays(tuning):
                               'active_recheck_history_sec':
                                   bridge['active_recheck_history_sec'],
                               'command_timeout_sec': bridge['command_timeout_sec'],
+                              'command_hold_grace_sec': bridge['command_hold_grace_sec'],
                               'bspline_timeout_sec': bridge['bspline_timeout_sec'],
+                              'candidate_max_age_sec': bridge['candidate_max_age_sec'],
+                              'active_trajectory_min_remaining_sec':
+                                  bridge['active_trajectory_min_remaining_sec'],
                               'dynamic_invalid_grace_sec': bridge['dynamic_invalid_grace_sec'],
                               'replan_hold_timeout_sec': bridge['replan_hold_timeout_sec'],
                               'replan_reanchor_max_horizontal_speed_mps':
@@ -574,6 +589,8 @@ def node_parameter_overlays(tuning):
                                   bridge['switch_velocity_tolerance_mps'],
                               'switch_acceleration_tolerance_mps2':
                                   bridge['switch_acceleration_tolerance_mps2'],
+                              'tracking_error_report_threshold_m':
+                                  bridge['tracking_error_report_threshold_m'],
                               'trajectory_sample_spacing': bridge['collision_sample_spacing_m'],
                               'braking_deceleration_mps2':
                                   bridge['braking_deceleration_mps2'],

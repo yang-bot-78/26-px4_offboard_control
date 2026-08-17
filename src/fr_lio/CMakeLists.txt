@@ -53,18 +53,27 @@ find_package(Python3 REQUIRED COMPONENTS Development)
 
 # ROS dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(pcl_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(mocap4r2_msgs QUIET)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/HighRateImuTrace.msg"
+  "msg/HighRateLidarUpdateTrace.msg"
+  "msg/HighRateCorrectionTrace.msg"
+  DEPENDENCIES geometry_msgs std_msgs
+)
 
 set(dependencies
   rclcpp
@@ -74,6 +83,7 @@ set(dependencies
   sensor_msgs
   std_msgs
   std_srvs
+  diagnostic_msgs
   visualization_msgs
   pcl_ros
   pcl_conversions
@@ -134,6 +144,10 @@ if(FR_LIO_ENABLE_LOOP_CLOSURE)
 endif()
 target_include_directories(frlio PRIVATE ${PYTHON_INCLUDE_DIRS})
 
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}
+  "rosidl_typesupport_cpp")
+target_link_libraries(frlio "${cpp_typesupport_target}")
+
 ament_target_dependencies(frlio ${dependencies})
 
 add_executable(lidar_accumulator src/lidar_accumulator.cpp)
@@ -144,7 +158,14 @@ add_executable(lidar_validation_gate src/lidar_validation_gate.cpp)
 ament_target_dependencies(
   lidar_validation_gate rclcpp livox_ros_driver2 std_msgs std_srvs)
 
-set(fr_lio_install_targets frlio lidar_accumulator lidar_validation_gate)
+# Validation-only IMU relay. Pausing it starves the high-rate predictor, which
+# is the only way to exercise the L3 STATE_UNUSABLE / ev_usable=false path.
+add_executable(imu_validation_gate src/imu_validation_gate.cpp)
+ament_target_dependencies(
+  imu_validation_gate rclcpp sensor_msgs std_msgs std_srvs)
+
+set(fr_lio_install_targets
+  frlio lidar_accumulator lidar_validation_gate imu_validation_gate)
 if(mocap4r2_msgs_FOUND)
   add_executable(mocap_converter src/mocap_converter.cpp)
   target_link_libraries(mocap_converter Python3::Python)

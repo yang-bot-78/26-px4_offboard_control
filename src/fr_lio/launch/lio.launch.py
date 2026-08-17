@@ -26,6 +26,9 @@ def generate_launch_description():
     mocap_use = LaunchConfiguration('mocap')
     lidar_accumulator_use = LaunchConfiguration('lidar_accumulator')
     lid_topic = LaunchConfiguration('lid_topic')
+    imu_topic = LaunchConfiguration('imu_topic')
+    timing_alignment_enabled = LaunchConfiguration(
+        'timing_alignment_enabled')
 
     declare_use_sim_time_cmd = DeclareLaunchArgument(
         'use_sim_time', default_value='false',
@@ -64,6 +67,14 @@ def generate_launch_description():
         'lid_topic', default_value='/livox/lidar',
         description='Livox CustomMsg input when lidar_accumulator is disabled'
     )
+    declare_imu_topic_cmd = DeclareLaunchArgument(
+        'imu_topic', default_value='/livox/imu',
+        description='IMU input topic; validation runs may use a gated relay'
+    )
+    declare_timing_alignment_cmd = DeclareLaunchArgument(
+        'timing_alignment_enabled', default_value='false',
+        description='Enable high-frequency FRLIO_TIMING forensic output'
+    )
 
     lidar_accumulator_node = Node(
         package='fr_lio',
@@ -95,6 +106,9 @@ def generate_launch_description():
         resolved_accumulator = LaunchConfiguration(
             'lidar_accumulator').perform(context).lower() == 'true'
         resolved_lid_topic = LaunchConfiguration('lid_topic').perform(context)
+        resolved_imu_topic = LaunchConfiguration('imu_topic').perform(context)
+        resolved_timing_alignment = LaunchConfiguration(
+            'timing_alignment_enabled').perform(context).lower() == 'true'
         return [Node(
             package='fr_lio',
             executable='frlio',
@@ -105,6 +119,9 @@ def generate_launch_description():
                             'common.lid_topic': (
                                 '/livox/lidar_accumulated'
                                 if resolved_accumulator else resolved_lid_topic),
+                            'common.imu_topic': resolved_imu_topic,
+                            'diagnostics.timing_alignment_enabled':
+                                resolved_timing_alignment,
                         }],
             output='screen'
         )]
@@ -139,6 +156,8 @@ def generate_launch_description():
     ld.add_action(declare_mocap_cmd)
     ld.add_action(declare_lidar_accumulator_cmd)
     ld.add_action(declare_lid_topic_cmd)
+    ld.add_action(declare_imu_topic_cmd)
+    ld.add_action(declare_timing_alignment_cmd)
 
     ld.add_action(lidar_accumulator_node)
     # ld.add_action(livox_imu_to_base_link)

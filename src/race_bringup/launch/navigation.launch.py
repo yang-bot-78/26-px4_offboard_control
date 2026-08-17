@@ -320,7 +320,7 @@ def generate_launch_description():
         DeclareLaunchArgument('publish_camera_init_tf', default_value='true'),
         DeclareLaunchArgument('broadcast_map_to_odom', default_value='true'),
         DeclareLaunchArgument('map_frame_id', default_value='map'),
-        DeclareLaunchArgument('fast_lio_odom_topic', default_value='/Odometry'),
+        DeclareLaunchArgument('fast_lio_odom_topic', default_value='/Odometry/healthy'),
         # The A->B->C->D race sequence. On by default: without it the stack
         # flies to a single RViz goal and never runs the course.
         DeclareLaunchArgument('mission_enabled', default_value='true'),

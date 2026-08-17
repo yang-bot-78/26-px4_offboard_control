@@ -44,16 +44,14 @@ target_include_directories(frame_transforms PUBLIC
 
 
 # ============================================================================
-# EV 链唯一路径（2026-08-08 定稿）
+# EV 链唯一路径（2026-08-17）
 #
 #   MID-360 -> FAST-LIO -> /Odometry -> fastlio_odometry_guard
-#     -> /Odometry/healthy -> fastlio_mavros_odometry_bridge
-#     -> /mavros/odometry/out -> MAVROS ODOMETRY -> PX4 EKF2
+#     -> /Odometry/healthy -> fastlio_px4_vehicle_odometry
+#     -> /fmu/in/vehicle_visual_odometry -> PX4 EKF2
 #
-# 这是向 PX4 提供外部视觉定位的唯一通路。旧的 VISION_POSE 写者
-# （fastlio_mavros_vision_bridge）和直接 uXRCE 写者
-# （fastlio_vehicle_visual_odometry）均不再构建或启动，避免两个 launch
-# 同时运行时出现多个 EV 写者同时喂 PX4。
+# 原生 VehicleOdometry 是生产写入通路，因为它能携带 reset_counter。
+# MAVROS ODOMETRY bridge 仅保留作显式诊断/兼容路径，生产 launch 默认关闭。
 #
 # 新增任何 PX4 EV 写者前，先读 坐标转换.md。
 # ============================================================================
@@ -63,10 +61,18 @@ add_executable(fastlio_odometry_guard src/bridges/fastlio_odometry_guard.cpp)
 ament_target_dependencies(fastlio_odometry_guard geometry_msgs nav_msgs rclcpp)
 install(TARGETS fastlio_odometry_guard DESTINATION lib/${PROJECT_NAME})
 
-# bridges/fastlio_mavros_odometry_bridge —— 唯一 PX4 EV 写者
+# bridges/fastlio_mavros_odometry_bridge —— 兼容/诊断路径（默认关闭）
 add_executable(fastlio_mavros_odometry_bridge src/bridges/fastlio_mavros_odometry_bridge.cpp)
-ament_target_dependencies(fastlio_mavros_odometry_bridge geometry_msgs nav_msgs rclcpp)
+ament_target_dependencies(fastlio_mavros_odometry_bridge geometry_msgs nav_msgs rclcpp std_msgs)
 install(TARGETS fastlio_mavros_odometry_bridge DESTINATION lib/${PROJECT_NAME})
+
+# PX4-native EV path.  Unlike nav_msgs/Odometry through MAVROS, VehicleOdometry
+# carries reset_counter all the way into EKF2.
+add_executable(fastlio_px4_vehicle_odometry src/bridges/fastlio_px4_vehicle_odometry.cpp)
+ament_target_dependencies(
+	fastlio_px4_vehicle_odometry geometry_msgs nav_msgs px4_msgs rclcpp sensor_msgs std_msgs)
+target_link_libraries(fastlio_px4_vehicle_odometry frame_transforms Eigen3::Eigen)
+install(TARGETS fastlio_px4_vehicle_odometry DESTINATION lib/${PROJECT_NAME})
 
 
 ############

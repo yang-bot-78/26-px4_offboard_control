@@ -27,6 +27,7 @@
 #include <pcl/point_types.h>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <std_msgs/msg/u_int64.hpp>
@@ -233,11 +234,13 @@ public:
       "validated_bspline_topic", "/race/ego/validated_bspline");
     command_local_goal_seq_topic_ = declare_parameter<std::string>(
       "command_local_goal_seq_topic", "/race/ego/command_local_goal_seq");
+    frlio_planner_usable_topic_ = declare_parameter<std::string>(
+      "frlio_planner_usable_topic", "/frlio/high_rate_odom/planner_usable");
     local_planner_failure_replan_sec_ =
       declare_parameter<double>("local_planner_failure_replan_sec", 1.0);
     trajectory_prefetch_sec_ = declare_parameter<double>("trajectory_prefetch_sec", 1.5);
     trajectory_stall_timeout_sec_ = declare_parameter<double>(
-      "trajectory_stall_timeout_sec", 1.0);
+      "trajectory_stall_timeout_sec", 3.0);
     trajectory_recovery_confirmation_sec_ = declare_parameter<double>(
       "trajectory_recovery_confirmation_sec", 0.5);
     resolution_ = declare_parameter<double>("grid_resolution", 0.20);
@@ -384,7 +387,24 @@ public:
         command_local_goal_seq_topic_, rclcpp::SensorDataQoS(),
         [this](const std_msgs::msg::UInt64::SharedPtr msg) {
           last_validated_local_goal_seq_ = msg->data;
+          if (local_goal_resume_pending_ && !local_planner_watchdog_paused_ &&
+          msg->data >= local_goal_seq_)
+          {
+            local_goal_resume_pending_ = false;
+            RCLCPP_INFO(
+              get_logger(),
+              "[SUPER_EGO_COMMAND_RESUMED] local_goal_seq=%lu; rolling goals enabled",
+              msg->data);
+          }
         });
+      frlio_planner_usable_sub_ = create_subscription<std_msgs::msg::Bool>(
+        frlio_planner_usable_topic_, rclcpp::QoS(1).reliable().transient_local(),
+        std::bind(
+          &SuperPlannerRos2Node::frlioPlannerUsableCallback, this, std::placeholders::_1));
+      bridge_replan_ready_sub_ = create_subscription<std_msgs::msg::UInt64>(
+        "/race/ego/replan_ready", rclcpp::QoS(1).reliable().transient_local(),
+        std::bind(
+          &SuperPlannerRos2Node::bridgeReplanReadyCallback, this, std::placeholders::_1));
     }
     marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(marker_topic_, 10);
     status_pub_ = create_publisher<std_msgs::msg::String>(
@@ -587,23 +607,130 @@ private:
       msg->data == "SETPOINT_INVALID" || msg->data == "TRAJECTORY_TIMEOUT" ||
       msg->data == "EMERGENCY_HOLD" ||
       msg->data == "REPLAN_SWITCH_DISCONTINUITY";
-    // TRACKING and LOCAL_GOAL_REACHED are observations, not proof of recovery.
-    // Only a newer bridge-validated trajectory that remains healthy for the
-    // confirmation window clears the failure below.
-    if (!failed) {return;}
-    recovery_required_after_trajectory_id_ = last_validated_trajectory_id_;
-    trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
-    if (local_planner_failure_start_time_.nanoseconds() == 0) {
-      local_planner_failure_start_time_ = now();
+    if (failed) {
+      recovery_required_after_trajectory_id_ = last_validated_trajectory_id_;
+      trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      recovery_accepts_current_trajectory_ = false;
+      if (local_planner_failure_start_time_.nanoseconds() == 0) {
+        local_planner_failure_start_time_ = now();
+      }
+      return;
     }
+
+    // TRACKING is emitted only after the bridge has accepted a PositionCommand
+    // for its validated trajectory. A command stream can recover without a new
+    // B-spline ID, so do not turn a transient timeout into a forced replan.
+    const bool command_resumed = msg->data == "TRACKING" ||
+      msg->data == "SHADOW_TRACKING" ||
+      msg->data.rfind("LOCAL_GOAL_REACHED", 0) == 0;
+    if (race_super_planner_ros2::shouldConfirmCurrentTrajectoryRecovery(
+        command_resumed, last_validated_trajectory_id_, validatedTrajectoryLeaseRemaining()) &&
+      trajectory_recovery_candidate_since_.nanoseconds() == 0)
+    {
+      recovery_accepts_current_trajectory_ = true;
+      trajectory_recovery_candidate_since_ = now();
+      RCLCPP_INFO(
+        get_logger(),
+        "[SUPER_EGO_COMMAND_RECOVERED] trajectory_id=%ld; confirm current validated trajectory",
+        last_validated_trajectory_id_);
+    }
+  }
+
+  void frlioPlannerUsableCallback(const std_msgs::msg::Bool::SharedPtr msg)
+  {
+    if (!msg->data) {
+      if (!local_planner_watchdog_paused_) {
+        local_planner_watchdog_paused_ = true;
+        // A localization fault invalidates the frame of the previous local
+        // transaction.  Never wait for an old command to resume it.
+        local_goal_resume_pending_ = false;
+        frlio_recovery_fresh_local_goal_pending_ = have_goal_;
+        frlio_recovery_bridge_ready_ = false;
+        recovery_required_after_trajectory_id_ = last_validated_trajectory_id_;
+        trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        recovery_accepts_current_trajectory_ = false;
+        local_planner_watchdog_pause_started_ = now();
+        RCLCPP_WARN(
+          get_logger(),
+          "[SUPER_EGO_WATCHDOG_PAUSED] planner_usable=false; revoke local_goal_seq=%lu "
+          "and wait for bridge measured-state reanchor",
+          local_goal_seq_);
+      }
+      return;
+    }
+    if (!local_planner_watchdog_paused_) {
+      return;
+    }
+
+    const auto pause_duration = now() - local_planner_watchdog_pause_started_;
+    const auto shift_if_set = [&pause_duration](rclcpp::Time & stamp) {
+        if (stamp.nanoseconds() != 0) {
+          stamp = stamp + pause_duration;
+        }
+      };
+    shift_if_set(last_local_goal_publish_time_);
+    shift_if_set(local_planner_failure_start_time_);
+    shift_if_set(last_validated_trajectory_time_);
+    shift_if_set(validated_trajectory_lease_deadline_);
+    shift_if_set(trajectory_recovery_candidate_since_);
+    local_planner_watchdog_paused_ = false;
+    local_planner_watchdog_pause_started_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    RCLCPP_INFO(
+      get_logger(),
+      "[SUPER_EGO_WATCHDOG_RESUMED] paused=%.3fs; wait for bridge before replacing "
+      "path_id=%lu local_goal_seq=%lu",
+      pause_duration.seconds(), global_path_id_, local_goal_seq_);
+    armFreshLocalGoalForFrlioRecovery();
+  }
+
+  void bridgeReplanReadyCallback(const std_msgs::msg::UInt64::SharedPtr msg)
+  {
+    if (msg->data == 0 || msg->data <= last_bridge_replan_ready_token_) {
+      return;
+    }
+    last_bridge_replan_ready_token_ = msg->data;
+    if (!frlio_recovery_fresh_local_goal_pending_) {
+      return;
+    }
+    frlio_recovery_bridge_ready_ = true;
+    RCLCPP_INFO(
+      get_logger(),
+      "[SUPER_FRLIO_BRIDGE_REPLAN_READY] token=%lu; prepare fresh local goal",
+      static_cast<unsigned long>(msg->data));
+    armFreshLocalGoalForFrlioRecovery();
+  }
+
+  void armFreshLocalGoalForFrlioRecovery()
+  {
+    if (!race_super_planner_ros2::shouldArmFreshLocalGoalForFrlioRecovery(
+        frlio_recovery_fresh_local_goal_pending_, frlio_recovery_bridge_ready_,
+        local_planner_watchdog_paused_))
+    {
+      return;
+    }
+    force_fresh_local_goal_ = true;
+    local_goal_resume_pending_ = false;
+    local_goal_reached_logged_ = false;
+    final_approach_published_ = false;
+    // Bypass only the publication rate limit; target selection still projects
+    // from latest_odom_ and validates the new reference path continuously.
+    last_local_goal_publish_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    RCLCPP_WARN(
+      get_logger(),
+      "[SUPER_FRLIO_FRESH_LOCAL_GOAL_ARMED] current_seq=%lu; next sequence will "
+      "be planned from latest measured odom",
+      static_cast<unsigned long>(local_goal_seq_));
   }
 
   void validatedBsplineCallback(const traj_utils::msg::Bspline::SharedPtr msg)
   {
-    if (msg->traj_id <= last_validated_trajectory_id_) {return;}
-    last_validated_trajectory_id_ = msg->traj_id;
+    if (msg->traj_id < last_validated_trajectory_id_) {return;}
+    const bool newer_trajectory = msg->traj_id > last_validated_trajectory_id_;
+    if (newer_trajectory) {
+      last_validated_trajectory_id_ = msg->traj_id;
+    }
     last_validated_trajectory_time_ = now();
-    if (race_super_planner_ros2::shouldStartRecoveryConfirmation(
+    if (newer_trajectory && race_super_planner_ros2::shouldStartRecoveryConfirmation(
         msg->traj_id, recovery_required_after_trajectory_id_,
         trajectory_recovery_candidate_since_.nanoseconds() != 0))
     {
@@ -634,15 +761,20 @@ private:
 
   void updateLocalPlannerWatchdog()
   {
+    if (local_planner_watchdog_paused_) {
+      return;
+    }
     const bool recovery_candidate_is_stable =
       trajectory_recovery_candidate_since_.nanoseconds() != 0 &&
-      last_validated_trajectory_id_ > recovery_required_after_trajectory_id_ &&
+      (recovery_accepts_current_trajectory_ ||
+      last_validated_trajectory_id_ > recovery_required_after_trajectory_id_) &&
       ageSeconds(trajectory_recovery_candidate_since_) >=
       trajectory_recovery_confirmation_sec_;
     if (recovery_candidate_is_stable) {
       local_planner_failure_start_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
       local_planner_failure_replan_latched_ = false;
       trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      recovery_accepts_current_trajectory_ = false;
     }
 
     const double trajectory_age = last_validated_trajectory_time_.nanoseconds() == 0 ?
@@ -654,7 +786,8 @@ private:
       global_only_mode_ && have_goal_ && !final_goal_reached_latched_ &&
       heightAboveGround(latest_odom_.z) >= min_safe_height_,
       local_goal_reached_logged_, goal_waiting_for_trajectory, trajectory_age,
-      validatedTrajectoryLeaseRemaining(), trajectory_stall_timeout_sec_);
+      validatedTrajectoryLeaseRemaining(), trajectory_stall_timeout_sec_,
+      !local_planner_watchdog_paused_);
     const bool reported_failure_persisted =
       local_planner_failure_start_time_.nanoseconds() != 0 &&
       ageSeconds(local_planner_failure_start_time_) >= local_planner_failure_replan_sec_;
@@ -667,6 +800,7 @@ private:
       }
       local_planner_failure_replan_latched_ = true;
       local_planner_replan_requested_ = true;
+      local_goal_resume_pending_ = false;
       RCLCPP_WARN(
         get_logger(),
         "[EGO_PROGRESS_STALLED] trajectory_id=%ld trajectory_age=%.3f "
@@ -1597,6 +1731,11 @@ private:
     if (!publish_ego_local_goal_ || !ego_local_goal_pub_ || path.size() < 2) {
       return !publish_ego_local_goal_;
     }
+    if (race_super_planner_ros2::shouldHoldLocalGoalForPlannerRecovery(
+        local_planner_watchdog_paused_, local_goal_resume_pending_))
+    {
+      return true;
+    }
     if (have_local_goal_ && !local_goal_reached_logged_) {
       const double local_goal_distance = distance2d(latest_odom_, last_local_goal_);
       if (local_goal_distance <= ego_local_goal_reached_radius_m_) {
@@ -1607,7 +1746,9 @@ private:
           local_goal_seq_, local_goal_distance);
       }
     }
-    if (ageSeconds(last_local_goal_publish_time_) < local_goal_update_min_interval_sec_) {
+    if (!force_fresh_local_goal_ &&
+      ageSeconds(last_local_goal_publish_time_) < local_goal_update_min_interval_sec_)
+    {
       return true;
     }
 
@@ -1736,8 +1877,8 @@ private:
       distance2d(selected->point, last_local_goal_) >= local_goal_update_distance_m_;
     const bool prefetch_advanced = trajectory_prefetch_due &&
       distance2d(selected->point, last_local_goal_) >= 0.05;
-    const bool advanced = first_for_path || index_advanced || position_changed ||
-      force_final_approach || prefetch_advanced;
+    const bool advanced = force_fresh_local_goal_ || first_for_path || index_advanced ||
+      position_changed || force_final_approach || prefetch_advanced;
     if (!advanced) {
       return true;
     }
@@ -1755,6 +1896,7 @@ private:
     const uint64_t next_local_goal_seq = local_goal_seq_ + 1;
     race_msgs::msg::LocalPathReference reference_message;
     reference_message.header = message.header;
+    reference_message.global_goal_id = global_goal_id_;
     reference_message.global_path_id = global_path_id_;
     reference_message.local_goal_seq = next_local_goal_seq;
     reference_message.local_goal = message.pose.position;
@@ -1787,6 +1929,17 @@ private:
     last_local_goal_ = selected->point;
     have_local_goal_ = true;
     ++local_goal_seq_;
+    const bool published_for_frlio_recovery = force_fresh_local_goal_;
+    force_fresh_local_goal_ = false;
+    if (published_for_frlio_recovery) {
+      frlio_recovery_fresh_local_goal_pending_ = false;
+      frlio_recovery_bridge_ready_ = false;
+      RCLCPP_WARN(
+        get_logger(),
+        "[SUPER_FRLIO_FRESH_LOCAL_GOAL_PUBLISHED] local_goal_seq=%lu "
+        "reference_start=latest_odom_projection",
+        static_cast<unsigned long>(local_goal_seq_));
+    }
     local_goal_reached_logged_ = false;
     if (force_final_approach) {
       final_approach_published_ = true;
@@ -2712,6 +2865,7 @@ private:
 
   void resetLocalGoalProgress()
   {
+    local_goal_resume_pending_ = false;
     local_goal_progress_index_ = 0;
     last_local_goal_index_ = 0;
     last_local_goal_path_distance_ = 0.0;
@@ -3334,6 +3488,7 @@ private:
   std::string ego_status_topic_;
   std::string validated_bspline_topic_;
   std::string command_local_goal_seq_topic_;
+  std::string frlio_planner_usable_topic_;
   std::string raw_path_topic_;
   std::string marker_topic_;
   std::string world_frame_;
@@ -3368,7 +3523,7 @@ private:
   double goal_update_position_tolerance_m_{0.05};
   double local_planner_failure_replan_sec_{1.0};
   double trajectory_prefetch_sec_{1.5};
-  double trajectory_stall_timeout_sec_{1.0};
+  double trajectory_stall_timeout_sec_{3.0};
   double trajectory_recovery_confirmation_sec_{0.5};
   double shared_bounds_x_min_{-7.5};
   double shared_bounds_x_max_{7.5};
@@ -3432,6 +3587,8 @@ private:
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr ego_status_sub_;
   rclcpp::Subscription<traj_utils::msg::Bspline>::SharedPtr validated_bspline_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr command_local_goal_seq_sub_;
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr frlio_planner_usable_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt64>::SharedPtr bridge_replan_ready_sub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr raw_path_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
@@ -3470,10 +3627,16 @@ private:
   rclcpp::Time last_validated_trajectory_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time validated_trajectory_lease_deadline_{0, 0, RCL_ROS_TIME};
   rclcpp::Time trajectory_recovery_candidate_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time local_planner_watchdog_pause_started_{0, 0, RCL_ROS_TIME};
   std::string active_odom_source_;
   std::string active_cloud_source_;
   std::string fault_reason_;
   bool mavros_connected_{false};
+  bool local_planner_watchdog_paused_{false};
+  bool local_goal_resume_pending_{false};
+  bool frlio_recovery_fresh_local_goal_pending_{false};
+  bool frlio_recovery_bridge_ready_{false};
+  bool force_fresh_local_goal_{false};
   bool mavros_armed_{false};
   bool takeoff_path_released_{false};
   bool have_current_yaw_{false};
@@ -3504,6 +3667,7 @@ private:
   uint64_t global_path_id_{0};
   uint64_t local_goal_seq_{0};
   uint64_t last_validated_local_goal_seq_{0};
+  uint64_t last_bridge_replan_ready_token_{0};
   int64_t last_validated_trajectory_id_{-1};
   int64_t recovery_required_after_trajectory_id_{-1};
   std::size_t local_goal_progress_index_{0};
@@ -3513,6 +3677,7 @@ private:
   bool have_local_goal_{false};
   bool local_planner_replan_requested_{false};
   bool local_planner_failure_replan_latched_{false};
+  bool recovery_accepts_current_trajectory_{false};
   bool local_goal_reached_logged_{false};
   bool final_approach_published_{false};
   bool final_goal_reached_latched_{false};

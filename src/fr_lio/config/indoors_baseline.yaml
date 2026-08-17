@@ -21,8 +21,17 @@
       rejected_accel_process_noise_scale: 10.0
     high_rate_odom:
       enabled: true
-      warn_anchor_age_s: 0.15
+      warn_anchor_age_s: 0.18
+      suspect_exit_anchor_age_s: 0.12
+      recovery_healthy_samples: 3
       max_anchor_age_s: 0.40
+      # Predictor axis. This is the ONLY axis allowed to declare the external
+      # vision stream unusable, because it is the only one that says the
+      # IMU-propagated state itself cannot be trusted. A stale LiDAR anchor
+      # above only stops the planner.
+      max_predictor_age_s: 0.15
+      predictor_recover_age_s: 0.10
+      predictor_recovery_healthy_samples: 3
       imu_history_s: 5.0
       correction_smoothing_s: 0.25
       correction_diagnostics: true
@@ -32,6 +41,7 @@
         min_samples: 7
         max_deviation_mps2: 5.0
         max_norm_mps2: 19.62
+        max_consecutive_rejections: 5
     preprocess:
       lidar_type: 1
       scan_line: 4

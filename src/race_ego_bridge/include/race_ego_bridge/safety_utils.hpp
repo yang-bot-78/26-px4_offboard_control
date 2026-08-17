@@ -62,6 +62,21 @@ inline bool shouldResetFlightHandover(bool was_armed, bool armed)
   return was_armed && !armed;
 }
 
+inline bool shouldPreserveTrajectoryForPlannerPause(
+  bool have_trajectory, bool trajectory_collision_free, bool collision_latched)
+{
+  return have_trajectory && trajectory_collision_free && !collision_latched;
+}
+
+// A localization reset invalidates the coordinate frame used to generate the
+// active trajectory.  Unlike a short planner-compute pause, it must never be
+// resumed from that trajectory or from its local-goal transaction.
+inline bool frlioRecoveryNeedsFreshLocalGoal(
+  uint64_t received_local_goal_seq, uint64_t recovery_watermark_seq)
+{
+  return received_local_goal_seq <= recovery_watermark_seq;
+}
+
 inline bool transitionContinuous(const Vec3 & previous, const Vec3 & next, double max_jump)
 {
   if (!finite(previous) || !finite(next) || !std::isfinite(max_jump) || max_jump < 0.0) {
@@ -112,6 +127,65 @@ inline TrajectoryTransitionCheck transitionStateContinuous(
     result.velocity_error <= velocity_tolerance &&
     result.acceleration_error <= acceleration_tolerance;
   return result;
+}
+
+// Two distinct errors that a single "new trajectory start vs current odom"
+// comparison used to conflate:
+//
+//   splice_error   = candidate(t_switch) - active_trajectory(t_switch)
+//                    Purely trajectory-vs-trajectory. Judges handoff
+//                    continuity, so it is the only one allowed to reject a
+//                    candidate trajectory.
+//   tracking_error = measured_state(now) - active_trajectory(now)
+//                    Judges how well the vehicle (and therefore localization
+//                    and control) is following the trajectory it already has.
+//                    A large value here is a localization/tracking problem and
+//                    must not be reported as a trajectory handoff failure.
+//
+// Keeping them separate is what lets one fault be diagnosed instead of two
+// unrelated subsystems being blamed for the same number.
+enum class TrajectoryFaultClass
+{
+  None,
+  TrajectoryHandoff,     // splice large, tracking small
+  LocalizationTracking,  // splice small, tracking large
+  Both,                  // both large: report both, do not guess
+};
+
+inline const char * trajectoryFaultClassName(TrajectoryFaultClass value)
+{
+  switch (value) {
+    case TrajectoryFaultClass::None: return "NONE";
+    case TrajectoryFaultClass::TrajectoryHandoff: return "TRAJECTORY_HANDOFF";
+    case TrajectoryFaultClass::LocalizationTracking: return "LOCALIZATION_TRACKING";
+    case TrajectoryFaultClass::Both: return "TRAJECTORY_HANDOFF_AND_TRACKING";
+  }
+  return "NONE";
+}
+
+inline TrajectoryFaultClass classifyTrajectoryFault(
+  double splice_error, double splice_tolerance,
+  double tracking_error, double tracking_tolerance)
+{
+  // The splice error gates a real decision (reject the candidate), so a
+  // non-finite value fails closed: we cannot show it is within tolerance.
+  const bool splice_bad = !std::isfinite(splice_error) || splice_error > splice_tolerance;
+  // The tracking error is diagnostic only. An unknown value means "there is no
+  // command to compare against yet", which is not evidence of a fault, and
+  // reporting one would produce spurious warnings before the first validated
+  // output. Only a finite, over-threshold value counts.
+  const bool tracking_bad = std::isfinite(tracking_tolerance) &&
+    std::isfinite(tracking_error) && tracking_error > tracking_tolerance;
+  if (splice_bad && tracking_bad) {
+    return TrajectoryFaultClass::Both;
+  }
+  if (splice_bad) {
+    return TrajectoryFaultClass::TrajectoryHandoff;
+  }
+  if (tracking_bad) {
+    return TrajectoryFaultClass::LocalizationTracking;
+  }
+  return TrajectoryFaultClass::None;
 }
 
 struct ClearanceModeSelection

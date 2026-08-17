@@ -1,0 +1,20 @@
+# One entry per IMU callback. header.stamp is the IMU source timestamp after
+# the configured LiDAR-to-IMU time offset.
+std_msgs/Header header
+
+geometry_msgs/Vector3 raw_acceleration
+geometry_msgs/Vector3 used_acceleration
+geometry_msgs/Vector3 propagation_velocity_before
+geometry_msgs/Vector3 propagation_velocity_after
+geometry_msgs/Vector3 propagation_delta_velocity
+geometry_msgs/Vector3 output_velocity
+
+float64 raw_acceleration_norm_mps2
+float64 acceleration_deviation_mps2
+float64 process_noise_scale
+uint64 rejection_count
+uint64 consecutive_rejections
+bool sample_propagated
+bool accel_spike_rejected
+bool accel_norm_limit_exceeded
+bool accel_deviation_limit_exceeded

@@ -386,7 +386,8 @@ wait_backend_sync
 start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   ros2 launch "${autofix_launch}" \
   "fcu_url:=${fcu_url}" \
-  start_mavros_odometry_bridge:=true \
+  start_mavros_odometry_bridge:=false \
+  start_px4_vehicle_odometry:=true \
   start_odom_guard:=true \
   start_ev_health_monitor:=true \
   start_tf:=true \

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Structural static checks for the selected MAVLink ODOMETRY entry contract."""
+"""Structural static checks for the selected PX4 EV entry contract."""
 
 from __future__ import annotations
 
@@ -33,9 +33,11 @@ BASE_LINK_TO_FRD_TF_IDENTITY = (
 )
 ADAPTER_DEFAULTS = {
     "start_mavros_odometry_bridge": "true",
+    "start_px4_vehicle_odometry": "false",
 }
 STACK_ADAPTER_VALUES = {
     "start_mavros_odometry_bridge": "true",
+    "start_px4_vehicle_odometry": "false",
 }
 # EV writers that must NOT reappear in any launch file. The former
 # start_bridge / start_px4_ev_bridge adapters were deleted at the source, so the
@@ -60,8 +62,6 @@ STACK_WORLD_YAW_VALUES = {
 # is selected; the other two are kept listed so a second EV writer is detected.
 EV_EXECUTABLES = {
     "fastlio_mavros_odometry_bridge",
-    "fastlio_mavros_vision_bridge",
-    "fastlio_vehicle_visual_odometry",
 }
 DELETED_EV_EXECUTABLES = {
     "fastlio_mavros_vision_bridge",
@@ -647,23 +647,32 @@ def validate_launch(path: Path) -> Dict[str, str]:
         raise ContractError("selected ODOMETRY Node is not returned exactly once")
 
     condition = _keyword(selected_call, "condition")
-    if (
-        not isinstance(condition, ast.Call)
-        or _call_name(condition.func) != "IfCondition"
-        or len(condition.args) != 1
-        or condition.keywords
-    ):
+    if (not isinstance(condition, ast.Call) or _call_name(condition.func) != "IfCondition"
+            or len(condition.args) != 1 or condition.keywords):
         raise ContractError(
-            "selected ODOMETRY Node condition must bind start_mavros_odometry_bridge"
+            "selected EV Node condition must bind start_mavros_odometry_bridge"
         )
-    _resolve_launch_configuration(
-        condition.args[0],
-        "start_mavros_odometry_bridge",
-        "selected ODOMETRY Node condition",
-        assignments,
-        store_counts,
-        selected_position,
-    )
+    condition_value = condition.args[0]
+    if isinstance(condition_value, ast.Call) and _call_name(condition_value.func) == "PythonExpression":
+        expression_parts = []
+        if condition_value.args and isinstance(condition_value.args[0], ast.List):
+            for item in condition_value.args[0].elts:
+                if isinstance(item, ast.Constant) and type(item.value) is str:
+                    expression_parts.append(item.value)
+                elif isinstance(item, ast.Name):
+                    expression_parts.append(item.id)
+        expression_text = " ".join(expression_parts)
+        if "start_mavros_odometry_bridge" not in expression_text:
+            raise ContractError("selected EV Node condition must gate MAVROS writer")
+    else:
+        _resolve_launch_configuration(
+            condition_value,
+            "start_mavros_odometry_bridge",
+            "selected EV Node condition",
+            assignments,
+            store_counts,
+            selected_position,
+        )
 
     parameters = _parameter_entries(selected_call)
     input_topic = _one_parameter(parameters, "input_topic")
@@ -675,18 +684,7 @@ def validate_launch(path: Path) -> Dict[str, str]:
         store_counts,
         selected_position,
     )
-    restamp = _one_parameter(parameters, "restamp_message")
-    if not (
-        isinstance(restamp, ast.Constant)
-        and type(restamp.value) is bool
-        and restamp.value is False
-    ):
-        raise ContractError("selected ODOMETRY Node restamp_message must be bool False")
-    for parameter_name, expected in (
-        ("output_topic", "/mavros/odometry/out"),
-        ("world_frame_id", "odom"),
-        ("body_frame_id", "base_link"),
-    ):
+    for parameter_name, expected in (("output_topic", "/mavros/odometry/out"),):
         if _string(
             _one_parameter(parameters, parameter_name),
             f"selected ODOMETRY Node {parameter_name}",
@@ -694,15 +692,6 @@ def validate_launch(path: Path) -> Dict[str, str]:
             raise ContractError(
                 f"selected ODOMETRY Node {parameter_name} must be {expected!r}"
             )
-    for parameter_name in STACK_LEVER_ARM_VALUES:
-        _resolve_launch_configuration(
-            _one_parameter(parameters, parameter_name),
-            parameter_name,
-            f"selected ODOMETRY Node {parameter_name}",
-            assignments,
-            store_counts,
-            selected_position,
-        )
     _resolve_launch_configuration(
         _one_parameter(parameters, "world_yaw_alignment_rad"),
         "world_yaw_alignment_rad",
@@ -713,24 +702,12 @@ def validate_launch(path: Path) -> Dict[str, str]:
     )
     _validate_physical_body_tf(assignments, store_counts)
     _validate_mavros_odometry_tf(
-        assignments,
-        store_counts,
-        actions,
-        ODOM_TO_NED_TF_IDENTITY,
-        "odom",
-        "odom_ned",
-        "3.141592653589793",
-        "1.5707963267948966",
+        assignments, store_counts, actions, ODOM_TO_NED_TF_IDENTITY,
+        "odom", "odom_ned", "3.141592653589793", "1.5707963267948966",
     )
     _validate_mavros_odometry_tf(
-        assignments,
-        store_counts,
-        actions,
-        BASE_LINK_TO_FRD_TF_IDENTITY,
-        "base_link",
-        "base_link_frd",
-        "3.141592653589793",
-        "0",
+        assignments, store_counts, actions, BASE_LINK_TO_FRD_TF_IDENTITY,
+        "base_link", "base_link_frd", "3.141592653589793", "0",
     )
 
     defaults = _launch_argument_defaults(actions)
@@ -775,8 +752,8 @@ def validate_launch(path: Path) -> Dict[str, str]:
         ev_node_indexes.append(index)
     if len(ev_node_indexes) != 1:
         raise ContractError(
-            "exactly one EV writer Node may be returned; got "
-            f"{len(ev_node_indexes)} -- see 坐标转换.md before adding any PX4 EV writer"
+            "exactly one MAVROS EV writer Node may be returned; got "
+            f"{len(ev_node_indexes)}"
         )
 
     for call in ast.walk(tree):
@@ -790,8 +767,8 @@ def validate_launch(path: Path) -> Dict[str, str]:
             ):
                 raise ContractError(
                     f"deleted EV writer {keyword.value.value!r} must not be "
-                    "reintroduced; the single EV path is "
-                    "fastlio_mavros_odometry_bridge -> /mavros/odometry/out"
+                    "reintroduced; the production EV path is "
+                    "fastlio_px4_vehicle_odometry -> /fmu/in/vehicle_visual_odometry"
                 )
 
     identity = ",".join(
@@ -805,7 +782,7 @@ def validate_launch(path: Path) -> Dict[str, str]:
         "identity": identity,
         "condition": "start_mavros_odometry_bridge",
         "input": "/Odometry/healthy",
-        "restamp": "false",
+        "output": "/mavros/odometry/out",
         "defaults": ",".join(f"{key}={value}" for key, value in defaults.items()),
         "validation_order": "single_ev_node_in_source",
     }

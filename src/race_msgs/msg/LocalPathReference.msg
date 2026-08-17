@@ -1,7 +1,9 @@
 # Super's exact, safety-checked polyline from the current path projection to
-# the rolling local goal.  The two counters bind this reference to one global
-# path transaction and one local-goal update.
+# the rolling local goal. global_goal_id identifies the user goal; the two
+# remaining counters bind this reference to one path transaction and one
+# local-goal update.
 std_msgs/Header header
+uint64 global_goal_id
 uint64 global_path_id
 uint64 local_goal_seq
 geometry_msgs/Point local_goal

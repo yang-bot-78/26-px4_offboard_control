@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
+
 #include <fr_lio/high_rate_odom.hpp>
 
 namespace
@@ -26,6 +28,22 @@ fr_lio::HighRateImuSample stationary_imu(double timestamp)
 }
 
 }  // namespace
+
+TEST(HighRateOdomHealthGate, UsesHysteresisAndPosteriorGatedRecovery)
+{
+  fr_lio::HighRateOdomHealthGate gate(0.18, 0.12, 0.40, 3);
+
+  EXPECT_EQ(gate.update(0.17, 0), fr_lio::HighRateOdomHealth::Healthy);
+  EXPECT_EQ(gate.update(0.19, 0), fr_lio::HighRateOdomHealth::Suspect);
+  EXPECT_EQ(gate.update(0.15, 0), fr_lio::HighRateOdomHealth::Suspect);
+  EXPECT_EQ(gate.update(0.11, 0), fr_lio::HighRateOdomHealth::Healthy);
+
+  EXPECT_EQ(gate.update(0.41, 0), fr_lio::HighRateOdomHealth::StaleLidar);
+  EXPECT_EQ(gate.update(0.05, 0), fr_lio::HighRateOdomHealth::StaleLidar);
+  EXPECT_EQ(gate.update(0.05, 1), fr_lio::HighRateOdomHealth::StaleLidar);
+  EXPECT_EQ(gate.update(0.05, 1), fr_lio::HighRateOdomHealth::StaleLidar);
+  EXPECT_EQ(gate.update(0.05, 1), fr_lio::HighRateOdomHealth::Healthy);
+}
 
 TEST(AccelerationUnitReport, ReportsWithoutChangingRuntimeUnits)
 {
@@ -212,8 +230,17 @@ TEST(HighRateOdomPropagator, SmoothsLidarCorrectionForContinuousOutput)
   auto continuous = propagator.current();
   ASSERT_TRUE(continuous.has_value());
   EXPECT_NEAR(continuous->state.position.x(), 0.0, 1e-9);
+  EXPECT_NEAR(continuous->state.velocity.x(), 0.0, 1e-12);
 
-  for (int index = 21; index <= 70; ++index) {
+  for (int index = 21; index <= 45; ++index) {
+    continuous = propagator.add_imu(stationary_imu(index * 0.005));
+  }
+  ASSERT_TRUE(continuous.has_value());
+  EXPECT_GT(continuous->state.position.x(), 0.0);
+  EXPECT_LT(continuous->state.position.x(), 2.0);
+  EXPECT_NEAR(continuous->state.velocity.x(), 0.0, 1e-12);
+
+  for (int index = 46; index <= 70; ++index) {
     continuous = propagator.add_imu(stationary_imu(index * 0.005));
   }
   ASSERT_TRUE(continuous.has_value());
@@ -239,8 +266,12 @@ TEST(HighRateOdomPropagator, CorrectionDiagnosticExposesPropagationAndSmoothingS
   EXPECT_NEAR(diagnostic->anchor_posterior_velocity.x(), 2.0, 1e-12);
   EXPECT_NEAR(diagnostic->posterior_velocity.x(), 2.0, 1e-12);
   EXPECT_NEAR(diagnostic->output_velocity_before.x(), 0.0, 1e-12);
-  EXPECT_NEAR(diagnostic->output_velocity_after.x(), 0.0, 1e-12);
+  EXPECT_NEAR(diagnostic->output_velocity_after.x(), 2.0, 1e-12);
   EXPECT_NEAR(diagnostic->correction_offset_velocity.x(), -2.0, 1e-12);
+
+  const auto current = propagator.current();
+  ASSERT_TRUE(current.has_value());
+  EXPECT_NEAR(current->state.velocity.x(), 2.0, 1e-12);
 }
 
 TEST(HighRateOdomPropagator, FirstAnchorWithoutImuStillProducesFreshDiagnostic)
@@ -279,7 +310,7 @@ TEST(HighRateOdomPropagator, CorrectionSmoothingBypassPublishesPosteriorDirectly
   EXPECT_NEAR(diagnostic->output_velocity_after.x(), 2.0, 1e-12);
 }
 
-TEST(HighRateOdomPropagator, NewAnchorStartsFromCurrentSmoothedOutput)
+TEST(HighRateOdomPropagator, NewAnchorUsesLatestReplayVelocity)
 {
   fr_lio::HighRateOdomPropagator propagator({}, 0.15, 0.40, 5.0, {}, 0.25);
   propagator.add_imu(stationary_imu(0.0));
@@ -295,19 +326,18 @@ TEST(HighRateOdomPropagator, NewAnchorStartsFromCurrentSmoothedOutput)
 
   auto second = stationary_anchor(0.10);
   second.position.x() = 2.0;
+  second.velocity.x() = 3.0;
   ASSERT_TRUE(propagator.reset_from_lidar(second));
   const auto diagnostic = propagator.take_last_correction_diagnostic();
   ASSERT_TRUE(diagnostic.has_value());
-  EXPECT_NEAR(
-    diagnostic->output_velocity_after.x(), diagnostic->output_velocity_before.x(), 1e-12);
-  EXPECT_NEAR(
-    diagnostic->output_velocity_after.y(), diagnostic->output_velocity_before.y(), 1e-12);
-  EXPECT_NEAR(
-    diagnostic->output_velocity_after.z(), diagnostic->output_velocity_before.z(), 1e-12);
+  EXPECT_NEAR(diagnostic->output_velocity_before.x(), 0.0, 1e-12);
+  EXPECT_NEAR(diagnostic->posterior_velocity.x(), 3.0, 1e-12);
+  EXPECT_NEAR(diagnostic->output_velocity_after.x(), 3.0, 1e-12);
 
   const auto after_second = propagator.current();
   ASSERT_TRUE(after_second.has_value());
   EXPECT_NEAR(after_second->state.position.x(), before_second->state.position.x(), 1e-12);
+  EXPECT_NEAR(after_second->state.velocity.x(), 3.0, 1e-12);
 }
 
 TEST(HighRateOdomPropagator, InterpolatesInputAtDelayedCorrectionTime)
@@ -389,7 +419,10 @@ TEST(HighRateOdomPropagator, RejectsLidarCorrectionFromFutureTimestamp)
   EXPECT_FALSE(propagator.current().has_value());
 }
 
-TEST(HighRateOdomPropagator, StaleLidarStopsPublishing)
+// A stale LiDAR posterior must NOT stop publication. It raises the level to
+// PLANNER_UNUSABLE, which keeps EV usable and only stops the planner. Stopping
+// the stream here is what produced the EV dropout cascade.
+TEST(HighRateOdomPropagator, StaleLidarKeepsPublishingAndOnlyBlocksThePlanner)
 {
   fr_lio::HighRateOdomPropagator propagator({}, 0.15, 0.40, 2.0);
   propagator.add_imu(stationary_imu(0.0));
@@ -399,11 +432,196 @@ TEST(HighRateOdomPropagator, StaleLidarStopsPublishing)
   ASSERT_TRUE(suspect.has_value());
   EXPECT_TRUE(suspect->publish);
   EXPECT_EQ(suspect->health, fr_lio::HighRateOdomHealth::Suspect);
+  EXPECT_EQ(suspect->level, fr_lio::HighRateOdomLevel::Degraded);
+  EXPECT_TRUE(fr_lio::ev_usable_at(suspect->level));
+  EXPECT_TRUE(fr_lio::planner_usable_at(suspect->level));
 
   const auto stale = propagator.add_imu(stationary_imu(0.41));
   ASSERT_TRUE(stale.has_value());
-  EXPECT_FALSE(stale->publish);
+  EXPECT_TRUE(stale->publish);
   EXPECT_EQ(stale->health, fr_lio::HighRateOdomHealth::StaleLidar);
+  EXPECT_EQ(stale->level, fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_TRUE(fr_lio::ev_usable_at(stale->level));
+  EXPECT_FALSE(fr_lio::planner_usable_at(stale->level));
+  EXPECT_EQ(stale->reason, fr_lio::HighRateOdomReason::AnchorStale);
+  // The published state is the real propagated state at its real timestamp.
+  EXPECT_DOUBLE_EQ(stale->state.timestamp, 0.41);
+}
+
+TEST(HighRateOdomPropagator, PredictorGenerationAdvancesOnEveryPropagation)
+{
+  fr_lio::HighRateOdomPropagator propagator({}, 0.15, 0.40, 2.0);
+  propagator.add_imu(stationary_imu(0.0));
+  ASSERT_TRUE(propagator.reset_from_lidar(stationary_anchor()));
+
+  const auto first = propagator.add_imu(stationary_imu(0.01));
+  ASSERT_TRUE(first.has_value());
+  const auto second = propagator.add_imu(stationary_imu(0.02));
+  ASSERT_TRUE(second.has_value());
+  EXPECT_GT(second->predictor_generation, first->predictor_generation);
+  EXPECT_TRUE(second->state_finite);
+}
+
+TEST(HighRateOdomHealthGate, AnchorAxisNeverReachesStateUnusable)
+{
+  fr_lio::HighRateOdomHealthGate gate(0.18, 0.12, 0.40, 3);
+  // Even a multi-second anchor age is only ever PLANNER_UNUSABLE: the anchor
+  // says nothing about whether the propagated state is still valid.
+  EXPECT_EQ(gate.update_anchor(5.0, 0), fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_TRUE(fr_lio::ev_usable_at(gate.anchorLevel()));
+  EXPECT_FALSE(fr_lio::planner_usable_at(gate.anchorLevel()));
+  EXPECT_EQ(gate.anchorReason(), fr_lio::HighRateOdomReason::AnchorStale);
+
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  EXPECT_EQ(gate.update_anchor(nan, 0), fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_TRUE(fr_lio::ev_usable_at(gate.anchorLevel()));
+}
+
+TEST(HighRateOdomHealthGate, AnchorLevelsFollowHysteresisAndPosteriorRecovery)
+{
+  fr_lio::HighRateOdomHealthGate gate(0.18, 0.12, 0.40, 3);
+
+  EXPECT_EQ(gate.update_anchor(0.17, 0), fr_lio::HighRateOdomLevel::Good);
+  EXPECT_EQ(gate.update_anchor(0.19, 0), fr_lio::HighRateOdomLevel::Degraded);
+  EXPECT_EQ(gate.update_anchor(0.15, 0), fr_lio::HighRateOdomLevel::Degraded);
+  EXPECT_EQ(gate.update_anchor(0.11, 0), fr_lio::HighRateOdomLevel::Good);
+
+  EXPECT_EQ(gate.update_anchor(0.41, 0), fr_lio::HighRateOdomLevel::PlannerUnusable);
+  // Age alone must not recover: a new posterior generation is required.
+  EXPECT_EQ(gate.update_anchor(0.05, 0), fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_EQ(gate.update_anchor(0.05, 1), fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_EQ(gate.update_anchor(0.05, 1), fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_EQ(gate.update_anchor(0.05, 1), fr_lio::HighRateOdomLevel::Good);
+}
+
+TEST(PredictorHealthGate, FreshPredictorStaysGoodRegardlessOfAnchor)
+{
+  fr_lio::PredictorHealthGate gate(0.15, 0.10, 3);
+  fr_lio::PredictorHealthGate::Input input;
+  input.predictor_age_s = 0.02;
+  input.predictor_generation = 1;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::Good);
+  EXPECT_TRUE(fr_lio::ev_usable_at(gate.level()));
+}
+
+TEST(PredictorHealthGate, StalePredictorTakesEvAwayAndLatchesUntilRecovery)
+{
+  fr_lio::PredictorHealthGate gate(0.15, 0.10, 3);
+  fr_lio::PredictorHealthGate::Input input;
+  input.predictor_age_s = 0.20;
+  input.predictor_generation = 10;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+  EXPECT_FALSE(fr_lio::ev_usable_at(gate.level()));
+  EXPECT_EQ(gate.reason(), fr_lio::HighRateOdomReason::PredictorStale);
+
+  // A fresh age is not enough while the generation has not advanced past the
+  // faulting one: a frozen predictor can report a small age forever.
+  input.predictor_age_s = 0.02;
+  input.predictor_generation = 10;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+
+  input.predictor_generation = 11;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+  input.predictor_generation = 12;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+  input.predictor_generation = 13;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::Good);
+  EXPECT_TRUE(fr_lio::ev_usable_at(gate.level()));
+}
+
+TEST(PredictorHealthGate, RollbackNonFiniteAndUninitializedAreAllStateUnusable)
+{
+  fr_lio::PredictorHealthGate gate(0.15, 0.10, 3);
+  fr_lio::PredictorHealthGate::Input input;
+  input.predictor_age_s = 0.01;
+  input.predictor_generation = 1;
+
+  input.timestamp_monotonic = false;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+  EXPECT_EQ(gate.reason(), fr_lio::HighRateOdomReason::TimestampRollback);
+
+  gate.reset();
+  input.timestamp_monotonic = true;
+  input.state_finite = false;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+  EXPECT_EQ(gate.reason(), fr_lio::HighRateOdomReason::NonFiniteState);
+
+  gate.reset();
+  input.state_finite = true;
+  input.initialized = false;
+  EXPECT_EQ(gate.update(input), fr_lio::HighRateOdomLevel::StateUnusable);
+  EXPECT_EQ(gate.reason(), fr_lio::HighRateOdomReason::NotInitialized);
+}
+
+// This is the exact scenario from the requirement: anchor_age=0.8s with
+// predictor_age=0.02s must yield ev_usable=true, planner_usable=false.
+TEST(LocalizationHealth, StaleAnchorWithFreshPredictorKeepsEvUsable)
+{
+  fr_lio::HighRateOdomHealthGate anchor_gate(0.18, 0.12, 0.40, 3);
+  fr_lio::PredictorHealthGate predictor_gate(0.15, 0.10, 3);
+
+  const auto anchor_level = anchor_gate.update_anchor(0.80, 0);
+  fr_lio::PredictorHealthGate::Input input;
+  input.predictor_age_s = 0.02;
+  input.predictor_generation = 5;
+  const auto predictor_level = predictor_gate.update(input);
+
+  fr_lio::LocalizationHealthSnapshot snapshot;
+  snapshot.anchor_age_s = 0.80;
+  snapshot.predictor_age_s = 0.02;
+  fr_lio::merge_health_axes(
+    snapshot, anchor_level, anchor_gate.anchorReason(),
+    predictor_level, predictor_gate.reason());
+
+  EXPECT_EQ(snapshot.level, fr_lio::HighRateOdomLevel::PlannerUnusable);
+  EXPECT_TRUE(snapshot.ev_usable);
+  EXPECT_FALSE(snapshot.planner_usable);
+  EXPECT_EQ(snapshot.reason, fr_lio::HighRateOdomReason::AnchorStale);
+}
+
+TEST(LocalizationHealth, DeadPredictorOverridesAFreshAnchor)
+{
+  fr_lio::HighRateOdomHealthGate anchor_gate(0.18, 0.12, 0.40, 3);
+  fr_lio::PredictorHealthGate predictor_gate(0.15, 0.10, 3);
+
+  const auto anchor_level = anchor_gate.update_anchor(0.05, 1);
+  fr_lio::PredictorHealthGate::Input input;
+  input.predictor_age_s = 0.30;
+  input.predictor_generation = 5;
+  const auto predictor_level = predictor_gate.update(input);
+
+  fr_lio::LocalizationHealthSnapshot snapshot;
+  fr_lio::merge_health_axes(
+    snapshot, anchor_level, anchor_gate.anchorReason(),
+    predictor_level, predictor_gate.reason());
+
+  EXPECT_EQ(snapshot.level, fr_lio::HighRateOdomLevel::StateUnusable);
+  EXPECT_FALSE(snapshot.ev_usable);
+  EXPECT_FALSE(snapshot.planner_usable);
+  EXPECT_EQ(snapshot.reason, fr_lio::HighRateOdomReason::PredictorStale);
+}
+
+// A snapshot must be internally consistent: GOOD together with a large
+// anchor_age is exactly the contradiction the single-snapshot rule forbids.
+TEST(LocalizationHealth, LevelAndUsabilityNeverContradictEachOther)
+{
+  for (const auto level : {
+      fr_lio::HighRateOdomLevel::Good, fr_lio::HighRateOdomLevel::Degraded,
+      fr_lio::HighRateOdomLevel::PlannerUnusable,
+      fr_lio::HighRateOdomLevel::StateUnusable})
+  {
+    fr_lio::LocalizationHealthSnapshot snapshot;
+    fr_lio::merge_health_axes(
+      snapshot, level, fr_lio::HighRateOdomReason::None,
+      fr_lio::HighRateOdomLevel::Good, fr_lio::HighRateOdomReason::None);
+    EXPECT_EQ(snapshot.ev_usable, level < fr_lio::HighRateOdomLevel::StateUnusable);
+    EXPECT_EQ(snapshot.planner_usable, level < fr_lio::HighRateOdomLevel::PlannerUnusable);
+    // planner_usable implies ev_usable: the planner can never be allowed to run
+    // on a state that PX4 is not even allowed to fuse.
+    if (snapshot.planner_usable) {
+      EXPECT_TRUE(snapshot.ev_usable);
+    }
+  }
 }
 
 TEST(HighRateOdomPropagator, PublishedCovariancesAreFiniteAndPositive)

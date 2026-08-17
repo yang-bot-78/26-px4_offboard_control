@@ -50,9 +50,17 @@ race_ego_trajectory_bridge:
     frame_id: map
     position_command_topic: /race/ego/position_command
     bspline_topic: /race/ego/bspline
+    local_path_reference_topic: /race/ego/local_path_reference
     output_topic: /race/ego/trajectory_setpoint
     publish_setpoint: true
     control_enabled: false
+    # Do not accept planner output until FR-LIO has continuously reported a
+    # usable localization state. A fault invalidates the active trajectory.
+    require_frlio_health: true
+    frlio_status_topic: /frlio/high_rate_odom/status
+    frlio_planner_usable_topic: /frlio/high_rate_odom/planner_usable
+    frlio_recovery_healthy_sec: 1.0
+    frlio_status_timeout_sec: 0.5
     map_source: static
     occupancy_topic: /race/ego/occupancy_inflate
     occupancy_is_inflated: true
@@ -61,15 +69,25 @@ race_ego_trajectory_bridge:
     occupancy_timeout_sec: 1.0
     flight_mode: flat
     flight_height: 0.78
-    max_velocity: 0.60
-    max_acceleration: 0.80
+    max_velocity: 0.40
+    max_acceleration: 0.60
     feasibility_tolerance: 1.10
     dynamic_invalid_grace_sec: 0.75
-    switch_position_tolerance_m: 0.05
+    # splice_error tolerances: candidate trajectory vs the command the bridge
+    # currently owns. These are the only ones that reject a trajectory.
+    switch_position_tolerance_m: 0.20
     switch_velocity_tolerance_mps: 0.10
     switch_acceleration_tolerance_mps2: 0.20
+    # tracking_error reporting threshold: measured position vs the command being
+    # tracked. Diagnostic only -- it never rejects a trajectory, because a
+    # tracking error is a localization/control problem and rejecting the
+    # replacement trajectory would remove the very thing that could fix it.
+    tracking_error_report_threshold_m: 0.30
     obstacle_clearance: 0.30
     command_timeout_sec: 0.20
+    command_hold_grace_sec: 0.60
+    candidate_max_age_sec: 0.40
+    active_trajectory_min_remaining_sec: 0.50
     odom_timeout_sec: 0.25
     min_planning_height: -0.15
     min_height: 0.50

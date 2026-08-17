@@ -144,8 +144,8 @@ def generate_launch_description():
         DeclareLaunchArgument('map_source', default_value='static'),
         # Retained only so existing launcher invocations remain accepted. The tuning YAML
         # is applied last and is the authoritative user-editable source.
-        DeclareLaunchArgument('max_vel', default_value='0.60'),
-        DeclareLaunchArgument('max_acc', default_value='0.80'),
+        DeclareLaunchArgument('max_vel', default_value='0.40'),
+        DeclareLaunchArgument('max_acc', default_value='0.60'),
         DeclareLaunchArgument('inflation', default_value='0.30'),
         DeclareLaunchArgument('resolution', default_value='0.15'),
         DeclareLaunchArgument('local_map_x', default_value='6.0'),
