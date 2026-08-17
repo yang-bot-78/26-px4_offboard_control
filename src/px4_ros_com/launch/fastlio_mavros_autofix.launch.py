@@ -13,7 +13,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 # EV 链生产路径：
-#   MID-360 -> FAST-LIO -> /Odometry -> EV health/relocalization gate
+#   MID-360 -> FAST-LIO -> /Odometry -> EV health gate
 #     -> fastlio_px4_vehicle_odometry -> /fmu/in/vehicle_visual_odometry
 #     -> PX4 EKF2.  MAVROS ODOMETRY remains an explicit, disabled-by-default
 #     diagnostic path and must not be enabled together with the native writer.
@@ -53,7 +53,6 @@ def generate_launch_description():
     guard_rebaseline_after_rejections = LaunchConfiguration(
         "guard_rebaseline_after_rejections"
     )
-    ev_max_position_jump_m = LaunchConfiguration("ev_max_position_jump_m")
     ev_max_velocity_difference_mps = LaunchConfiguration(
         "ev_max_velocity_difference_mps"
     )
@@ -64,6 +63,9 @@ def generate_launch_description():
         "ev_velocity_comparison_window_s"
     )
     ev_anomaly_to_fault_s = LaunchConfiguration("ev_anomaly_to_fault_s")
+    ev_internal_velocity_unaligned_grace_s = LaunchConfiguration(
+        "ev_internal_velocity_unaligned_grace_s"
+    )
     ev_recovery_healthy_s = LaunchConfiguration("ev_recovery_healthy_s")
     ev_message_timeout_s = LaunchConfiguration("ev_message_timeout_s")
     ev_velocity_lowpass_cutoff_hz = LaunchConfiguration(
@@ -101,8 +103,6 @@ def generate_launch_description():
     flight_ready_output_timeout_s = LaunchConfiguration(
         "flight_ready_output_timeout_s"
     )
-    enable_relocalization = LaunchConfiguration("enable_relocalization")
-    relocalization_stable_s = LaunchConfiguration("relocalization_stable_s")
     require_px4_local_position = LaunchConfiguration("require_px4_local_position")
     px4_local_position_timeout_s = LaunchConfiguration("px4_local_position_timeout_s")
     require_px4_ev_fusion = LaunchConfiguration("require_px4_ev_fusion")
@@ -163,7 +163,6 @@ def generate_launch_description():
                 "px4_velocity_topic": "/mavros/local_position/velocity_local",
                 "world_yaw_alignment_rad": world_yaw_alignment_rad,
                 "max_input_age_s": ev_max_input_age_s,
-                "max_position_jump_m": ev_max_position_jump_m,
                 "max_horizontal_velocity_difference_mps": ev_max_velocity_difference_mps,
                 "max_internal_velocity_difference_mps":
                     ev_max_internal_velocity_difference_mps,
@@ -171,6 +170,8 @@ def generate_launch_description():
                 "max_internal_velocity_alignment_s": ev_max_internal_velocity_alignment_s,
                 "internal_velocity_history_s": ev_internal_velocity_history_s,
                 "anomaly_to_fault_s": ev_anomaly_to_fault_s,
+                "internal_velocity_unaligned_grace_s":
+                    ev_internal_velocity_unaligned_grace_s,
                 "recovery_healthy_s": ev_recovery_healthy_s,
                 "message_timeout_s": ev_message_timeout_s,
                 "velocity_lowpass_cutoff_hz": ev_velocity_lowpass_cutoff_hz,
@@ -188,10 +189,6 @@ def generate_launch_description():
                     frlio_allow_stale_lidar_predictor_degraded, value_type=bool
                 ),
                 "flight_ready_output_timeout_s": flight_ready_output_timeout_s,
-                "enable_relocalization": ParameterValue(
-                    enable_relocalization, value_type=bool
-                ),
-                "relocalization_stable_s": relocalization_stable_s,
                 "require_px4_local_position": ParameterValue(
                     require_px4_local_position, value_type=bool
                 ),
@@ -441,7 +438,6 @@ def generate_launch_description():
             DeclareLaunchArgument("ev_max_input_age_s", default_value="0.25"),
             DeclareLaunchArgument("guard_velocity_window_s", default_value="0.12"),
             DeclareLaunchArgument("guard_rebaseline_after_rejections", default_value="8"),
-            DeclareLaunchArgument("ev_max_position_jump_m", default_value="0.15"),
             DeclareLaunchArgument("ev_max_velocity_difference_mps", default_value="0.45"),
             DeclareLaunchArgument(
                 "ev_max_internal_velocity_difference_mps", default_value="0.50"
@@ -450,6 +446,9 @@ def generate_launch_description():
                 "ev_velocity_comparison_window_s", default_value="0.15"
             ),
             DeclareLaunchArgument("ev_anomaly_to_fault_s", default_value="0.3"),
+            DeclareLaunchArgument(
+                "ev_internal_velocity_unaligned_grace_s", default_value="0.20"
+            ),
             DeclareLaunchArgument("ev_recovery_healthy_s", default_value="2.0"),
             DeclareLaunchArgument("ev_message_timeout_s", default_value="0.5"),
             DeclareLaunchArgument("ev_velocity_lowpass_cutoff_hz", default_value="3.0"),
@@ -491,8 +490,6 @@ def generate_launch_description():
                 # flight_ready; EV fault and hard anchor gates still fail closed.
                 "flight_ready_output_timeout_s", default_value="0.8"
             ),
-            DeclareLaunchArgument("enable_relocalization", default_value="true"),
-            DeclareLaunchArgument("relocalization_stable_s", default_value="0.50"),
             # The MAVLink transport does not expose PX4 uORB VehicleLocalPosition
             # to ROS 2. Use MAVROS local odometry instead; do not subscribe to
             # the unavailable /fmu topic.

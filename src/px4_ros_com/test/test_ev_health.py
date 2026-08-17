@@ -20,7 +20,6 @@ def config(**overrides):
     values = dict(
         recovery_healthy_s=0.0,
         max_input_age_s=0.25,
-        max_position_jump_m=0.15,
         max_horizontal_velocity_difference_mps=0.45,
         velocity_comparison_window_s=0.1,
         anomaly_to_fault_s=0.3,
@@ -76,29 +75,6 @@ def test_normal_backward_motion_has_matching_negative_sign():
     assert result.state == HealthState.HEALTHY
 
 
-def test_relocalization_commits_once_after_stable_new_frame():
-    core = EvHealthMonitorCore(
-        config(
-            enable_relocalization=True,
-            relocalization_stable_s=0.20,
-            max_position_jump_m=0.15,
-        )
-    )
-    add_frame(core, 1.0, 0.0)
-    add_frame(core, 1.1, 0.01)
-    jump = add_frame(core, 1.2, 1.0)
-    assert not jump.publish
-    recovering = add_frame(core, 1.3, 1.01)
-    assert not recovering.publish
-    committed = add_frame(core, 1.5, 1.02)
-    assert committed.publish
-    assert committed.relocalized
-    assert committed.reset_counter == 1
-    duplicate = add_frame(core, 1.6, 1.03)
-    assert duplicate.reset_counter == 1
-    assert not duplicate.relocalized
-
-
 def test_internal_velocity_matches_position_derivative_in_common_frame():
     core = EvHealthMonitorCore(config())
     add_frame(
@@ -119,6 +95,37 @@ def test_internal_velocity_matches_position_derivative_in_common_frame():
     )
     assert result.state == HealthState.HEALTHY
     assert result.metrics.internal_velocity_difference_mps == pytest.approx(0.0)
+
+
+def test_short_internal_velocity_alignment_miss_keeps_ev_and_downgrades_planner():
+    core = EvHealthMonitorCore(
+        config(
+            internal_velocity_unaligned_grace_s=0.20,
+            max_internal_velocity_alignment_s=0.05,
+        )
+    )
+    add_frame(
+        core,
+        1.0,
+        0.0,
+        px4_velocity_enu=(0.5, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 0.5, 0.0),
+    )
+    # Simulate a short history gap around the EV source-time interval while the
+    # current FR-LIO twist sample itself is still finite.
+    core._internal_velocity_history.clear()
+    result = add_frame(
+        core,
+        1.1,
+        0.05,
+        px4_velocity_enu=(0.5, 0.0, 0.0),
+        internal_velocity_px4_ned=(0.0, 0.5, 0.0),
+    )
+
+    assert result.reason == "internal_velocity_unaligned"
+    assert result.state != HealthState.FAULT
+    assert result.publish
+    assert result.planner_usable is False
 
 
 def test_internal_velocity_opposite_to_position_derivative_is_suspect():
@@ -257,34 +264,14 @@ def test_px4_moves_backward_while_ev_drifts_forward_faults_after_0p3s():
     assert not result.publish
 
 
-def test_single_0p2m_jump_cannot_become_the_new_trusted_baseline():
+def test_position_jump_is_not_a_health_gate():
     core = EvHealthMonitorCore(config())
-    add_frame(core, 1.0, 0.0)
-    jump = add_frame(core, 1.1, 0.2)
-    following = add_frame(core, 1.2, 0.2)
+    add_frame(core, 1.0, 0.0, px4_velocity_enu=(2.0, 0.0, 0.0))
+    jump = add_frame(core, 1.1, 0.2, px4_velocity_enu=(2.0, 0.0, 0.0))
 
-    assert not jump.accepted
-    assert not jump.publish
-    assert "position_jump" in jump.reason
-    assert not following.accepted
-    assert not following.publish
-    assert following.metrics.single_frame_displacement_m == pytest.approx(0.2)
-
-    returned = add_frame(core, 1.3, 0.0)
-    assert returned.accepted
-    assert returned.publish
-    assert returned.metrics.single_frame_displacement_m == pytest.approx(0.0)
-
-
-def test_persistent_position_jump_reaches_fault_without_following_bad_track():
-    core = EvHealthMonitorCore(config())
-    add_frame(core, 1.0, 0.0)
-
-    results = [add_frame(core, 1.1 + 0.1 * index, 0.2) for index in range(4)]
-
-    assert all(not result.publish for result in results)
-    assert results[-1].state == HealthState.FAULT
-    assert "position_jump" in results[-1].reason
+    assert jump.accepted
+    assert jump.publish
+    assert jump.state == HealthState.HEALTHY
 
 
 @pytest.mark.parametrize(

@@ -16,7 +16,6 @@
 #include <mavros_msgs/srv/command_bool.hpp>
 #include <mavros_msgs/srv/set_mode.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <race_msgs/msg/flight_altitude_reference.hpp>
 #include <race_msgs/msg/global_planner_status.hpp>
 #include <race_msgs/msg/navigation_setpoint.hpp>
@@ -35,6 +34,7 @@
 #include "race_offboard/frlio_health_policy.hpp"
 #include "race_offboard/local_origin_rebase_guard.hpp"
 #include "race_offboard/mavros_frame_utils.hpp"
+#include "race_offboard/px4_local_pose_reset_matcher.hpp"
 #include "race_offboard/px4_local_z_reset_tracker.hpp"
 
 using namespace std::chrono_literals;
@@ -170,8 +170,17 @@ public:
       declare_parameter<double>("local_origin_rebase_max_spread_m", 0.08);
     local_origin_rebase_max_speed_mps_ =
       declare_parameter<double>("local_origin_rebase_max_speed_mps", 0.20);
-    px4_local_z_reset_topic_ = declare_parameter<std::string>(
-      "px4_local_z_reset_topic", "/mavros/debug_value/debug_vector");
+    px4_local_reset_topic_ = declare_parameter<std::string>(
+      "px4_local_reset_topic", "/mavros/debug_value/debug_vector");
+    px4_local_pose_reset_match_window_sec_ =
+      declare_parameter<double>("px4_local_pose_reset_match_window_sec", 0.35);
+    px4_local_pose_reset_xy_tolerance_m_ =
+      declare_parameter<double>("px4_local_pose_reset_xy_tolerance_m", 0.10);
+    px4_local_pose_reset_z_tolerance_m_ =
+      declare_parameter<double>("px4_local_pose_reset_z_tolerance_m", 0.10);
+    px4_local_pose_reset_matcher_.configure(
+      px4_local_pose_reset_match_window_sec_, px4_local_pose_reset_xy_tolerance_m_,
+      px4_local_pose_reset_z_tolerance_m_);
     local_origin_rebase_guard_.configure(
       local_origin_rebase_stabilization_sec_, local_origin_rebase_max_spread_m_,
       local_origin_rebase_max_speed_mps_);
@@ -275,14 +284,11 @@ public:
     local_velocity_subscriber_ = create_subscription<geometry_msgs::msg::TwistStamped>(
       "/mavros/local_position/velocity_local", rclcpp::SensorDataQoS(),
       std::bind(&OffboardWaypointNode::localVelocityCallback, this, std::placeholders::_1));
-    px4_local_position_subscriber_ = create_subscription<px4_msgs::msg::VehicleLocalPosition>(
-      "/fmu/out/vehicle_local_position_v1", rclcpp::SensorDataQoS(),
-      std::bind(&OffboardWaypointNode::px4LocalPositionCallback, this, std::placeholders::_1));
-    if (!px4_local_z_reset_topic_.empty()) {
-      px4_local_z_reset_subscriber_ =
+    if (!px4_local_reset_topic_.empty()) {
+      px4_local_reset_subscriber_ =
         create_subscription<mavros_msgs::msg::DebugValue>(
-        px4_local_z_reset_topic_, rclcpp::SensorDataQoS(),
-        std::bind(&OffboardWaypointNode::px4LocalZResetCallback, this, std::placeholders::_1));
+        px4_local_reset_topic_, rclcpp::SensorDataQoS(),
+        std::bind(&OffboardWaypointNode::px4LocalResetCallback, this, std::placeholders::_1));
     }
     const auto ev_latched_qos = rclcpp::QoS(1).reliable().transient_local();
     ev_health_subscriber_ = create_subscription<std_msgs::msg::String>(
@@ -421,39 +427,12 @@ private:
     have_local_velocity_ = true;
   }
 
-  void px4LocalPositionCallback(const px4_msgs::msg::VehicleLocalPosition::SharedPtr msg)
+  void px4LocalResetCallback(const mavros_msgs::msg::DebugValue::SharedPtr msg)
   {
-    px4_local_position_seen_ = true;
-    dead_reckoning_ = msg->dead_reckoning;
-    xy_valid_ = msg->xy_valid;
-    z_valid_ = msg->z_valid;
-    heading_good_ = msg->heading_good_for_control;
-    current_x_ = msg->x;
-    current_y_ = msg->y;
-    current_z_ = msg->z;
-    current_vx_ = msg->vx;
-    current_vy_ = msg->vy;
-    current_vz_ = msg->vz;
-    const auto counter = msg->z_reset_counter;
-    if (counter == last_px4_z_reset_counter_ && px4_local_z_reset_tracker_.initialized()) {
-      return;
-    }
-    const auto observation = px4_local_z_reset_tracker_.observe(counter, msg->delta_z);
-    if (observation.decision == race_offboard::Px4LocalZResetDecision::Initialized) {
-      last_px4_z_reset_counter_ = counter;
-      return;
-    }
-    if (observation.decision == race_offboard::Px4LocalZResetDecision::Applied) {
-      last_px4_z_reset_counter_ = counter;
-      applyPx4LocalZReset(observation.delta_z_ned, observation.cumulative_delta_z_ned, counter);
-    }
-  }
-
-  void px4LocalZResetCallback(const mavros_msgs::msg::DebugValue::SharedPtr msg)
-  {
-    constexpr const char * kResetEventName = "PX4_Z_RST";
+    constexpr const char * kXyResetEventName = "PX4_XY_RST";
+    constexpr const char * kZResetEventName = "PX4_Z_RST";
     if (msg->type != mavros_msgs::msg::DebugValue::TYPE_DEBUG_VECT ||
-      msg->name != kResetEventName)
+      (msg->name != kXyResetEventName && msg->name != kZResetEventName))
     {
       return;
     }
@@ -462,46 +441,125 @@ private:
     {
       RCLCPP_ERROR_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "[PX4_LOCAL_Z_RESET_REJECT] malformed %s event on %s",
-        kResetEventName, px4_local_z_reset_topic_.c_str());
+        "[PX4_LOCAL_RESET_REJECT] malformed %s event on %s",
+        msg->name.c_str(), px4_local_reset_topic_.c_str());
       return;
     }
 
-    const auto counter_rounded = std::lround(msg->data[1]);
+    const auto counter_value = msg->name == kXyResetEventName ? msg->data[2] : msg->data[1];
+    const auto counter_rounded = std::lround(counter_value);
     if (counter_rounded < 0 || counter_rounded > 255 ||
-      std::fabs(msg->data[1] - static_cast<float>(counter_rounded)) > 1e-3F)
+      std::fabs(counter_value - static_cast<float>(counter_rounded)) > 1e-3F)
     {
       RCLCPP_ERROR_THROTTLE(
         get_logger(), *get_clock(), 1000,
-        "[PX4_LOCAL_Z_RESET_REJECT] invalid counter=%f on %s",
-        static_cast<double>(msg->data[1]), px4_local_z_reset_topic_.c_str());
+        "[PX4_LOCAL_RESET_REJECT] invalid counter=%f on %s",
+        static_cast<double>(counter_value), px4_local_reset_topic_.c_str());
       return;
     }
     const auto reset_counter = static_cast<std::uint8_t>(counter_rounded);
-    const auto observation = px4_local_z_reset_tracker_.observe(
-      reset_counter, static_cast<double>(msg->data[0]));
-    if (observation.decision == race_offboard::Px4LocalZResetDecision::Initialized) {
-      RCLCPP_INFO(
-        get_logger(),
-        "[PX4_LOCAL_Z_RESET_BASELINE] counter=%u dead_reckoning=%s topic=%s",
-        static_cast<unsigned int>(reset_counter), msg->data[2] > 0.5F ? "true" : "false",
-        px4_local_z_reset_topic_.c_str());
-      return;
+    if (msg->name == kXyResetEventName) {
+      if (!mavros_xy_reset_initialized_) {
+        mavros_xy_reset_initialized_ = true;
+        mavros_xy_reset_counter_ = reset_counter;
+        mavros_xy_reset_changed_ = false;
+      } else {
+        mavros_xy_reset_changed_ = reset_counter != mavros_xy_reset_counter_;
+        mavros_xy_reset_counter_ = reset_counter;
+      }
+      mavros_xy_reset_delta_ned_ = {msg->data[0], msg->data[1]};
+      mavros_xy_reset_event_seen_ = true;
+    } else {
+      if (!mavros_z_reset_initialized_) {
+        mavros_z_reset_initialized_ = true;
+        mavros_z_reset_counter_ = reset_counter;
+        mavros_z_reset_changed_ = false;
+      } else {
+        mavros_z_reset_changed_ = reset_counter != mavros_z_reset_counter_;
+        mavros_z_reset_counter_ = reset_counter;
+      }
+      mavros_z_reset_delta_ned_ = static_cast<double>(msg->data[0]);
+      dead_reckoning_ = msg->data[2] > 0.5F;
+      mavros_z_reset_event_seen_ = true;
     }
-    if (observation.decision == race_offboard::Px4LocalZResetDecision::RejectedNonFinite) {
-      RCLCPP_ERROR_THROTTLE(
-        get_logger(), *get_clock(), 1000,
-        "[PX4_LOCAL_Z_RESET_REJECT] counter=%u delta_z is non-finite; retaining prior targets",
-        static_cast<unsigned int>(reset_counter));
-      return;
-    }
-    if (observation.decision != race_offboard::Px4LocalZResetDecision::Applied) {
-      return;
-    }
+    processMavrosLocalResetPair();
+  }
 
-    last_px4_z_reset_counter_ = reset_counter;
-    applyPx4LocalZReset(
-      observation.delta_z_ned, observation.cumulative_delta_z_ned, reset_counter);
+  void processMavrosLocalResetPair()
+  {
+    if (!mavros_xy_reset_event_seen_ || !mavros_z_reset_event_seen_) {
+      return;
+    }
+    const bool xy_reset = mavros_xy_reset_changed_;
+    const bool z_reset = mavros_z_reset_changed_;
+    if (z_reset) {
+      mavros_z_reset_cumulative_ned_ += mavros_z_reset_delta_ned_;
+      applyPx4LocalZReset(
+        mavros_z_reset_delta_ned_, mavros_z_reset_cumulative_ned_, mavros_z_reset_counter_);
+    }
+    if (xy_reset) {
+      applyPx4LocalXYReset(mavros_xy_reset_delta_ned_, mavros_xy_reset_counter_);
+    }
+    if (xy_reset || z_reset) {
+      px4_local_pose_reset_matcher_.registerReset(
+        {xy_reset ? mavros_xy_reset_delta_ned_[0] : 0.0,
+          xy_reset ? mavros_xy_reset_delta_ned_[1] : 0.0,
+          z_reset ? mavros_z_reset_delta_ned_ : 0.0}, true, now().nanoseconds());
+      px4_reset_hold_protected_ = true;
+      RCLCPP_WARN(
+        get_logger(),
+        "[PX4_LOCAL_RESET_POSE_PENDING] xy_counter=%u z_counter=%u delta_ned=(%+.3f,%+.3f,%+.3f)",
+        static_cast<unsigned int>(mavros_xy_reset_counter_),
+        static_cast<unsigned int>(mavros_z_reset_counter_),
+        xy_reset ? mavros_xy_reset_delta_ned_[0] : 0.0,
+        xy_reset ? mavros_xy_reset_delta_ned_[1] : 0.0,
+        z_reset ? mavros_z_reset_delta_ned_ : 0.0);
+    }
+    mavros_xy_reset_event_seen_ = false;
+    mavros_z_reset_event_seen_ = false;
+    mavros_xy_reset_changed_ = false;
+    mavros_z_reset_changed_ = false;
+  }
+
+  void applyPx4LocalXYReset(
+    const std::array<double, 2> & delta_xy_ned, std::uint8_t reset_counter)
+  {
+    setpoint_publish_blocked_ = true;
+    if (hold_position_valid_) {
+      hold_x_ += static_cast<float>(delta_xy_ned[0]);
+      hold_y_ += static_cast<float>(delta_xy_ned[1]);
+    }
+    if (have_setpoint_) {
+      latest_setpoint_.position.x += delta_xy_ned[0];
+      latest_setpoint_.position.y += delta_xy_ned[1];
+    }
+    if (have_ego_setpoint_) {
+      latest_ego_setpoint_.position[0] += delta_xy_ned[0];
+      latest_ego_setpoint_.position[1] += delta_xy_ned[1];
+    }
+    if (have_goal_identity_) {
+      goal_x_ned_ += static_cast<float>(delta_xy_ned[0]);
+      goal_y_ned_ += static_cast<float>(delta_xy_ned[1]);
+    }
+    if (last_command_valid_) {
+      last_command_x_ += static_cast<float>(delta_xy_ned[0]);
+      last_command_y_ += static_cast<float>(delta_xy_ned[1]);
+    }
+    // map_to_local_ is ENU while the reset is NED: ENU=(East, North)=(dy, dx).
+    map_to_local_.x += delta_xy_ned[1];
+    map_to_local_.y += delta_xy_ned[0];
+    if (map_local_alignment_candidate_valid_) {
+      map_to_local_candidate_.x += delta_xy_ned[1];
+      map_to_local_candidate_.y += delta_xy_ned[0];
+    }
+    RCLCPP_WARN(
+      get_logger(),
+      "[PX4_LOCAL_XY_RESET_REBASED] counter=%u delta_xy_ned=(%+.6f,%+.6f) hold=%s cached_navigation=%s cached_ego=%s goal=%s last_command=%s",
+      static_cast<unsigned int>(reset_counter), delta_xy_ned[0], delta_xy_ned[1],
+      hold_position_valid_ ? "true" : "false", have_setpoint_ ? "true" : "false",
+      have_ego_setpoint_ ? "true" : "false", have_goal_identity_ ? "true" : "false",
+      last_command_valid_ ? "true" : "false");
+    setpoint_publish_blocked_ = false;
   }
 
   // PX4 defines delta_z in its local NED frame: the same physical point that
@@ -595,6 +653,7 @@ private:
     const rclcpp::Time stamp(msg->header.stamp);
 
     bool accepted_origin_rebase = false;
+    bool accepted_px4_reset = false;
     double accepted_pose_dt_sec = std::numeric_limits<double>::quiet_NaN();
     if (!have_local_position_) {
       const double speed_mps = std::hypot(
@@ -635,15 +694,42 @@ private:
       }
       const double dt_sec = have_trusted_position_stamp_ ?
         (stamp - last_trusted_position_stamp_).seconds() : 1.0 / setpoint_rate_hz_;
+      const std::array<double, 3> observed_delta_ned{
+        static_cast<double>(x_ned - trusted_local_pose_x_),
+        static_cast<double>(y_ned - trusted_local_pose_y_),
+        static_cast<double>(z_ned - trusted_local_pose_z_)};
       const double displacement_m = std::hypot(
         std::hypot(
-          static_cast<double>(x_ned - current_x_),
-          static_cast<double>(y_ned - current_y_)),
-        static_cast<double>(z_ned - current_z_));
-      const bool plausible_jump = race_offboard::localPositionJumpIsPlausible(
+          observed_delta_ned[0], observed_delta_ned[1]), observed_delta_ned[2]);
+      bool plausible_jump = race_offboard::localPositionJumpIsPlausible(
         displacement_m, dt_sec, trusted_position_max_speed_mps_,
         trusted_position_jump_allowance_m_);
       const auto sample_now_ns = now().nanoseconds();
+      const auto reset_match = px4_local_pose_reset_matcher_.observe(
+        observed_delta_ned, sample_now_ns);
+      if (reset_match.decision == race_offboard::Px4LocalPoseResetDecision::Matched) {
+        plausible_jump = true;
+        accepted_px4_reset = true;
+        px4_reset_hold_protected_ = false;
+        RCLCPP_WARN(
+          get_logger(),
+          "[PX4_LOCAL_RESET_POSE_MATCHED] expected=(%+.3f,%+.3f,%+.3f) observed=(%+.3f,%+.3f,%+.3f) residual_xy=%.3f residual_z=%.3f",
+          reset_match.expected_delta_ned[0], reset_match.expected_delta_ned[1],
+          reset_match.expected_delta_ned[2], reset_match.observed_delta_ned[0],
+          reset_match.observed_delta_ned[1], reset_match.observed_delta_ned[2],
+          reset_match.xy_residual_m, reset_match.z_residual_m);
+      } else if (reset_match.decision == race_offboard::Px4LocalPoseResetDecision::Mismatched ||
+        reset_match.decision == race_offboard::Px4LocalPoseResetDecision::Expired)
+      {
+        RCLCPP_ERROR(
+          get_logger(),
+          "[PX4_LOCAL_RESET_POSE_MISMATCH] decision=%s expected=(%+.3f,%+.3f,%+.3f) observed=(%+.3f,%+.3f,%+.3f) residual_xy=%.3f residual_z=%.3f",
+          reset_match.decision == race_offboard::Px4LocalPoseResetDecision::Expired ? "expired" : "mismatch",
+          reset_match.expected_delta_ned[0], reset_match.expected_delta_ned[1],
+          reset_match.expected_delta_ned[2], reset_match.observed_delta_ned[0],
+          reset_match.observed_delta_ned[1], reset_match.observed_delta_ned[2],
+          reset_match.xy_residual_m, reset_match.z_residual_m);
+      }
       const double speed_mps = std::hypot(
         std::hypot(static_cast<double>(current_vx_), static_cast<double>(current_vy_)),
         static_cast<double>(current_vz_));
@@ -672,7 +758,10 @@ private:
         }
       }
 
-      if (!plausible_jump && !accepted_origin_rebase) {
+      const bool reset_pose_mismatched =
+        reset_match.decision == race_offboard::Px4LocalPoseResetDecision::Mismatched ||
+        reset_match.decision == race_offboard::Px4LocalPoseResetDecision::Expired;
+      if ((!plausible_jump || reset_pose_mismatched) && !accepted_origin_rebase) {
         const bool rebase_allowed = localOriginRebaseAllowed(sample_now_ns);
         if (rebase_allowed) {
           const auto decision = local_origin_rebase_guard_.observe(
@@ -695,7 +784,8 @@ private:
           have_setpoint_ = false;
           have_ego_setpoint_ = false;
           awaiting_initial_ego_trajectory_ = false;
-          beginBraking(ControlState::PLANNER_FAILURE_HOLD, "local position jump");
+          beginBraking(
+            ControlState::PLANNER_FAILURE_HOLD, "local position jump", reset_pose_mismatched);
           RCLCPP_ERROR(
             get_logger(), "[POSITION_JUMP_SAFETY_LATCH] braking and holding; "
             "cancel/restart navigation only after localization is verified");
@@ -704,7 +794,8 @@ private:
           get_logger(),
           *get_clock(), 1000,
           "[POSE_REJECT] jump=%.3fm dt=%.3fs trusted=(%.3f,%.3f,%.3f) received=(%.3f,%.3f,%.3f)",
-          displacement_m, dt_sec, current_x_, current_y_, current_z_, x_ned, y_ned, z_ned);
+          displacement_m, dt_sec, trusted_local_pose_x_, trusted_local_pose_y_, trusted_local_pose_z_,
+          x_ned, y_ned, z_ned);
         return;
       }
 
@@ -713,9 +804,9 @@ private:
           get_logger(),
           "[LOCAL_ORIGIN_REBASE_CONFIRMED] old=(%.3f,%.3f,%.3f) "
           "new=(%.3f,%.3f,%.3f); disarmed IDLE hold will be replaced",
-          current_x_, current_y_, current_z_, x_ned, y_ned, z_ned);
+          trusted_local_pose_x_, trusted_local_pose_y_, trusted_local_pose_z_, x_ned, y_ned, z_ned);
         have_pose_vertical_speed_ = false;
-      } else {
+      } else if (!accepted_px4_reset) {
         accepted_pose_dt_sec = dt_sec;
       }
     }
@@ -723,7 +814,7 @@ private:
       accepted_pose_dt_sec <= 0.25)
     {
       const double raw_pose_vz_ned =
-        static_cast<double>(z_ned - current_z_) / accepted_pose_dt_sec;
+        static_cast<double>(z_ned - trusted_local_pose_z_) / accepted_pose_dt_sec;
       constexpr double kPoseVelocityFilterAlpha = 0.20;
       pose_vertical_speed_ned_ = have_pose_vertical_speed_ ?
         (1.0 - kPoseVelocityFilterAlpha) * pose_vertical_speed_ned_ +
@@ -734,9 +825,11 @@ private:
     current_y_ = y_ned;
     current_z_ = z_ned;
     current_yaw_ = static_cast<float>(yaw_ned);
-    // MAVROS pose carries no estimator validity flags.  PX4 DDS
-    // VehicleLocalPosition is authoritative for dead_reckoning and validity;
-    // do not overwrite those fields with a mere received-pose indication.
+    trusted_local_pose_x_ = x_ned;
+    trusted_local_pose_y_ = y_ned;
+    trusted_local_pose_z_ = z_ned;
+    // MAVROS local pose has no estimator-validity fields. Treat receipt as a
+    // valid pose sample; reset metadata is supplied separately by DEBUG_VECT.
     xy_valid_ = true;
     z_valid_ = true;
     heading_good_ = true;
@@ -1072,10 +1165,14 @@ private:
         msg->pose.position.x, msg->pose.position.y, goal_z);
       return;
     }
-    // RViz goal is in the unified map ENU. Keep the internal command in NED
-    // only at this Offboard boundary: (x_ned,y_ned,z_ned)=(y_map,x_map,-z_map).
-    const float goal_x_ned = static_cast<float>(msg->pose.position.y);
-    const float goal_y_ned = static_cast<float>(msg->pose.position.x);
+    // RViz goal is in unified map ENU, while local position is PX4 local NED.
+    // Project it through the locked map->local transform before retaining it
+    // for the local-frame reached-goal gate.
+    const auto goal_local_enu = race_offboard::mapToLocalPosition(
+      {msg->pose.position.x, msg->pose.position.y, target_z_map_}, map_to_local_);
+    const auto goal_local_ned = race_offboard::enuToNed(goal_local_enu);
+    const float goal_x_ned = static_cast<float>(goal_local_ned[0]);
+    const float goal_y_ned = static_cast<float>(goal_local_ned[1]);
     const bool duplicate_goal = have_goal_identity_ &&
       std::hypot(goal_x_ned - goal_x_ned_, goal_y_ned - goal_y_ned_) <=
       goal_update_position_tolerance_m_;
@@ -1470,6 +1567,20 @@ private:
 
   void lockHoldPosition(float z_command, const std::string & reason)
   {
+    // Until the next MAVROS pose proves the reset delta, current_x/y may be
+    // expressed in the post-reset frame while hold_x/y are already rebased.
+    // Refuse every new capture path, including braking completion and startup
+    // transitions; otherwise a transient callback could undo the rebase.
+    if (px4_local_pose_reset_matcher_.pending() || px4_reset_hold_protected_) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[PX4_LOCAL_RESET_HOLD_PROTECTED] refusing current XY capture; "
+        "pending=%s protected=%s hold_valid=%s reason=%s",
+        px4_local_pose_reset_matcher_.pending() ? "true" : "false",
+        px4_reset_hold_protected_ ? "true" : "false",
+        hold_position_valid_ ? "true" : "false", reason.c_str());
+      return;
+    }
     if (!finiteCurrentPosition()) {
       return;
     }
@@ -1624,14 +1735,34 @@ private:
       reason.c_str());
   }
 
-  void beginBraking(ControlState destination, const std::string & reason)
+  void beginBraking(
+    ControlState destination, const std::string & reason, bool preserve_rebased_hold = false)
   {
     if (control_state_ == ControlState::BRAKING) {
       return;
     }
     const float cruise_z = targetFlightZNed();
-    lockHoldPosition(
-      static_cast<float>(race_offboard::fixedAltitudeHoldZ(cruise_z)), reason);
+    preserve_rebased_hold = preserve_rebased_hold ||
+      px4_local_pose_reset_matcher_.pending() || px4_reset_hold_protected_;
+    if (preserve_rebased_hold) {
+      if (hold_position_valid_) {
+        // The last accepted pose is in the old local frame. The rebased hold
+        // is the only valid local target until reset matching concludes.
+        hold_z_ = static_cast<float>(race_offboard::fixedAltitudeHoldZ(cruise_z));
+        RCLCPP_WARN(
+          get_logger(),
+          "[PX4_LOCAL_RESET_PRESERVE_HOLD] reason=%s hold=(%.3f,%.3f,%.3f)",
+          reason.c_str(), hold_x_, hold_y_, hold_z_);
+      } else {
+        RCLCPP_ERROR(
+          get_logger(),
+          "[PX4_LOCAL_RESET_HOLD_UNAVAILABLE] reason=%s; refusing to capture stale current XY",
+          reason.c_str());
+      }
+    } else {
+      lockHoldPosition(
+        static_cast<float>(race_offboard::fixedAltitudeHoldZ(cruise_z)), reason);
+    }
     braking_vx_ = std::isfinite(current_vx_) ? current_vx_ : 0.0F;
     braking_vy_ = std::isfinite(current_vy_) ? current_vy_ : 0.0F;
     braking_vz_ = std::isfinite(current_vz_) ? current_vz_ : 0.0F;
@@ -1783,7 +1914,8 @@ private:
       " handover_accepted=" + (manual_handover_accepted_ ? "1" : "0") +
       " map_local_alignment=" + (map_local_alignment_ready_ ? "1" : "0") +
       " position_valid=" + (position_valid ? "1" : "0") +
-      " px4_local_position_seen=" + (px4_local_position_seen_ ? "1" : "0") +
+      " mavros_reset_metadata=" +
+      (mavros_xy_reset_initialized_ && mavros_z_reset_initialized_ ? "1" : "0") +
       " dead_reckoning=" + (dead_reckoning_ ? "1" : "0") +
       " ev_ready=" + (ev_ready ? "1" : "0") +
       " position_aligned=" + (position_aligned ? "1" : "0") +
@@ -2774,6 +2906,9 @@ private:
   double setpoint_rate_hz_{20.0};
   double trusted_position_max_speed_mps_{4.0};
   double trusted_position_jump_allowance_m_{0.40};
+  double px4_local_pose_reset_match_window_sec_{0.35};
+  double px4_local_pose_reset_xy_tolerance_m_{0.10};
+  double px4_local_pose_reset_z_tolerance_m_{0.10};
   double ego_setpoint_max_lead_m_{2.0};
   double ego_yaw_rate_limit_rad_s_{0.80};
   double initial_position_stabilization_sec_{0.50};
@@ -2803,9 +2938,7 @@ private:
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr local_position_subscriber_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr map_odom_subscriber_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr local_velocity_subscriber_;
-  rclcpp::Subscription<mavros_msgs::msg::DebugValue>::SharedPtr px4_local_z_reset_subscriber_;
-  rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr
-    px4_local_position_subscriber_;
+  rclcpp::Subscription<mavros_msgs::msg::DebugValue>::SharedPtr px4_local_reset_subscriber_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr vehicle_status_subscriber_;
   rclcpp::Subscription<race_msgs::msg::NavigationSetpoint>::SharedPtr
     navigation_setpoint_subscriber_;
@@ -2849,6 +2982,9 @@ private:
   float current_x_{0.0F};
   float current_y_{0.0F};
   float current_z_{0.0F};
+  float trusted_local_pose_x_{0.0F};
+  float trusted_local_pose_y_{0.0F};
+  float trusted_local_pose_z_{0.0F};
   float current_vx_{0.0F};
   float current_vy_{0.0F};
   float current_vz_{0.0F};
@@ -2859,10 +2995,20 @@ private:
   double map_yaw_enu_{0.0};
   race_offboard::PlanarFrameTransform map_to_local_;
   race_offboard::PlanarFrameTransform map_to_local_candidate_;
-  race_offboard::Px4LocalZResetTracker px4_local_z_reset_tracker_;
-  std::uint8_t last_px4_z_reset_counter_{0};
-  bool px4_local_position_seen_{false};
+  race_offboard::Px4LocalPoseResetMatcher px4_local_pose_reset_matcher_;
+  std::array<double, 2> mavros_xy_reset_delta_ned_{0.0, 0.0};
+  double mavros_z_reset_delta_ned_{0.0};
+  double mavros_z_reset_cumulative_ned_{0.0};
+  std::uint8_t mavros_xy_reset_counter_{0};
+  std::uint8_t mavros_z_reset_counter_{0};
+  bool mavros_xy_reset_initialized_{false};
+  bool mavros_z_reset_initialized_{false};
+  bool mavros_xy_reset_event_seen_{false};
+  bool mavros_z_reset_event_seen_{false};
+  bool mavros_xy_reset_changed_{false};
+  bool mavros_z_reset_changed_{false};
   bool setpoint_publish_blocked_{false};
+  bool px4_reset_hold_protected_{false};
   double local_z_rebase_offset_ned_{0.0};
   uint64_t flight_id_{0};
   double ground_z_local_ned_{0.0};
@@ -2914,7 +3060,7 @@ private:
   race_offboard::LocalOriginRebaseGuard local_origin_rebase_guard_;
   std::string ev_health_topic_;
   std::string ev_flight_ready_topic_;
-  std::string px4_local_z_reset_topic_;
+  std::string px4_local_reset_topic_;
   std::string frlio_status_topic_;
   std::string frlio_planner_usable_topic_;
   bool require_ev_health_{true};

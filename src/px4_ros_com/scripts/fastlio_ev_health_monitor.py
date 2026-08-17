@@ -308,6 +308,9 @@ class FastlioEvHealthMonitor(Node):
         self.flight_ready_topic = self.declare_parameter(
             "flight_ready_topic", "/ev_health/flight_ready"
         ).value
+        self.planner_usable_topic = self.declare_parameter(
+            "planner_usable_topic", "/ev_health/planner_usable"
+        ).value
         self.diagnostic_topic = self.declare_parameter(
             "diagnostic_topic", "/ev_health/diagnostics"
         ).value
@@ -370,13 +373,6 @@ class FastlioEvHealthMonitor(Node):
         self.px4_ev_fuse_timeout_s = float(
             self.declare_parameter("px4_ev_fuse_timeout_s", 0.50).value
         )
-        enable_relocalization = bool(
-            self.declare_parameter("enable_relocalization", True).value
-        )
-        relocalization_stable_s = float(
-            self.declare_parameter("relocalization_stable_s", 0.50).value
-        )
-
         config = HealthConfig(
             position_yaw_offset_rad=float(
                 self.declare_parameter(
@@ -388,9 +384,6 @@ class FastlioEvHealthMonitor(Node):
             max_input_age_s=float(self.declare_parameter("max_input_age_s", 0.25).value),
             max_future_stamp_s=float(
                 self.declare_parameter("max_future_stamp_s", 0.05).value
-            ),
-            max_position_jump_m=float(
-                self.declare_parameter("max_position_jump_m", 0.15).value
             ),
             max_horizontal_velocity_difference_mps=float(
                 self.declare_parameter(
@@ -410,6 +403,11 @@ class FastlioEvHealthMonitor(Node):
             ),
             anomaly_to_fault_s=float(
                 self.declare_parameter("anomaly_to_fault_s", 0.3).value
+            ),
+            internal_velocity_unaligned_grace_s=float(
+                self.declare_parameter(
+                    "internal_velocity_unaligned_grace_s", 0.20
+                ).value
             ),
             recovery_healthy_s=float(
                 self.declare_parameter("recovery_healthy_s", 2.0).value
@@ -479,8 +477,6 @@ class FastlioEvHealthMonitor(Node):
             frlio_max_anchor_age_s=float(
                 self.declare_parameter("frlio_max_anchor_age_s", 0.40).value
             ),
-            enable_relocalization=enable_relocalization,
-            relocalization_stable_s=relocalization_stable_s,
         )
         if config.frlio_anchor_status_timeout_s <= 0.0:
             raise ValueError("frlio_anchor_status_timeout_s must be positive")
@@ -511,6 +507,7 @@ class FastlioEvHealthMonitor(Node):
         self._last_healthy_output_publish_s = None
         self._flight_ready = False
         self._flight_ready_reason = "initializing"
+        self._planner_usable = False
         self._last_logged_flight_ready = None
         self._mavros_armed = None
         self._px4_dead_reckoning = None
@@ -544,6 +541,9 @@ class FastlioEvHealthMonitor(Node):
         self.fault_publisher = self.create_publisher(Bool, self.fault_topic, status_qos)
         self.flight_ready_publisher = self.create_publisher(
             Bool, self.flight_ready_topic, status_qos
+        )
+        self.planner_usable_publisher = self.create_publisher(
+            Bool, self.planner_usable_topic, status_qos
         )
         self.reset_counter_publisher = self.create_publisher(
             UInt8, "/ev_health/reset_counter", status_qos
@@ -823,6 +823,7 @@ class FastlioEvHealthMonitor(Node):
             finite_payload=self._message_is_finite(msg),
         )
         self._ev_reset_counter = int(result.reset_counter)
+        self._planner_usable = bool(result.planner_usable)
         frlio_reason, frlio_block = self._frlio_anchor_gate(now_s)
         self._frlio_gate_reason = frlio_reason
         self._frlio_gate_block = frlio_block
@@ -868,17 +869,6 @@ class FastlioEvHealthMonitor(Node):
             self._last_applied_covariance_multiplier = 1.0
             # Preserve the original measurement stamp.  Downstream must not turn
             # an old measurement into an apparently current one.
-            if result.relocalized:
-                # Publish the counter before the first pose in the replacement
-                # frame. The native PX4 bridge blocks one sample on this edge,
-                # so it cannot send an old-frame pose with the new counter.
-                self.reset_counter_publisher.publish(
-                    UInt8(data=int(result.reset_counter))
-                )
-                self.get_logger().warning(
-                    "[EV_RELOCALIZED] reset_counter=%d; committed new source frame atomically",
-                    int(result.reset_counter),
-                )
             self.healthy_publisher.publish(output)
             self._last_healthy_output_publish_s = now_s
 
@@ -907,6 +897,7 @@ class FastlioEvHealthMonitor(Node):
     def _timer_callback(self) -> None:
         now_s = self._now_seconds()
         self.core.check_timeout(now_s)
+        self._planner_usable = self.core.planner_usable_at(now_s)
         frlio_reason, frlio_block = self._frlio_anchor_gate(now_s)
         self._frlio_gate_reason = frlio_reason
         self._frlio_gate_block = frlio_block
@@ -969,6 +960,10 @@ class FastlioEvHealthMonitor(Node):
             px4_ev_fuse_timeout_s=self.px4_ev_fuse_timeout_s,
         )
         self.flight_ready_publisher.publish(Bool(data=self._flight_ready))
+        # This is deliberately separate from EV usability: a short internal
+        # velocity alignment miss stops trajectory intake but leaves the finite,
+        # correctly timestamped EV stream available to PX4.
+        self.planner_usable_publisher.publish(Bool(data=self._planner_usable))
         # Transient-local publication lets a restarted native PX4 bridge learn
         # the current source-frame counter before its first EV sample.
         if self._last_published_ev_reset_counter != self._ev_reset_counter:
@@ -992,6 +987,7 @@ class FastlioEvHealthMonitor(Node):
             KeyValue(key="reason", value=reason),
             KeyValue(key="flight_ready", value=str(self._flight_ready).lower()),
             KeyValue(key="flight_ready_reason", value=self._flight_ready_reason),
+            KeyValue(key="planner_usable", value=str(self._planner_usable).lower()),
             KeyValue(
                 key="px4_dead_reckoning",
                 value=str(bool(self._px4_dead_reckoning)).lower(),

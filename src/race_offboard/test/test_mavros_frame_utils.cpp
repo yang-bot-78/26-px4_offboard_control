@@ -92,6 +92,14 @@ TEST(MavrosFrameUtils, MapToLocalAppliesTranslationOnlyToPosition)
   EXPECT_NEAR(race_offboard::mapToLocalYaw(-M_PI_2, transform), 0.0, kEps);
 }
 
+TEST(MavrosFrameUtils, MapGoalProjectsToTheSameLocalNedFrameAsVehiclePose)
+{
+  const race_offboard::PlanarFrameTransform transform{M_PI_2, 10.0, -2.0, 0.5};
+  const auto goal_local_ned = race_offboard::enuToNed(
+    race_offboard::mapToLocalPosition({2.0, 3.0, 1.0}, transform));
+  expectVecNear(goal_local_ned, {0.0, 7.0, -1.5});
+}
+
 // The whole port rests on "px4_ned is standard NED".  If that is wrong, the
 // planner's calibrated geofence is being interpreted in the wrong frame.
 TEST(MavrosFrameUtils, EnuToProjectMapAgreesWithEgoBridgeConvention)

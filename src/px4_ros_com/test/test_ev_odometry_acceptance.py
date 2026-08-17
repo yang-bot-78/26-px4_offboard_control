@@ -822,7 +822,6 @@ def test_only_internal_velocity_fault_is_eligible_for_predictor_degraded_forward
         "internal_velocity_mismatch difference=0.600m/s"
     )
     assert module._is_internal_velocity_only_fault("internal_velocity_unaligned")
-    assert not module._is_internal_velocity_only_fault("position_jump displacement=1.0m")
     assert not module._is_internal_velocity_only_fault("stale_input age=0.4s")
 
 

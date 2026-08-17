@@ -3260,12 +3260,21 @@ private:
                 second_lock_released_at - second_lock_acquired_at).count());
         buffer_mutex_wait_us = std::max(buffer_mutex_wait_us, second_mutex_wait_us);
         buffer_mutex_hold_us = std::max(buffer_mutex_hold_us, second_mutex_hold_us);
-        if (result) {
-            timing_anchor_age_s.store(result->lidar_anchor_age_s);
+        // A null result means that this sample did not advance the state. That
+        // is normal for the first input after a correction and for an IMU sample
+        // already covered by a concurrent LiDAR replay.  Health must describe
+        // the current predictor state, not whether this individual sample was
+        // propagated.
+        const auto current_predictor = result ?
+            std::optional<fr_lio::HighRateOdomResult>() : high_rate_propagator_->current();
+        const auto * health_result = result ? &(*result) :
+            (current_predictor ? &(*current_predictor) : nullptr);
+        if (health_result) {
+            timing_anchor_age_s.store(health_result->lidar_anchor_age_s);
         }
-        const std::uint64_t predictor_state_age_us = result ? static_cast<std::uint64_t>(
+        const std::uint64_t predictor_state_age_us = health_result ? static_cast<std::uint64_t>(
             std::max(0.0, executor_callback_delay_seconds(
-                result->state.timestamp, arrival_steady_s) * 1e6)) : 0;
+                health_result->state.timestamp, arrival_steady_s) * 1e6)) : 0;
         timing_predictor_state_age_us.store(predictor_state_age_us);
         const double previous_imu_arrival_steady_s = last_imu_arrival_steady_s_.load();
         const auto imu_gap_us = static_cast<std::uint64_t>(
@@ -3274,7 +3283,8 @@ private:
         last_imu_arrival_steady_s_.store(arrival_steady_s);
         const std::uint64_t high_rate_mutex_wait_us = result ? result->mutex_wait_us : 0;
         const std::uint64_t high_rate_mutex_hold_us = result ? result->mutex_hold_us : 0;
-        const double anchor_age_s = result ? result->lidar_anchor_age_s : timing_anchor_age_s.load();
+        const double anchor_age_s = health_result ?
+            health_result->lidar_anchor_age_s : timing_anchor_age_s.load();
         log_timing_event(
             this->get_logger(), "imu_callback_arrival", arrival_steady_s, timestamp,
             sequence, anchor_age_s, timing_imu_queue_size.load(), high_rate_mutex_wait_us,
@@ -3290,12 +3300,48 @@ private:
 
         if (!high_rate_publish_enabled_) return;
         if (!result) {
-            // No propagated state for this sample: either the predictor is not
-            // initialised yet, or the sample was rejected as non-monotonic.
-            // Both mean "there is no current state", which is the predictor axis
-            // reaching STATE_UNUSABLE.  Previously this path returned silently
-            // and the latched status kept claiming the previous level, so a dead
-            // predictor could still read HEALTHY downstream.
+            if (health_result && !timestamp_rollback) {
+                // Do not republish the old odometry sample, but keep reporting
+                // health from the valid state established by the LiDAR replay.
+                const std::uint64_t posterior_generation =
+                    high_rate_correction_generation_.load(std::memory_order_acquire);
+                const auto anchor_level = high_rate_health_gate_.update_anchor(
+                    health_result->lidar_anchor_age_s, posterior_generation);
+                const double predictor_age_s =
+                    static_cast<double>(predictor_state_age_us) * 1e-6;
+                fr_lio::PredictorHealthGate::Input predictor_input;
+                predictor_input.predictor_age_s = predictor_age_s;
+                predictor_input.predictor_generation = health_result->predictor_generation;
+                predictor_input.state_finite = health_result->state_finite;
+                predictor_input.timestamp_monotonic = true;
+                predictor_input.initialized = true;
+                const auto predictor_level = predictor_health_gate_.update(predictor_input);
+                last_valid_predictor_generation_.store(
+                    health_result->predictor_generation, std::memory_order_release);
+
+                fr_lio::LocalizationHealthSnapshot health_snapshot;
+                health_snapshot.steady_clock_now_s = arrival_steady_s;
+                health_snapshot.sequence = sequence;
+                health_snapshot.anchor_age_s = health_result->lidar_anchor_age_s;
+                health_snapshot.predictor_age_s = predictor_age_s;
+                health_snapshot.imu_backlog_age_s =
+                    static_cast<double>(executor_callback_delay_us) * 1e-6;
+                health_snapshot.imu_queue_size = timing_imu_queue_size.load();
+                health_snapshot.posterior_generation = posterior_generation;
+                health_snapshot.predictor_generation = health_result->predictor_generation;
+                health_snapshot.timestamp_monotonic = true;
+                health_snapshot.state_finite = health_result->state_finite;
+                health_snapshot.position_jump_m = health_result->position_jump_m;
+                health_snapshot.velocity_jump_mps = health_result->velocity_jump_mps;
+                fr_lio::merge_health_axes(
+                    health_snapshot, anchor_level, high_rate_health_gate_.anchorReason(),
+                    predictor_level, predictor_health_gate_.reason());
+                publish_localization_health(health_snapshot);
+                return;
+            }
+
+            // There is no valid current state, or the source timestamp rolled
+            // back. Both are genuine predictor failures and must take EV away.
             fr_lio::PredictorHealthGate::Input dead_input;
             dead_input.predictor_age_s = std::numeric_limits<double>::infinity();
             dead_input.predictor_generation = 0;

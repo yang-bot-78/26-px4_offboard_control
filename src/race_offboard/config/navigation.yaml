@@ -53,10 +53,14 @@ offboard_waypoint_node:
     local_origin_rebase_stabilization_sec: 1.0
     local_origin_rebase_max_spread_m: 0.08
     local_origin_rebase_max_speed_mps: 0.20
-    # Preferred reset source is /fmu/out/vehicle_local_position, which carries
-    # the authoritative z_reset_counter/delta_z. Keep the MAVROS DEBUG_VECT
-    # fallback optional for older PX4 firmware.
-    px4_local_z_reset_topic: /mavros/debug_value/debug_vector
+    # PX4 emits paired MAVROS DEBUG_VECT reset metadata: PX4_XY_RST carries
+    # delta_xy/xy_reset_counter and PX4_Z_RST carries delta_z/z_reset_counter.
+    px4_local_reset_topic: /mavros/debug_value/debug_vector
+    # Only the immediately following MAVROS local-pose sample can cross a
+    # reset, and it must match both the XY and Z deltas.
+    px4_local_pose_reset_match_window_sec: 0.35
+    px4_local_pose_reset_xy_tolerance_m: 0.10
+    px4_local_pose_reset_z_tolerance_m: 0.10
     ekf_xy_wait_timeout_sec: 3.0
     offboard_warmup_sec: 2.0
     preflight_stabilization_sec: 5.0

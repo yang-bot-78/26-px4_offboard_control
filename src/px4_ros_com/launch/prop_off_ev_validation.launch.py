@@ -35,7 +35,6 @@ def generate_launch_description():
                 "px4_velocity_topic": "/mavros/local_position/velocity_local",
                 "world_yaw_alignment_rad": world_yaw_alignment_rad,
                 "max_input_age_s": 0.25,
-                "max_position_jump_m": 0.15,
                 "max_horizontal_velocity_difference_mps": 0.45,
                 "max_internal_velocity_difference_mps": 0.50,
                 "velocity_comparison_window_s": 0.15,

@@ -450,7 +450,7 @@ run_relocalization() {
     -p odom_topic:=/Odometry \
     -p output_odom_topic:=/planning/odom \
     -p map_frame:=map \
-    -p odom_frame:=camera_init \
+    -p odom_frame:=odom \
     -p body_frame:=body \
     -p publish_odom_body_tf:=false
 

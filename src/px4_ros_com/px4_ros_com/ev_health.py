@@ -41,12 +41,15 @@ class HealthConfig:
     max_dt_s: float = 0.5
     max_input_age_s: float = 0.25
     max_future_stamp_s: float = 0.05
-    max_position_jump_m: float = 0.15
     max_horizontal_velocity_difference_mps: float = 0.45
     max_internal_velocity_difference_mps: float = 0.50
     velocity_comparison_window_s: float = 0.15
     velocity_difference_min_speed_mps: float = 0.05
     anomaly_to_fault_s: float = 0.3
+    # A missing internal-velocity sample is a planner-quality problem while the
+    # propagated pose and EV timestamp are still valid. Keep this window
+    # separate from the EV hard-fault timer.
+    internal_velocity_unaligned_grace_s: float = 0.20
     recovery_healthy_s: float = 2.0
     message_timeout_s: float = 0.5
     px4_velocity_timeout_s: float = 0.5
@@ -71,12 +74,6 @@ class HealthConfig:
     require_frlio_anchor_status: bool = False
     frlio_anchor_status_timeout_s: float = 0.5
     frlio_max_anchor_age_s: float = 0.40
-    # A discontinuous, then stable, source frame is a relocalization.  Keep
-    # this opt-in in the pure core so existing offline consumers remain strict;
-    # the flight monitor enables it explicitly and publishes the counter to the
-    # PX4 VehicleOdometry bridge.
-    enable_relocalization: bool = False
-    relocalization_stable_s: float = 0.50
 
 
 @dataclass
@@ -109,7 +106,9 @@ class FrameResult:
     velocity_px4_ned: Vector3
     metrics: HealthMetrics
     reset_counter: int = 0
-    relocalized: bool = False
+    # Internal-velocity alignment may stop planning briefly without stopping
+    # the continuous EV stream.
+    planner_usable: bool = True
 
 
 def _finite(values: Iterable[float]) -> bool:
@@ -290,10 +289,9 @@ class EvHealthMonitorCore:
     """
     Timestamp-aware EV/PX4 consistency monitor.
 
-    Invalid frames are never accepted or published.  A discontinuous position
-    never becomes the new derivative baseline: recovery requires data to return
-    close to the last trusted pose.  FAULT never emits a position sample;
-    notably, this class has no mechanism that can repeat the last good position.
+    Invalid frames are never accepted or published. FAULT never emits a
+    position sample; notably, this class has no mechanism that can repeat the
+    last good position.
     """
 
     def __init__(self, config: Optional[HealthConfig] = None) -> None:
@@ -310,7 +308,6 @@ class EvHealthMonitorCore:
         self._last_receive_s: Optional[float] = None
         self._last_position_ned: Optional[Vector3] = None
         self._reset_counter = 0
-        self._relocalization_candidate = None
         self._position_history = deque()
         self._filtered_velocity_ned: Vector3 = (0.0, 0.0, 0.0)
         self._px4_velocity_ned: Optional[Vector3] = None
@@ -322,6 +319,7 @@ class EvHealthMonitorCore:
         self._effective_points_receive_s: Optional[float] = None
         self._anomaly_since_s: Optional[float] = None
         self._healthy_since_s: Optional[float] = None
+        self._planner_unusable_until_s: Optional[float] = None
 
     def update_px4_velocity(
         self,
@@ -434,9 +432,7 @@ class EvHealthMonitorCore:
         else:
             self.reason = f"recovering ({elapsed:.2f}/{self.config.recovery_healthy_s:.2f}s)"
 
-    def _result(
-        self, accepted: bool, now_s: float, *, relocalized: bool = False
-    ) -> FrameResult:
+    def _result(self, accepted: bool, now_s: float) -> FrameResult:
         return FrameResult(
             accepted=accepted,
             publish=accepted and self.state != HealthState.FAULT,
@@ -445,71 +441,15 @@ class EvHealthMonitorCore:
             velocity_px4_ned=self._filtered_velocity_ned,
             metrics=self.metrics,
             reset_counter=self._reset_counter,
-            relocalized=relocalized,
+            planner_usable=self.planner_usable_at(now_s),
         )
 
-    def _begin_relocalization(self, stamp_s: float, receive_time_s: float,
-                              position_ned: Vector3) -> None:
-        self._relocalization_candidate = {
-            "stamp": float(stamp_s),
-            "position": position_ned,
-            "since": float(receive_time_s),
-        }
-        self._set_anomaly(float(receive_time_s), "relocalization_candidate")
-
-    def _process_relocalization_candidate(
-        self,
-        *,
-        stamp_s: float,
-        receive_time_s: float,
-        position_ned: Vector3,
-        internal_velocity_px4_ned: Optional[Sequence[float]],
-        covariance_xyz: Sequence[float],
-    ) -> Optional[FrameResult]:
-        """Commit a stable replacement frame exactly once.
-
-        Samples in the candidate frame are withheld until the source has been
-        spatially and temporally continuous for the configured window.  The
-        first committed sample advances the counter and becomes the sole
-        baseline used by downstream publishers.
-        """
-        candidate = self._relocalization_candidate
-        if candidate is None:
-            return None
-        candidate_dt = float(stamp_s) - candidate["stamp"]
-        candidate_displacement = _norm(_subtract(position_ned, candidate["position"]))
-        if (
-            candidate_dt <= self.config.min_dt_s
-            or candidate_dt > self.config.max_dt_s
-            or candidate_displacement > self.config.max_position_jump_m
-        ):
-            self._begin_relocalization(stamp_s, receive_time_s, position_ned)
-            self.metrics.dt_s = candidate_dt
-            self.metrics.sample_gap_s = candidate_dt
-            return self._result(False, receive_time_s)
-
-        candidate["stamp"] = float(stamp_s)
-        candidate["position"] = position_ned
-        self.metrics.dt_s = candidate_dt
-        self.metrics.sample_gap_s = candidate_dt
-        self.metrics.single_frame_displacement_m = candidate_displacement
-        if float(receive_time_s) - candidate["since"] < self.config.relocalization_stable_s:
-            self._set_anomaly(float(receive_time_s), "relocalization_recovering")
-            return self._result(False, receive_time_s)
-
-        self._last_stamp_s = float(stamp_s)
-        self._last_receive_s = float(receive_time_s)
-        self._last_position_ned = position_ned
-        self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
-        self._record_position(float(stamp_s), position_ned)
-        self.metrics.covariance_xyz = tuple(float(v) for v in covariance_xyz)  # type: ignore[assignment]
-        self._relocalization_candidate = None
-        self._reset_counter = (self._reset_counter + 1) % 256
-        self._healthy_since_s = float(receive_time_s)
-        self._anomaly_since_s = None
-        self.state = HealthState.HEALTHY
-        self.reason = "relocalized"
-        return self._result(True, receive_time_s, relocalized=True)
+    def planner_usable_at(self, now_s: float) -> bool:
+        """Return the planner-only health gate without touching EV state."""
+        return (
+            self._planner_unusable_until_s is None
+            or float(now_s) >= self._planner_unusable_until_s
+        )
 
     def process_ev(
         self,
@@ -596,17 +536,6 @@ class EvHealthMonitorCore:
             self._set_anomaly(now_s, f"future_input age={input_age_s:.3f}s")
             return self._result(False, now_s)
 
-        if self._relocalization_candidate is not None:
-            if not self.config.enable_relocalization:
-                return self._result(False, now_s)
-            return self._process_relocalization_candidate(
-                stamp_s=float(stamp_s),
-                receive_time_s=now_s,
-                position_ned=position_ned,
-                internal_velocity_px4_ned=internal_velocity_px4_ned,
-                covariance_xyz=covariance,
-            )
-
         if self._last_stamp_s is None or self._last_position_ned is None:
             self._record_internal_velocity(float(stamp_s), internal_velocity_px4_ned)
             self._record_position(float(stamp_s), position_ned)
@@ -636,18 +565,7 @@ class EvHealthMonitorCore:
         self.metrics.single_frame_displacement_m = displacement
         if dt > self.config.max_dt_s:
             self._set_anomaly(now_s, f"invalid_dt dt={dt:.3f}s")
-            # A fresh stream may resume after a scheduling gap, but rebaseline
-            # only when it is still spatially continuous with the trusted pose.
-            if displacement <= self.config.max_position_jump_m:
-                self._resync(float(stamp_s), now_s, raw)
-            elif self.config.enable_relocalization:
-                self._begin_relocalization(float(stamp_s), now_s, position_ned)
-            return self._result(False, now_s)
-
-        if displacement > self.config.max_position_jump_m:
-            self._set_anomaly(now_s, f"position_jump displacement={displacement:.3f}m")
-            if self.config.enable_relocalization:
-                self._begin_relocalization(float(stamp_s), now_s, position_ned)
+            self._resync(float(stamp_s), now_s, raw)
             return self._result(False, now_s)
 
         self._last_stamp_s = float(stamp_s)
@@ -779,7 +697,17 @@ class EvHealthMonitorCore:
                 ):
                     anomaly_reason = f"velocity_mismatch difference={horizontal_difference:.3f}m/s"
 
-        if anomaly_reason is None:
+        if anomaly_reason == "internal_velocity_unaligned":
+            # This is a source-time alignment miss in the diagnostic velocity
+            # history. It does not invalidate the finite pose or the FR-LIO
+            # propagated state, so do not feed it into the EV FAULT latch.
+            self._planner_unusable_until_s = max(
+                self._planner_unusable_until_s or now_s,
+                now_s + max(0.0, self.config.internal_velocity_unaligned_grace_s),
+            )
+            self._set_healthy_sample(now_s)
+            self.reason = anomaly_reason
+        elif anomaly_reason is None:
             self._set_healthy_sample(now_s)
         else:
             self._set_anomaly(now_s, anomaly_reason)

@@ -43,13 +43,13 @@ public:
             "health_status_topic", "/frlio/high_rate_odom/status");
         planner_usable_topic_ = this->declare_parameter<std::string>(
             "planner_usable_topic", "/frlio/high_rate_odom/planner_usable");
+        ev_health_planner_usable_topic_ = this->declare_parameter<std::string>(
+            "ev_health_planner_usable_topic", "/ev_health/planner_usable");
         require_health_status_ = this->declare_parameter<bool>("require_health_status", true);
         recovery_healthy_sec_ = this->declare_parameter<double>("recovery_healthy_sec", 1.0);
-        max_position_jump_m_ = this->declare_parameter<double>("max_position_jump_m", 0.25);
         max_speed_mps_ = this->declare_parameter<double>("max_speed_mps", 1.5);
         max_dt_s_ = this->declare_parameter<double>("max_dt_s", 0.5);
-        if (recovery_healthy_sec_ <= 0.0 || max_position_jump_m_ <= 0.0 ||
-            max_speed_mps_ <= 0.0 || max_dt_s_ <= 0.0) {
+        if (recovery_healthy_sec_ <= 0.0 || max_speed_mps_ <= 0.0 || max_dt_s_ <= 0.0) {
             throw std::invalid_argument("FAST-LIO bridge gate parameters must be positive");
         }
         body_to_sensor_x_m_ = this->declare_parameter<double>("body_to_sensor_x_m", 0.0);
@@ -90,6 +90,16 @@ public:
                     healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
                 }
             });
+        ev_health_planner_usable_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+            ev_health_planner_usable_topic_, rclcpp::QoS(1).reliable().transient_local(),
+            [this](const std_msgs::msg::Bool::SharedPtr msg) {
+                ev_health_planner_usable_ = msg->data;
+                ev_health_planner_usable_seen_ = true;
+                ev_health_planner_usable_time_ = now();
+                if (!ev_health_planner_usable_) {
+                    healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+                }
+            });
 
         // 2️⃣ 创建统一 ENU/map 语义的里程计和位姿发布器
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("/race/odom", 10);
@@ -119,6 +129,11 @@ private:
             ((current - planner_usable_time_).seconds() > 0.5 || !planner_usable_)) {
             return false;
         }
+        if (ev_health_planner_usable_seen_ &&
+            ((current - ev_health_planner_usable_time_).seconds() > 0.5 ||
+             !ev_health_planner_usable_)) {
+            return false;
+        }
         const bool nominal = health_status_ == "HEALTHY" ||
             health_status_ == "SUSPECT_STALE_LIDAR" || health_status_ == "DEGRADED";
         if (!nominal) {
@@ -146,7 +161,7 @@ private:
         const auto &b = previous.pose.pose.position;
         const double distance = std::hypot(std::hypot(a.x - b.x, a.y - b.y), a.z - b.z);
         const double speed = distance / dt;
-        return distance <= max_position_jump_m_ && speed <= max_speed_mps_;
+        return speed <= max_speed_mps_;
     }
 
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -163,18 +178,11 @@ private:
             return;
         }
         if (!continuity_allows(*msg)) {
-            // A relocalization or tracker reset can legitimately move the
-            // pose by more than the in-flight jump limit.  Do not retain the
-            // pre-reset sample as the comparison anchor: doing so rejects
-            // every subsequent frame forever because each frame is compared
-            // with the stale pose.  The health hold above provides the
-            // recovery interval; the first healthy frame after it establishes
-            // a fresh baseline without being published as a jump.
             last_accepted_.reset();
             healthy_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
             RCLCPP_ERROR_THROTTLE(
                 this->get_logger(), *this->get_clock(), 1000,
-                "[RACE_ODOM_REJECTED] discontinuous pose; resetting continuity baseline");
+                "[RACE_ODOM_REJECTED] invalid timestamp interval or speed; resetting continuity baseline");
             return;
         }
         // FAST-LIO publishes camera_init/world ENU pose with child frame `body`.
@@ -330,27 +338,31 @@ private:
     std::string odom_topic_;
     std::string health_status_topic_;
     std::string planner_usable_topic_;
+    std::string ev_health_planner_usable_topic_;
     double body_to_sensor_x_m_{0.0};
     double body_to_sensor_y_m_{0.0};
     double body_to_sensor_z_m_{0.08};
     double body_to_fastlio_yaw_rad_{0.0};
     double world_yaw_alignment_rad_{0.0};
     double recovery_healthy_sec_{1.0};
-    double max_position_jump_m_{0.25};
     double max_speed_mps_{1.5};
     double max_dt_s_{0.5};
     bool require_health_status_{true};
     bool health_status_seen_{false};
     bool planner_usable_seen_{false};
     bool planner_usable_{false};
+    bool ev_health_planner_usable_seen_{false};
+    bool ev_health_planner_usable_{true};
     std::string health_status_;
     rclcpp::Time health_status_time_{0, 0, RCL_ROS_TIME};
     rclcpp::Time planner_usable_time_{0, 0, RCL_ROS_TIME};
+    rclcpp::Time ev_health_planner_usable_time_{0, 0, RCL_ROS_TIME};
     rclcpp::Time healthy_since_{0, 0, RCL_ROS_TIME};
     std::optional<nav_msgs::msg::Odometry> last_accepted_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr health_status_sub_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr planner_usable_sub_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr ev_health_planner_usable_sub_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
 

@@ -188,9 +188,9 @@ def generate_launch_description():
             'odom_topic': LaunchConfiguration('fast_lio_odom_topic'),
             'health_status_topic': '/frlio/high_rate_odom/status',
             'planner_usable_topic': '/frlio/high_rate_odom/planner_usable',
+            'ev_health_planner_usable_topic': '/ev_health/planner_usable',
             'require_health_status': True,
             'recovery_healthy_sec': 1.0,
-            'max_position_jump_m': 0.25,
             'max_speed_mps': 1.5,
             'max_dt_s': 0.5,
         }]

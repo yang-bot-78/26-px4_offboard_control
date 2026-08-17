@@ -290,6 +290,26 @@ TEST(HighRateOdomPropagator, FirstAnchorWithoutImuStillProducesFreshDiagnostic)
   EXPECT_FALSE(propagator.take_last_correction_diagnostic().has_value());
 }
 
+TEST(HighRateOdomPropagator, BaselineImuAfterAnchorKeepsCurrentStateAvailable)
+{
+  fr_lio::HighRateOdomPropagator propagator;
+  ASSERT_TRUE(propagator.reset_from_lidar(stationary_anchor(1.0)));
+
+  // With no replay input, the first IMU only establishes the integration
+  // baseline. It legitimately returns nullopt, but the corrected LiDAR state
+  // remains a valid current state for health reporting.
+  EXPECT_FALSE(propagator.add_imu(stationary_imu(1.005)).has_value());
+  const auto current = propagator.current();
+  ASSERT_TRUE(current.has_value());
+  EXPECT_TRUE(current->state_finite);
+  EXPECT_NEAR(current->state.timestamp, 1.0, 1e-12);
+
+  const auto propagated = propagator.add_imu(stationary_imu(1.010));
+  ASSERT_TRUE(propagated.has_value());
+  EXPECT_TRUE(propagated->sample_propagated);
+  EXPECT_GT(propagated->predictor_generation, current->predictor_generation);
+}
+
 TEST(HighRateOdomPropagator, CorrectionSmoothingBypassPublishesPosteriorDirectly)
 {
   fr_lio::HighRateOdomPropagator propagator({}, 0.15, 0.40, 5.0, {}, 0.0);

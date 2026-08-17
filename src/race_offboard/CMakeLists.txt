@@ -12,7 +12,6 @@ find_package(mavros_msgs REQUIRED)
 find_package(race_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(px4_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -22,7 +21,7 @@ add_executable(offboard_waypoint_node src/offboard_waypoint_node.cpp)
 target_include_directories(offboard_waypoint_node PRIVATE include)
 ament_target_dependencies(
   offboard_waypoint_node rclcpp mavros_msgs race_msgs geometry_msgs nav_msgs
-  px4_msgs std_msgs std_srvs tf2 tf2_geometry_msgs)
+  std_msgs std_srvs tf2 tf2_geometry_msgs)
 
 install(TARGETS
   offboard_waypoint_node
@@ -77,6 +76,9 @@ if(BUILD_TESTING)
   ament_add_gtest(
     test_px4_local_z_reset_tracker test/test_px4_local_z_reset_tracker.cpp)
   target_include_directories(test_px4_local_z_reset_tracker PRIVATE include)
+  ament_add_gtest(
+    test_px4_local_pose_reset_matcher test/test_px4_local_pose_reset_matcher.cpp)
+  target_include_directories(test_px4_local_pose_reset_matcher PRIVATE include)
   add_test(
     NAME test_mission_sequencer
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_mission_sequencer.py)

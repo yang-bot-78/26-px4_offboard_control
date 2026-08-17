@@ -252,7 +252,10 @@ ego_planner:
   # EGO B-spline 局部规划总开关。false 时，统一启动入口会把
   # astar_ego/ego/ego-shadow 降级为 Super A* 普通导航，不启动 EGO 节点。
   # 恢复 EGO 前必须先完成无桨和短距离验证。
-  enable: true
+  # Global-planner-only test mode: navigation.launch.py resolves any EGO
+  # backend request to `super`, so the EGO planner and trajectory bridge are
+  # not started. Restore to true for astar_ego/ego testing.
+  enable: false
   # EGO 规划地平线，单位：m。
   # [调大] 看得更远但优化更复杂。[调小] 需要更频繁滚动目标。
   # [约束] 必须 >= global_planner.max_local_goal_distance。完整重启。
