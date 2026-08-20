@@ -3,7 +3,7 @@
 所有命令默认在以下工程中执行：
 
 ```bash
-cd /home/robot/rong_ws/ws_offboard_control
+cd /home/robot/egohx_ws/26-px4_offboard_control-main
 ```
 
 涉及雷达和飞机的脚本运行前必须拆下全部螺旋桨、确认飞机已上锁，并关闭其他 MID-360、FAST-LIO、MAVROS、Offboard 和 RViz 实例。
@@ -129,20 +129,20 @@ source install/setup.bash
 备份目录：
 
 ```text
-/home/robot/rong_ws/0811bf
+/home/robot/egohx_ws/26-px4_offboard_control-main
 ```
 
 默认从空的 `build/install` 全量编译，然后启动不连接 MAVROS 的 `race_sim` 入口：
 
 ```bash
-cd /home/robot/rong_ws/0811bf
+cd /home/robot/egohx_ws/26-px4_offboard_control-main
 ./tools/一键编译并启动.sh
 ```
 
 只启动控制输出关闭的 Super Planner：
 
 ```bash
-cd /home/robot/rong_ws/0811bf
+cd /home/robot/egohx_ws/26-px4_offboard_control-main
 START_MODE=planner ./tools/一键编译并启动.sh
 ```
 

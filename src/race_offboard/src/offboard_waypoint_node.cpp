@@ -159,6 +159,7 @@ public:
     preflight_stabilization_sec_ = declare_parameter<double>("preflight_stabilization_sec", 5.0);
     command_retry_period_sec_ = declare_parameter<double>("command_retry_period_sec", 1.0);
     cruise_altitude_m_ = declare_parameter<double>("cruise_altitude_m", 0.78);
+    flight_target_agl_m_ = cruise_altitude_m_;
     takeoff_complete_height_m_ = declare_parameter<double>("takeoff_complete_height_m", 0.55);
     min_command_height_m_ = declare_parameter<double>("min_command_height_m", 0.50);
     max_command_height_m_ = declare_parameter<double>("max_command_height_m", 0.90);
@@ -646,11 +647,29 @@ private:
   {
     const bool was_offboard = offboard_mode_;
     const bool was_armed = armed_;
+    const bool was_position_mode = positionMode(last_vehicle_mode_);
     offboard_mode_ = (msg->mode == mavros_msgs::msg::State::MODE_PX4_OFFBOARD);
     armed_ = msg->armed;
+    const bool position_mode = positionMode(msg->mode);
+    last_vehicle_mode_ = msg->mode;
     // connected is MAVROS-only and has no PX4 DDS equivalent: it detects the
     // FCU serial link dropping, which the estimator flags never covered.
     connected_ = msg->connected;
+    // The horizontal Offboard reference is the point where the pilot began
+    // the POSITION/POSCTL takeoff.  Capture it once, before OFFBOARD, rather
+    // than following any small lateral drift while the pilot is hovering.
+    if (manual_handover_ && armed_ && !offboard_mode_ && position_mode &&
+      !was_position_mode && have_local_position_ && finiteCurrentPosition())
+    {
+      manual_takeoff_x_ = current_x_;
+      manual_takeoff_y_ = current_y_;
+      manual_takeoff_yaw_ = holdYaw();
+      manual_takeoff_position_valid_ = true;
+      RCLCPP_INFO(
+        get_logger(),
+        "[MANUAL_POSITION_REFERENCE_LOCKED] takeoff_xy_ned=(%.3f,%.3f) yaw=%.3f",
+        manual_takeoff_x_, manual_takeoff_y_, manual_takeoff_yaw_);
+    }
     const bool automation_active = state_ == State::WARMUP || state_ == State::PREFLIGHT ||
       state_ == State::TAKEOFF || state_ == State::ACTIVE;
     if (!pilot_override_latched_ && race_offboard::pilotOverrideRequested(
@@ -662,7 +681,13 @@ private:
     }
     if (was_armed && !armed_) {
       resetFlightAltitudeReference("vehicle disarmed");
+      manual_takeoff_position_valid_ = false;
     }
+  }
+
+  bool positionMode(const std::string & mode) const
+  {
+    return mode == "POSITION" || mode == "POSCTL";
   }
 
   void evHealthCallback(const std_msgs::msg::String::SharedPtr msg)
@@ -1140,6 +1165,48 @@ private:
     hold_position_valid_ = true;
   }
 
+  void captureManualTakeoffPositionIfNeeded()
+  {
+    if (manual_takeoff_position_valid_ || !manual_handover_ || !armed_ ||
+      offboard_mode_ || !positionMode(last_vehicle_mode_) || !finiteCurrentPosition())
+    {
+      return;
+    }
+    manual_takeoff_x_ = current_x_;
+    manual_takeoff_y_ = current_y_;
+    manual_takeoff_yaw_ = holdYaw();
+    manual_takeoff_position_valid_ = true;
+    RCLCPP_INFO(
+      get_logger(),
+      "[MANUAL_POSITION_REFERENCE_LOCKED] takeoff_xy_ned=(%.3f,%.3f) yaw=%.3f",
+      manual_takeoff_x_, manual_takeoff_y_, manual_takeoff_yaw_);
+  }
+
+  void updateManualHandoverHoldPosition(float z_command)
+  {
+    captureManualTakeoffPositionIfNeeded();
+    if (!manual_takeoff_position_valid_) {
+      updateHoldPosition(z_command);
+      return;
+    }
+    hold_x_ = manual_takeoff_x_;
+    hold_y_ = manual_takeoff_y_;
+    hold_z_ = z_command;
+    hold_yaw_ = manual_takeoff_yaw_;
+    hold_position_valid_ = true;
+  }
+
+  void lockManualHandoverPosition(float z_command, const std::string & reason)
+  {
+    if (!finiteCurrentPosition()) {
+      return;
+    }
+    updateManualHandoverHoldPosition(z_command);
+    RCLCPP_WARN(
+      get_logger(), "[HOLD_POSITION] x=%.3f y=%.3f z=%.3f yaw=%.3f reason=%s",
+      hold_x_, hold_y_, hold_z_, hold_yaw_, reason.c_str());
+  }
+
   double holdPositionError() const
   {
     return hold_position_valid_ && finiteCurrentPosition() ?
@@ -1174,7 +1241,7 @@ private:
     reference.header.frame_id = "map";
     reference.flight_id = flight_id_;
     reference.valid = flight_altitude_reference_valid_;
-    reference.target_agl_m = cruise_altitude_m_;
+    reference.target_agl_m = flight_target_agl_m_;
     reference.min_agl_m = min_command_height_m_;
     reference.max_agl_m = max_command_height_m_;
     reference.ground_z_local_ned = ground_z_local_ned_;
@@ -1194,11 +1261,12 @@ private:
     {
       return false;
     }
+    flight_target_agl_m_ = cruise_altitude_m_;
     ground_z_local_ned_ = static_cast<double>(current_z_);
-    target_z_local_ned_ = ground_z_local_ned_ - cruise_altitude_m_;
+    target_z_local_ned_ = ground_z_local_ned_ - flight_target_agl_m_;
     const auto local_enu = race_offboard::nedToEnu({current_x_, current_y_, current_z_});
     ground_z_map_ = local_enu[2] - map_to_local_.z;
-    target_z_map_ = ground_z_map_ + cruise_altitude_m_;
+    target_z_map_ = ground_z_map_ + flight_target_agl_m_;
     ++flight_id_;
     flight_altitude_reference_valid_ = true;
     publishFlightAltitudeReference();
@@ -1207,7 +1275,44 @@ private:
       "[FLIGHT_ALTITUDE_REFERENCE_LOCKED] flight_id=%lu ground_local_ned=%.3f "
       "target_local_ned=%.3f ground_map=%.3f target_map=%.3f target_agl=%.3f",
       static_cast<unsigned long>(flight_id_), ground_z_local_ned_, target_z_local_ned_,
-      ground_z_map_, target_z_map_, cruise_altitude_m_);
+      ground_z_map_, target_z_map_, flight_target_agl_m_);
+    return true;
+  }
+
+  // During a manual airborne handover, PX4's local origin remains the ground
+  // reference.  Preserve the measured POSITION altitude exactly instead of
+  // commanding the automatic-takeoff cruise height after the mode switch.
+  bool lockManualHandoverFlightAltitudeReference()
+  {
+    if (flight_altitude_reference_valid_) {
+      return true;
+    }
+    if (!have_local_position_ || !finiteCurrentPosition() || !have_map_odom_ ||
+      !map_local_alignment_ready_)
+    {
+      return false;
+    }
+    flight_target_agl_m_ = -static_cast<double>(current_z_);
+    if (!std::isfinite(flight_target_agl_m_) ||
+      flight_target_agl_m_ < min_command_height_m_ ||
+      flight_target_agl_m_ > max_command_height_m_)
+    {
+      return false;
+    }
+    const auto local_enu = race_offboard::nedToEnu({current_x_, current_y_, current_z_});
+    target_z_local_ned_ = static_cast<double>(current_z_);
+    target_z_map_ = local_enu[2] - map_to_local_.z;
+    ground_z_local_ned_ = target_z_local_ned_ + flight_target_agl_m_;
+    ground_z_map_ = target_z_map_ - flight_target_agl_m_;
+    ++flight_id_;
+    flight_altitude_reference_valid_ = true;
+    publishFlightAltitudeReference();
+    RCLCPP_WARN(
+      get_logger(),
+      "[MANUAL_FLIGHT_ALTITUDE_REFERENCE_LOCKED] flight_id=%lu ground_local_ned=%.3f "
+      "target_local_ned=%.3f ground_map=%.3f target_map=%.3f target_agl=%.3f",
+      static_cast<unsigned long>(flight_id_), ground_z_local_ned_, target_z_local_ned_,
+      ground_z_map_, target_z_map_, flight_target_agl_m_);
     return true;
   }
 
@@ -1234,7 +1339,8 @@ private:
   {
     const bool ev_ready = !require_ev_health_ ||
       ev_flight_ready_.ready(now().nanoseconds());
-    return (!require_map_local_alignment_ || map_local_alignment_ready_) &&
+    const bool altitude_reference_ready = have_map_odom_ && map_local_alignment_ready_;
+    return altitude_reference_ready &&
            race_offboard::canAcceptManualHandover(
       manual_handover_, state_ == State::IDLE, armed_, offboard_mode_,
       localPositionSafe(), ev_ready,
@@ -1244,7 +1350,13 @@ private:
 
   void acceptManualHandover()
   {
-    lockHoldPosition(current_z_, "manual handover accepted");
+    if (!lockManualHandoverFlightAltitudeReference()) {
+      RCLCPP_ERROR(
+        get_logger(),
+        "[MANUAL_HANDOVER_REJECTED] cannot lock the current POSITION altitude reference");
+      return;
+    }
+    lockManualHandoverPosition(current_z_, "manual handover accepted");
     state_ = State::ACTIVE;
     state_enter_time_ = now();
     manual_handover_accepted_ = true;
@@ -1561,8 +1673,9 @@ private:
             have_local_position_ && finiteCurrentPosition()))
         {
           // PX4 requires the stream before entering OFFBOARD. Keep that stream
-          // on the live POSITION pose, then freeze it when OFFBOARD is accepted.
-          updateHoldPosition(current_z_);
+          // on the takeoff XY and live POSITION height, then freeze it when
+          // OFFBOARD is accepted.
+          updateManualHandoverHoldPosition(current_z_);
           setControlState(ControlState::IDLE_HOLD, "tracking manual POSITION handover");
         }
         if (!hold_position_valid_) {
@@ -1641,12 +1754,13 @@ private:
 
   void runPreflight(float cruise_z)
   {
-    // Manual flight-validation mode: keep a current-position setpoint stream,
-    // but leave arming, takeoff, and OFFBOARD selection to the pilot.
+    // Manual flight-validation mode: keep the locked takeoff XY plus the live
+    // POSITION height in the setpoint stream, but leave arming, takeoff, and
+    // OFFBOARD selection to the pilot.
     if (manual_handover_ && armed_ && have_local_position_ && finiteCurrentPosition() &&
       !offboard_mode_)
     {
-      lockHoldPosition(current_z_, "manual handover position-mode hold");
+      lockManualHandoverPosition(current_z_, "manual handover position-mode hold");
     }
     if (!hold_position_valid_) {
       lockHoldPosition(cruise_z, "preflight hold");
@@ -1849,6 +1963,7 @@ private:
       status.find("EGO_TRAJECTORY_COLLISION") != std::string::npos ||
       status.find("EGO_OCCUPANCY_STALE") != std::string::npos ||
       status.find("EGO_REPLAN_REANCHOR_FAILED") != std::string::npos ||
+      status.find("EGO_REPLAN_TRANSACTION_EXHAUSTED") != std::string::npos ||
       status.find("EMERGENCY_HOLD") != std::string::npos ||
       status.find("SETPOINT_INVALID") != std::string::npos ||
       status.find("ODOM_UNHEALTHY") != std::string::npos ||
@@ -2322,6 +2437,7 @@ private:
   double preflight_stabilization_sec_{5.0};
   double command_retry_period_sec_{1.0};
   double cruise_altitude_m_{0.78};
+  double flight_target_agl_m_{0.78};
   double takeoff_complete_height_m_{0.55};
   double min_command_height_m_{0.50};
   double max_command_height_m_{0.90};
@@ -2435,6 +2551,10 @@ private:
   float takeoff_x_{0.0F};
   float takeoff_y_{0.0F};
   double takeoff_yaw_{0.0};
+  float manual_takeoff_x_{0.0F};
+  float manual_takeoff_y_{0.0F};
+  double manual_takeoff_yaw_{0.0};
+  bool manual_takeoff_position_valid_{false};
   float hold_x_{0.0F};
   float hold_y_{0.0F};
   float hold_z_{0.0F};
@@ -2484,6 +2604,7 @@ private:
   bool offboard_mode_{false};
   bool armed_{false};
   bool connected_{false};
+  std::string last_vehicle_mode_;
   uint64_t active_goal_id_{0};
 
   bool last_command_valid_{false};

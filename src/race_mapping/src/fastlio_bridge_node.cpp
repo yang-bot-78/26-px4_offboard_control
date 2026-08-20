@@ -45,8 +45,13 @@ public:
             !std::isfinite(world_yaw_alignment_rad_)) {
             throw std::invalid_argument("FAST-LIO body installation parameters must be finite");
         }
+        // FR-LIO publishes raw odometry with SensorDataQoS (BEST_EFFORT).
+        // A BEST_EFFORT subscription is compatible with both that stream and
+        // the Reliable output of the relocalization health gate; a default
+        // Reliable subscription rejects the former and leaves /race/odom empty.
+        const auto odom_qos = rclcpp::SensorDataQoS().keep_last(5);
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            odom_topic_, 10,
+            odom_topic_, odom_qos,
             std::bind(&FastLioBridgeNode::odom_callback, this, std::placeholders::_1));
 
         // 2️⃣ 创建统一 ENU/map 语义的里程计和位姿发布器

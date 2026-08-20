@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -16,6 +17,13 @@ from launch_ros.substitutions import FindPackageShare
 
 sys.path.insert(0, os.path.dirname(__file__))
 from astar_ego_tuning import TuningError, load_tuning, summary  # noqa: E402
+
+
+def workspace_root(package_share: str) -> str:
+    explicit_root = os.environ.get('WS_OFFBOARD_CONTROL_ROOT')
+    if explicit_root:
+        return explicit_root
+    return str(Path(package_share).resolve().parents[3])
 
 
 class EffectivePlannerBackend(Substitution):
@@ -84,6 +92,7 @@ class TuningEgoMapSource(Substitution):
 
 def generate_launch_description():
     bringup_dir = get_package_share_directory('race_bringup')
+    root_dir = workspace_root(bringup_dir)
     mapping_dir = get_package_share_directory('race_mapping')
     planner_dir = get_package_share_directory('race_super_planner_ros2')
 
@@ -112,6 +121,11 @@ def generate_launch_description():
     mission_enabled = LaunchConfiguration('mission_enabled')
     recognition_enabled = LaunchConfiguration('recognition_enabled')
     mission_file = LaunchConfiguration('mission_file')
+    global_waypoint_task_enabled = LaunchConfiguration('global_waypoint_task_enabled')
+    publish_global_path = LaunchConfiguration('publish_global_path')
+    control_nodes_enabled = LaunchConfiguration('control_nodes_enabled')
+    waypoint_visualizer_enabled = LaunchConfiguration('waypoint_visualizer_enabled')
+    waypoints_file = LaunchConfiguration('waypoints_file')
     mission_rviz_config = PathJoinSubstitution([
         FindPackageShare('race_bringup'), 'rviz', 'race_mission_click_planner.rviz',
     ])
@@ -152,6 +166,7 @@ def generate_launch_description():
                 'require_map_local_alignment'),
             'tuning_file': tuning_file,
         }.items(),
+        condition=IfCondition(control_nodes_enabled),
     )
 
     mapping_launch = IncludeLaunchDescription(
@@ -190,15 +205,24 @@ def generate_launch_description():
             'config_file': planner_config,
             'enable_output': enable_output,
             'global_only_mode': PythonExpression([
-                "'true' if '", planner_backend, "' == 'astar_ego' else 'false'"
+                "'true' if '", planner_backend, "' == 'astar_ego' or '",
+                global_waypoint_task_enabled, "' == 'true' else 'false'"
             ]),
             'publish_global_path': PythonExpression([
                 "'true' if '", planner_backend,
-                "' in ['ego-shadow', 'astar_ego'] else 'false'"
+                "' in ['ego-shadow', 'astar_ego'] or '", publish_global_path,
+                "' == 'true' else 'false'"
             ]),
             'publish_ego_local_goal': PythonExpression([
                 "'true' if '", planner_backend,
                 "' in ['ego-shadow', 'astar_ego'] else 'false'"
+            ]),
+            # Planning-only runs have no Offboard authority to establish the
+            # flight altitude reference. The planner still clamps the goal to
+            # its configured vertical envelope, but must not reject the route.
+            'use_fixed_flight_height': PythonExpression([
+                "'false' if '", global_waypoint_task_enabled,
+                "' == 'true' else 'true'"
             ]),
             # /race/odom is the single map-frame pose after applying the shared
             # world yaw. Planner goals and the loaded map use this same frame.
@@ -259,16 +283,33 @@ def generate_launch_description():
         condition=IfCondition(mission_enabled),
     )
 
-    # Target recognition. Lives in bs/, outside the colcon tree, because it is
-    # a standalone Python program with heavy vision dependencies; run it by
-    # absolute path rather than packaging it. It idles until the mission
-    # sequencer turns recognition on for zone B or D.
+    global_waypoint_task = Node(
+        package='race_offboard',
+        executable='global_waypoint_task_node.py',
+        name='global_waypoint_task_node',
+        output='screen',
+        parameters=[{
+            'mission_file': mission_file,
+            'use_sim_time': use_sim_time,
+        }],
+        condition=IfCondition(global_waypoint_task_enabled),
+    )
+
+    waypoint_visualizer = Node(
+        package='race_offboard',
+        executable='waypoint_visualizer.py',
+        name='waypoint_visualizer',
+        output='screen',
+        arguments=['--waypoints-file', waypoints_file],
+        condition=IfCondition(waypoint_visualizer_enabled),
+    )
+
+    # Target recognition lives outside the colcon tree because it has a
+    # dedicated Python environment. Use its checked-in launcher rather than a
+    # removed bs/code/ path so a relocated workspace still starts it correctly.
     recognition_node = ExecuteProcess(
         cmd=[
-            'python3',
-            os.path.join(
-                os.path.expanduser('~'), 'rong_ws', 'ws_offboard_control',
-                'bs', 'code', 'bs_recognition_node.py'),
+            os.path.join(root_dir, 'bs', 'run_0812.sh'),
         ],
         output='screen',
         condition=IfCondition(recognition_enabled),
@@ -320,17 +361,37 @@ def generate_launch_description():
         DeclareLaunchArgument('publish_camera_init_tf', default_value='true'),
         DeclareLaunchArgument('broadcast_map_to_odom', default_value='true'),
         DeclareLaunchArgument('map_frame_id', default_value='map'),
-        DeclareLaunchArgument('fast_lio_odom_topic', default_value='/Odometry'),
+        # Consume the fail-closed EV stream by default. Raw /Odometry and the
+        # relocalization intermediate /planning/odom must be explicitly opted
+        # into for offline or diagnostic runs.
+        DeclareLaunchArgument('fast_lio_odom_topic', default_value='/Odometry/healthy'),
         # The A->B->C->D race sequence. On by default: without it the stack
         # flies to a single RViz goal and never runs the course.
         DeclareLaunchArgument('mission_enabled', default_value='true'),
+        DeclareLaunchArgument(
+            'global_waypoint_task_enabled', default_value='false',
+            description='Publish B1->B2->C->D planner goals without PX4 mode handling.'),
+        DeclareLaunchArgument(
+            'publish_global_path', default_value='false',
+            description='Publish /race/global_path for global-planning verification.'),
+        DeclareLaunchArgument(
+            'control_nodes_enabled', default_value='true',
+            description='Start the Offboard control node. Set false for planning-only runs.'),
+        DeclareLaunchArgument(
+            'waypoint_visualizer_enabled', default_value='false',
+            description='Publish saved waypoints to RViz MarkerArray.'),
+        DeclareLaunchArgument(
+            'waypoints_file',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('race_offboard'), 'config', 'waypoints', 'main', 'waypoints.yaml',
+            ])),
         DeclareLaunchArgument(
             'map_auto_load', default_value='true',
             description='Load the PCD at startup; set false for no-map validation.'),
         DeclareLaunchArgument(
             'mission_file',
             default_value=PathJoinSubstitution([
-                FindPackageShare('race_offboard'), 'config', 'mission.yaml',
+                FindPackageShare('race_offboard'), 'config', 'waypoints', 'main', 'mission.yaml',
             ]),
         ),
         DeclareLaunchArgument(
@@ -356,13 +417,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'map_file',
             default_value=os.path.join(
-                os.path.expanduser('~'),
-                'rong_ws',
-                'ws_offboard_control',
-                'maps',
-                'fastlio_global_3d',
-                'GlobalMap.pcd',
-            ),
+                root_dir, 'maps', 'fastlio_global_3d', 'GlobalMap.pcd'),
         ),
         DeclareLaunchArgument(
             'planner_config',
@@ -387,6 +442,8 @@ def generate_launch_description():
         planner_launch,
         ego_launch,
         mission_sequencer,
+        global_waypoint_task,
+        waypoint_visualizer,
         recognition_node,
         rviz_node,
     ])

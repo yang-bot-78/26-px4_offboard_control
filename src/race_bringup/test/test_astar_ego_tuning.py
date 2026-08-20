@@ -173,6 +173,29 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertIn('RECORD_EGO_DIAGNOSTICS=true', flight)
         bag = (ROOT / 'tools/rosbag/开始录包.sh').read_text(encoding='utf-8')
         self.assertIn('RECORD_EGO_DIAGNOSTICS', bag)
+        self.assertIn('ROSBAG_PROFILE', bag)
+        self.assertIn('low_bag_topics', bag)
+        self.assertIn('merge_unique_topics', bag)
+        self.assertIn(
+            '"${low_bag_topics[@]}" "${trace_bag_topics[@]}"', bag)
+        low_topics = bag.split('low_bag_topics=(', 1)[1].split(
+            'full_bag_topics=(', 1)[0]
+        # Low mode must be sufficient to explain a handover/recovery flight:
+        # commanded trajectory, measured state, terminal status and EV anchor
+        # health. It must not reintroduce the heavy raw streams it is intended
+        # to avoid.
+        for topic in (
+                '/rosout', '/race/ego/odom', '/race/navigation_setpoint',
+                '/race/ego/planner_safety_status',
+                '/frlio/high_rate_odom/status',
+                '/frlio/high_rate_odom/anchor_age',
+                '/ev_health/status', '/ev_health/fault',
+                '/ev_health/diagnostics'):
+            self.assertIn(topic, low_topics)
+        for topic in (
+                '/livox/lidar', '/livox/imu', '/cloud_registered',
+                '/saved_map', '/tf_static', '/mavros/local_position/odom'):
+            self.assertNotIn(topic, low_topics)
         for topic in (
                 '/race/ego/cloud', '/race/ego/occupancy',
                 '/race/ego/occupancy_inflate', '/race/ego/predicted_path'):
@@ -185,10 +208,48 @@ class AstarEgoTuningTest(unittest.TestCase):
                 '/frlio/high_rate_odom/anchor_age',
                 '/Odometry', '/planning/odom', '/Odometry/healthy'):
             self.assertIn(topic, bag)
+        auto_takeoff = (
+            ROOT / 'tools/flight/切Offboard后自动起飞0.75米单目标验证.sh'
+        ).read_text(encoding='utf-8')
+        self.assertIn('--lowrosbag', auto_takeoff)
+        self.assertIn('ROSBAG_PROFILE="${rosbag_profile}"', auto_takeoff)
+        self.assertIn('manual_handover_min_altitude_m="0.50"', auto_takeoff)
+        self.assertIn('manual_handover_max_altitude_m="1.20"', auto_takeoff)
+        self.assertIn('tuning["shared_safety"]["fault_envelope"]["z_max"] = max_height', auto_takeoff)
+        self.assertIn('wait_manual_position_handover || exit 4', auto_takeoff)
+        self.assertIn('capture_planning_start_position', auto_takeoff)
+        self.assertIn('wait_handover_accepted || exit 5', auto_takeoff)
+        self.assertIn('wait_planning_tracking || exit 6', auto_takeoff)
+        manual_block = auto_takeoff.split(
+            'if [[ "${takeoff_mode}" == manual ]]; then\n  cat <<EOF', 1)[1].split(
+            'else\n', 1)[0]
+        self.assertNotIn('read -r', manual_block)
         for name in ('race_click_planner.rviz', 'race_mission_click_planner.rviz'):
             rviz = (ROOT / 'src/race_bringup/rviz' / name).read_text(encoding='utf-8')
             self.assertIn('Value: /cloud_registered', rviz)
             self.assertNotIn('/fast_lio/cloud_registered', rviz)
+
+    def test_manual_handover_preserves_position_altitude_across_the_planning_chain(self):
+        offboard = (ROOT / 'src/race_offboard/src/offboard_waypoint_node.cpp').read_text(
+            encoding='utf-8')
+        self.assertIn('lockManualHandoverFlightAltitudeReference()', offboard)
+        self.assertIn('target_z_local_ned_ = static_cast<double>(current_z_);', offboard)
+        self.assertIn('flight_target_agl_m_ = -static_cast<double>(current_z_);', offboard)
+
+        consumers = (
+            ROOT / 'src/race_super_planner_ros2/src/super_planner_ros2_node.cpp',
+            ROOT / 'src/race_ego_bridge/src/ego_goal_bridge.cpp',
+            ROOT / 'src/race_ego_bridge/src/ego_trajectory_bridge.cpp',
+            ROOT / 'src/ego_planner_upstream/plan_manage/src/ego_replan_fsm.cpp',
+        )
+        for source in consumers:
+            text = source.read_text(encoding='utf-8')
+            self.assertIn('target_agl_m <', text)
+            self.assertIn('target_agl_m >', text)
+        script = (ROOT / 'tools/flight/切Offboard后自动起飞0.75米单目标验证.sh').read_text(
+            encoding='utf-8')
+        self.assertIn('verify_manual_handover_altitude_reference || exit 5', script)
+        self.assertIn('规划路径将保持该高度', script)
 
     def test_pillar_area_tuning_reaches_every_target_node(self):
         overlays = node_parameter_overlays(self.tuning)
@@ -205,6 +266,12 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertEqual(
             self.tuning['global_planner']['max_local_goal_distance'],
             overlays['super']['ego_local_goal_max_distance_m'])
+        self.assertEqual(
+            self.tuning['global_planner']['first_commit_max_path_error_m'],
+            overlays['super']['pending_path_max_cross_track_error_m'])
+        self.assertEqual(
+            self.tuning['global_planner']['stale_start_max_replans'],
+            overlays['super']['pending_path_max_replans'])
         self.assertEqual(
             self.tuning['ego_map']['live_obstacle_memory_sec'],
             overlays['cloud_bridge']['live_obstacle_memory_sec'])
@@ -461,13 +528,13 @@ class AstarEgoTuningTest(unittest.TestCase):
             overlays['ego']['manager/max_reference_deviation_m'])
         self.assertTrue(self.tuning['ego_recovery']['enable'])
         self.assertFalse(self.tuning['ego_recovery']['diagnostic_only'])
-        self.assertEqual(2, self.tuning['ego_recovery']['max_recovery_attempts'])
+        self.assertEqual(1, self.tuning['ego_recovery']['max_recovery_attempts'])
         self.assertEqual(0.5, self.tuning['ego_recovery']['cooldown_sec'])
         self.assertEqual(2.0, self.tuning['ego_recovery']['exhausted_backoff_sec'])
         self.assertEqual(0.6, self.tuning['ego_recovery']['rejoin_search_distance_m'])
         self.assertEqual(0.15, self.tuning['ego_recovery']['minimum_forward_progress_m'])
         self.assertEqual(0.06, self.tuning['ego_recovery']['extra_clearance_m'])
-        self.assertEqual(0.78, self.tuning['ego_recovery']['max_reference_deviation_m'])
+        self.assertEqual(1.50, self.tuning['ego_recovery']['max_reference_deviation_m'])
         self.assertEqual(0.75, self.tuning['ego_recovery']['max_lateral_offset_m'])
         self.assertEqual(0.15, self.tuning['ego_recovery']['lateral_offset_step_m'])
         self.assertEqual(
@@ -483,7 +550,7 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertEqual(
             0.06, overlays['ego']['fsm/ego_recovery/extra_clearance_m'])
         self.assertEqual(
-            0.78, overlays['ego']['fsm/ego_recovery/max_reference_deviation_m'])
+            1.50, overlays['ego']['fsm/ego_recovery/max_reference_deviation_m'])
         self.assertEqual(
             2.0, overlays['ego']['fsm/ego_recovery/exhausted_backoff_sec'])
 
@@ -533,7 +600,9 @@ class AstarEgoTuningTest(unittest.TestCase):
         with self.assertRaisesRegex(TuningError, 'extra_clearance_m'):
             self._validate(bad)
 
-        for value in (0.449, 0.801):
+        corridor_limit = self.tuning['shared_safety']['fault_envelope'][
+            'mission_corridor_max_error_m']
+        for value in (0.449, corridor_limit + 0.001):
             with self.subTest(max_reference_deviation_m=value):
                 bad = copy.deepcopy(self.tuning)
                 bad['ego_recovery']['max_reference_deviation_m'] = value
@@ -542,9 +611,9 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_handover_tolerances_are_bounded(self):
         limits = {
-            'handover_position_tolerance_m': 0.02,
-            'handover_velocity_tolerance_mps': 0.02,
-            'handover_acceleration_tolerance_mps2': 0.05,
+            'handover_position_tolerance_m': 0.10,
+            'handover_velocity_tolerance_mps': 0.14,
+            'handover_acceleration_tolerance_mps2': 0.10,
         }
         for key, limit in limits.items():
             for value in (0.0, -0.001, limit + 0.001):
@@ -554,15 +623,51 @@ class AstarEgoTuningTest(unittest.TestCase):
                     with self.assertRaisesRegex(TuningError, key):
                         self._validate(bad)
 
-    def test_goal_bridge_stability_gate_is_plumbed(self):
+    def test_handover_tolerances_match_bridge(self):
+        ego = self.tuning['ego_planner']
+        bridge = self.tuning['trajectory_bridge']
+        self.assertEqual(
+            ego['handover_position_tolerance_m'],
+            bridge['switch_position_tolerance_m'])
+        self.assertEqual(
+            ego['handover_velocity_tolerance_mps'],
+            bridge['switch_velocity_tolerance_mps'])
+        self.assertEqual(
+            ego['handover_acceleration_tolerance_mps2'],
+            bridge['switch_acceleration_tolerance_mps2'])
+
+        bad = copy.deepcopy(self.tuning)
+        bad['trajectory_bridge']['switch_velocity_tolerance_mps'] = 0.13
+        with self.assertRaisesRegex(TuningError, 'must match'):
+            self._validate(bad)
+
+    def test_goal_bridge_background_release_and_legacy_stability_are_plumbed(self):
         overlays = node_parameter_overlays(self.tuning)
         offboard = self.tuning['offboard']
+        self.assertEqual(0.40, offboard['ego_goal_release_height_m'])
+        self.assertEqual(
+            offboard['ego_goal_release_height_m'],
+            overlays['goal_bridge']['release_height'])
         self.assertEqual(
             offboard['ego_goal_stable_duration_sec'],
             overlays['goal_bridge']['stable_duration_sec'])
         self.assertEqual(
             offboard['ego_goal_stable_height_tolerance_m'],
             overlays['goal_bridge']['stable_height_tolerance_m'])
+
+    def test_background_release_height_is_bounded_but_may_precede_safety_window(self):
+        # 0.40 m intentionally precedes the 0.50 m command safety window: it
+        # starts planning only, while Offboard keeps the horizontal takeover
+        # gated at takeoff_height_m.
+        bounds = self.tuning['shared_safety']['fault_envelope']
+        offboard = self.tuning['offboard']
+        self.assertLess(offboard['ego_goal_release_height_m'], bounds['z_min'])
+        for value in (0.0, offboard['fixed_flight_height_m'] + 0.001):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['offboard']['ego_goal_release_height_m'] = value
+                with self.assertRaisesRegex(TuningError, 'ego_goal_release_height_m'):
+                    self._validate(bad)
 
     def test_trajectory_lifecycle_and_switch_gates_are_plumbed(self):
         overlays = node_parameter_overlays(self.tuning)
@@ -574,7 +679,8 @@ class AstarEgoTuningTest(unittest.TestCase):
             self.assertEqual(planner[key], overlays['super'][key])
         for key in (
                 'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
-                'switch_acceleration_tolerance_mps2'):
+                'switch_acceleration_tolerance_mps2', 'handover_max_rejections',
+                'handover_transaction_timeout_sec'):
             self.assertEqual(bridge[key], overlays['trajectory_bridge'][key])
 
     def test_recovery_can_be_disabled_without_changing_other_tuning(self):
@@ -583,11 +689,29 @@ class AstarEgoTuningTest(unittest.TestCase):
         overlays = self._validate(disabled)
         self.assertFalse(node_parameter_overlays(overlays)['ego']['fsm/ego_recovery/enable'])
 
-    def test_recovery_attempt_count_must_be_positive(self):
-        bad = copy.deepcopy(self.tuning)
-        bad['ego_recovery']['max_recovery_attempts'] = 0
-        with self.assertRaisesRegex(TuningError, 'max_recovery_attempts'):
-            self._validate(bad)
+    def test_recovery_has_exactly_one_fallback_attempt(self):
+        for value in (0, 2):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['ego_recovery']['max_recovery_attempts'] = value
+                with self.assertRaisesRegex(TuningError, 'max_recovery_attempts'):
+                    self._validate(bad)
+
+    def test_stale_global_start_has_exactly_one_replan(self):
+        for value in (0, 2):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['global_planner']['stale_start_max_replans'] = value
+                with self.assertRaisesRegex(TuningError, 'stale_start_max_replans'):
+                    self._validate(bad)
+
+    def test_first_commit_path_error_is_bounded(self):
+        for value in (0.049, 0.501):
+            with self.subTest(value=value):
+                bad = copy.deepcopy(self.tuning)
+                bad['global_planner']['first_commit_max_path_error_m'] = value
+                with self.assertRaisesRegex(TuningError, 'first_commit_max_path_error_m'):
+                    self._validate(bad)
 
     def test_expensive_ego_diagnostics_are_explicitly_disabled_by_default(self):
         overlays = node_parameter_overlays(self.tuning)

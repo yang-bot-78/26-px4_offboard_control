@@ -61,6 +61,9 @@ if(BUILD_TESTING)
   ament_target_dependencies(test_race_ego_safety bspline_opt plan_env)
   target_include_directories(test_race_ego_safety PRIVATE ${PCL_INCLUDE_DIRS})
   target_link_libraries(test_race_ego_safety Eigen3::Eigen ${PCL_LIBRARIES})
+  ament_add_gtest(
+    test_handover_transaction_policy test/test_handover_transaction_policy.cpp)
+  target_include_directories(test_handover_transaction_policy PRIVATE include)
 endif()
 
 ament_package()

@@ -212,7 +212,7 @@ check_static_layer_0() {
     fail "找不到 astar_ego_tuning.yaml"
   fi
 
-  local mission="${project_root}/src/race_offboard/config/mission.yaml"
+  local mission="${project_root}/src/race_offboard/config/waypoints/main/mission.yaml"
   if [[ -f "${mission}" ]]; then
     if grep -qE '^\s*preset_points:' "${mission}"; then
       ok "mission.yaml 已启用 preset_points"

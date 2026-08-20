@@ -1490,7 +1490,12 @@ public:
         /*** ROS subscribe initialization ***/
         if (p_pre->lidar_type == AVIA)
         {
-            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(lid_topic, 20, livox_pcl_cbk);
+            // livox_ros_driver2 publishes CustomMsg as Best Effort.  The
+            // integer-depth overload requests Reliable and silently prevents
+            // FR-LIO from receiving any MID-360 packets.
+            const auto livox_qos = rclcpp::SensorDataQoS().keep_last(5);
+            sub_pcl_livox_ = this->create_subscription<livox_ros_driver2::msg::CustomMsg>(
+                lid_topic, livox_qos, livox_pcl_cbk);
         }
         else
         {
@@ -1521,6 +1526,10 @@ public:
             rclcpp::QoS(1).reliable().transient_local());
         pubAnchorAge_ = this->create_publisher<std_msgs::msg::Float64>(
             "/frlio/high_rate_odom/anchor_age", odom_qos);
+        pubPredictorVz_ = this->create_publisher<std_msgs::msg::Float64>(
+            "/frlio/high_rate_odom/predictor_vz", odom_qos);
+        pubPosteriorDeltaZ_ = this->create_publisher<std_msgs::msg::Float64>(
+            "/frlio/high_rate_odom/posterior_delta_z", odom_qos);
         publish_high_rate_status(
             !high_rate_odom_enabled_ ? "DISABLED" :
             (high_rate_publish_enabled_ ? "WAITING_FOR_LIDAR" : "UNIT_UNCONFIRMED"));
@@ -1939,11 +1948,21 @@ private:
                     rotation_world_body.transpose() * P_drift.block<3,3>(3,3) *
                     rotation_world_body;
             }
-            if (high_rate_publish_enabled_ &&
-                !high_rate_propagator_->reset_from_lidar(corrected_state)) {
-                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
-                    "Rejected non-monotonic or invalid LiDAR correction at %.6f",
-                    lidar_end_time);
+            if (high_rate_publish_enabled_) {
+                const auto prior_prediction = high_rate_propagator_->current();
+                const bool accepted = high_rate_propagator_->reset_from_lidar(corrected_state);
+                if (!accepted) {
+                    RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
+                        "Rejected non-monotonic or invalid LiDAR correction at %.6f",
+                        lidar_end_time);
+                } else if (prior_prediction) {
+                    // This is the posterior-minus-prediction vertical correction
+                    // at the LiDAR update time, in FR-LIO's odom frame.
+                    std_msgs::msg::Float64 correction;
+                    correction.data = corrected_state.position.z() -
+                        prior_prediction->state.position.z();
+                    pubPosteriorDeltaZ_->publish(correction);
+                }
             }
 
             /*** add the feature points to map kdtree ***/
@@ -2492,6 +2511,9 @@ private:
             "SUSPECT_STALE_LIDAR" : "HEALTHY");
 
         const auto & state = result->state;
+        std_msgs::msg::Float64 predictor_vz;
+        predictor_vz.data = state.velocity.z();
+        pubPredictorVz_->publish(predictor_vz);
         const V3D velocity_body = state.rotation.transpose() * state.velocity;
         Eigen::Quaterniond q(state.rotation);
         q.normalize();
@@ -2637,6 +2659,8 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pubPath_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pubHighRateStatus_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubAnchorAge_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubPredictorVz_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubPosteriorDeltaZ_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
     rclcpp::CallbackGroup::SharedPtr imu_cb_group_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_pcl_pc_;

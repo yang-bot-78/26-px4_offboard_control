@@ -69,6 +69,10 @@ patterns_sensor=(
   run_fastlio_mid360.sh
   frlio
   'fr_lio lio.launch.py'
+  planning_relocalization_frame_bridge
+  重定位坐标桥.py
+  fastlio_global_backend
+  fastlio_global_slam.launch.py
   lidar_validation_gate
   'high_rate_validation_helper.py (gate|fault-test|observe|load)'
 )
@@ -161,7 +165,7 @@ terminate_pids() {
   echo "[清理] ${label}：发现 ${#pids[@]} 个遗留进程，正在断开。"
   describe_pids "${pids[@]}"
 
-  for pid in "${pids[@]}"; do kill -INT "${pid}" 2>/dev/null; done
+  for pid in "${pids[@]}"; do kill -INT "${pid}" 2>/dev/null || true; done
   for _ in 1 2 3 4 5 6 7 8; do
     alive=()
     for pid in "${pids[@]}"; do kill -0 "${pid}" 2>/dev/null && alive+=("${pid}"); done
@@ -170,7 +174,7 @@ terminate_pids() {
   done
 
   if ((${#alive[@]} > 0)); then
-    for pid in "${alive[@]}"; do kill -TERM "${pid}" 2>/dev/null; done
+    for pid in "${alive[@]}"; do kill -TERM "${pid}" 2>/dev/null || true; done
     for _ in 1 2 3 4 5; do
       alive=()
       for pid in "${pids[@]}"; do kill -0 "${pid}" 2>/dev/null && alive+=("${pid}"); done

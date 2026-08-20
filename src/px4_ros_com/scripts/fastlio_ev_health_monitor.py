@@ -65,7 +65,10 @@ def _evaluate_frlio_anchor_gate(
         return f"frlio_anchor_age_timeout age={anchor_message_age_s:.3f}s", True
     if not math.isfinite(anchor_age_s) or anchor_age_s < 0.0:
         return "frlio_anchor_age_invalid", True
-    if anchor_age_s >= max_anchor_age_s:
+    # FR-LIO publishes through its inclusive boundary and inhibits output only
+    # once anchor_age_s is greater than the configured maximum.  Use the same
+    # comparison here so the two gates cannot disagree at that boundary.
+    if anchor_age_s > max_anchor_age_s:
         return f"frlio_anchor_stale age={anchor_age_s:.3f}s", True
     if status == "SUSPECT_STALE_LIDAR":
         return f"frlio_anchor_suspect age={anchor_age_s:.3f}s", False
@@ -256,7 +259,7 @@ class FastlioEvHealthMonitor(Node):
                 self.declare_parameter("frlio_anchor_status_timeout_s", 0.5).value
             ),
             frlio_max_anchor_age_s=float(
-                self.declare_parameter("frlio_max_anchor_age_s", 0.40).value
+                self.declare_parameter("frlio_max_anchor_age_s", 0.60).value
             ),
         )
         if config.frlio_anchor_status_timeout_s <= 0.0:

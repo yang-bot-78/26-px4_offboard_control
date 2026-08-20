@@ -14,6 +14,7 @@
 #include <mavros_msgs/msg/position_target.hpp>
 #include <mavros_msgs/msg/state.hpp>
 #include <quadrotor_msgs/msg/position_command.hpp>
+#include <race_msgs/msg/ego_handover_diagnostic.hpp>
 #include <race_msgs/msg/flight_altitude_reference.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -23,6 +24,7 @@
 #include <visualization_msgs/msg/marker.hpp>
 
 #include "race_ego_bridge/frame_utils.hpp"
+#include "race_ego_bridge/handover_transaction_policy.hpp"
 #include "race_ego_bridge/safety_utils.hpp"
 #include "plan_env/raw_obstacle_distance_index.h"
 
@@ -72,11 +74,16 @@ public:
     replan_hold_timeout_sec_ = declare_parameter<double>("replan_hold_timeout_sec", 3.0);
     replan_hold_timeout_sec_ = std::max(0.10, replan_hold_timeout_sec_);
     switch_position_tolerance_m_ = declare_parameter<double>(
-      "switch_position_tolerance_m", 0.05);
+      "switch_position_tolerance_m", 0.10);
     switch_velocity_tolerance_mps_ = declare_parameter<double>(
-      "switch_velocity_tolerance_mps", 0.10);
+      "switch_velocity_tolerance_mps", 0.14);
     switch_acceleration_tolerance_mps2_ = declare_parameter<double>(
-      "switch_acceleration_tolerance_mps2", 0.20);
+      "switch_acceleration_tolerance_mps2", 0.10);
+    handover_max_rejections_ = declare_parameter<int>("handover_max_rejections", 2);
+    handover_transaction_timeout_sec_ = declare_parameter<double>(
+      "handover_transaction_timeout_sec", 1.50);
+    handover_max_rejections_ = std::max(1, handover_max_rejections_);
+    handover_transaction_timeout_sec_ = std::max(0.10, handover_transaction_timeout_sec_);
     if (switch_position_tolerance_m_ <= 0.0 || switch_velocity_tolerance_mps_ <= 0.0 ||
       switch_acceleration_tolerance_mps2_ <= 0.0)
     {
@@ -155,6 +162,9 @@ public:
       validated_bspline_topic_, rclcpp::QoS(10).reliable());
     const auto latched_qos = rclcpp::QoS(1).reliable().transient_local();
     status_publisher_ = create_publisher<std_msgs::msg::String>("/race/ego/status", latched_qos);
+    handover_diagnostic_publisher_ =
+      create_publisher<race_msgs::msg::EgoHandoverDiagnostic>(
+      "/race/ego/handover_diagnostic", rclcpp::QoS(20).reliable());
     path_publisher_ = create_publisher<nav_msgs::msg::Path>("/race/ego/path", 10);
     predicted_path_publisher_ = create_publisher<nav_msgs::msg::Path>(
       "/race/ego/predicted_path", 10);
@@ -223,6 +233,21 @@ private:
     return altitude_reference_valid_ ? current_position_.z - ground_z_map_ : current_position_.z;
   }
 
+  double activeHandoverTimeBudget() const
+  {
+    if (!have_trajectory_ || predicted_sample_times_.empty()) {
+      return 0.0;
+    }
+    const double elapsed = (now() - trajectory_stamp_).seconds();
+    const double remaining = std::max(0.0, predicted_sample_times_.back() - elapsed);
+    const double speed = have_last_valid_output_ ? std::hypot(
+      std::hypot(last_valid_output_.velocity.x, last_valid_output_.velocity.y),
+      last_valid_output_.velocity.z) : max_velocity_;
+    return race_ego_bridge::HandoverTransactionPolicy::effectiveTimeout(
+      handover_transaction_timeout_sec_, remaining, speed, reaction_time_sec_,
+      braking_deceleration_mps2_);
+  }
+
   void altitudeReferenceCallback(
     const race_msgs::msg::FlightAltitudeReference::SharedPtr msg)
   {
@@ -233,6 +258,9 @@ private:
         have_trajectory_ = false;
         have_bootstrap_setpoint_ = false;
         planner_replan_hold_ = false;
+        handover_transaction_exhausted_ = false;
+        handover_rejection_count_ = 0;
+        handover_rejection_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
         have_last_valid_output_ = false;
         validated_trajectory_id_ = -1;
         setStatus("WAIT_ALTITUDE_REFERENCE");
@@ -242,7 +270,8 @@ private:
     if (!std::isfinite(msg->ground_z_map) || !std::isfinite(msg->target_z_map) ||
       !std::isfinite(msg->target_agl_m) || !std::isfinite(msg->min_agl_m) ||
       !std::isfinite(msg->max_agl_m) ||
-      std::abs(msg->target_agl_m - flight_height_) > 1.0e-3 ||
+      msg->target_agl_m < min_height_ - 1.0e-3 ||
+      msg->target_agl_m > max_height_ + 1.0e-3 ||
       std::abs(msg->min_agl_m - min_height_) > 1.0e-3 ||
       std::abs(msg->max_agl_m - max_height_) > 1.0e-3 ||
       std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3)
@@ -294,6 +323,51 @@ private:
       status_.c_str(), control_enabled_ ? "true" : "false",
       have_map_ ? "ready" : "missing", have_odom_ ? "ready" : "missing",
       have_goal_ ? "ready" : "missing", have_trajectory_ ? "ready" : "missing");
+  }
+
+  void publishHandoverDiagnostic(
+    uint8_t event, const std::string & reason, int64_t candidate_id,
+    const rclcpp::Time & candidate_start, double candidate_elapsed,
+    const race_ego_bridge::TrajectoryState & active,
+    const race_ego_bridge::TrajectoryState & candidate,
+    const race_ego_bridge::TrajectoryTransitionCheck & transition)
+  {
+    race_msgs::msg::EgoHandoverDiagnostic message;
+    message.header.stamp = now();
+    message.header.frame_id = frame_id_;
+    message.source = race_msgs::msg::EgoHandoverDiagnostic::SOURCE_BRIDGE;
+    message.event = event;
+    message.local_goal_seq = local_goal_seq_;
+    message.active_trajectory_id = validated_trajectory_id_;
+    message.candidate_trajectory_id = candidate_id;
+    message.candidate_start_age_sec = (now() - candidate_start).seconds();
+    message.candidate_elapsed_sec = candidate_elapsed;
+    const double active_elapsed = have_trajectory_ ? (now() - trajectory_stamp_).seconds() : 0.0;
+    message.active_remaining_sec = have_trajectory_ && !predicted_sample_times_.empty() ?
+      std::max(0.0, predicted_sample_times_.back() - active_elapsed) : 0.0;
+    message.active_position.x = active.position.x;
+    message.active_position.y = active.position.y;
+    message.active_position.z = active.position.z;
+    message.active_velocity.x = active.velocity.x;
+    message.active_velocity.y = active.velocity.y;
+    message.active_velocity.z = active.velocity.z;
+    message.active_acceleration.x = active.acceleration.x;
+    message.active_acceleration.y = active.acceleration.y;
+    message.active_acceleration.z = active.acceleration.z;
+    message.candidate_position.x = candidate.position.x;
+    message.candidate_position.y = candidate.position.y;
+    message.candidate_position.z = candidate.position.z;
+    message.candidate_velocity.x = candidate.velocity.x;
+    message.candidate_velocity.y = candidate.velocity.y;
+    message.candidate_velocity.z = candidate.velocity.z;
+    message.candidate_acceleration.x = candidate.acceleration.x;
+    message.candidate_acceleration.y = candidate.acceleration.y;
+    message.candidate_acceleration.z = candidate.acceleration.z;
+    message.position_error = transition.position_error;
+    message.velocity_error = transition.velocity_error;
+    message.acceleration_error = transition.acceleration_error;
+    message.reason = reason;
+    handover_diagnostic_publisher_->publish(message);
   }
 
   void mapCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
@@ -351,8 +425,11 @@ private:
       return;
     }
     if (msg->data == "EGO_TRAJECTORY_COLLISION" || msg->data == "EGO_OCCUPANCY_STALE" ||
-      msg->data == "EGO_TRAJECTORY_INVALID" || msg->data == "EGO_REPLAN_REANCHOR_FAILED")
+      msg->data == "EGO_TRAJECTORY_INVALID" || msg->data == "EGO_REPLAN_REANCHOR_FAILED" ||
+      msg->data == "EGO_REPLAN_TRANSACTION_EXHAUSTED")
     {
+      handover_transaction_exhausted_ =
+        msg->data == "EGO_REPLAN_TRANSACTION_EXHAUSTED";
       collision_reason_ = msg->data;
       trajectory_collision_free_ = false;
       have_trajectory_ = false;
@@ -423,6 +500,10 @@ private:
     have_goal_ = goal_frame_valid_;
     if (have_goal_) {
       ++local_goal_seq_;
+      handover_rejection_count_ = 0;
+      handover_rejection_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      handover_effective_timeout_sec_ = handover_transaction_timeout_sec_;
+      handover_transaction_exhausted_ = false;
     }
     if (!goal_frame_valid_) {
       have_trajectory_ = false;
@@ -444,6 +525,16 @@ private:
 
   void bsplineCallback(const traj_utils::msg::Bspline::SharedPtr msg)
   {
+    if (!race_ego_bridge::HandoverTransactionPolicy::candidateAllowed(
+        handover_transaction_exhausted_))
+    {
+      RCLCPP_WARN(
+        get_logger(),
+        "[BRIDGE_STALE_CANDIDATE_DROP] candidate_id=%ld local_goal_seq=%lu "
+        "reason=transaction_exhausted",
+        static_cast<int64_t>(msg->traj_id), local_goal_seq_);
+      return;
+    }
     if (validated_trajectory_id_ >= 0 && msg->traj_id <= validated_trajectory_id_) {
       RCLCPP_WARN(
         get_logger(),
@@ -543,7 +634,42 @@ private:
         previous, candidate, switch_position_tolerance_m_,
         switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
       if (!transition.continuous) {
-        if (!planner_replan_hold_) {
+        if (handover_rejection_since_.nanoseconds() == 0) {
+          handover_rejection_since_ = now();
+          handover_effective_timeout_sec_ = activeHandoverTimeBudget();
+        }
+        ++handover_rejection_count_;
+        const double rejection_age = (now() - handover_rejection_since_).seconds();
+        const bool transaction_exhausted =
+          race_ego_bridge::HandoverTransactionPolicy::exhausted(
+          handover_rejection_count_, handover_max_rejections_, rejection_age,
+          handover_effective_timeout_sec_);
+        publishHandoverDiagnostic(
+          transaction_exhausted ?
+          race_msgs::msg::EgoHandoverDiagnostic::EVENT_TRANSACTION_EXHAUSTED :
+          race_msgs::msg::EgoHandoverDiagnostic::EVENT_SWITCH_REJECTED,
+          transaction_exhausted ? "EGO_REPLAN_TRANSACTION_EXHAUSTED" :
+          "REPLAN_SWITCH_DISCONTINUITY",
+          msg->traj_id, candidate_start, candidate_time, previous, candidate, transition);
+        const bool active_still_safe = have_trajectory_ && trajectory_collision_free_ &&
+          checkActivePredictedPathCollision();
+        if (transaction_exhausted) {
+          handover_transaction_exhausted_ = true;
+          have_trajectory_ = false;
+          have_bootstrap_setpoint_ = false;
+          planner_replan_hold_ = false;
+          trajectory_collision_free_ = false;
+          RCLCPP_ERROR(
+            get_logger(),
+            "[BRIDGE_HANDOVER_TRANSACTION_EXHAUSTED] local_goal_seq=%lu "
+            "rejections=%d age=%.3f limits=(count=%d effective_time=%.3f configured_time=%.3f)",
+            local_goal_seq_, handover_rejection_count_, rejection_age,
+            handover_max_rejections_, handover_effective_timeout_sec_,
+            handover_transaction_timeout_sec_);
+          setStatus("EGO_REPLAN_TRANSACTION_EXHAUSTED");
+          return;
+        }
+        if (!active_still_safe && !planner_replan_hold_) {
           planner_replan_hold_ = true;
           planner_replan_hold_since_ = now();
         }
@@ -551,14 +677,20 @@ private:
           get_logger(),
           "[BRIDGE_SWITCH_REJECTED] candidate_id=%ld active_id=%ld "
           "errors=(position=%.3f velocity=%.3f acceleration=%.3f) "
-          "limits=(%.3f %.3f %.3f); hold measured position and replan",
+          "limits=(%.3f %.3f %.3f) active_safe=%s action=%s",
           static_cast<int64_t>(msg->traj_id), validated_trajectory_id_,
           transition.position_error, transition.velocity_error,
           transition.acceleration_error, switch_position_tolerance_m_,
-          switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_);
+          switch_velocity_tolerance_mps_, switch_acceleration_tolerance_mps2_,
+          active_still_safe ? "true" : "false",
+          active_still_safe ? "KEEP_ACTIVE_AND_REPLAN" : "HOLD_AND_REPLAN");
         setStatus("REPLAN_SWITCH_DISCONTINUITY");
         return;
       }
+      publishHandoverDiagnostic(
+        race_msgs::msg::EgoHandoverDiagnostic::EVENT_CANDIDATE_COMMITTED,
+        "TRACKING", msg->traj_id, candidate_start, candidate_time,
+        previous, candidate, transition);
     }
 
     predicted_points_ = std::move(candidate_points);
@@ -567,21 +699,18 @@ private:
     validated_trajectory_id_ = msg->traj_id;
     validated_local_goal_seq_ = local_goal_seq_;
     auto validated_message = *msg;
-    if (rebase_candidate_start) {
-      validated_message.start_time = now();
-      RCLCPP_WARN(
-        get_logger(),
-        "[BRIDGE_TRAJECTORY_REBASED] trajectory_id=%ld old_start=%.3f new_start=%.3f "
-        "reason=measured_position_hold",
-        static_cast<int64_t>(msg->traj_id), candidate_start.seconds(),
-        rclcpp::Time(validated_message.start_time, get_clock()->get_clock_type()).seconds());
-    }
+    // Never repair continuity by changing only the timestamp. The candidate's
+    // P/V/A boundary and start_time are one atomic planning result.
     trajectory_stamp_ = rclcpp::Time(
       validated_message.start_time, get_clock()->get_clock_type());
     last_trajectory_time_ = now();
     trajectory_collision_free_ = true;
     have_trajectory_ = true;
     planner_replan_hold_ = false;
+    handover_rejection_count_ = 0;
+    handover_rejection_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    handover_effective_timeout_sec_ = handover_transaction_timeout_sec_;
+    handover_transaction_exhausted_ = false;
     active_rejection_clearance_ = candidate_clearance;
     have_bootstrap_setpoint_ = prepareBootstrapSetpoint(candidate_clearance);
     publishPredictedPath();
@@ -912,6 +1041,10 @@ private:
 
   bool prerequisitesReady()
   {
+    if (handover_transaction_exhausted_) {
+      setStatus("EGO_REPLAN_TRANSACTION_EXHAUSTED");
+      return false;
+    }
     if (flight_mode_ == "flat" && !altitude_reference_valid_) {
       setStatus("WAIT_ALTITUDE_REFERENCE"); return false;
     }
@@ -1121,6 +1254,23 @@ private:
 
   void statusTimer()
   {
+    if (!handover_transaction_exhausted_ &&
+      handover_rejection_since_.nanoseconds() != 0 &&
+      (now() - handover_rejection_since_).seconds() >= handover_effective_timeout_sec_)
+    {
+      handover_transaction_exhausted_ = true;
+      have_trajectory_ = false;
+      have_bootstrap_setpoint_ = false;
+      planner_replan_hold_ = false;
+      trajectory_collision_free_ = false;
+      RCLCPP_ERROR(
+        get_logger(),
+        "[BRIDGE_HANDOVER_TRANSACTION_TIMEOUT] local_goal_seq=%lu rejections=%d "
+        "deadline=%.3f",
+        local_goal_seq_, handover_rejection_count_, handover_effective_timeout_sec_);
+      setStatus("EGO_REPLAN_TRANSACTION_EXHAUSTED");
+      return;
+    }
     if (planner_replan_hold_) {
       const double hold_age = (now() - planner_replan_hold_since_).seconds();
       if (!have_map_ || !have_odom_ || !have_goal_ ||
@@ -1128,6 +1278,9 @@ private:
         hold_age > replan_hold_timeout_sec_)
       {
         planner_replan_hold_ = false;
+        handover_transaction_exhausted_ = false;
+        handover_rejection_count_ = 0;
+        handover_rejection_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
         setStatus("TRAJECTORY_TIMEOUT");
         return;
       }
@@ -1322,12 +1475,14 @@ private:
   double reaction_time_sec_{0.15};
   double minimum_reliable_detection_range_m_{0.725};
   double max_yaw_rate_rad_s_{0.80};
+  double handover_transaction_timeout_sec_{1.50};
+  double handover_effective_timeout_sec_{1.50};
   double feasibility_tolerance_{1.10};
   double dynamic_invalid_grace_sec_{0.75};
   double replan_hold_timeout_sec_{3.0};
-  double switch_position_tolerance_m_{0.05};
-  double switch_velocity_tolerance_mps_{0.10};
-  double switch_acceleration_tolerance_mps2_{0.20};
+  double switch_position_tolerance_m_{0.10};
+  double switch_velocity_tolerance_mps_{0.14};
+  double switch_acceleration_tolerance_mps2_{0.10};
   double rejection_clearance_{0.30};
   bool constrained_clearance_enabled_{false};
   double constrained_clearance_{0.25};
@@ -1361,6 +1516,7 @@ private:
   bool have_bootstrap_setpoint_{false};
   bool command_dynamics_valid_{true};
   bool planner_replan_hold_{false};
+  bool handover_transaction_exhausted_{false};
   bool altitude_reference_valid_{false};
   int64_t trajectory_id_{0};
   rclcpp::Time trajectory_stamp_{0, 0, RCL_ROS_TIME};
@@ -1369,6 +1525,8 @@ private:
   int64_t dynamic_invalid_trajectory_id_{-1};
   int64_t last_logged_collision_trajectory_id_{-1};
   uint64_t local_goal_seq_{0};
+  int handover_max_rejections_{2};
+  int handover_rejection_count_{0};
   std::string status_;
   std::string collision_reason_;
   std::size_t collision_sample_index_{0};
@@ -1385,6 +1543,7 @@ private:
   rclcpp::Time last_valid_output_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time dynamic_invalid_since_{0, 0, RCL_ROS_TIME};
   rclcpp::Time planner_replan_hold_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time handover_rejection_since_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_map_receive_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_map_source_time_{0, 0, RCL_ROS_TIME};
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_;
@@ -1403,6 +1562,8 @@ private:
   rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr command_goal_seq_publisher_;
   rclcpp::Publisher<traj_utils::msg::Bspline>::SharedPtr validated_bspline_publisher_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_publisher_;
+  rclcpp::Publisher<race_msgs::msg::EgoHandoverDiagnostic>::SharedPtr
+    handover_diagnostic_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr predicted_path_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr actual_path_publisher_;

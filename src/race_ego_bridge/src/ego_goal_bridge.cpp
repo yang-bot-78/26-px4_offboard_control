@@ -52,7 +52,9 @@ public:
     if (flight_mode_ != "flat" && flight_mode_ != "3d") {
       throw std::runtime_error("flight_mode must be flat or 3d");
     }
-    if (stable_height_tolerance_m_ < 0.0 || stable_horizontal_speed_mps_ < 0.0 ||
+    if (!std::isfinite(release_height_) || release_height_ < 0.0 ||
+      release_height_ > flight_height_ ||
+      stable_height_tolerance_m_ < 0.0 || stable_horizontal_speed_mps_ < 0.0 ||
       stable_vertical_speed_mps_ < 0.0 || stable_duration_sec_ < 0.0 ||
       velocity_freshness_sec_ <= 0.0 || min_height_ > max_height_)
     {
@@ -83,8 +85,10 @@ public:
       "/race/ego/status", rclcpp::QoS(1).reliable().transient_local(),
       std::bind(&EgoGoalBridge::statusCallback, this, std::placeholders::_1));
     RCLCPP_INFO(
-      get_logger(), "Goal stability uses pose=%s velocity=%s freshness=%.2fs",
-      odom_topic_.c_str(), velocity_topic_.c_str(), velocity_freshness_sec_);
+      get_logger(),
+      "Goal planning release uses AGL >= %.2fm; pose=%s velocity=%s freshness=%.2fs",
+      release_height_, odom_topic_.c_str(), velocity_topic_.c_str(),
+      velocity_freshness_sec_);
   }
 
 private:
@@ -119,7 +123,8 @@ private:
     if (!std::isfinite(msg->ground_z_map) || !std::isfinite(msg->target_z_map) ||
       !std::isfinite(msg->target_agl_m) || !std::isfinite(msg->min_agl_m) ||
       !std::isfinite(msg->max_agl_m) ||
-      std::abs(msg->target_agl_m - flight_height_) > 1.0e-3 ||
+      msg->target_agl_m < min_height_ - 1.0e-3 ||
+      msg->target_agl_m > max_height_ + 1.0e-3 ||
       std::abs(msg->min_agl_m - min_height_) > 1.0e-3 ||
       std::abs(msg->max_agl_m - max_height_) > 1.0e-3 ||
       std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3)
@@ -195,9 +200,9 @@ private:
       publishGoal(output, "rolling local goal after takeoff handover");
       return;
     }
-    if (isVehicleStable()) {
+    if (planningReleaseReady()) {
       flight_handover_released_ = true;
-      publishGoal(output, "vehicle stable within safety height range");
+      publishGoal(output, "background planning release height reached");
       return;
     }
     pending_goal_ = output;
@@ -240,14 +245,15 @@ private:
     } else {
       stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
     }
-    if (have_pending_goal_ && isVehicleStable()) {
+    if (have_pending_goal_ && planningReleaseReady()) {
       RCLCPP_INFO(
-        get_logger(), "[GOAL_BRIDGE_RELEASE] goal_seq=%lu current_agl=%.3f target=(%.3f,%.3f,%.3f) "
-        "reason=SAFETY_HEIGHT_RANGE_STABLE", static_cast<unsigned long>(pending_goal_seq_), current_agl,
+        get_logger(), "[GOAL_BRIDGE_RELEASE] goal_seq=%lu current_agl=%.3f "
+        "release_height=%.3f target=(%.3f,%.3f,%.3f) reason=BACKGROUND_PLANNING_HEIGHT",
+        static_cast<unsigned long>(pending_goal_seq_), current_agl, release_height_,
         pending_goal_.pose.position.x, pending_goal_.pose.position.y,
         pending_goal_.pose.position.z);
       flight_handover_released_ = true;
-      publishGoal(pending_goal_, "vehicle stable within safety height range");
+      publishGoal(pending_goal_, "background planning release height reached");
       have_pending_goal_ = false;
     }
   }
@@ -299,6 +305,13 @@ private:
     const auto sample_time = now();
     return have_odom_ && velocityFresh(sample_time) && stable_since_.nanoseconds() != 0 &&
            (sample_time - stable_since_).seconds() >= stable_duration_sec_;
+  }
+
+  bool planningReleaseReady() const
+  {
+    const double agl = currentAgl();
+    return armed_ && altitude_reference_valid_ && have_odom_ && std::isfinite(agl) &&
+           agl >= release_height_;
   }
 
   void publishGoal(geometry_msgs::msg::PoseStamped output, const char * reason)

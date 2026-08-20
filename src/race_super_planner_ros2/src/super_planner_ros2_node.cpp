@@ -44,6 +44,7 @@
 #include "race_super_planner_ros2/obstacle_aware_smoothing_policy.hpp"
 #include "race_super_planner_ros2/continuous_segment_policy.hpp"
 #include "race_super_planner_ros2/local_goal_lifecycle_policy.hpp"
+#include "race_super_planner_ros2/pending_path_gate_policy.hpp"
 
 using namespace std::chrono_literals;
 
@@ -228,6 +229,9 @@ public:
       declare_parameter<double>("local_goal_update_distance_m", 0.20);
     goal_update_position_tolerance_m_ =
       declare_parameter<double>("goal_update_position_tolerance_m", 0.05);
+    pending_path_max_cross_track_error_m_ = declare_parameter<double>(
+      "pending_path_max_cross_track_error_m", 0.15);
+    pending_path_max_replans_ = declare_parameter<int>("pending_path_max_replans", 1);
     ego_status_topic_ = declare_parameter<std::string>("ego_status_topic", "/race/ego/status");
     validated_bspline_topic_ = declare_parameter<std::string>(
       "validated_bspline_topic", "/race/ego/validated_bspline");
@@ -248,6 +252,13 @@ public:
     inflation_radius_ = declare_parameter<double>("obstacle_inflation_radius", 0.36);
     soft_obstacle_cost_radius_ = declare_parameter<double>("soft_obstacle_cost_radius", 0.52);
     clearance_cost_weight_ = declare_parameter<double>("clearance_cost_weight", 3.5);
+    dynamic_relaxation_enabled_ = declare_parameter<bool>("dynamic_relaxation/enable", false);
+    dynamic_soft_wait_sec_ = declare_parameter<double>("dynamic_relaxation/soft_wait_sec", 3.0);
+    dynamic_expand_wait_sec_ = declare_parameter<double>("dynamic_relaxation/expand_wait_sec", 3.0);
+    dynamic_soft_cost_radius_m_ = declare_parameter<double>(
+      "dynamic_relaxation/soft_cost_radius_m", soft_obstacle_cost_radius_);
+    dynamic_soft_cost_weight_ = declare_parameter<double>(
+      "dynamic_relaxation/soft_cost_weight", clearance_cost_weight_);
     max_cloud_points_ = declare_parameter<int>("max_cloud_points", 200000);
     cloud_timeout_sec_ = declare_parameter<double>("cloud_timeout_sec", 600.0);
     odom_timeout_sec_ = declare_parameter<double>("odom_timeout_sec", 1.0);
@@ -323,11 +334,22 @@ public:
     local_goal_update_min_interval_sec_ = std::max(0.02, local_goal_update_min_interval_sec_);
     local_goal_update_distance_m_ = std::clamp(local_goal_update_distance_m_, 0.15, 0.25);
     goal_update_position_tolerance_m_ = std::max(0.01, goal_update_position_tolerance_m_);
+    pending_path_max_cross_track_error_m_ = std::clamp(
+      pending_path_max_cross_track_error_m_, 0.05, 0.50);
+    pending_path_max_replans_ = std::clamp(pending_path_max_replans_, 0, 1);
     local_planner_failure_replan_sec_ = std::max(0.25, local_planner_failure_replan_sec_);
     trajectory_prefetch_sec_ = std::max(0.2, trajectory_prefetch_sec_);
     trajectory_stall_timeout_sec_ = std::max(0.5, trajectory_stall_timeout_sec_);
     trajectory_recovery_confirmation_sec_ = std::clamp(
       trajectory_recovery_confirmation_sec_, 0.2, trajectory_stall_timeout_sec_);
+    dynamic_soft_wait_sec_ = std::max(3.0, dynamic_soft_wait_sec_);
+    dynamic_expand_wait_sec_ = std::max(3.0, dynamic_expand_wait_sec_);
+    dynamic_soft_cost_radius_m_ = std::clamp(
+      dynamic_soft_cost_radius_m_, inflation_radius_, soft_obstacle_cost_radius_);
+    dynamic_soft_cost_weight_ = std::clamp(
+      dynamic_soft_cost_weight_, 0.0, clearance_cost_weight_);
+    normal_soft_obstacle_cost_radius_ = soft_obstacle_cost_radius_;
+    normal_clearance_cost_weight_ = clearance_cost_weight_;
 
     goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
       goal_topic_, 10, std::bind(&SuperPlannerRos2Node::goalCallback, this, std::placeholders::_1));
@@ -386,6 +408,9 @@ public:
           last_validated_local_goal_seq_ = msg->data;
         });
     }
+    dynamic_relaxation_profile_pub_ = create_publisher<std_msgs::msg::String>(
+      "/race/dynamic_relaxation_profile", rclcpp::QoS(1).reliable().transient_local());
+    publishDynamicRelaxationProfile("启动默认正常");
     marker_pub_ = create_publisher<visualization_msgs::msg::MarkerArray>(marker_topic_, 10);
     status_pub_ = create_publisher<std_msgs::msg::String>(
       "/race/planner/status", rclcpp::QoS(1).reliable().transient_local());
@@ -413,6 +438,11 @@ public:
     RCLCPP_INFO(
       get_logger(), "[SUPER_TRACKING_POLICY] replan_while_tracking=%s",
       replan_while_tracking_ ? "true" : "false");
+    RCLCPP_INFO(
+      get_logger(),
+      "[SUPER_PENDING_PATH_GATE] first_commit_only=true max_path_error=%.3fm "
+      "max_stale_start_replans=%d require_post_plan_odom=true",
+      pending_path_max_cross_track_error_m_, pending_path_max_replans_);
     RCLCPP_INFO(
       get_logger(),
       "GLOBAL_MODE global_only=%s control_output=%s global_path=%s local_goal=%s",
@@ -486,6 +516,7 @@ private:
         altitude_reference_valid_ = false;
         have_goal_ = false;
         active_path_.clear();
+        clearPendingGlobalPath();
         resetLocalGoalProgress();
         RCLCPP_WARN(
           get_logger(), "[SUPER_ALTITUDE_REFERENCE_RESET] flight_id=%lu",
@@ -497,7 +528,8 @@ private:
       std::isfinite(msg->target_z_map) && std::isfinite(msg->target_agl_m) &&
       std::isfinite(msg->min_agl_m) && std::isfinite(msg->max_agl_m) &&
       std::isfinite(msg->ground_z_local_ned) && std::isfinite(msg->target_z_local_ned);
-    if (!finite || std::abs(msg->target_agl_m - fixed_flight_height_) > 1.0e-3 ||
+    if (!finite || msg->target_agl_m < shared_bounds_z_min_ - 1.0e-3 ||
+      msg->target_agl_m > shared_bounds_z_max_ + 1.0e-3 ||
       std::abs(msg->min_agl_m - shared_bounds_z_min_) > 1.0e-3 ||
       std::abs(msg->max_agl_m - shared_bounds_z_max_) > 1.0e-3 ||
       std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3 ||
@@ -507,9 +539,9 @@ private:
     {
       RCLCPP_ERROR(
         get_logger(),
-        "[SUPER_ALTITUDE_REFERENCE_REJECT] flight_id=%lu target_agl=%.3f configured=%.3f",
+        "[SUPER_ALTITUDE_REFERENCE_REJECT] flight_id=%lu target_agl=%.3f safe_range=[%.3f,%.3f]",
         static_cast<unsigned long>(msg->flight_id), msg->target_agl_m,
-        fixed_flight_height_);
+        shared_bounds_z_min_, shared_bounds_z_max_);
       return;
     }
     if (altitude_reference_valid_ && msg->flight_id < altitude_reference_flight_id_) {
@@ -564,6 +596,18 @@ private:
     if (have_goal_ && distance2d(goal, latest_goal_) <= goal_update_position_tolerance_m_ &&
       std::abs(goal.z - latest_goal_.z) <= goal_update_position_tolerance_m_)
     {
+      if (pending_path_retry_exhausted_) {
+        pending_path_retry_exhausted_ = false;
+        pending_path_completed_replans_ = 0;
+        active_path_.clear();
+        clearPendingGlobalPath();
+        last_goal_time_ = now();
+        RCLCPP_WARN(
+          get_logger(),
+          "[SUPER_PENDING_PATH_REARM] explicit repeated goal id=%lu accepted after retry exhaustion",
+          global_goal_id_);
+        return;
+      }
       RCLCPP_INFO_THROTTLE(
         get_logger(), *get_clock(), 1000,
         "Ignore duplicate final goal within %.2fm", goal_update_position_tolerance_m_);
@@ -575,6 +619,9 @@ private:
     clearFinalGoalReached("new_global_goal");
     last_goal_time_ = now();
     active_path_.clear();
+    clearPendingGlobalPath();
+    pending_path_completed_replans_ = 0;
+    pending_path_retry_exhausted_ = false;
     resetLocalGoalProgress();
     RCLCPP_INFO(
       get_logger(), "Received goal id=%lu ENU/map=(%.2f, %.2f, %.2f)",
@@ -664,6 +711,7 @@ private:
       if (objective_stall && local_planner_failure_start_time_.nanoseconds() == 0) {
         recovery_required_after_trajectory_id_ = last_validated_trajectory_id_;
         trajectory_recovery_candidate_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        local_planner_failure_start_time_ = now();
       }
       local_planner_failure_replan_latched_ = true;
       local_planner_replan_requested_ = true;
@@ -676,6 +724,59 @@ private:
         validatedTrajectoryLeaseRemaining(), local_goal_seq_,
         last_validated_local_goal_seq_, local_goal_reached_logged_ ? "true" : "false");
     }
+    updateDynamicRelaxationProfile();
+  }
+
+  void publishDynamicRelaxationProfile(const char * reason)
+  {
+    if (!dynamic_relaxation_profile_pub_) {
+      return;
+    }
+    std_msgs::msg::String message;
+    message.data = dynamic_relaxation_profile_;
+    dynamic_relaxation_profile_pub_->publish(message);
+    RCLCPP_WARN(
+      get_logger(),
+      "[动态放宽] 阶段=%s 原因=%s 软障碍代价半径=%.2fm 靠障碍代价权重=%.2f 硬防撞距离=%.2fm",
+      dynamic_relaxation_profile_.c_str(), reason, soft_obstacle_cost_radius_,
+      clearance_cost_weight_, required_center_clearance_);
+  }
+
+  void updateDynamicRelaxationProfile()
+  {
+    std::string requested_profile = "正常";
+    if (dynamic_relaxation_enabled_ && have_goal_ &&
+      local_planner_failure_start_time_.nanoseconds() != 0)
+    {
+      const double no_progress_sec = ageSeconds(local_planner_failure_start_time_);
+      if (no_progress_sec >= dynamic_soft_wait_sec_ + dynamic_expand_wait_sec_) {
+        requested_profile = "扩大绕行搜索";
+      } else if (no_progress_sec >= dynamic_soft_wait_sec_) {
+        requested_profile = "软放宽";
+      }
+    }
+    if (requested_profile == dynamic_relaxation_profile_) {
+      return;
+    }
+
+    if (requested_profile == "正常") {
+      soft_obstacle_cost_radius_ = normal_soft_obstacle_cost_radius_;
+      clearance_cost_weight_ = normal_clearance_cost_weight_;
+    } else {
+      // 仅调整路线偏好；硬膨胀和连续净空复检均保持不变。
+      soft_obstacle_cost_radius_ = dynamic_soft_cost_radius_m_;
+      clearance_cost_weight_ = dynamic_soft_cost_weight_;
+    }
+    dynamic_relaxation_profile_ = requested_profile;
+    publishDynamicRelaxationProfile("连续无有效规划进展");
+  }
+
+  void markPlanningNoProgress()
+  {
+    if (local_planner_failure_start_time_.nanoseconds() == 0) {
+      local_planner_failure_start_time_ = now();
+    }
+    updateDynamicRelaxationProfile();
   }
 
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg, const std::string & source)
@@ -747,6 +848,10 @@ private:
     }
     have_odom_ = true;
     last_odom_time_ = now();
+    ++odom_generation_;
+    last_odom_source_stamp_ns_ =
+      static_cast<int64_t>(msg->header.stamp.sec) * 1000000000LL +
+      static_cast<int64_t>(msg->header.stamp.nanosec);
     if (mavros_armed_ && !takeoff_path_released_ &&
       heightAboveGround(latest_odom_.z) >= min_safe_height_ - 1.0e-3)
     {
@@ -846,8 +951,224 @@ private:
     return final_goal_reached_latched_;
   }
 
+  void clearPendingGlobalPath()
+  {
+    pending_global_path_.clear();
+    pending_raw_path_.clear();
+    pending_global_path_valid_ = false;
+    pending_route_goal_id_ = 0;
+    pending_plan_start_odom_ = Vec3{};
+    pending_plan_start_odom_generation_ = 0;
+    pending_plan_start_odom_source_stamp_ns_ = 0;
+    pending_plan_completion_odom_generation_ = 0;
+    pending_plan_completion_odom_source_stamp_ns_ = 0;
+    pending_plan_completion_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  }
+
+  race_super_planner_ros2::PendingPathGateInput pendingPathGateInput(
+    bool projection_valid, double cross_track_error) const
+  {
+    race_super_planner_ros2::PendingPathGateInput input;
+    input.pending_goal_id = pending_route_goal_id_;
+    input.current_goal_id = global_goal_id_;
+    input.plan_completion_odom_generation = pending_plan_completion_odom_generation_;
+    input.current_odom_generation = odom_generation_;
+    input.plan_completion_odom_source_stamp_ns =
+      pending_plan_completion_odom_source_stamp_ns_;
+    input.current_odom_source_stamp_ns = last_odom_source_stamp_ns_;
+    input.projection_valid = projection_valid;
+    input.path_cross_track_error_m = cross_track_error;
+    input.maximum_path_cross_track_error_m = pending_path_max_cross_track_error_m_;
+    input.completed_retries = pending_path_completed_replans_;
+    input.maximum_retries = pending_path_max_replans_;
+    return input;
+  }
+
+  bool pendingPathNeedsFreshOdom() const
+  {
+    return pending_global_path_valid_ &&
+           !race_super_planner_ros2::hasPostPlanFreshOdom(
+      pendingPathGateInput(false, std::numeric_limits<double>::infinity()));
+  }
+
+  std::vector<Vec3> trimPendingPathAtProjection(const PathProjection & projection) const
+  {
+    std::vector<Vec3> trimmed;
+    if (pending_global_path_.size() < 2 ||
+      projection.segment_index + 1 >= pending_global_path_.size())
+    {
+      return trimmed;
+    }
+
+    const auto append_if_new = [&trimmed](const Vec3 & point) {
+        if (trimmed.empty() || distance2d(trimmed.back(), point) > 1.0e-6 ||
+          std::abs(trimmed.back().z - point.z) > 1.0e-6)
+        {
+          trimmed.push_back(point);
+        }
+      };
+
+    Vec3 current_start = latest_odom_;
+    current_start.z = clampHeight(current_start.z);
+    append_if_new(current_start);
+    append_if_new(projection.point);
+    for (std::size_t index = projection.segment_index + 1;
+      index < pending_global_path_.size(); ++index)
+    {
+      append_if_new(pending_global_path_[index]);
+    }
+
+    // Keep the two-point path contract even when the fresh odom is already at
+    // the final endpoint. The normal final-goal confirmation then owns HOLD.
+    if (trimmed.size() == 1) {
+      trimmed.push_back(pending_global_path_.back());
+    }
+    return trimmed;
+  }
+
+  bool rejectPendingGlobalPath(const char * reason, double cross_track_error)
+  {
+    const double old_start_distance = pending_global_path_.empty() ?
+      std::numeric_limits<double>::infinity() :
+      distance2d(latest_odom_, pending_global_path_.front());
+    const bool retry_allowed =
+      pending_path_completed_replans_ < pending_path_max_replans_;
+    const uint64_t rejected_goal_id = pending_route_goal_id_;
+    clearPendingGlobalPath();
+    active_path_.clear();
+    selected_setpoint_ = latest_odom_;
+    selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+
+    if (retry_allowed) {
+      ++pending_path_completed_replans_;
+      setMode(Mode::PLANNING);
+      publish_reason_ = "PENDING_PATH_REPLAN_FROM_FRESH_ODOM";
+      RCLCPP_WARN(
+        get_logger(),
+        "[SUPER_PENDING_PATH_REJECT] goal_id=%lu reason=%s d_path=%.3f threshold=%.3f "
+        "d_start_diagnostic=%.3f retry=%d/%d; no path was committed",
+        rejected_goal_id, reason, cross_track_error,
+        pending_path_max_cross_track_error_m_, old_start_distance,
+        pending_path_completed_replans_, pending_path_max_replans_);
+      logStatus();
+      return true;
+    }
+
+    pending_path_retry_exhausted_ = true;
+    setMode(Mode::HOLD);
+    publish_reason_ = "PENDING_PATH_RETRY_EXHAUSTED";
+    RCLCPP_ERROR(
+      get_logger(),
+      "[SUPER_PENDING_PATH_RETRY_EXHAUSTED] goal_id=%lu reason=%s d_path=%.3f "
+      "threshold=%.3f d_start_diagnostic=%.3f; wait for a new explicit goal",
+      rejected_goal_id, reason, cross_track_error,
+      pending_path_max_cross_track_error_m_, old_start_distance);
+    publishHoldIfEnabled("HOLD: pending global path stayed stale after one retry");
+    logStatus();
+    return true;
+  }
+
+  bool handlePendingGlobalPath()
+  {
+    if (!pending_global_path_valid_) {
+      return false;
+    }
+
+    const auto projection = projectOntoPath(pending_global_path_, latest_odom_);
+    const bool projection_valid = projection.has_value() &&
+      projection->segment_index + 1 < pending_global_path_.size() &&
+      std::isfinite(projection->segment_ratio) && projection->segment_ratio >= 0.0 &&
+      projection->segment_ratio <= 1.0 && finite_vec(projection->point);
+    const double cross_track_error = projection_valid ? projection->cross_track_error :
+      std::numeric_limits<double>::infinity();
+    const auto decision = race_super_planner_ros2::decidePendingPathGate(
+      pendingPathGateInput(projection_valid, cross_track_error));
+
+    if (decision == race_super_planner_ros2::PendingPathGateDecision::WAIT_FOR_FRESH_ODOM) {
+      setMode(Mode::PLANNING);
+      publish_reason_ = "PENDING_FRESH_ODOM";
+      logStatus();
+      return true;
+    }
+    if (decision == race_super_planner_ros2::PendingPathGateDecision::DISCARD_GOAL_CHANGED) {
+      RCLCPP_WARN(
+        get_logger(),
+        "[SUPER_PENDING_PATH_DISCARD] pending_goal_id=%lu current_goal_id=%lu reason=GOAL_CHANGED",
+        pending_route_goal_id_, global_goal_id_);
+      clearPendingGlobalPath();
+      return false;
+    }
+    if (decision ==
+      race_super_planner_ros2::PendingPathGateDecision::RETRY_FROM_LATEST_ODOM ||
+      decision == race_super_planner_ros2::PendingPathGateDecision::HOLD_RETRY_EXHAUSTED)
+    {
+      return rejectPendingGlobalPath(
+        projection_valid ? "PATH_CROSS_TRACK" : "INVALID_FORWARD_PROJECTION",
+        cross_track_error);
+    }
+
+    std::vector<Vec3> committed_path = trimPendingPathAtProjection(projection.value());
+    const auto validation = validateCompletePath(committed_path, "PENDING_TRIMMED");
+    if (!validation.valid()) {
+      return rejectPendingGlobalPath("TRIMMED_CONNECTOR_UNSAFE", cross_track_error);
+    }
+
+    const double old_start_distance = distance2d(latest_odom_, pending_global_path_.front());
+    const Vec3 raw_endpoint = pending_raw_path_.empty() ?
+      committed_path.back() : pending_raw_path_.back();
+    active_path_ = std::move(committed_path);
+    const std::vector<Vec3> raw_path = pending_raw_path_;
+    const uint64_t committed_goal_id = pending_route_goal_id_;
+    const std::size_t projection_segment = projection->segment_index;
+    const double pending_wait_sec = ageSeconds(pending_plan_completion_time_);
+    clearPendingGlobalPath();
+    pending_path_completed_replans_ = 0;
+    pending_path_retry_exhausted_ = false;
+    if (global_only_mode_) {
+      local_planner_failure_start_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      local_planner_failure_replan_latched_ = false;
+      updateDynamicRelaxationProfile();
+    }
+
+    publishRawPath(raw_path);
+    publishPath(active_path_);
+    startNewGlobalPath(active_path_);
+    last_plan_time_ = now();
+    RCLCPP_INFO(
+      get_logger(),
+      "[SUPER_PENDING_PATH_COMMIT] goal_id=%lu d_path=%.3f threshold=%.3f "
+      "d_start_diagnostic=%.3f projection_segment=%zu committed_points=%zu "
+      "fresh_odom_wait=%.3fs",
+      committed_goal_id, cross_track_error, pending_path_max_cross_track_error_m_,
+      old_start_distance, projection_segment, active_path_.size(), pending_wait_sec);
+    RCLCPP_INFO(
+      get_logger(),
+      "[SUPER_GLOBAL_PATH_COMPLETE] goal_id=%lu raw_endpoint=(%.3f,%.3f,%.3f) "
+      "published_endpoint=(%.3f,%.3f,%.3f) final_goal=(%.3f,%.3f,%.3f) endpoint_error=%.6f",
+      committed_goal_id, raw_endpoint.x, raw_endpoint.y, raw_endpoint.z,
+      active_path_.back().x, active_path_.back().y, active_path_.back().z,
+      latest_goal_.x, latest_goal_.y, latest_goal_.z,
+      distance2d(active_path_.back(), latest_goal_));
+    return false;
+  }
+
   void timerCallback()
   {
+    // A synchronous A* blocks the single-threaded executor. Do not let the
+    // timer classify that expected gap as NO_ODOM, and do not plan again while
+    // the completed route is waiting for a callback that occurred afterwards.
+    if (pendingPathNeedsFreshOdom()) {
+      setMode(Mode::PLANNING);
+      publish_reason_ = "PENDING_FRESH_ODOM";
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[SUPER_PENDING_PATH_WAIT] goal_id=%lu plan_odom_generation=%lu "
+        "current_odom_generation=%lu reason=PENDING_FRESH_ODOM",
+        pending_route_goal_id_, pending_plan_completion_odom_generation_, odom_generation_);
+      logStatus();
+      return;
+    }
+
     const bool odom_ok = have_odom_ && ageSeconds(last_odom_time_) <= odom_timeout_sec_;
     if (!odom_ok) {
       setMode(Mode::NO_ODOM);
@@ -858,6 +1179,7 @@ private:
 
     if (fault_latched_) {
       active_path_.clear();
+      clearPendingGlobalPath();
       resetLocalGoalProgress();
       selected_setpoint_ = latest_odom_;
       selected_setpoint_.z = clampHeight(selected_setpoint_.z);
@@ -870,6 +1192,7 @@ private:
 
     if (use_fixed_flight_height_ && !altitude_reference_valid_) {
       active_path_.clear();
+      clearPendingGlobalPath();
       selected_setpoint_ = latest_odom_;
       setMode(Mode::IDLE);
       publish_reason_ = "WAIT_ALTITUDE_REFERENCE";
@@ -881,6 +1204,7 @@ private:
       (goal_timeout_sec_ <= 0.0 || ageSeconds(last_goal_time_) <= goal_timeout_sec_);
     if (!goal_ok) {
       active_path_.clear();
+      clearPendingGlobalPath();
       selected_setpoint_ = latest_odom_;
       selected_setpoint_.z = clampHeight(selected_setpoint_.z);
       setMode(Mode::IDLE);
@@ -889,8 +1213,20 @@ private:
       return;
     }
 
+    if (pending_path_retry_exhausted_) {
+      active_path_.clear();
+      selected_setpoint_ = latest_odom_;
+      selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+      setMode(Mode::HOLD);
+      publish_reason_ = "PENDING_PATH_RETRY_EXHAUSTED";
+      publishHoldIfEnabled("HOLD: waiting for an explicit goal after stale-path retries");
+      logStatus();
+      return;
+    }
+
     if (updateFinalGoalReached()) {
       active_path_.clear();
+      clearPendingGlobalPath();
       selected_setpoint_ = latest_odom_;
       selected_setpoint_.z = clampHeight(selected_setpoint_.z);
       setMode(Mode::HOLD);
@@ -900,11 +1236,10 @@ private:
       return;
     }
 
-    updateLocalPlannerWatchdog();
-
     const bool cloud_ok = have_cloud_ && ageSeconds(last_cloud_time_) <= cloud_timeout_sec_;
     if (!cloud_ok) {
       active_path_.clear();
+      clearPendingGlobalPath();
       selected_setpoint_ = latest_odom_;
       selected_setpoint_.z = clampHeight(selected_setpoint_.z);
       setMode(Mode::NO_MAP);
@@ -912,6 +1247,16 @@ private:
       publishHoldIfEnabled("NO_MAP: no valid point cloud/map");
       logStatus();
       return;
+    }
+
+    const bool had_pending_global_path = pending_global_path_valid_;
+    if (handlePendingGlobalPath()) {
+      publishDebugMarkers();
+      return;
+    }
+
+    if (!had_pending_global_path) {
+      updateLocalPlannerWatchdog();
     }
 
     const bool freeze_global_path_for_takeoff =
@@ -939,6 +1284,10 @@ private:
       ageSeconds(last_plan_time_) >= (1.0 / replan_rate_));
     if (replan_due) {
       setMode(Mode::PLANNING);
+      const Vec3 plan_start_odom = latest_odom_;
+      const uint64_t plan_start_goal_id = global_goal_id_;
+      const uint64_t plan_start_odom_generation = odom_generation_;
+      const int64_t plan_start_odom_source_stamp_ns = last_odom_source_stamp_ns_;
       std::vector<Vec3> raw_path;
       if (!plan(raw_path) || raw_path.empty()) {
         active_path_.clear();
@@ -948,38 +1297,54 @@ private:
         publishRawPath({});
         setMode(Mode::HOLD);
         publish_reason_ = "NO_PATH";
+        markPlanningNoProgress();
         publishHoldIfEnabled("HOLD: planner failed");
         publishDebugMarkers();
         logStatus();
         return;
       }
 
-      if (!processPath(raw_path, active_path_)) {
+      std::vector<Vec3> processed_path;
+      if (!processPath(raw_path, processed_path)) {
         active_path_.clear();
         selected_setpoint_ = latest_odom_;
         selected_setpoint_.z = clampHeight(selected_setpoint_.z);
         publishEmptyPath();
         setMode(Mode::HOLD);
         publish_reason_ = "NO_SAFE_PATH_AFTER_SMOOTHING";
+        markPlanningNoProgress();
         publishHoldIfEnabled("HOLD: raw and smoothed paths failed safety validation");
         publishDebugMarkers();
         logStatus();
         return;
       }
-      publishRawPath(raw_path);
-      publishPath(active_path_);
-      startNewGlobalPath(active_path_);
-      const Vec3 & raw_endpoint = raw_path.back();
-      const Vec3 & published_endpoint = active_path_.back();
+
+      pending_global_path_ = std::move(processed_path);
+      pending_raw_path_ = std::move(raw_path);
+      pending_global_path_valid_ = true;
+      pending_route_goal_id_ = plan_start_goal_id;
+      pending_plan_start_odom_ = plan_start_odom;
+      pending_plan_start_odom_generation_ = plan_start_odom_generation;
+      pending_plan_start_odom_source_stamp_ns_ = plan_start_odom_source_stamp_ns;
+      pending_plan_completion_odom_generation_ = odom_generation_;
+      pending_plan_completion_odom_source_stamp_ns_ = last_odom_source_stamp_ns_;
+      pending_plan_completion_time_ = now();
+      setMode(Mode::PLANNING);
+      publish_reason_ = "PENDING_FRESH_ODOM";
       RCLCPP_INFO(
         get_logger(),
-        "[SUPER_GLOBAL_PATH_COMPLETE] goal_id=%lu raw_endpoint=(%.3f,%.3f,%.3f) "
-        "published_endpoint=(%.3f,%.3f,%.3f) final_goal=(%.3f,%.3f,%.3f) endpoint_error=%.6f",
-        global_goal_id_, raw_endpoint.x, raw_endpoint.y, raw_endpoint.z,
-        published_endpoint.x, published_endpoint.y, published_endpoint.z,
-        latest_goal_.x, latest_goal_.y, latest_goal_.z,
-        distance2d(published_endpoint, latest_goal_));
-      last_plan_time_ = now();
+        "[SUPER_PENDING_PATH_READY] goal_id=%lu points=%zu plan_start=(%.3f,%.3f,%.3f) "
+        "plan_start_odom_generation=%lu completion_odom_generation=%lu "
+        "plan_start_source_stamp_ns=%ld completion_source_stamp_ns=%ld; "
+        "wait for post-plan odom before first commit",
+        pending_route_goal_id_, pending_global_path_.size(),
+        pending_plan_start_odom_.x, pending_plan_start_odom_.y, pending_plan_start_odom_.z,
+        pending_plan_start_odom_generation_, pending_plan_completion_odom_generation_,
+        pending_plan_start_odom_source_stamp_ns_,
+        pending_plan_completion_odom_source_stamp_ns_);
+      publishDebugMarkers();
+      logStatus();
+      return;
     }
     publishDebugMarkers();
 
@@ -2748,6 +3113,8 @@ private:
     fault_latched_ = true;
     fault_reason_ = reason;
     active_path_.clear();
+    clearPendingGlobalPath();
+    pending_path_retry_exhausted_ = false;
     resetLocalGoalProgress();
     if (finite_vec(latest_odom_)) {
       selected_setpoint_ = latest_odom_;
@@ -3366,6 +3733,8 @@ private:
   double local_goal_update_min_interval_sec_{0.10};
   double local_goal_update_distance_m_{0.20};
   double goal_update_position_tolerance_m_{0.05};
+  double pending_path_max_cross_track_error_m_{0.15};
+  int pending_path_max_replans_{1};
   double local_planner_failure_replan_sec_{1.0};
   double trajectory_prefetch_sec_{1.5};
   double trajectory_stall_timeout_sec_{1.0};
@@ -3393,6 +3762,14 @@ private:
   double active_inflation_radius_{0.36};
   double soft_obstacle_cost_radius_{0.52};
   double clearance_cost_weight_{3.5};
+  bool dynamic_relaxation_enabled_{false};
+  double dynamic_soft_wait_sec_{3.0};
+  double dynamic_expand_wait_sec_{3.0};
+  double dynamic_soft_cost_radius_m_{0.52};
+  double dynamic_soft_cost_weight_{3.5};
+  double normal_soft_obstacle_cost_radius_{0.52};
+  double normal_clearance_cost_weight_{3.5};
+  std::string dynamic_relaxation_profile_{"正常"};
   double cloud_timeout_sec_{600.0};
   double odom_timeout_sec_{1.0};
   double goal_timeout_sec_{600.0};
@@ -3441,6 +3818,7 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   rclcpp::Publisher<race_msgs::msg::GlobalPlannerStatus>::SharedPtr global_status_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr dynamic_relaxation_profile_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
 
   tf2_ros::Buffer tf_buffer_;
@@ -3470,6 +3848,7 @@ private:
   rclcpp::Time last_validated_trajectory_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time validated_trajectory_lease_deadline_{0, 0, RCL_ROS_TIME};
   rclcpp::Time trajectory_recovery_candidate_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time pending_plan_completion_time_{0, 0, RCL_ROS_TIME};
   std::string active_odom_source_;
   std::string active_cloud_source_;
   std::string fault_reason_;
@@ -3499,10 +3878,20 @@ private:
     new pcl::PointCloud<pcl::PointXYZ>()};
   pcl::KdTreeFLANN<pcl::PointXYZ> raw_obstacle_kdtree_;
   std::vector<Vec3> active_path_;
+  std::vector<Vec3> pending_global_path_;
+  std::vector<Vec3> pending_raw_path_;
+  Vec3 pending_plan_start_odom_;
   Vec3 last_local_goal_;
   uint64_t global_goal_id_{0};
   uint64_t global_path_id_{0};
   uint64_t local_goal_seq_{0};
+  uint64_t odom_generation_{0};
+  uint64_t pending_route_goal_id_{0};
+  uint64_t pending_plan_start_odom_generation_{0};
+  uint64_t pending_plan_completion_odom_generation_{0};
+  int64_t last_odom_source_stamp_ns_{0};
+  int64_t pending_plan_start_odom_source_stamp_ns_{0};
+  int64_t pending_plan_completion_odom_source_stamp_ns_{0};
   uint64_t last_validated_local_goal_seq_{0};
   int64_t last_validated_trajectory_id_{-1};
   int64_t recovery_required_after_trajectory_id_{-1};
@@ -3511,6 +3900,9 @@ private:
   std::size_t last_local_goal_index_{0};
   double last_local_goal_path_distance_{0.0};
   bool have_local_goal_{false};
+  bool pending_global_path_valid_{false};
+  bool pending_path_retry_exhausted_{false};
+  int pending_path_completed_replans_{0};
   bool local_planner_replan_requested_{false};
   bool local_planner_failure_replan_latched_{false};
   bool local_goal_reached_logged_{false};

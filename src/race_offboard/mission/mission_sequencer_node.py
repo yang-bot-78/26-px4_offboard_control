@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect four RViz points, then execute the fixed A/B/C/D race sequence."""
+"""Run the fixed A/B/C/D mission after the pilot selects PX4 OFFBOARD."""
 
 from __future__ import annotations
 
@@ -24,7 +24,8 @@ class MissionConfigError(ValueError):
 class MissionState(str, Enum):
     IDLE = 'IDLE'
     COLLECTING_POINTS = 'COLLECTING_POINTS'
-    WAIT_TAKEOFF = 'WAIT_TAKEOFF'
+    WAIT_OFFBOARD = 'WAIT_OFFBOARD'
+    PAUSED = 'PAUSED'
     GOTO_B1 = 'GOTO_B1'
     GOTO_B2 = 'GOTO_B2'
     HOLD_B2 = 'HOLD_B2'
@@ -167,7 +168,7 @@ class MissionSequencer:
         self.d_recognition = False
         # Presets seed the point list so the run needs no operator at RViz.
         self._points: list[Point] = list(settings.preset_points)
-        self._takeoff_ready = False
+        self._offboard_active = False
         self._hold_started_at: Optional[float] = None
 
     @property
@@ -179,7 +180,7 @@ class MissionSequencer:
         self._points = []
         self._hold_started_at = None
         if self.state in (MissionState.IDLE, MissionState.COLLECTING_POINTS,
-                          MissionState.WAIT_TAKEOFF):
+                          MissionState.WAIT_OFFBOARD):
             self.state = MissionState.COLLECTING_POINTS
 
     @property
@@ -207,10 +208,10 @@ class MissionSequencer:
         if self.state != MissionState.IDLE:
             return
         # With presets the four points already exist, so skip straight to
-        # waiting for takeoff instead of waiting for RViz clicks that will
+        # waiting for OFFBOARD instead of waiting for RViz clicks that will
         # never come.
         if self.collected_count == len(POINT_NAMES):
-            self.state = MissionState.WAIT_TAKEOFF
+            self.state = MissionState.WAIT_OFFBOARD
         else:
             self.state = MissionState.COLLECTING_POINTS
 
@@ -219,7 +220,7 @@ class MissionSequencer:
         # A click while presets are still untouched and the flight has not begun
         # means the operator is replacing the preset course. Clear it and start
         # collecting, rather than rejecting the click as "already have four".
-        if (self.state == MissionState.WAIT_TAKEOFF and
+        if (self.state == MissionState.WAIT_OFFBOARD and
                 self.collected_count == len(POINT_NAMES)):
             self.clear_points()
         if self.state != MissionState.COLLECTING_POINTS:
@@ -236,18 +237,38 @@ class MissionSequencer:
                     f'points must be > {MIN_POINT_SEPARATION_M:.2f} m apart')
         point = Point(POINT_NAMES[len(self._points)], x, y)
         self._points.append(point)
-        if len(self._points) == len(POINT_NAMES) and not self._takeoff_ready:
-            self.state = MissionState.WAIT_TAKEOFF
+        if len(self._points) == len(POINT_NAMES) and not self._offboard_active:
+            self.state = MissionState.WAIT_OFFBOARD
         return point
 
-    def on_control_status(self, control_state: str, now_sec: float) -> Optional[SequencerAction]:
-        del now_sec
-        if control_state and control_state != 'WAITING_FOR_ODOM':
-            self._takeoff_ready = True
-        return self._start_when_ready()
+    def on_offboard_mode(self, active: bool) -> Optional[SequencerAction]:
+        """
+        Start only on the pilot's OFFBOARD switch edge.
+
+        Leaving OFFBOARD pauses the sequencer.  The control node independently
+        latches pilot takeover, so a paused mission must be restarted through a
+        new node instance rather than silently continuing after a mode change.
+        """
+        if active == self._offboard_active:
+            return None
+        self._offboard_active = active
+        if active:
+            if self.state == MissionState.PAUSED:
+                return SequencerAction(
+                    event='mission_paused_restart_node_before_next_offboard')
+            return self._start_when_ready()
+        if self.state in (
+                MissionState.GOTO_B1, MissionState.GOTO_B2, MissionState.HOLD_B2,
+                MissionState.GOTO_C, MissionState.GOTO_D, MissionState.HOLD_D):
+            self._hold_started_at = None
+            self.state = MissionState.PAUSED
+            return SequencerAction(event='mission_paused_pilot_left_offboard')
+        return None
 
     def on_position(self, x_enu: float, y_enu: float, now_sec: float) -> Optional[SequencerAction]:
         del now_sec
+        if not self._offboard_active:
+            return None
         point = self.current_point
         if point is None or not point_is_reached(
                 x_enu, y_enu, point, self._settings.arrive_radius):
@@ -265,6 +286,8 @@ class MissionSequencer:
         return None
 
     def on_control_hold(self, now_sec: float) -> Optional[SequencerAction]:
+        if not self._offboard_active:
+            return None
         if self.state == MissionState.GOTO_B2:
             self.state = MissionState.HOLD_B2
             self._hold_started_at = now_sec
@@ -280,6 +303,8 @@ class MissionSequencer:
         return None
 
     def on_timer(self, now_sec: float) -> Optional[SequencerAction]:
+        if not self._offboard_active:
+            return None
         if self._hold_started_at is None:
             return None
         if self.state == MissionState.HOLD_B2:
@@ -303,9 +328,9 @@ class MissionSequencer:
         return None
 
     def _start_when_ready(self) -> Optional[SequencerAction]:
-        if self.collected_count != len(POINT_NAMES) or not self._takeoff_ready:
+        if self.collected_count != len(POINT_NAMES) or not self._offboard_active:
             return None
-        if self.state not in (MissionState.COLLECTING_POINTS, MissionState.WAIT_TAKEOFF):
+        if self.state not in (MissionState.COLLECTING_POINTS, MissionState.WAIT_OFFBOARD):
             return None
         self.state = MissionState.GOTO_B1
         return SequencerAction(goal=self._points[0], event='mission_started goto_b1')
@@ -314,6 +339,7 @@ class MissionSequencer:
 def _ros_main() -> int:
     import rclpy
     from geometry_msgs.msg import PoseStamped
+    from mavros_msgs.msg import State
     from rclpy.node import Node
     from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
     from std_msgs.msg import String
@@ -343,7 +369,7 @@ def _ros_main() -> int:
             self._status_publisher = self.create_publisher(
                 String, '/race/mission/status', transient_reliable)
             self._event_publisher = self.create_publisher(String, '/race/mission/event', 10)
-            # Recognition command for the detector (bs/code/bs_recognition_node.py).
+            # Recognition command for the standalone detector (bs/run_0812.sh).
             # Latched so a detector started after the aircraft entered the zone
             # still learns it should be running.
             self._recognition_publisher = self.create_publisher(
@@ -353,6 +379,8 @@ def _ros_main() -> int:
             self.create_subscription(
                 String, '/race/control/status', self._status_callback, transient_reliable)
             self.create_subscription(
+                State, '/mavros/state', self._mavros_state_callback, sensor_qos)
+            self.create_subscription(
                 PoseStamped, '/race/pose',
                 self._position_callback, sensor_qos)
             self.create_timer(0.05, self._timer_callback)
@@ -360,8 +388,8 @@ def _ros_main() -> int:
             self._publish_zone('A', previous='NONE')
             self._publish_status()
             self.get_logger().info(
-                '[MISSION_READY] RViz points required in order: B1, B2, C, D; '
-                'no goal will publish before all four')
+                '[MISSION_READY] waiting for pilot OFFBOARD; use preset_points '
+                'or collect B1, B2, C, D in RViz before switching modes')
 
         def _now_sec(self) -> float:
             return self.get_clock().now().nanoseconds * 1.0e-9
@@ -384,11 +412,14 @@ def _ros_main() -> int:
         def _status_callback(self, message: String) -> None:
             state = control_state_from_message(message.data)
             now_sec = self._now_sec()
-            # Every well-formed controller state, including an initial hold state,
-            # confirms that odometry is available and the takeoff handover has progressed.
-            action = self._sequencer.on_control_status(state, now_sec)
-            if action is None and state == 'GOAL_REACHED_HOLD':
-                action = self._sequencer.on_control_hold(now_sec)
+            if state == 'GOAL_REACHED_HOLD':
+                self._handle_action(self._sequencer.on_control_hold(now_sec))
+
+        def _mavros_state_callback(self, message: State) -> None:
+            # MAVROS forwards PX4's custom mode string unchanged.  Do not use
+            # controller state as a proxy: it can be IDLE_HOLD before the pilot
+            # has intentionally handed control to OFFBOARD.
+            action = self._sequencer.on_offboard_mode(message.mode == 'OFFBOARD')
             self._handle_action(action)
 
         def _position_callback(self, message: PoseStamped) -> None:

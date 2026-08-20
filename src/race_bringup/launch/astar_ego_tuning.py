@@ -20,6 +20,7 @@ REQUIRED = {
     'global_planner': dict,
     'ego_planner': dict,
     'ego_recovery': dict,
+    '动态放宽': dict,
     'ego_diagnostics': dict,
     'trajectory_bridge': dict,
     'offboard': dict,
@@ -95,11 +96,19 @@ def load_tuning(path):
             'min_planning_inflation_radius', 'soft_obstacle_cost_radius',
             'clearance_cost_weight', 'tracking_lookahead_distance',
             'max_local_goal_distance', 'smoothing_min_clearance',
+            'first_commit_max_path_error_m',
             'trajectory_prefetch_sec', 'trajectory_stall_timeout_sec',
             'trajectory_recovery_confirmation_sec'):
         _non_negative(global_planner, key, 'global_planner')
     for key in ('allow_direct_path', 'enable_path_shortcut'):
         _require(global_planner, key, bool, 'global_planner')
+    stale_start_max_replans = _require(
+        global_planner, 'stale_start_max_replans', int, 'global_planner')
+    if not 0.05 <= global_planner['first_commit_max_path_error_m'] <= 0.50:
+        raise TuningError(
+            'global_planner.first_commit_max_path_error_m must be in [0.05, 0.50]')
+    if stale_start_max_replans != 1:
+        raise TuningError('global_planner.stale_start_max_replans must be 1')
     if global_planner['min_planning_inflation_radius'] > global_planner['hard_inflation_radius']:
         raise TuningError(
             'global_planner.min_planning_inflation_radius must be <= hard_inflation_radius')
@@ -135,23 +144,26 @@ def load_tuning(path):
             'max_acceleration', 'control_point_spacing', 'fixed_flight_height',
             'occupancy_publish_max_height', 'occupancy_map_size_x',
             'occupancy_map_size_y', 'replan_start_position_error_m',
-            'max_reference_deviation_m'):
+            'max_reference_deviation_m', 'handover_prediction_initial_sec'):
         _non_negative(ego, key, 'ego_planner')
     for key in (
             'handover_position_tolerance_m', 'handover_velocity_tolerance_mps',
             'handover_acceleration_tolerance_mps2'):
         if _non_negative(ego, key, 'ego_planner') <= 0.0:
             raise TuningError(f'ego_planner.{key} must be > 0')
-    if ego['handover_position_tolerance_m'] > 0.02:
-        raise TuningError('ego_planner.handover_position_tolerance_m must be <= 0.02')
-    if ego['handover_velocity_tolerance_mps'] > 0.02:
-        raise TuningError('ego_planner.handover_velocity_tolerance_mps must be <= 0.02')
-    if ego['handover_acceleration_tolerance_mps2'] > 0.05:
+    if ego['handover_position_tolerance_m'] > 0.10:
+        raise TuningError('ego_planner.handover_position_tolerance_m must be <= 0.10')
+    if ego['handover_velocity_tolerance_mps'] > 0.14:
+        raise TuningError('ego_planner.handover_velocity_tolerance_mps must be <= 0.14')
+    if ego['handover_acceleration_tolerance_mps2'] > 0.10:
         raise TuningError(
-            'ego_planner.handover_acceleration_tolerance_mps2 must be <= 0.05')
+            'ego_planner.handover_acceleration_tolerance_mps2 must be <= 0.10')
     if not 0.15 <= ego['replan_start_position_error_m'] <= 0.30:
         raise TuningError(
             'ego_planner.replan_start_position_error_m must be in [0.15, 0.30]')
+    if not 0.10 <= ego['handover_prediction_initial_sec'] <= 1.00:
+        raise TuningError(
+            'ego_planner.handover_prediction_initial_sec must be in [0.10, 1.00]')
     if not 0.35 <= ego['max_reference_deviation_m'] <= 1.00:
         raise TuningError(
             'ego_planner.max_reference_deviation_m must be in [0.35, 1.00]')
@@ -233,8 +245,9 @@ def load_tuning(path):
         _require(recovery, key, bool, 'ego_recovery')
     _require(recovery, 'reference_path_topic', str, 'ego_recovery')
     max_attempts = _require(recovery, 'max_recovery_attempts', int, 'ego_recovery')
-    if max_attempts < 1:
-        raise TuningError('ego_recovery.max_recovery_attempts must be >= 1')
+    if max_attempts != 1:
+        raise TuningError(
+            'ego_recovery.max_recovery_attempts must be 1: normal EGO plus one fallback')
     _non_negative(recovery, 'cooldown_sec', 'ego_recovery')
     exhausted_backoff = _non_negative(
         recovery, 'exhausted_backoff_sec', 'ego_recovery')
@@ -265,10 +278,10 @@ def load_tuning(path):
             'must be <= ego_planner.optimization_clearance_m')
     recovery_reference_deviation = _number(
         recovery, 'max_reference_deviation_m', 'ego_recovery')
-    if not 0.45 <= recovery_reference_deviation <= ego['max_reference_deviation_m']:
+    if not 0.45 <= recovery_reference_deviation <= bounds['mission_corridor_max_error_m']:
         raise TuningError(
             'ego_recovery.max_reference_deviation_m must be in [0.45, '
-            'ego_planner.max_reference_deviation_m]')
+            'shared_safety.fault_envelope.mission_corridor_max_error_m]')
     max_lateral_offset = _number(
         recovery, 'max_lateral_offset_m', 'ego_recovery')
     lateral_offset_step = _number(
@@ -297,6 +310,34 @@ def load_tuning(path):
         raise TuningError(
             'ego_recovery.active_preplan_lookahead_m must be in [0.30, 1.50]')
 
+    # 飞手可读的中文动态放宽配置。它只能放宽软代价和搜索范围，所有硬防撞
+    # 判据仍由 shared_safety 和 trajectory_bridge 独立执行。
+    dynamic = tuning['动态放宽']
+    _require(dynamic, '启用', bool, '动态放宽')
+    for key in ('软放宽等待秒', '扩大绕行等待秒', '软放宽障碍代价半径米',
+                '软放宽靠障碍代价权重', '软放宽恢复额外净空米',
+                '扩大后重接搜索距离米', '扩大后最大横向搜索距离米',
+                '扩大后最小前进距离米'):
+        if _non_negative(dynamic, key, '动态放宽') <= 0.0:
+            raise TuningError(f'动态放宽.{key} must be > 0')
+    if dynamic['软放宽等待秒'] < 3.0 or dynamic['扩大绕行等待秒'] < 3.0:
+        raise TuningError('动态放宽的两个等待时间不得小于 3 秒')
+    if not global_planner['hard_inflation_radius'] <= \
+            dynamic['软放宽障碍代价半径米'] <= global_planner['soft_obstacle_cost_radius']:
+        raise TuningError('动态放宽.软放宽障碍代价半径米 must stay between hard and normal radius')
+    if dynamic['软放宽靠障碍代价权重'] > global_planner['clearance_cost_weight']:
+        raise TuningError('动态放宽.软放宽靠障碍代价权重 must not exceed normal weight')
+    if dynamic['软放宽恢复额外净空米'] > recovery['extra_clearance_m']:
+        raise TuningError('动态放宽.软放宽恢复额外净空米 must not exceed normal extra clearance')
+    if dynamic['扩大后重接搜索距离米'] < recovery['rejoin_search_distance_m'] or \
+            dynamic['扩大后重接搜索距离米'] > 2.0:
+        raise TuningError('动态放宽.扩大后重接搜索距离米 must be within normal..2.0m')
+    if dynamic['扩大后最大横向搜索距离米'] < recovery['max_lateral_offset_m'] or \
+            dynamic['扩大后最大横向搜索距离米'] > recovery_reference_deviation:
+        raise TuningError('动态放宽.扩大后最大横向搜索距离米 must be within normal..最大参考偏离')
+    if not 0.05 <= dynamic['扩大后最小前进距离米'] <= recovery['minimum_forward_progress_m']:
+        raise TuningError('动态放宽.扩大后最小前进距离米 must be in [0.05, normal minimum]')
+
     ego_diagnostics = tuning['ego_diagnostics']
     _require(ego_diagnostics, 'enable', bool, 'ego_diagnostics')
 
@@ -308,6 +349,7 @@ def load_tuning(path):
             'replan_hold_timeout_sec',
             'switch_position_tolerance_m', 'switch_velocity_tolerance_mps',
             'switch_acceleration_tolerance_mps2',
+            'handover_transaction_timeout_sec',
             'dynamic_limit_margin', 'max_yaw_rate_rad_s',
             'braking_deceleration_mps2',
             'reaction_time_sec'):
@@ -328,12 +370,24 @@ def load_tuning(path):
     if bridge['switch_position_tolerance_m'] > 0.10:
         raise TuningError(
             'trajectory_bridge.switch_position_tolerance_m must be <= 0.10')
-    if bridge['switch_velocity_tolerance_mps'] > 0.20:
+    if bridge['switch_velocity_tolerance_mps'] > 0.14:
         raise TuningError(
-            'trajectory_bridge.switch_velocity_tolerance_mps must be <= 0.20')
-    if bridge['switch_acceleration_tolerance_mps2'] > 0.40:
+            'trajectory_bridge.switch_velocity_tolerance_mps must be <= 0.14')
+    if bridge['switch_acceleration_tolerance_mps2'] > 0.10:
         raise TuningError(
-            'trajectory_bridge.switch_acceleration_tolerance_mps2 must be <= 0.40')
+            'trajectory_bridge.switch_acceleration_tolerance_mps2 must be <= 0.10')
+    for ego_key, bridge_key in (
+            ('handover_position_tolerance_m', 'switch_position_tolerance_m'),
+            ('handover_velocity_tolerance_mps', 'switch_velocity_tolerance_mps'),
+            ('handover_acceleration_tolerance_mps2',
+             'switch_acceleration_tolerance_mps2')):
+        if not math.isclose(ego[ego_key], bridge[bridge_key], abs_tol=1.0e-9):
+            raise TuningError(
+                f'ego_planner.{ego_key} must match '
+                f'trajectory_bridge.{bridge_key}')
+    handover_max_rejections = bridge.get('handover_max_rejections')
+    if not isinstance(handover_max_rejections, int) or handover_max_rejections not in (1, 2, 3):
+        raise TuningError('trajectory_bridge.handover_max_rejections must be 1, 2, or 3')
     maximum_speed = ego['max_velocity']
     stopping_time = (
         bridge['reaction_time_sec'] +
@@ -385,13 +439,14 @@ def load_tuning(path):
     for name, value in (
             ('ego_planner.fixed_flight_height', ego['fixed_flight_height']),
             ('offboard.fixed_flight_height_m', offboard['fixed_flight_height_m']),
-            ('offboard.takeoff_height_m', offboard['takeoff_height_m']),
-            ('offboard.ego_goal_release_height_m', offboard['ego_goal_release_height_m'])):
+            ('offboard.takeoff_height_m', offboard['takeoff_height_m'])):
         if not z_min <= value <= z_max:
             raise TuningError(
                 f'{name} must be inside shared_safety.fault_envelope.z_min/z_max')
     if offboard['ego_goal_release_height_m'] > offboard['fixed_flight_height_m']:
         raise TuningError('offboard.ego_goal_release_height_m must be <= fixed_flight_height_m')
+    if offboard['ego_goal_release_height_m'] <= 0.0:
+        raise TuningError('offboard.ego_goal_release_height_m must be > 0')
     if offboard['max_safe_height_m'] > z_max:
         raise TuningError(
             'offboard.max_safe_height_m must be <= shared_safety.fault_envelope.z_max')
@@ -418,6 +473,7 @@ def node_parameter_overlays(tuning):
     constrained_optimization_clearance = ego['constrained_optimization_clearance_m']
     ego_map = tuning['ego_map']
     recovery = tuning['ego_recovery']
+    dynamic = tuning['动态放宽']
     ego_diagnostics = tuning['ego_diagnostics']
     bridge = tuning['trajectory_bridge']
     offboard = tuning['offboard']
@@ -446,6 +502,9 @@ def node_parameter_overlays(tuning):
             'soft_obstacle_cost_radius': global_planner['soft_obstacle_cost_radius'],
             'clearance_cost_weight': global_planner['clearance_cost_weight'],
             'tracking_lookahead_distance': global_planner['tracking_lookahead_distance'],
+            'pending_path_max_cross_track_error_m':
+                global_planner['first_commit_max_path_error_m'],
+            'pending_path_max_replans': global_planner['stale_start_max_replans'],
             'ego_local_goal_max_distance_m': global_planner['max_local_goal_distance'],
             'trajectory_prefetch_sec': global_planner['trajectory_prefetch_sec'],
             'trajectory_stall_timeout_sec':
@@ -459,7 +518,13 @@ def node_parameter_overlays(tuning):
             # Recovery searches along this continuation, so the preview must
             # cover the configured rejoin distance.
             'ego_reference_preview_distance_m': max(
-                0.60, recovery['rejoin_search_distance_m']),
+                0.60, recovery['rejoin_search_distance_m'],
+                dynamic['扩大后重接搜索距离米']),
+            'dynamic_relaxation/enable': dynamic['启用'],
+            'dynamic_relaxation/soft_wait_sec': dynamic['软放宽等待秒'],
+            'dynamic_relaxation/expand_wait_sec': dynamic['扩大绕行等待秒'],
+            'dynamic_relaxation/soft_cost_radius_m': dynamic['软放宽障碍代价半径米'],
+            'dynamic_relaxation/soft_cost_weight': dynamic['软放宽靠障碍代价权重'],
         },
         'ego': {
             **shared,
@@ -498,6 +563,8 @@ def node_parameter_overlays(tuning):
                 ego['handover_acceleration_tolerance_mps2'],
             'fsm/validation_flight_height': ego['fixed_flight_height'],
             'fsm/replan_start_position_error_m': ego['replan_start_position_error_m'],
+            'fsm/handover_prediction_initial_sec':
+                ego['handover_prediction_initial_sec'],
             'fsm/handover_position_tolerance_m': ego['handover_position_tolerance_m'],
             'fsm/handover_velocity_tolerance_mps': ego['handover_velocity_tolerance_mps'],
             'fsm/handover_acceleration_tolerance_mps2':
@@ -521,6 +588,15 @@ def node_parameter_overlays(tuning):
                 recovery['exhausted_backoff_sec'],
             'fsm/active_preplan_lookahead_m': recovery['active_preplan_lookahead_m'],
             'fsm/ego_recovery/reference_path_topic': recovery['reference_path_topic'],
+            'dynamic_relaxation/enable': dynamic['启用'],
+            'dynamic_relaxation/soft_recovery_extra_clearance_m':
+                dynamic['软放宽恢复额外净空米'],
+            'dynamic_relaxation/expanded_rejoin_search_distance_m':
+                dynamic['扩大后重接搜索距离米'],
+            'dynamic_relaxation/expanded_max_lateral_offset_m':
+                dynamic['扩大后最大横向搜索距离米'],
+            'dynamic_relaxation/expanded_minimum_forward_progress_m':
+                dynamic['扩大后最小前进距离米'],
             'ego_diagnostics.enable': ego_diagnostics['enable'],
         },
         'cloud_bridge': {
@@ -561,6 +637,9 @@ def node_parameter_overlays(tuning):
                                   bridge['switch_velocity_tolerance_mps'],
                               'switch_acceleration_tolerance_mps2':
                                   bridge['switch_acceleration_tolerance_mps2'],
+                              'handover_max_rejections': bridge['handover_max_rejections'],
+                              'handover_transaction_timeout_sec':
+                                  bridge['handover_transaction_timeout_sec'],
                               'trajectory_sample_spacing': bridge['collision_sample_spacing_m'],
                               'braking_deceleration_mps2':
                                   bridge['braking_deceleration_mps2'],

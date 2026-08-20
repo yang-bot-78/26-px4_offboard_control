@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-cd /home/robot/ws_offboard_control
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+workspace_root="$(cd -- "${script_dir}/../.." && pwd -P)"
+cd "${workspace_root}"
 source /opt/ros/humble/setup.bash
-source /home/robot/ws_offboard_control/install/setup.bash
+source "${workspace_root}/install/setup.bash"
 set -u
+export WS_OFFBOARD_CONTROL_ROOT="${workspace_root}"
 
 if [[ "${ALLOW_DUPLICATE_NAV2:-false}" != "true" ]]; then
   if ros2 node list 2>/dev/null | grep -qx "/planner_server"; then
@@ -26,9 +29,9 @@ if [[ "${ALLOW_DUPLICATE_NAV2:-false}" != "true" ]]; then
   fi
 fi
 
-export PARAMS_FILE="${PARAMS_FILE:-/home/robot/ws_offboard_control/install/offboard_nav2_planning/share/offboard_nav2_planning/config/nav2_planner_relocalized_map.yaml}"
+export PARAMS_FILE="${PARAMS_FILE:-$(ros2 pkg prefix offboard_nav2_planning)/share/offboard_nav2_planning/config/nav2_planner_relocalized_map.yaml}"
 export USE_MAP_SERVER="${USE_MAP_SERVER:-true}"
-export MAP_YAML="${MAP_YAML:-/home/robot/ws_offboard_control/maps/fastlio_nav2_map.yaml}"
+export MAP_YAML="${MAP_YAML:-${workspace_root}/maps/fastlio_nav2_map.yaml}"
 export MAP_FRAME="${MAP_FRAME:-map}"
 export ODOM_FRAME="${ODOM_FRAME:-camera_init}"
 export PUBLISH_ODOM_TF="${PUBLISH_ODOM_TF:-true}"
@@ -41,11 +44,11 @@ if [[ -z "${RVIZ:-}" ]]; then
   if pgrep -x rviz2 >/dev/null; then
     echo "Existing rviz2 process detected; not opening Nav2 RViz automatically."
     echo "Close old RViz or run:"
-    echo "  rviz2 -d /home/robot/ws_offboard_control/install/offboard_nav2_planning/share/offboard_nav2_planning/rviz/nav2_stage1_planning.rviz"
+    echo "  rviz2 -d $(ros2 pkg prefix offboard_nav2_planning)/share/offboard_nav2_planning/rviz/nav2_stage1_planning.rviz"
     export RVIZ=false
   else
     export RVIZ=true
   fi
 fi
 
-exec /home/robot/ws_offboard_control/run_nav2_stage1_planning.sh
+exec "${script_dir}/run_nav2_stage1_planning.sh"

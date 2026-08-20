@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-cd /home/robot/ws_offboard_control
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+workspace_root="$(cd -- "${script_dir}/../.." && pwd -P)"
+cd "${workspace_root}"
 source /opt/ros/humble/setup.bash
-source /home/robot/ws_offboard_control/install/setup.bash
+source "${workspace_root}/install/setup.bash"
 set -u
+export WS_OFFBOARD_CONTROL_ROOT="${workspace_root}"
 
 params_file="${PARAMS_FILE:-}"
 publish_odom_tf="${PUBLISH_ODOM_TF:-false}"

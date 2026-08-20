@@ -29,6 +29,16 @@ install(TARGETS
 )
 install(PROGRAMS
   mission/mission_sequencer_node.py
+  mission/save_waypoint.py
+  mission/export_mission_waypoints.py
+  mission/waypoint_visualizer.py
+  mission/global_waypoint_task_node.py
+  mission/waypoint_state_machine_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(FILES
+  mission/waypoint_common.py
+  mission/waypoint_behaviors.py
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/ DESTINATION include)
@@ -62,6 +72,18 @@ if(BUILD_TESTING)
   add_test(
     NAME test_mission_sequencer
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_mission_sequencer.py)
+  add_test(
+    NAME test_mission_waypoint_export
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_mission_waypoint_export.py)
+  add_test(
+    NAME test_waypoint_visualizer
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_waypoint_visualizer.py)
+  add_test(
+    NAME test_waypoint_state_machine
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_waypoint_state_machine.py)
+  add_test(
+    NAME test_waypoint_behaviors
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_waypoint_behaviors.py)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files

@@ -29,9 +29,10 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   node_->declare_parameter("fsm/replan_start_position_error_m", 0.10);
   node_->declare_parameter("fsm/replan_candidate_trials", 3);
   node_->declare_parameter("fsm/validation_failure_retry_limit", 3);
+  node_->declare_parameter("fsm/handover_prediction_initial_sec", 0.55);
   node_->declare_parameter("fsm/ego_recovery/enable", false);
   node_->declare_parameter("fsm/ego_recovery/diagnostic_only", true);
-  node_->declare_parameter("fsm/ego_recovery/max_recovery_attempts", 2);
+  node_->declare_parameter("fsm/ego_recovery/max_recovery_attempts", 1);
   node_->declare_parameter("fsm/ego_recovery/cooldown_sec", 2.0);
   node_->declare_parameter("fsm/ego_recovery/exhausted_backoff_sec", 2.0);
   node_->declare_parameter("fsm/ego_recovery/rejoin_search_distance_m", 1.20);
@@ -42,12 +43,17 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   // the lateral fallback; the shipped tuning YAML always sets both explicitly.
   node_->declare_parameter("fsm/ego_recovery/max_lateral_offset_m", 0.0);
   node_->declare_parameter("fsm/ego_recovery/lateral_offset_step_m", 0.0);
+  node_->declare_parameter("dynamic_relaxation/enable", false);
+  node_->declare_parameter("dynamic_relaxation/soft_recovery_extra_clearance_m", 0.02);
+  node_->declare_parameter("dynamic_relaxation/expanded_rejoin_search_distance_m", 1.20);
+  node_->declare_parameter("dynamic_relaxation/expanded_max_lateral_offset_m", 1.20);
+  node_->declare_parameter("dynamic_relaxation/expanded_minimum_forward_progress_m", 0.08);
   node_->declare_parameter("fsm/constrained_clearance/enable", false);
   node_->declare_parameter("fsm/constrained_clearance/clearance_m", 0.25);
   node_->declare_parameter("fsm/constrained_clearance/optimization_m", 0.30);
-  node_->declare_parameter("fsm/handover_position_tolerance_m", 0.01);
-  node_->declare_parameter("fsm/handover_velocity_tolerance_mps", 0.005);
-  node_->declare_parameter("fsm/handover_acceleration_tolerance_mps2", 0.01);
+  node_->declare_parameter("fsm/handover_position_tolerance_m", 0.10);
+  node_->declare_parameter("fsm/handover_velocity_tolerance_mps", 0.14);
+  node_->declare_parameter("fsm/handover_acceleration_tolerance_mps2", 0.10);
   node_->declare_parameter("fsm/active_preplan_lookahead_m", 0.65);
   node_->declare_parameter(
     "fsm/ego_recovery/reference_path_topic", "/race/ego/local_path_reference");
@@ -75,6 +81,7 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   node_->get_parameter("fsm/replan_start_position_error_m", replan_start_position_error_);
   node_->get_parameter("fsm/replan_candidate_trials", replan_candidate_trials_);
   node_->get_parameter("fsm/validation_failure_retry_limit", validation_failure_retry_limit_);
+  node_->get_parameter("fsm/handover_prediction_initial_sec", handover_prediction_sec_);
   node_->get_parameter("fsm/ego_recovery/enable", recovery_enabled_);
   node_->get_parameter("fsm/ego_recovery/diagnostic_only", recovery_diagnostic_only_);
   node_->get_parameter("fsm/ego_recovery/max_recovery_attempts", recovery_max_attempts_);
@@ -96,6 +103,19 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
     "fsm/ego_recovery/max_lateral_offset_m", recovery_max_lateral_offset_m_);
   node_->get_parameter(
     "fsm/ego_recovery/lateral_offset_step_m", recovery_lateral_offset_step_m_);
+  node_->get_parameter("dynamic_relaxation/enable", dynamic_relaxation_enabled_);
+  node_->get_parameter(
+    "dynamic_relaxation/soft_recovery_extra_clearance_m",
+    dynamic_soft_recovery_extra_clearance_m_);
+  node_->get_parameter(
+    "dynamic_relaxation/expanded_rejoin_search_distance_m",
+    dynamic_expanded_rejoin_search_distance_m_);
+  node_->get_parameter(
+    "dynamic_relaxation/expanded_max_lateral_offset_m",
+    dynamic_expanded_max_lateral_offset_m_);
+  node_->get_parameter(
+    "dynamic_relaxation/expanded_minimum_forward_progress_m",
+    dynamic_expanded_minimum_forward_progress_m_);
   node_->get_parameter("fsm/constrained_clearance/enable", constrained_clearance_enabled_);
   node_->get_parameter("fsm/constrained_clearance/clearance_m", constrained_clearance_m_);
   node_->get_parameter(
@@ -125,20 +145,25 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   }
   replan_candidate_trials_ = std::max(1, replan_candidate_trials_);
   validation_failure_retry_limit_ = std::max(1, validation_failure_retry_limit_);
+  handover_prediction_sec_ = std::clamp(
+    std::isfinite(handover_prediction_sec_) ? handover_prediction_sec_ : 0.55,
+    0.10, 1.00);
   handover_position_tolerance_m_ = std::clamp(
-    std::isfinite(handover_position_tolerance_m_) ? handover_position_tolerance_m_ : 0.01,
-    0.001, 0.02);
+    std::isfinite(handover_position_tolerance_m_) ? handover_position_tolerance_m_ : 0.10,
+    0.001, 0.10);
   handover_velocity_tolerance_mps_ = std::clamp(
-    std::isfinite(handover_velocity_tolerance_mps_) ? handover_velocity_tolerance_mps_ : 0.005,
-    0.001, 0.02);
+    std::isfinite(handover_velocity_tolerance_mps_) ? handover_velocity_tolerance_mps_ : 0.14,
+    0.001, 0.14);
   handover_acceleration_tolerance_mps2_ = std::clamp(
     std::isfinite(handover_acceleration_tolerance_mps2_) ?
-    handover_acceleration_tolerance_mps2_ : 0.01,
-    0.005, 0.05);
+    handover_acceleration_tolerance_mps2_ : 0.10,
+    0.005, 0.10);
   active_preplan_lookahead_m_ = std::clamp(
     std::isfinite(active_preplan_lookahead_m_) ? active_preplan_lookahead_m_ : 0.65,
     0.30, 1.50);
-  recovery_max_attempts_ = std::max(1, recovery_max_attempts_);
+  // Normal EGO is attempt #1. This parameter is the sole fallback budget, so
+  // accepting values above one would violate the two-expensive-attempt contract.
+  recovery_max_attempts_ = 1;
   recovery_cooldown_sec_ = std::max(0.0, recovery_cooldown_sec_);
   recovery_exhausted_backoff_sec_ = std::max(
     recovery_cooldown_sec_, recovery_exhausted_backoff_sec_);
@@ -155,7 +180,7 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   recovery_max_reference_deviation_m_ = std::clamp(
     std::isfinite(recovery_max_reference_deviation_m_) ?
     recovery_max_reference_deviation_m_ : 0.65,
-    0.45, 1.00);
+    0.45, 1.50);
   if (recovery_minimum_forward_progress_m_ > recovery_rejoin_search_distance_m_) {
     throw std::runtime_error(
       "fsm/ego_recovery/minimum_forward_progress_m must be <= rejoin_search_distance_m");
@@ -186,6 +211,20 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
     throw std::runtime_error(
       "fsm/ego_recovery/lateral_offset_step_m must be <= max_lateral_offset_m");
   }
+  normal_recovery_extra_clearance_m_ = recovery_extra_clearance_m_;
+  normal_rejoin_search_distance_m_ = recovery_rejoin_search_distance_m_;
+  normal_minimum_forward_progress_m_ = recovery_minimum_forward_progress_m_;
+  normal_max_lateral_offset_m_ = recovery_max_lateral_offset_m_;
+  dynamic_soft_recovery_extra_clearance_m_ = std::clamp(
+    dynamic_soft_recovery_extra_clearance_m_, 0.0, normal_recovery_extra_clearance_m_);
+  dynamic_expanded_rejoin_search_distance_m_ = std::clamp(
+    dynamic_expanded_rejoin_search_distance_m_, normal_rejoin_search_distance_m_, 2.0);
+  dynamic_expanded_max_lateral_offset_m_ = std::clamp(
+    dynamic_expanded_max_lateral_offset_m_, normal_max_lateral_offset_m_,
+    recovery_max_reference_deviation_m_);
+  dynamic_expanded_minimum_forward_progress_m_ = std::clamp(
+    dynamic_expanded_minimum_forward_progress_m_, 0.05,
+    normal_minimum_forward_progress_m_);
   recovery_failure_policy_.configure(
     recovery_max_attempts_, recovery_cooldown_sec_, recovery_exhausted_backoff_sec_);
   RCLCPP_INFO(
@@ -313,6 +352,10 @@ void EGOReplanFSM::init(rclcpp::Node::SharedPtr & node)
   bspline_pub_ = node_->create_publisher<traj_utils::msg::Bspline>("planning/bspline", 10);
   safety_status_pub_ = node_->create_publisher<std_msgs::msg::String>(
     "/race/ego/planner_safety_status", rclcpp::QoS(1).reliable().transient_local());
+  dynamic_relaxation_profile_sub_ = node_->create_subscription<std_msgs::msg::String>(
+    "/race/dynamic_relaxation_profile", rclcpp::QoS(1).reliable().transient_local(),
+    std::bind(
+      &EGOReplanFSM::dynamicRelaxationProfileCallback, this, std::placeholders::_1));
   data_disp_pub_ = node_->create_publisher<traj_utils::msg::DataDisp>("planning/data_display", 100);
 
   if (target_type_ == TARGET_TYPE::MANUAL_TARGET) {
@@ -458,7 +501,8 @@ void EGOReplanFSM::altitudeReferenceCallback(
   if (!std::isfinite(msg->ground_z_map) || !std::isfinite(msg->target_z_map) ||
     !std::isfinite(msg->target_agl_m) || !std::isfinite(msg->min_agl_m) ||
     !std::isfinite(msg->max_agl_m) ||
-    std::abs(msg->target_agl_m - configured_validation_flight_height_) > 1.0e-3 ||
+    msg->target_agl_m < configured_shared_bounds_z_min_ - 1.0e-3 ||
+    msg->target_agl_m > configured_shared_bounds_z_max_ + 1.0e-3 ||
     std::abs(msg->min_agl_m - configured_shared_bounds_z_min_) > 1.0e-3 ||
     std::abs(msg->max_agl_m - configured_shared_bounds_z_max_) > 1.0e-3 ||
     std::abs((msg->target_z_map - msg->ground_z_map) - msg->target_agl_m) > 1.0e-3)
@@ -1196,8 +1240,15 @@ bool EGOReplanFSM::planFromGlobalTraj(const int trial_times /*=1*/)   // zx-todo
 
 bool EGOReplanFSM::planFromCurrentTraj(const int trial_times /*=1*/)
 {
+  (void)trial_times;
+  if (recovery_failure_policy_.exhausted()) {
+    pending_validation_failure_ = "EGO_REPLAN_TRANSACTION_EXHAUSTED";
+    candidate_failure_preserved_active_ = false;
+    recovery_rejoin_failed_ = true;
+    return false;
+  }
   if (force_new_global_path_session_) {
-    return planFromGlobalTraj(trial_times);
+    return planFromGlobalTraj(1);
   }
   pending_validation_failure_.clear();
 
@@ -1207,13 +1258,11 @@ bool EGOReplanFSM::planFromCurrentTraj(const int trial_times /*=1*/)
   // double t_cur = (time_now - info->start_time_).toSec();
   double t_cur = (time_now - info->start_time_).seconds();
   t_cur = std::clamp(t_cur, 0.0, info->duration_);
-
-  start_pt_ = info->position_traj_.evaluateDeBoorT(t_cur);
-  start_vel_ = info->velocity_traj_.evaluateDeBoorT(t_cur);
-  start_acc_ = info->acceleration_traj_.evaluateDeBoorT(t_cur);
+  const Eigen::Vector3d active_position_now =
+    info->position_traj_.evaluateDeBoorT(t_cur);
 
   const double horizontal_start_error =
-    (start_pt_.head<2>() - odom_pos_.head<2>()).norm();
+    (active_position_now.head<2>() - odom_pos_.head<2>()).norm();
   const double effective_reanchor_threshold =
     ReplanHandoverPolicy::effectiveOdomReanchorThreshold(
     replan_start_position_error_, odom_vel_.head<2>().norm());
@@ -1230,7 +1279,8 @@ bool EGOReplanFSM::planFromCurrentTraj(const int trial_times /*=1*/)
       "odom_start=(%.3f,%.3f,%.3f) horizontal_error=%.3f "
       "base_threshold=%.3f effective_threshold=%.3f horizontal_speed=%.3f "
       "reason=%s",
-      start_pt_.x(), start_pt_.y(), start_pt_.z(), odom_pos_.x(), odom_pos_.y(),
+      active_position_now.x(), active_position_now.y(), active_position_now.z(),
+      odom_pos_.x(), odom_pos_.y(),
       odom_pos_.z(), horizontal_start_error, replan_start_position_error_,
       effective_reanchor_threshold, odom_vel_.head<2>().norm(),
       previous_trajectory_active && tracking_diverged ?
@@ -1305,7 +1355,7 @@ bool EGOReplanFSM::planFromCurrentTraj(const int trial_times /*=1*/)
       odom_pos_.x(), odom_pos_.y(), odom_pos_.z(), odom_vel_.x(), odom_vel_.y(),
       odom_vel_.z(), previous_trajectory_active ?
       "TRACKING_DIVERGENCE" : "TRAJECTORY_EXPIRED");
-    const bool reanchored = planFromGlobalTraj(trial_times);
+    const bool reanchored = planFromGlobalTraj(1);
     if (!reanchored) {
       // Recovery may have found the old trajectory clear on the map, but it
       // starts from a state that has already diverged from measured odometry.
@@ -1326,56 +1376,55 @@ bool EGOReplanFSM::planFromCurrentTraj(const int trial_times /*=1*/)
         "horizontal_error=%.3f odom=(%.3f,%.3f,%.3f) "
         "old_predicted_start=(%.3f,%.3f,%.3f)",
         info->traj_id_, horizontal_start_error, odom_pos_.x(), odom_pos_.y(), odom_pos_.z(),
-        start_pt_.x(), start_pt_.y(), start_pt_.z());
+        active_position_now.x(), active_position_now.y(), active_position_now.z());
       publishSafetyStatus(pending_validation_failure_);
     }
     return reanchored;
   }
 
   // Small tracking errors use the normal P/V/A splice to avoid unnecessary
-  // discontinuities. Large errors took the re-anchor path above.
+  // discontinuities. Predict one measured planner-latency window ahead so the
+  // candidate boundary and the active trajectory are compared at the actual
+  // switch time, not at the beginning of a roughly 0.5 s optimization.
+  const double predicted_t = std::clamp(
+    t_cur + handover_prediction_sec_, 0.0, info->duration_);
+  start_pt_ = info->position_traj_.evaluateDeBoorT(predicted_t);
+  start_vel_ = info->velocity_traj_.evaluateDeBoorT(predicted_t);
+  start_acc_ = info->acceleration_traj_.evaluateDeBoorT(predicted_t);
+  RCLCPP_INFO(
+    node_->get_logger(),
+    "[EGO_HANDOVER_PREDICTION] horizon=%.3f active_t_now=%.3f switch_t=%.3f "
+    "start_p=(%.3f,%.3f,%.3f) start_v=(%.3f,%.3f,%.3f) start_a=(%.3f,%.3f,%.3f)",
+    handover_prediction_sec_, t_cur, predicted_t,
+    start_pt_.x(), start_pt_.y(), start_pt_.z(),
+    start_vel_.x(), start_vel_.y(), start_vel_.z(),
+    start_acc_.x(), start_acc_.y(), start_acc_.z());
+  const auto planning_started = node_->now();
   bool success = callReboundReplan(false, false);
+  const double observed_planning_sec = std::clamp(
+    (node_->now() - planning_started).seconds(), 0.0, 2.0);
+  constexpr double latency_ema_alpha = 0.20;
+  handover_prediction_sec_ = std::clamp(
+    (1.0 - latency_ema_alpha) * handover_prediction_sec_ +
+    latency_ema_alpha * observed_planning_sec,
+    0.10, 1.00);
+  RCLCPP_INFO(
+    node_->get_logger(),
+    "[EGO_HANDOVER_LATENCY] observed=%.3f next_prediction=%.3f success=%s",
+    observed_planning_sec, handover_prediction_sec_, success ? "true" : "false");
 
   if (!success) {
     if (planner_manager_->lastReplanFailureReason() ==
       EGOPlannerManager::ReplanFailureReason::HANDOVER_CONTINUITY ||
       pending_validation_failure_ == "EGO_HANDOVER_CONTINUITY_REJECT")
     {
-      return false;
+      // The normal splice consumed attempt #1. Spend the sole fallback on a
+      // measured-state re-anchor; do not also run the A* fallback afterwards.
+      recovery_failure_policy_.markAttempt(node_->now().seconds());
+      force_new_global_path_session_ = true;
+      return planFromGlobalTraj(1);
     }
-    if (!pending_validation_failure_.empty()) {
-      return planWithRecovery("current_trajectory");
-    }
-    success = callReboundReplan(true, false);
-    if (!success) {
-      if (planner_manager_->lastReplanFailureReason() ==
-        EGOPlannerManager::ReplanFailureReason::HANDOVER_CONTINUITY ||
-        pending_validation_failure_ == "EGO_HANDOVER_CONTINUITY_REJECT")
-      {
-        return false;
-      }
-      if (!pending_validation_failure_.empty()) {
-        return planWithRecovery("current_trajectory");
-      }
-      for (int i = 0; i < trial_times; i++) {
-        success = callReboundReplan(true, true);
-        if (success) {
-          break;
-        }
-        if (planner_manager_->lastReplanFailureReason() ==
-          EGOPlannerManager::ReplanFailureReason::HANDOVER_CONTINUITY ||
-          pending_validation_failure_ == "EGO_HANDOVER_CONTINUITY_REJECT")
-        {
-          return false;
-        }
-        if (!pending_validation_failure_.empty()) {
-          break;
-        }
-      }
-      if (!success) {
-        return planWithRecovery("current_trajectory");
-      }
-    }
+    return planWithRecovery("current_trajectory");
   }
 
   return true;
@@ -1657,33 +1706,34 @@ bool EGOReplanFSM::planWithRecovery(const char * planning_context)
 
   const double recovery_now_sec = node_->now().seconds();
   const auto gate = recovery_failure_policy_.gate(recovery_now_sec);
-  if (gate == RecoveryGateResult::EXHAUSTED_BACKOFF_WAIT) {
+  if (gate == RecoveryGateResult::EXHAUSTED_TERMINAL) {
     double active_remaining = 0.0;
     double active_clearance = std::numeric_limits<double>::infinity();
     Eigen::Vector3d active_endpoint;
     candidate_failure_preserved_active_ = activeTrajectoryRemainingSafe(
       planner_manager_->local_data_, active_remaining, active_endpoint, active_clearance);
-    recovery_rejoin_failed_ = !candidate_failure_preserved_active_;
+    const bool active_still_safe = candidate_failure_preserved_active_;
     RCLCPP_ERROR(
       node_->get_logger(),
       "[EGO_RECOVERY_FAILED] context=%s reason=max_attempts attempts=%d "
       "rejoin_found=false active_safe=%s active_remaining_time=%.3f",
       planning_context, recovery_failure_policy_.attemptsForGoal(),
-      candidate_failure_preserved_active_ ? "true" : "false", active_remaining);
-    // Keep optimizer load bounded, but do not wait forever for a rolling goal
-    // that itself depends on vehicle progress. Retry the same goal after a
-    // longer backoff; a newly received goal still resets the policy immediately.
-    const double remaining = recovery_failure_policy_.exhaustedBackoffRemaining(
-      recovery_now_sec);
-    scheduleReplanRetry("RECOVERY_EXHAUSTED_BACKOFF", remaining);
-    RCLCPP_WARN(
+      active_still_safe ? "true" : "false", active_remaining);
+    pending_validation_failure_ = "EGO_REPLAN_TRANSACTION_EXHAUSTED";
+    // Transaction exhaustion is terminal even when the old path is still clear:
+    // keeping it is allowed only until the downstream bridge brakes at this
+    // explicit terminal status. Do not suppress the status as a recoverable
+    // candidate rejection.
+    candidate_failure_preserved_active_ = false;
+    recovery_rejoin_failed_ = true;
+    next_replan_retry_time_ = rclcpp::Time(0, 0, node_->get_clock()->get_clock_type());
+    RCLCPP_ERROR(
       node_->get_logger(),
-      "[EGO_RECOVERY_EXHAUSTED_BACKOFF] goal_seq=%lu attempts=%d "
-      "remaining_sec=%.3f active_safe=%s retry_scheduled=true",
+      "[EGO_REPLAN_TRANSACTION_EXHAUSTED] goal_seq=%lu attempts=%d "
+      "active_safe=%s retry_scheduled=false",
       static_cast<unsigned long>(local_goal_seq_),
       recovery_failure_policy_.attemptsForGoal(),
-      remaining,
-      candidate_failure_preserved_active_ ? "true" : "false");
+      active_still_safe ? "true" : "false");
     return false;
   }
   if (gate == RecoveryGateResult::COOLDOWN_WAIT) {
@@ -1698,9 +1748,9 @@ bool EGOReplanFSM::planWithRecovery(const char * planning_context)
     return false;
   }
 
-  // Same goal, same obstacle layout, already proven unsolvable: rerunning the
-  // local A* and a full B-spline optimization can only reach the same verdict.
-  // Wait for the map to change instead of spinning the optimizer.
+  // Same goal and same layout during the cooldown: do not rerun identical work.
+  // Once the single fallback attempt is consumed, the terminal gate above wins
+  // for every map revision until an explicit new local goal starts a transaction.
   const uint64_t map_revision = planner_manager_->grid_map_->getMapRevision();
   if (recovery_failure_policy_.layoutKnownUnsolvable(map_revision)) {
     recovery_cooldown_waiting_ = true;
@@ -1721,16 +1771,37 @@ bool EGOReplanFSM::planWithRecovery(const char * planning_context)
     "[EGO_RECOVERY_ATTEMPT] goal_seq=%lu rejoin_found=%s candidates=%zu result=STARTED",
     static_cast<unsigned long>(local_goal_seq_),
     candidates.empty() ? "false" : "true", candidates.size());
-  // Try each candidate in turn.  A rejoin point that the local A* cannot route to
-  // must not end the recovery while other reachable points remain untried.
+  // Screen all geometry with cheap local A* calls, then send only one selected
+  // seed through the full EGO optimizer. This keeps one recovery attempt equal
+  // to one expensive optimization instead of multiplying it by every rung in
+  // the lateral candidate ladder.
+  std::optional<std::size_t> selected_index;
+  const double recovery_clearance = planner_manager_->grid_map_->getPlanningCenterClearance();
   for (std::size_t index = 0; index < candidates.size(); ++index) {
-    auto & candidate = candidates[index];
+    std::vector<Eigen::Vector3d> screened_path;
+    if (planner_manager_->buildLocalAStarSeed(
+        start_pt_, candidates[index].target, recovery_clearance,
+        validation_flat_mode_, screened_path))
+    {
+      selected_index = index;
+      break;
+    }
+    RCLCPP_WARN(
+      node_->get_logger(),
+      "[EGO_RECOVERY_CANDIDATE_UNROUTABLE] candidate=%zu/%zu type=%s "
+      "lateral_offset=%.3f target=(%.3f,%.3f,%.3f)",
+      index + 1, candidates.size(), candidates[index].type.c_str(),
+      candidates[index].lateral_offset_m, candidates[index].target.x(),
+      candidates[index].target.y(), candidates[index].target.z());
+  }
+  if (selected_index.has_value()) {
+    auto & candidate = candidates[*selected_index];
     RCLCPP_INFO(
       node_->get_logger(),
       "[EGO_RECOVERY_ATTEMPT] context=%s attempt=%d candidate=%zu/%zu type=%s "
       "forward_distance=%.3f lateral_offset=%.3f target=(%.3f,%.3f,%.3f)",
       planning_context, recovery_failure_policy_.attemptsForGoal(),
-      index + 1, candidates.size(), candidate.type.c_str(),
+      *selected_index + 1, candidates.size(), candidate.type.c_str(),
       candidate.forward_distance_m, candidate.lateral_offset_m,
       candidate.target.x(), candidate.target.y(), candidate.target.z());
     // callReboundReplan publishes only after its existing EGO occupancy and
@@ -1743,7 +1814,7 @@ bool EGOReplanFSM::planWithRecovery(const char * planning_context)
         "selected_candidate=%s candidate_index=%zu/%zu forward_distance=%.3f "
         "lateral_offset=%.3f trajectory_id=%d clearance=%.3f",
         end_pt_.x(), end_pt_.y(), end_pt_.z(), candidate.type.c_str(),
-        index + 1, candidates.size(), candidate.forward_distance_m,
+        *selected_index + 1, candidates.size(), candidate.forward_distance_m,
         candidate.lateral_offset_m, info->traj_id_, recoveryTrajectoryClearance());
       RCLCPP_INFO(
         node_->get_logger(),
@@ -1753,15 +1824,15 @@ bool EGOReplanFSM::planWithRecovery(const char * planning_context)
     }
     RCLCPP_WARN(
       node_->get_logger(),
-      "[EGO_RECOVERY_CANDIDATE_UNROUTABLE] candidate=%zu/%zu type=%s "
+      "[EGO_RECOVERY_OPTIMIZATION_FAILED] candidate=%zu/%zu type=%s "
       "lateral_offset=%.3f target=(%.3f,%.3f,%.3f)",
-      index + 1, candidates.size(), candidate.type.c_str(),
+      *selected_index + 1, candidates.size(), candidate.type.c_str(),
       candidate.lateral_offset_m, candidate.target.x(), candidate.target.y(),
       candidate.target.z());
   }
 
-  // Every candidate for this layout failed.  Record it so the next tick waits for
-  // a map update instead of repeating the identical search and optimization.
+  // Every candidate for this layout failed. Record it for diagnostics; the
+  // consumed attempt budget makes the next tick terminal regardless of map churn.
   recovery_failure_policy_.markLayoutUnsolvable(map_revision);
   recovery_rejoin_failed_ = true;
   {
@@ -1772,9 +1843,7 @@ bool EGOReplanFSM::planWithRecovery(const char * planning_context)
       planner_manager_->local_data_, active_remaining, active_endpoint, active_clearance);
     recovery_rejoin_failed_ = !candidate_failure_preserved_active_;
   }
-  scheduleReplanRetry(
-    "RECOVERY_REJOIN_REJECTED",
-    std::max(0.10, recovery_failure_policy_.cooldownRemaining(node_->now().seconds())));
+  next_replan_retry_time_ = rclcpp::Time(0, 0, node_->get_clock()->get_clock_type());
   RCLCPP_ERROR(
     node_->get_logger(),
     "[EGO_RECOVERY_FAILED] context=%s attempts=%d rejoin_found=%s "
@@ -2540,6 +2609,45 @@ void EGOReplanFSM::scheduleReplanRetry(const std::string & reason, const double 
     "retry_delay=%.3f local_goal_seq=%lu",
     reason.c_str(), active_safe ? "true" : "false", remaining_time, safe_delay,
     static_cast<unsigned long>(local_goal_seq_));
+}
+
+void EGOReplanFSM::dynamicRelaxationProfileCallback(
+  const std::shared_ptr<const std_msgs::msg::String> & msg)
+{
+  if (!dynamic_relaxation_enabled_) {
+    return;
+  }
+  const std::string requested_profile = msg->data;
+  if (requested_profile != "正常" && requested_profile != "软放宽" &&
+    requested_profile != "扩大绕行搜索")
+  {
+    RCLCPP_WARN(
+      node_->get_logger(), "[动态放宽] 忽略未知阶段=%s", requested_profile.c_str());
+    return;
+  }
+  if (requested_profile == dynamic_relaxation_profile_) {
+    return;
+  }
+
+  recovery_extra_clearance_m_ = requested_profile == "正常" ?
+    normal_recovery_extra_clearance_m_ : dynamic_soft_recovery_extra_clearance_m_;
+  if (requested_profile == "扩大绕行搜索") {
+    recovery_rejoin_search_distance_m_ = dynamic_expanded_rejoin_search_distance_m_;
+    recovery_max_lateral_offset_m_ = dynamic_expanded_max_lateral_offset_m_;
+    recovery_minimum_forward_progress_m_ = dynamic_expanded_minimum_forward_progress_m_;
+  } else {
+    recovery_rejoin_search_distance_m_ = normal_rejoin_search_distance_m_;
+    recovery_max_lateral_offset_m_ = normal_max_lateral_offset_m_;
+    recovery_minimum_forward_progress_m_ = normal_minimum_forward_progress_m_;
+  }
+  dynamic_relaxation_profile_ = requested_profile;
+  RCLCPP_WARN(
+    node_->get_logger(),
+    "[动态放宽] 阶段=%s 恢复额外净空=%.2fm 重接搜索=%.2fm 横向搜索=%.2fm 最小前进=%.2fm "
+    "硬防撞距离保持不变",
+    dynamic_relaxation_profile_.c_str(), recovery_extra_clearance_m_,
+    recovery_rejoin_search_distance_m_, recovery_max_lateral_offset_m_,
+    recovery_minimum_forward_progress_m_);
 }
 
 void EGOReplanFSM::publishSafetyStatus(const std::string & status)

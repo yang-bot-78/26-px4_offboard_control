@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-ROS integration check for the ground-height Goal Bridge gate.
+ROS integration check for the Goal Bridge background-planning height gate.
 
 This deliberately starts only the real Goal Bridge: no PX4, Gazebo, or
 planner is required. It proves that ground goals are cached, only the latest
-one survives, and a stable hover anywhere in the configured safety height
-window releases that goal.
+one survives, and 0.40 m AGL releases planning during an armed takeoff without
+depending on horizontal or vertical speed.
 """
 
 import subprocess
@@ -82,7 +82,7 @@ def main():
         '-p', 'ego_topic:=/test/takeoff_gate/ego_goal',
         '-p', 'odom_topic:=/test/takeoff_gate/odom',
         '-p', 'velocity_topic:=/test/takeoff_gate/velocity_odom',
-        '-p', 'release_height:=0.50',
+        '-p', 'release_height:=0.40',
         '-p', 'flight_height:=0.78',
         '-p', 'stable_duration_sec:=0.15',
     ])
@@ -117,7 +117,7 @@ def main():
 
         references.publish(altitude_reference(1))
         spin_until(node, lambda: False, 0.1)
-        states.publish(vehicle_state(True))
+        states.publish(vehicle_state(False))
         publish_kinematics(odom(0.0))
         goals.publish(pose(1.0))
         time.sleep(0.1)
@@ -125,85 +125,40 @@ def main():
         spin_until(node, lambda: False, 0.5)
         if released:
             raise AssertionError('Goal Bridge released a ground-level local_goal')
-        # The handover gate is a safety-height range, not a fixed 0.78 m
-        # cruise-altitude check. Test both boundaries and an interior height.
-        for index, height in enumerate((0.50, 0.65, 0.85), start=1):
-            # Only a real disarm earns a fresh handover for the next simulated
-            # takeoff. A low-altitude excursion in flight must stay released.
-            references.publish(altitude_reference(index, valid=False))
-            states.publish(vehicle_state(False))
-            spin_until(node, lambda: False, 0.1)
-            references.publish(altitude_reference(index + 1))
-            states.publish(vehicle_state(True))
-            publish_kinematics(odom(0.49))
-            spin_until(node, lambda: False, 0.1)
-            goal_x = 2.0 + index
-            goals.publish(pose(goal_x))
-            spin_until(node, lambda: False, 0.1)
-            # High-rate FR-LIO propagated twist may be noisy while PX4's EKF
-            # velocity correctly reports a stable hover.
-            publish_kinematics(odom(height, vertical_speed=0.50), odom(height))
-            spin_until(node, lambda: False, 0.1)
-            publish_kinematics(odom(height, vertical_speed=0.50), odom(height))
-            spin_until(node, lambda: False, 0.1)
-            publish_kinematics(odom(height, vertical_speed=0.50), odom(height))
-            if not spin_until(node, lambda: len(released) == index, 3.0):
-                raise AssertionError(
-                    f'Goal Bridge did not release a stable {height:.2f} m local_goal')
-            if abs(released[index - 1].pose.position.x - goal_x) > 1e-6:
-                raise AssertionError('Goal Bridge released the wrong cached local_goal')
-            if abs(released[index - 1].pose.position.z - TARGET_Z_MAP) > 1e-6:
-                raise AssertionError(
-                    'Goal Bridge treated AGL as an absolute map-frame altitude')
-
-        # Heights outside the safety window must remain gated, even when the
-        # vehicle is otherwise stationary.
-        references.publish(altitude_reference(4, valid=False))
+        # The background planner must not start below 0.40 m, even with a fresh
+        # velocity source. It also must not start while disarmed.
+        publish_kinematics(odom(0.399), odom(0.399))
+        spin_until(node, lambda: False, 0.3)
+        if released:
+            raise AssertionError('Goal Bridge released below 0.40 m AGL')
         states.publish(vehicle_state(False))
-        spin_until(node, lambda: False, 0.1)
-        references.publish(altitude_reference(5))
-        states.publish(vehicle_state(True))
-        publish_kinematics(odom(0.49))
-        spin_until(node, lambda: False, 0.1)
-        goals.publish(pose(6.0))
-        publish_kinematics(odom(0.49))
+        publish_kinematics(
+            odom(0.40, horizontal_speed=0.50, vertical_speed=0.80),
+            odom(0.40, horizontal_speed=0.50, vertical_speed=0.80))
         spin_until(node, lambda: False, 0.3)
-        if len(released) != 3:
-            raise AssertionError('Goal Bridge released below the safety height range')
-        publish_kinematics(odom(0.86))
-        spin_until(node, lambda: False, 0.3)
-        if len(released) != 3:
-            raise AssertionError('Goal Bridge released above the safety height range')
+        if released:
+            raise AssertionError('Goal Bridge released while disarmed')
 
-        # A stable height still requires safe horizontal and vertical speed.
-        references.publish(altitude_reference(5, valid=False))
-        states.publish(vehicle_state(False))
-        spin_until(node, lambda: False, 0.1)
-        references.publish(altitude_reference(6))
+        # During armed takeoff, reaching 0.40 m releases the latest cached goal.
+        # Large vertical speed is normal here and deliberately does not gate
+        # background planning.
         states.publish(vehicle_state(True))
-        publish_kinematics(odom(0.49))
-        spin_until(node, lambda: False, 0.1)
-        goals.publish(pose(7.0))
-        publish_kinematics(odom(0.65), odom(0.65, horizontal_speed=0.09))
-        spin_until(node, lambda: False, 0.3)
-        if len(released) != 3:
-            raise AssertionError('Goal Bridge released with excessive horizontal speed')
-        publish_kinematics(odom(0.65))
-        spin_until(node, lambda: False, 0.1)
-        publish_kinematics(odom(0.65))
-        spin_until(node, lambda: False, 0.1)
-        publish_kinematics(odom(0.65))
-        spin_until(node, lambda: False, 0.1)
-        publish_kinematics(odom(0.65))
-        if not spin_until(node, lambda: len(released) == 4, 3.0):
-            raise AssertionError('Goal Bridge did not release after speed became safe')
+        publish_kinematics(
+            odom(0.40, horizontal_speed=0.50, vertical_speed=0.80),
+            odom(0.40, horizontal_speed=0.50, vertical_speed=0.80))
+        if not spin_until(node, lambda: len(released) == 1, 3.0):
+            raise AssertionError('Goal Bridge did not release at 0.40 m during takeoff')
+        if abs(released[0].pose.position.x - 2.0) > 1e-6:
+            raise AssertionError('Goal Bridge released the wrong cached local_goal')
+        if abs(released[0].pose.position.z - TARGET_Z_MAP) > 1e-6:
+            raise AssertionError('Goal Bridge treated AGL as absolute map altitude')
 
         # Rolling local goals must not wait through another stable-duration
         # window once the initial takeoff handover has completed.
         goals.publish(pose(1.0))
-        if not spin_until(node, lambda: len(released) == 5, 0.5):
+        if not spin_until(node, lambda: len(released) == 2, 0.5):
             raise AssertionError('Goal Bridge gated a rolling local_goal after takeoff handover')
-        if abs(released[4].pose.position.x - 1.0) > 1e-6:
+        if abs(released[1].pose.position.x - 1.0) > 1e-6:
             raise AssertionError('Goal Bridge did not forward the rolling local_goal')
         print('PASS goal_bridge_ground_cache_then_latest_release')
     finally:

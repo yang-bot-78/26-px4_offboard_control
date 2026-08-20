@@ -33,9 +33,9 @@ namespace ego_planner
     node->declare_parameter("manager/planning_horizon", 5.0);
     node->declare_parameter("manager/use_distinctive_trajs", false);
     node->declare_parameter("manager/drone_id", -1);
-    node->declare_parameter("manager/handover_position_tolerance_m", 0.01);
-    node->declare_parameter("manager/handover_velocity_tolerance_mps", 0.005);
-    node->declare_parameter("manager/handover_acceleration_tolerance_mps2", 0.01);
+    node->declare_parameter("manager/handover_position_tolerance_m", 0.10);
+    node->declare_parameter("manager/handover_velocity_tolerance_mps", 0.14);
+    node->declare_parameter("manager/handover_acceleration_tolerance_mps2", 0.10);
     node->declare_parameter("manager/max_reference_deviation_m", 0.60);
 
     node->get_parameter("manager/max_vel", pp_.max_vel_);
@@ -53,13 +53,13 @@ namespace ego_planner
     node->get_parameter(
       "manager/handover_acceleration_tolerance_mps2", handover_tolerances.acceleration_mps2);
     node->get_parameter("manager/max_reference_deviation_m", max_reference_deviation_m_);
-    handover_tolerances.position_m = std::clamp(handover_tolerances.position_m, 0.001, 0.02);
-    handover_tolerances.velocity_mps = std::clamp(handover_tolerances.velocity_mps, 0.001, 0.02);
+    handover_tolerances.position_m = std::clamp(handover_tolerances.position_m, 0.001, 0.10);
+    handover_tolerances.velocity_mps = std::clamp(handover_tolerances.velocity_mps, 0.001, 0.14);
     handover_tolerances.acceleration_mps2 = std::clamp(
-      handover_tolerances.acceleration_mps2, 0.005, 0.05);
+      handover_tolerances.acceleration_mps2, 0.005, 0.10);
     max_reference_deviation_m_ = std::clamp(
       std::isfinite(max_reference_deviation_m_) ? max_reference_deviation_m_ : 0.60,
-      0.35, 1.00);
+      0.35, 1.50);
     RCLCPP_INFO(
       node->get_logger(),
       "[EGO_HANDOVER_TOLERANCE] position_m=%.3f velocity_mps=%.3f acceleration_mps2=%.3f",
@@ -208,7 +208,7 @@ namespace ego_planner
     const bool has_reference_deviation_override =
       std::isfinite(max_reference_deviation) && max_reference_deviation > 0.0;
     const double effective_max_reference_deviation = has_reference_deviation_override ?
-      std::min(max_reference_deviation_m_, max_reference_deviation) :
+      std::clamp(max_reference_deviation, 0.35, 1.50) :
       max_reference_deviation_m_;
     static int count = 0;
     printf("\033[47;30m\n[drone %d replan %d]==============================================\033[0m\n", pp_.drone_id, count++);

@@ -28,19 +28,19 @@ TEST(RecoveryFailurePolicy, FailureReportingIsDeduplicatedPerGoalAndReason)
   EXPECT_TRUE(policy.shouldPublishFailure(5, "EGO_OCCUPANCY_STALE"));
 }
 
-TEST(RecoveryFailurePolicy, ExhaustedAttemptsUseLongBackoff)
+TEST(RecoveryFailurePolicy, ExhaustedAttemptsAreTerminalForTheGoal)
 {
   RecoveryFailurePolicy policy;
   policy.configure(2, 0.5, 2.0);
   policy.resetForNewGoal(3);
   policy.markAttempt(1.0);
   policy.markAttempt(2.0);
-  EXPECT_EQ(policy.gate(3.0), RecoveryGateResult::EXHAUSTED_BACKOFF_WAIT);
-  EXPECT_NEAR(policy.exhaustedBackoffRemaining(3.0), 1.0, 1e-9);
-  EXPECT_EQ(policy.gate(4.0), RecoveryGateResult::ATTEMPT_NOW);
+  EXPECT_EQ(policy.gate(3.0), RecoveryGateResult::EXHAUSTED_TERMINAL);
+  EXPECT_EQ(policy.gate(300.0), RecoveryGateResult::EXHAUSTED_TERMINAL);
+  EXPECT_TRUE(policy.exhausted());
 }
 
-TEST(RecoveryFailurePolicy, ExhaustedGoalRetriesWithoutVehicleProgress)
+TEST(RecoveryFailurePolicy, ExhaustedGoalNeedsExplicitNewGoal)
 {
   RecoveryFailurePolicy policy;
   policy.configure(2, 0.5, 2.0);
@@ -48,13 +48,28 @@ TEST(RecoveryFailurePolicy, ExhaustedGoalRetriesWithoutVehicleProgress)
   policy.markAttempt(1.0);
   policy.markAttempt(2.0);
 
-  EXPECT_EQ(policy.gate(3.0), RecoveryGateResult::EXHAUSTED_BACKOFF_WAIT);
-  EXPECT_EQ(policy.gate(4.0), RecoveryGateResult::ATTEMPT_NOW);
+  EXPECT_EQ(policy.gate(3.0), RecoveryGateResult::EXHAUSTED_TERMINAL);
   policy.markAttempt(4.0);
-  EXPECT_EQ(policy.attemptsForGoal(), 1);
+  EXPECT_EQ(policy.attemptsForGoal(), 2);
 
   policy.resetForNewGoal(4);
   EXPECT_EQ(policy.gate(100.0), RecoveryGateResult::ATTEMPT_NOW);
+  EXPECT_FALSE(policy.exhausted());
+}
+
+TEST(RecoveryFailurePolicy, MapUpdatesNeverResetAnExhaustedTransaction)
+{
+  RecoveryFailurePolicy policy;
+  policy.configure(1, 0.5, 2.0);
+  policy.resetForNewGoal(8);
+  policy.markAttempt(1.0);
+  policy.markLayoutUnsolvable(100);
+
+  for (uint64_t revision = 101; revision < 1101; ++revision) {
+    EXPECT_FALSE(policy.layoutKnownUnsolvable(revision));
+    EXPECT_EQ(policy.gate(static_cast<double>(revision)), RecoveryGateResult::EXHAUSTED_TERMINAL);
+  }
+  EXPECT_EQ(policy.attemptsForGoal(), 1);
 }
 
 TEST(RecoveryFailurePolicy, SuccessfulCandidateClearsAttemptsForCurrentGoal)

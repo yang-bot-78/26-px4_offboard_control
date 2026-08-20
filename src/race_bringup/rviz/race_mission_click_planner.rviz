@@ -25,6 +25,22 @@ Visualization Manager:
       Value: true
     - Class: rviz_common/Group
       Displays:
+        - Alpha: 1
+          Class: rviz_default_plugins/MarkerArray
+          Enabled: true
+          Name: Saved Waypoints
+          Namespaces:
+            saved_waypoints_label: true
+            saved_waypoints_point: true
+            saved_waypoints_route: true
+          Queue Size: 10
+          Topic:
+            Depth: 1
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /race/saved_waypoints
+          Value: true
         - Alpha: 0.8
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -131,6 +147,34 @@ Visualization Manager:
             History Policy: Keep Last
             Reliability Policy: Reliable
             Value: /race/odom
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz_default_plugins/Path
+          Color: 255; 80; 80
+          Enabled: true
+          Head Diameter: 0.18
+          Head Length: 0.12
+          Length: 0.2
+          Line Style: Lines
+          Line Width: 0.08
+          Name: Global Waypoint Path
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 80; 80
+          Pose Style: None
+          Radius: 0.04
+          Shaft Diameter: 0.04
+          Shaft Length: 0.08
+          Topic:
+            Depth: 5
+            Durability Policy: Volatile
+            Filter size: 10
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /race/global_path
           Value: true
         - Alpha: 1
           Buffer Length: 1

@@ -214,6 +214,11 @@ global_planner:
   # Super 跟踪前视距离，单位：m。
   # [调大] 更平滑但转角切弦风险增加。[调小] 更保守但可能抖动。完整重启。
   tracking_lookahead_distance: 0.30
+  # 仅用于“新全局路径第一次交给 EGO”前的旧起点保护。判断的是飞机到整条
+  # pending 路径的横向距离，不是到旧 path.front() 的距离。提交后不再使用。
+  first_commit_max_path_error_m: 0.15
+  # pending 路径因旧起点失效后，只允许从 fresh odom 重算一次，防止死回环。
+  stale_start_max_replans: 1
   # 任务走廊异常阈值来自 shared_safety.fault_envelope；这里不重复配置。
   # Super 到 EGO 的 rolling local goal 最大弧长，单位：m。
   # 【它是什么】Super 每次只把全局路线前方这么长的一段交给 EGO 去精细规划。
@@ -354,13 +359,16 @@ ego_planner:
   # 速度补偿最多一个 0.05s 控制窗口，并硬限制不超过 0.30m。
   # [调大] 少发生无谓重置。[调太大] 真正偏离很久才会重新接轨。
   replan_start_position_error_m: 0.25
+  # 正常换轨按实测 EGO 规划耗时预测交接状态；运行时以 0.2 权重滚动更新并
+  # 限制在 0.10~1.00s。初值来自 0818 日志约 0.5s 的候选生成间隔。
+  handover_prediction_initial_sec: 0.55
   # 两条局部轨迹切换时允许的数值衔接误差。不是防撞距离；每条新轨迹仍逐点检查 0.29m 净空。
-  # 本次飞行还测到 10.7~14.3mm 的正常衔接误差；15mm 以下允许切换，
-  # 17.4mm 及以上仍会拒绝并重新规划。
-  # [约束] 位置/速度 <= 0.02，加速度 <= 0.05。保持远小于飞行器防撞距离和正常跟踪误差。
-  handover_position_tolerance_m: 0.015
-  handover_velocity_tolerance_mps: 0.005
-  handover_acceleration_tolerance_mps2: 0.01
+  # 正常换轨的预测误差门限。0427 实飞显示 15mm / 5mm/s / 0.01m/s² 会把
+  # 正常控制周期与规划延迟当作断轨；Bridge 仍保留独立的最终连续性检查。
+  # [约束] 位置 <= 0.10，速度 <= 0.14，加速度 <= 0.10。
+  handover_position_tolerance_m: 0.10
+  handover_velocity_tolerance_mps: 0.14
+  handover_acceleration_tolerance_mps2: 0.10
   # flat 模式实际执行高度，单位：m。本系统是定高飞行，不做垂直避障。
   # [约束] 必须在 fault_envelope z 范围内。
   # [安全合同] 禁止用它绕飞墙顶。完整重启。
@@ -390,16 +398,11 @@ ego_recovery:
   # 避免 B-spline 从刚好贴边的目标切角。不会修改正常路线或 Bridge 红线。
   # [约束] 0~0.10m，且 planning_clearance_m + 本值 <= optimization_clearance_m。
   extra_clearance_m: 0.06
-  # 只限制 LOCAL_ASTAR/LOCAL_ASTAR_REJOIN 恢复候选相对参考线的偏离。
-  # 实际障碍是 0.5x0.5m 方柱（obstacle_box.sdf）。按重接搜索净空
-  # planning_clearance_m 0.34 + extra_clearance_m 0.06 = 0.40 算：
-  #   正对面绕行需要中心偏移 0.25 + 0.40 = 0.65m
-  #   最坏（柱子对角朝向路线）需要 0.354 + 0.40 = 0.754m
-  # 旧值 0.65 恰好等于正对面下限、无任何余量，且不足以覆盖对角情况，会把合法的
-  # 绕行候选拒掉。0.78 覆盖两种朝向并留 0.026m 余量，仍低于全局 0.80m 上限。
-  # 旧注释里的"0.44m 必要绕柱偏移"是按直径 0.20m 圆柱算的，与实际障碍不符。
-  # [约束] 0.45~ego_planner.max_reference_deviation_m。
-  max_reference_deviation_m: 0.78
+  # 只用于第二次 LOCAL_ASTAR 恢复。正常 EGO 仍使用上面的 0.80m；恢复路径允许
+  # 在任务走廊内绕过旧参考线，避免“旁边有安全路线却因回不到旧线而失败”。
+  # 防撞净空、动力学和 geofence 复检完全不变。
+  # [约束] 0.45~shared_safety.fault_envelope.mission_corridor_max_error_m。
+  max_reference_deviation_m: 1.50
   # ------------------------------------------------------------------------
   # 横向重接搜索：仅在沿参考线的一维前向搜索失败后启用。
   #
@@ -421,16 +424,45 @@ ego_recovery:
   # [约束] 0.05~max_lateral_offset_m。调小会增加搜索次数和单次恢复耗时。
   lateral_offset_step_m: 0.15
   # ------------------------------------------------------------------------
-  # 每个 rolling goal 最多重试两次，避免优化器高频空转。
-  max_recovery_attempts: 2
-  # 失败后等实时点云和 rolling goal 更新；这不改变正常飞行频率。
+  # 正常 EGO 已经是第一次主规划；恢复层只允许一次 A*+EGO 后备。
+  # 因此整个同目标重规划事务最多两次昂贵优化。
+  max_recovery_attempts: 1
+  # 兼容旧启动接口的保留参数；当前唯一后备在主规划失败后立即执行。
+  # 预算耗尽后不会按此值自动重试。
   cooldown_sec: 0.50
-  # 同一目标连续两次失败后使用较长退避，再自动尝试；不再永久等待车辆移动
-  # 才会产生的下一个 rolling goal，从而避免“轨迹结束—等新目标”的互锁。
+  # 兼容旧启动接口的保留参数。当前有限事务在预算耗尽后直接终止，不使用它
+  # 自动重开；只有明确的新局部目标/新全局路径才能建立新事务。
   exhausted_backoff_sec: 2.00
   # EGO 对当前轨迹从实际位置向前检查的距离，单位 m。
   # 0.65m 能在柱子进入近距离前触发滚动重规划；仍会对发布轨迹做全程复检。
   active_preplan_lookahead_m: 0.65
+
+
+# ============================================================================
+# 动态放宽 —— 飞机在有任务、地图和定位均健康，但规划连续没有有效进展时的
+#              自动恢复策略。
+#
+# 计时规则：
+#   1. 正常：刚发现规划没有进展时，使用全部原始参数；
+#   2. 软放宽：连续 3 秒仍没有进展，只降低“离障碍远一点”的偏好；
+#   3. 扩大绕行搜索：再连续 3 秒仍没有进展，扩大 EGO 在原路线前后/左右寻找
+#      重接点的范围。
+#
+# 不会改动：required_center_clearance、硬膨胀、地图/定位超时、围栏、刹车距离。
+# 所以它不会为了继续飞而允许贴障碍物，也不会在地图或定位失效时取消悬停。
+#
+# 本块使用中文字段，是飞手唯一需要调整的动态放宽配置。修改后完整重启。
+# ============================================================================
+动态放宽:
+  启用: true
+  软放宽等待秒: 3.0
+  扩大绕行等待秒: 3.0
+  软放宽障碍代价半径米: 0.42
+  软放宽靠障碍代价权重: 1.5
+  软放宽恢复额外净空米: 0.02
+  扩大后重接搜索距离米: 1.20
+  扩大后最大横向搜索距离米: 1.20
+  扩大后最小前进距离米: 0.08
 
 
 # ego_diagnostics —— 诊断开关
@@ -474,9 +506,13 @@ trajectory_bridge:
   replan_hold_timeout_sec: 3.0
   # 新旧轨迹原子交接门限。候选自身安全但与当前输出不连续时，Bridge 拒绝
   # 瞬间切换并进入实测位置保持，要求 EGO 重新锚定。
-  switch_position_tolerance_m: 0.05
-  switch_velocity_tolerance_mps: 0.10
-  switch_acceleration_tolerance_mps2: 0.20
+  switch_position_tolerance_m: 0.10
+  switch_velocity_tolerance_mps: 0.14
+  switch_acceleration_tolerance_mps2: 0.10
+  # 同一局部目标的候选换轨最多拒绝三次，之后明确刹车，禁止无限重算。
+  handover_max_rejections: 3
+  # 从第一次换轨拒绝开始计时；任何新候选都不能刷新此截止时间。
+  handover_transaction_timeout_sec: 1.50
   # B-spline 碰撞采样最大空间间距，单位：m。整条曲线按这个间距逐点查净空。
   # [约束] 不得大于 global_planner.grid_resolution，否则启动失败
   #        （astar_ego_tuning.py:178）。
@@ -503,14 +539,11 @@ offboard:
   # [约束] 必须在 fault_envelope z 范围内。完整重启。
   takeoff_height_m: 0.55
   # 释放 EGO rolling goal 的高度，单位：m。到这个高度 Goal Bridge 才放行目标。
-  # [约束] 不得高于 fixed_flight_height_m，且必须在 fault_envelope z 内
-  #        （astar_ego_tuning.py:227）。完整重启。
-  ego_goal_release_height_m: 0.50
-  # EGO starts only after the vehicle remains inside the shared safety height
-  # window (shared_safety.fault_envelope.z_min..z_max) with low horizontal/vertical
-  # velocity for this continuous duration. The legacy tolerance value remains
-  # for launch-file compatibility and is no longer used as a fixed-height gate.
-  # All four active conditions must hold for ego_goal_stable_duration_sec.
+  # 仅提前启动后台规划，不会提前水平接管；Offboard 仍需达到 takeoff_height_m。
+  # 不使用起飞垂直速度作为放行条件，但要求本次飞行已经解锁。
+  # [约束] > 0 且不得高于 fixed_flight_height_m。完整重启。
+  ego_goal_release_height_m: 0.40
+  # 以下稳定参数保留给人工悬停后的故障重发兼容逻辑，不参与 0.4m 后台规划放行。
   ego_goal_stable_height_tolerance_m: 0.05
   ego_goal_stable_horizontal_speed_mps: 0.08
   ego_goal_stable_vertical_speed_mps: 0.30

@@ -376,7 +376,7 @@ anchor_age = imu_stamp - last_valid_lidar_update_stamp
 ```yaml
 high_rate_odom:
   warn_anchor_age_s: 0.15
-  max_anchor_age_s: 0.40
+  max_anchor_age_s: 0.60
 ```
 
 处理建议：

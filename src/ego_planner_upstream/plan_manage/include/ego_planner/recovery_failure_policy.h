@@ -11,7 +11,7 @@ enum class RecoveryGateResult
 {
   ATTEMPT_NOW,
   COOLDOWN_WAIT,
-  EXHAUSTED_BACKOFF_WAIT
+  EXHAUSTED_TERMINAL
 };
 
 // Keeps recovery rate limiting separate from safety-failure reporting.  A
@@ -23,7 +23,9 @@ public:
   {
     max_attempts_ = max_attempts;
     cooldown_sec_ = cooldown_sec;
-    exhausted_backoff_sec_ = exhausted_backoff_sec;
+    // Kept in the parameter interface for compatibility with existing launch
+    // files. Exhaustion is terminal for this goal and never starts a timed retry.
+    (void)exhausted_backoff_sec;
   }
 
   void resetForNewGoal(uint64_t goal_seq)
@@ -45,10 +47,7 @@ public:
   RecoveryGateResult gate(double now_sec) const
   {
     if (attempts_for_goal_ >= max_attempts_) {
-      if (has_last_attempt_ && now_sec - last_attempt_sec_ < exhausted_backoff_sec_) {
-        return RecoveryGateResult::EXHAUSTED_BACKOFF_WAIT;
-      }
-      return RecoveryGateResult::ATTEMPT_NOW;
+      return RecoveryGateResult::EXHAUSTED_TERMINAL;
     }
     if (has_last_attempt_ && now_sec - last_attempt_sec_ < cooldown_sec_) {
       return RecoveryGateResult::COOLDOWN_WAIT;
@@ -56,16 +55,8 @@ public:
     return RecoveryGateResult::ATTEMPT_NOW;
   }
 
-  // Retrying with an unchanged goal *and* an unchanged obstacle layout re-runs an
-  // identical computation and must reach an identical conclusion.  In the
-  // 2026-08-06 C-area log that produced 1271 recovery attempts and 1146 completed
-  // B-spline optimizations over 559s, all discarded.  Once a layout has been
-  // shown to be unsolvable, wait for the map to actually change rather than
-  // burning the optimizer on the same input.
-  //
-  // Deliberately not a permanent give-up: any new goal or any map update clears
-  // it, and the exhausted backoff still schedules retries, so this cannot be the
-  // reason the vehicle stays parked.
+  // Avoid repeating the same recovery computation during its cooldown. The
+  // attempt budget remains authoritative: map revisions never reset exhaustion.
   void markLayoutUnsolvable(uint64_t map_revision)
   {
     unsolvable_layout_ = true;
@@ -92,26 +83,17 @@ public:
     return remaining > 0.0 ? remaining : 0.0;
   }
 
-  double exhaustedBackoffRemaining(double now_sec) const
-  {
-    if (!has_last_attempt_ || attempts_for_goal_ < max_attempts_) {
-      return 0.0;
-    }
-    const double remaining = exhausted_backoff_sec_ - (now_sec - last_attempt_sec_);
-    return remaining > 0.0 ? remaining : 0.0;
-  }
-
   void markAttempt(double now_sec)
   {
-    if (attempts_for_goal_ >= max_attempts_) {
-      attempts_for_goal_ = 0;
+    if (attempts_for_goal_ < max_attempts_) {
+      ++attempts_for_goal_;
     }
-    ++attempts_for_goal_;
     last_attempt_sec_ = now_sec;
     has_last_attempt_ = true;
   }
 
   int attemptsForGoal() const { return attempts_for_goal_; }
+  bool exhausted() const { return attempts_for_goal_ >= max_attempts_; }
 
   bool shouldPublishFailure(uint64_t goal_seq, const std::string & reason)
   {
@@ -135,7 +117,6 @@ private:
   int max_attempts_{1};
   int attempts_for_goal_{0};
   double cooldown_sec_{0.0};
-  double exhausted_backoff_sec_{2.0};
   double last_attempt_sec_{0.0};
   bool has_last_attempt_{false};
   uint64_t active_goal_seq_{0};

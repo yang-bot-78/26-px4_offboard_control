@@ -119,7 +119,6 @@ for required_token in \
   'sleep "${mid360_fastlio_delay_sec}"' \
   'wait_component_ready "fastlio" message /Odometry' \
   'wait_component_ready "px4_mavros" message /mavros/local_position/odom' \
-  'wait_component_ready "px4_mavros" message /mavros/local_position/velocity_local' \
   'wait_component_ready "px4_mavros" flight_ready /ev_health/flight_ready' \
   'wait_component_ready "px4_mavros" message /Odometry/healthy' \
   'wait_component_ready "px4_mavros" message /mavros/vision_pose/pose_cov' \

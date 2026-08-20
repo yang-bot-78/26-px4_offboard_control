@@ -44,6 +44,7 @@ def launch_setup(context):
                 'global_only_mode': LaunchConfiguration('global_only_mode'),
                 'publish_global_path': LaunchConfiguration('publish_global_path'),
                 'publish_ego_local_goal': LaunchConfiguration('publish_ego_local_goal'),
+                'use_fixed_flight_height': LaunchConfiguration('use_fixed_flight_height'),
                 'odom_topic': LaunchConfiguration('odom_topic'),
                 'fallback_odom_topic': LaunchConfiguration('fallback_odom_topic'),
                 'odom_input_frame': LaunchConfiguration('odom_input_frame'),
@@ -69,6 +70,7 @@ def generate_launch_description():
         DeclareLaunchArgument('global_only_mode', default_value='false'),
         DeclareLaunchArgument('publish_global_path', default_value='false'),
         DeclareLaunchArgument('publish_ego_local_goal', default_value='false'),
+        DeclareLaunchArgument('use_fixed_flight_height', default_value='true'),
         DeclareLaunchArgument('odom_topic', default_value='/race/odom'),
         DeclareLaunchArgument(
             'fallback_odom_topic', default_value='/race/odom'

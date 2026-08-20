@@ -68,7 +68,10 @@ class HealthConfig:
     effective_points_timeout_s: float = 0.5
     require_frlio_anchor_status: bool = False
     frlio_anchor_status_timeout_s: float = 0.5
-    frlio_max_anchor_age_s: float = 0.40
+    # Keep this aligned with FR-LIO's high_rate_odom.max_anchor_age_s.  FR-LIO
+    # keeps publishing SUSPECT odometry with age-inflated covariance until this
+    # hard limit, so brief LiDAR scheduling delays do not interrupt EV output.
+    frlio_max_anchor_age_s: float = 0.60
 
 
 @dataclass

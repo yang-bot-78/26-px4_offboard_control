@@ -24,6 +24,7 @@ history_file="${runtime_dir}/last_rosbag_status_history.log"
 run_status_file="${snapshot_dir}/rosbag_status.txt"
 param_snapshot_enabled="${PARAM_SNAPSHOT_ENABLED:-false}"
 record_ego_diagnostics="${RECORD_EGO_DIAGNOSTICS:-false}"
+rosbag_profile="${ROSBAG_PROFILE:-full}"
 
 if [[ "${param_snapshot_enabled}" != true && "${param_snapshot_enabled}" != false ]]; then
   echo "PARAM_SNAPSHOT_ENABLED 必须是 true 或 false" >&2
@@ -33,6 +34,13 @@ if [[ "${record_ego_diagnostics}" != true && "${record_ego_diagnostics}" != fals
   echo "RECORD_EGO_DIAGNOSTICS 必须是 true 或 false" >&2
   exit 1
 fi
+case "${rosbag_profile}" in
+  full|low|trace) ;;
+  *)
+    echo "ROSBAG_PROFILE 必须是 full、low 或 trace，当前为：${rosbag_profile}" >&2
+    exit 1
+    ;;
+esac
 
 mid360_candidates=(
   "${HOME}/livox_mid360_env/ws_fastlio/src/fast_lio/config/mid360.yaml"
@@ -127,6 +135,7 @@ set -u
 
 printf '%s\n' "${timestamp}" >"${snapshot_dir}/flight_timestamp.txt"
 printf '%s\n' "${run_root}" >"${snapshot_dir}/flight_run_dir.txt"
+printf '%s\n' "${rosbag_profile}" >"${snapshot_dir}/rosbag_profile.txt"
 env | sort >"${snapshot_dir}/environment.txt"
 ros2 topic list -t >"${snapshot_dir}/ros2_topic_list.txt" 2>/dev/null || true
 ros2 node list >"${snapshot_dir}/ros2_node_list.txt" 2>/dev/null || true
@@ -190,11 +199,58 @@ fi
 echo "本场次目录：${run_root}"
 echo "参数快照目录：${snapshot_dir}"
 echo "录包输出目录：${bag_dir}"
-echo "是否录制完整配准点云：${RECORD_POINTCLOUD:-false}"
-echo "是否录制 EGO 障碍诊断：${record_ego_diagnostics}"
+echo "录包模式：${rosbag_profile}"
+if [[ "${rosbag_profile}" == "full" ]]; then
+  echo "是否录制完整配准点云：${RECORD_POINTCLOUD:-false}"
+  echo "是否录制 EGO 障碍诊断：${record_ego_diagnostics}"
+else
+  if [[ "${rosbag_profile}" == "low" ]]; then
+    echo "低负载录包：仅保留规划/交接、一条 EGO 实际状态、控制状态和 EV/锚点诊断；不录制原始传感器、点云、TF 或完整 MAVROS/PX4 高频流。"
+  else
+    echo "高度追踪录包：在低负载规划/交接内容基础上，追加 FR-LIO、PX4 EKF、独立高度传感器和 z/vz/thrust 设定值证据链。"
+  fi
+fi
 echo "在本终端按 Ctrl+C 停止录包。"
 
-bag_topics=(
+low_bag_topics=(
+  # 新的有限恢复/交接日志由 RCLCPP 发布到 /rosout；缺少它就无法
+  # 区分“正常规划失败”、“重新锚定”和“局部 A* 后备”。
+  /rosout
+  # 目标输入、全局路径、局部参考与 EGO 候选轨迹。
+  /goal_pose
+  /race/global_path
+  /race/super_planner/raw_path
+  /race/planner/status
+  /race/global_planner/status
+  /race/flight_altitude_reference
+  /race/control/status
+  /race/ego/local_goal
+  /race/ego/local_path_reference
+  /race/ego/bspline
+  /race/ego/validated_bspline
+  /race/ego/position_command
+  /race/ego/trajectory_setpoint
+  /race/ego/predicted_path
+  # Bridge 在实际接收候选轨迹时记录双方 P/V/A、误差与时序；用于判断
+  # EGO 预测交接是否与下游实际检查时刻一致。
+  /race/ego/handover_diagnostic
+  /race/ego/status
+  /race/ego/planner_safety_status
+  /race/ego/command_local_goal_seq
+  # 只保留 EGO 规划器和轨迹桥实际使用的一条位姿/速度流，用来
+  # 计算候选轨迹与飞机真实状态的误差。
+  /race/ego/odom
+  /race/navigation_setpoint
+  # 保留低带宽的 EV/锚点诊断，用来区分规划问题和定位输入过期。
+  /frlio/high_rate_odom/status
+  /frlio/high_rate_odom/anchor_age
+  /ev_health/status
+  /ev_health/fault
+  /ev_health/diagnostics
+  /mavros/state
+)
+
+full_bag_topics=(
   /velocity_calibration/marker
   # FR-LIO 输入与高频锚点健康：用于区分 MID-360 输入断流和
   # FR-LIO 处理/调度卡顿。它们是自动起飞、悬停和导航飞行的常规证据，
@@ -262,24 +318,86 @@ bag_topics=(
   /tf_static
 )
 
-if [[ "${record_ego_diagnostics}" == true ]]; then
-  # These are the actual obstacle inputs and collision volume used by EGO.
-  # They make a flight replay decisive: compare predicted_path against this
-  # fused cloud and its inflated occupancy, rather than against /saved_map alone.
-  bag_topics+=(
-    /race/ego/cloud
-    /race/ego/occupancy
-    /race/ego/occupancy_inflate
-  )
-fi
+trace_bag_topics=(
+  # FR-LIO 原始/规划/健康输出，以及高频 IMU 预测和激光后端校正。
+  /planning/odom
+  /Odometry
+  /Odometry/healthy
+  /frlio/high_rate_odom/predictor_vz
+  /frlio/high_rate_odom/posterior_delta_z
+  /frlio/high_rate_odom/status
+  /frlio/high_rate_odom/anchor_age
+  # PX4 EKF local position: z/vz/z_reset_counter/delta_z 等字段。
+  /fmu/out/vehicle_local_position
+  /fmu/out/vehicle_local_position_v1
+  /mavros/local_position/pose
+  /mavros/local_position/odom
+  /mavros/local_position/velocity_local
+  # PX4 z/vz/thrust setpoint；同时保留 MAVROS 实际下发的 setpoint。
+  /fmu/out/vehicle_local_position_setpoint
+  /fmu/out/trajectory_setpoint
+  /fmu/out/vehicle_thrust_setpoint
+  /fmu/out/vehicle_attitude_setpoint
+  /mavros/setpoint_raw/local
+  /mavros/setpoint_raw/target_local
+  # EV 输入。
+  /mavros/vision_pose/pose_cov
+  # 独立高度：MAVROS rangefinder/barometer 和 PX4 原生气压/测距输出。
+  /mavros/rangefinder/rangefinder
+  /mavros/altitude
+  /mavros/imu/atm_pressure
+  /fmu/out/distance_sensor
+  /fmu/out/vehicle_air_data
+  /fmu/out/sensor_baro
+  /mavros/state
+  /ev_health/status
+  /ev_health/diagnostics
+  /race/control/status
+  /race/navigation_setpoint
+  /race/flight_altitude_reference
+)
 
-# PointCloud2 的序列化和 SQLite 写入会在机载计算机上抢占 FAST-LIO 的资源。
-# EV 诊断话题已包含常规飞行复盘所需的健康指标；只在专门的地面
-# test.
-if [[ "${RECORD_POINTCLOUD:-false}" == "true" ]]; then
-  # Full registered clouds and the static map can be large. EGO's fused map
-  # is controlled separately by RECORD_EGO_DIAGNOSTICS above.
-  bag_topics+=(/cloud_registered /saved_map)
+# 高度追踪模式以低负载模式为基线，再追加高度证据链。两个集合有意
+# 保留各自的声明，合并时去重，避免同一个话题被重复传给 rosbag。
+merge_unique_topics() {
+  local topic
+  local -A seen=()
+  local -a merged=()
+  for topic in "$@"; do
+    if [[ -z "${seen[${topic}]+present}" ]]; then
+      seen["${topic}"]=1
+      merged+=("${topic}")
+    fi
+  done
+  printf '%s\n' "${merged[@]}"
+}
+
+if [[ "${rosbag_profile}" == "low" ]]; then
+  bag_topics=("${low_bag_topics[@]}")
+elif [[ "${rosbag_profile}" == "trace" ]]; then
+  mapfile -t bag_topics < <(merge_unique_topics \
+    "${low_bag_topics[@]}" "${trace_bag_topics[@]}")
+else
+  bag_topics=("${full_bag_topics[@]}")
+  if [[ "${record_ego_diagnostics}" == true ]]; then
+    # These are the actual obstacle inputs and collision volume used by EGO.
+    # They make a flight replay decisive: compare predicted_path against this
+    # fused cloud and its inflated occupancy, rather than against /saved_map alone.
+    bag_topics+=(
+      /race/ego/cloud
+      /race/ego/occupancy
+      /race/ego/occupancy_inflate
+    )
+  fi
+
+  # PointCloud2 的序列化和 SQLite 写入会在机载计算机上抢占 FAST-LIO 的资源。
+  # EV 诊断话题已包含常规飞行复盘所需的健康指标；只在专门的地面
+  # test.
+  if [[ "${RECORD_POINTCLOUD:-false}" == "true" ]]; then
+    # Full registered clouds and the static map can be large. EGO's fused map
+    # is controlled separately by RECORD_EGO_DIAGNOSTICS above.
+    bag_topics+=(/cloud_registered /saved_map)
+  fi
 fi
 
 ros2 bag record -o "${bag_dir}" "${bag_topics[@]}" &
@@ -287,7 +405,7 @@ ros2 bag record -o "${bag_dir}" "${bag_topics[@]}" &
 bag_pid=$!
 printf '%s\n' "${bag_pid}" >"${pid_file}"
 printf '%s\n' "${run_root}" >"${run_dir_file}"
-write_status "recording" "rosbag started"
+write_status "recording" "rosbag started profile=${rosbag_profile}"
 
 stop_reason="completed"
 

@@ -509,13 +509,14 @@ def test_frlio_anchor_gate_rejects_unknown_and_stale_status():
         status_message_age_s=0.01,
         anchor_message_age_s=0.01,
         message_timeout_s=0.5,
-        max_anchor_age_s=0.40,
+        max_anchor_age_s=0.60,
     )
     assert evaluate(status="HEALTHY", anchor_age_s=0.10, **common) == (None, False)
     reason, blocked = evaluate(status="probe", anchor_age_s=0.10, **common)
     assert reason == "frlio_status_probe"
     assert blocked
-    reason, blocked = evaluate(status="HEALTHY", anchor_age_s=0.40, **common)
+    assert evaluate(status="HEALTHY", anchor_age_s=0.60, **common) == (None, False)
+    reason, blocked = evaluate(status="HEALTHY", anchor_age_s=0.601, **common)
     assert reason.startswith("frlio_anchor_stale")
     assert blocked
     reason, blocked = evaluate(
@@ -572,7 +573,7 @@ def test_flight_ready_fails_closed_for_hard_gate_and_stale_output():
     )
 
     ready, reason = evaluate(
-        frlio_reason="frlio_anchor_stale age=0.400s",
+        frlio_reason="frlio_anchor_stale age=0.601s",
         frlio_block=True,
         last_healthy_output_s=5.0,
         **common,

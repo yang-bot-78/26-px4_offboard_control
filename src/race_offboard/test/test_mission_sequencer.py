@@ -55,14 +55,15 @@ class MissionSequencerTest(unittest.TestCase):
         self.assertTrue(MISSION.point_is_reached(1.4, 0.0, point, 0.4))
         self.assertFalse(MISSION.point_is_reached(1.4001, 0.0, point, 0.4))
 
-    def test_four_points_wait_for_takeoff_then_follow_b1_b2_c_d_sequence(self):
+    def test_four_points_wait_for_offboard_then_follow_b1_b2_c_d_sequence(self):
         sequencer = MISSION.MissionSequencer(self.settings())
         sequencer.start()
         self.collect_four_points(sequencer)
-        self.assertEqual(sequencer.state, MISSION.MissionState.WAIT_TAKEOFF)
+        self.assertEqual(sequencer.state, MISSION.MissionState.WAIT_OFFBOARD)
         self.assertIsNone(sequencer.on_position(1.0, 0.0, 0.0))
 
-        action = sequencer.on_control_status('PREFLIGHT_STABILIZING', 0.0)
+        self.assertIsNone(sequencer.on_offboard_mode(False))
+        action = sequencer.on_offboard_mode(True)
         self.assertEqual(action.goal.name, 'b1')
         self.assertEqual(sequencer.zone, 'A')
 
@@ -125,12 +126,12 @@ preset_points:
         self.assertTrue(sequencer.using_preset_points)
         self.assertEqual(sequencer.collected_count, 4)
         sequencer.start()
-        self.assertEqual(sequencer.state, MISSION.MissionState.WAIT_TAKEOFF)
+        self.assertEqual(sequencer.state, MISSION.MissionState.WAIT_OFFBOARD)
 
-    def test_mission_starts_on_takeoff_without_any_rviz_click(self):
+    def test_mission_starts_on_offboard_without_any_rviz_click(self):
         sequencer = MISSION.MissionSequencer(self.load_preset())
         sequencer.start()
-        action = sequencer.on_control_status('state=IDLE_HOLD', 0.0)
+        action = sequencer.on_offboard_mode(True)
         self.assertIsNotNone(action)
         self.assertEqual(action.goal.name, 'b1')
         self.assertEqual(sequencer.state, MISSION.MissionState.GOTO_B1)
@@ -154,7 +155,18 @@ preset_points:
         self.assertFalse(sequencer.using_preset_points)
         sequencer.start()
         self.assertEqual(sequencer.state, MISSION.MissionState.COLLECTING_POINTS)
-        self.assertIsNone(sequencer.on_control_status('state=IDLE_HOLD', 0.0))
+        self.assertIsNone(sequencer.on_offboard_mode(True))
+
+    def test_leaving_offboard_pauses_and_cannot_resume_silently(self):
+        sequencer = MISSION.MissionSequencer(self.load_preset())
+        sequencer.start()
+        sequencer.on_offboard_mode(True)
+        paused = sequencer.on_offboard_mode(False)
+        self.assertEqual(paused.event, 'mission_paused_pilot_left_offboard')
+        self.assertEqual(sequencer.state, MISSION.MissionState.PAUSED)
+        restart = sequencer.on_offboard_mode(True)
+        self.assertEqual(
+            restart.event, 'mission_paused_restart_node_before_next_offboard')
 
     def test_wrong_preset_count_is_rejected(self):
         with self.assertRaises(MISSION.MissionConfigError):

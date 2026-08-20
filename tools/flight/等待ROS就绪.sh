@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-mode="${1:?usage: 等待ROS就绪.sh <topic|message|node|healthy|flight_ready|mavros_connected> <timeout_s> [name]}"
-timeout_s="${2:?usage: 等待ROS就绪.sh <topic|message|node|healthy|flight_ready|mavros_connected> <timeout_s> [name]}"
+mode="${1:?用法：等待ROS就绪.sh <topic|message|node|healthy|flight_ready|mavros_connected> <超时秒数> [名称]}"
+timeout_s="${2:?用法：等待ROS就绪.sh <topic|message|node|healthy|flight_ready|mavros_connected> <超时秒数> [名称]}"
 topic="${3:-}"
 readiness_process_pid="${READINESS_PROCESS_PID:-}"
 readiness_setup_bash="${READINESS_SETUP_BASH:-}"
@@ -26,13 +26,13 @@ deadline=$((SECONDS + timeout_s))
 
 case "${mode}" in
   topic)
-    [[ -n "${topic}" ]] || { echo "topic 模式需要提供话题名" >&2; exit 2; }
+    [[ -n "${topic}" ]] || { echo "话题发布者检查需要提供话题名" >&2; exit 2; }
     ;;
   message)
-    [[ -n "${topic}" ]] || { echo "message 模式需要提供话题名" >&2; exit 2; }
+    [[ -n "${topic}" ]] || { echo "话题消息检查需要提供话题名" >&2; exit 2; }
     ;;
   node)
-    [[ -n "${topic}" ]] || { echo "node 模式需要提供节点名" >&2; exit 2; }
+    [[ -n "${topic}" ]] || { echo "节点检查需要提供节点名" >&2; exit 2; }
     ;;
   healthy)
     topic="${topic:-/ev_health/status}"
@@ -49,18 +49,26 @@ case "${mode}" in
     ;;
 esac
 
-echo "正在等待 ${mode}：${topic}（超时 ${timeout_s}s）"
+case "${mode}" in
+  topic) mode_name="话题发布者" ;;
+  message) mode_name="话题消息" ;;
+  node) mode_name="节点" ;;
+  healthy) mode_name="EV 健康状态" ;;
+  flight_ready) mode_name="EV 飞行就绪状态" ;;
+  mavros_connected) mode_name="MAVROS 连接状态" ;;
+esac
+echo "正在等待${mode_name}：${topic}（超时 ${timeout_s} 秒）"
 while (( SECONDS < deadline )); do
   if [[ -n "${readiness_process_pid}" ]] &&
     ! kill -0 "${readiness_process_pid}" 2>/dev/null; then
-    echo "被等待的进程在就绪之前已退出：pid=${readiness_process_pid}, mode=${mode}, name=${topic}" >&2
+    echo "被等待的进程在就绪前已退出：进程号=${readiness_process_pid}，检查类型=${mode_name}，名称=${topic}" >&2
     exit 1
   fi
   case "${mode}" in
     topic)
       if timeout 5 ros2 topic list -t 2>/dev/null |
         awk -v wanted="${topic}" '$1 == wanted { found=1 } END { exit !found }'; then
-        echo "Ready: topic ${topic} has a publisher"
+        echo "已就绪：话题 ${topic} 已有发布者"
         exit 0
       fi
       ;;
@@ -74,21 +82,21 @@ while (( SECONDS < deadline )); do
       ;;
     node)
       if timeout 5 ros2 node list 2>/dev/null | grep -Fxq "${topic}"; then
-        echo "Ready: node ${topic} exists"
+        echo "已就绪：节点 ${topic} 已存在"
         exit 0
       fi
       ;;
     healthy)
       message="$(timeout 5 ros2 topic echo --once "${topic}" std_msgs/msg/String 2>/dev/null || true)"
       if [[ "${message}" == *"data: HEALTHY"* ]]; then
-        echo "Ready: ${topic}=HEALTHY"
+        echo "已就绪：${topic}=健康"
         exit 0
       fi
       ;;
     flight_ready)
       message="$(timeout 5 ros2 topic echo --once "${topic}" std_msgs/msg/Bool 2>/dev/null || true)"
       if [[ "${message}" == *"data: true"* ]]; then
-        echo "Ready: ${topic}=true"
+        echo "已就绪：${topic}=飞行就绪"
         exit 0
       fi
       ;;
@@ -103,7 +111,7 @@ while (( SECONDS < deadline )); do
   sleep 1
 done
 
-echo "就绪等待超时：mode=${mode}, topic=${topic}, timeout=${timeout_s}s" >&2
+echo "等待就绪超时：检查类型=${mode_name}，话题=${topic}，超时=${timeout_s} 秒" >&2
 if [[ "${mode}" == healthy || "${mode}" == flight_ready ]]; then
   echo "最近一次 EV 健康诊断：" >&2
   timeout 5 ros2 topic echo --once /ev_health/diagnostics \

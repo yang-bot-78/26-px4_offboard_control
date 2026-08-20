@@ -5,30 +5,46 @@ set -euo pipefail
 # 启动：MID-360、项目内 FR-LIO、全局后端、MAVROS 和 EV vision_pose 链路。
 # 不启动：Offboard、导航控制、解锁、模式切换或任何 setpoint 发布器。
 
-if [[ "${1:-}" == "--help" || "${1:-}" == "-h" || "${1:-}" == "--帮助" ]]; then
+show_help() {
   cat <<'EOF'
 用法：
+  ./现场全局建图并保存重定位库.sh --rosbag
   ./tools/fastlio/现场全局建图并保存重定位库.sh
+  ./tools/fastlio/现场全局建图并保存重定位库.sh --rosbag
+
+选项：
+  --rosbag  同步录制 EV 断链诊断 rosbag
+  -h, --help, --帮助
+            显示本帮助
 
 默认保存目录：
   maps/frlio_global_3d_<保存时间戳>
 
+启用 --rosbag 后的默认录包目录：
+  runtime/全局建图_<启动时间戳>/rosbag
+
 可选环境变量：
   FRLIO_GLOBAL_MAP_DIR=/绝对路径/地图父目录
+  FRLIO_ROSBAG_DIR=/绝对路径/rosbag目录
   FRLIO_CONFIG=/绝对路径/indoors.yaml
   MID360_FRLIO_DELAY_SEC=4
   GLOBAL_MAP_WAIT_TIMEOUT=90
   FRLIO_GLOBAL_MAP_RESOLUTION=0.15
   FRLIO_GLOBAL_MAP_MAX_Z=2.5
   FCU_URL=serial:///dev/ttyUSB0:921600?ids=255,190
-  MAVROS_STABLE_SEC=10
+  MAVROS_STABLE_SEC=3
 EOF
-  exit 0
-fi
-if (($# > 0)); then
-  echo "[错误] 不支持的位置参数：$*" >&2
-  exit 2
-fi
+}
+
+record_rosbag=false
+while (($# > 0)); do
+  case "$1" in
+    --rosbag) record_rosbag=true ;;
+    -h|--help|--帮助) show_help; exit 0 ;;
+    *) echo "[错误] 不支持的参数：$1" >&2; show_help >&2; exit 2 ;;
+  esac
+  shift
+done
 if [[ ! -t 0 ]]; then
   echo "[错误] 必须在交互终端运行，以便确认安全状态和保存操作。" >&2
   exit 2
@@ -45,14 +61,25 @@ wait_timeout="${GLOBAL_MAP_WAIT_TIMEOUT:-90}"
 driver_delay="${MID360_FRLIO_DELAY_SEC:-${MID360_FASTLIO_DELAY_SEC:-4}}"
 resolution="${FRLIO_GLOBAL_MAP_RESOLUTION:-${FASTLIO_GLOBAL_MAP_RESOLUTION:-0.15}}"
 fcu_url="${FCU_URL:-serial:///dev/ttyUSB0:921600?ids=255,190}"
-mavros_stable_sec="${MAVROS_STABLE_SEC:-10}"
+mavros_stable_sec="${MAVROS_STABLE_SEC:-3}"
 timestamp="$(date +%Y%m%d_%H%M%S)"
 map_parent="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps}}"
 map_dir="${map_parent%/}/frlio_global_3d_${timestamp}"
 max_z="${FRLIO_GLOBAL_MAP_MAX_Z:-${FASTLIO_GLOBAL_MAP_MAX_Z:-2.5}}"
 log_dir="${project_root}/runtime/全局建图_${timestamp}"
+rosbag_dir="${FRLIO_ROSBAG_DIR:-${log_dir}/rosbag}"
+rosbag_summary="未启用"
+rosbag_running_line=""
+if [[ "${record_rosbag}" == true ]]; then
+  rosbag_summary="启用（${rosbag_dir}）"
+  rosbag_running_line="EV 诊断 rosbag 正在录制：${rosbag_dir}"
+fi
 
 [[ "${map_parent}" == /* ]] || { echo "[错误] FRLIO_GLOBAL_MAP_DIR 必须是绝对路径。" >&2; exit 2; }
+if [[ "${record_rosbag}" == true && "${rosbag_dir}" != /* ]]; then
+  echo "[错误] FRLIO_ROSBAG_DIR 必须是绝对路径。" >&2
+  exit 2
+fi
 if [[ ! "${wait_timeout}" =~ ^[0-9]+$ ]] || ((wait_timeout < 10)); then
   echo "[错误] GLOBAL_MAP_WAIT_TIMEOUT 必须是不小于 10 的整数。" >&2
   exit 2
@@ -94,9 +121,10 @@ cat <<EOF
 ============================================================
 保存目录：${map_dir}
 日志目录：${log_dir}
+诊断录包：${rosbag_summary}
 
-本流程启动：雷达、项目内 FR-LIO、全局关键帧后端、MAVROS 和 EV vision_pose 链路。
-本流程不会启动：Offboard、导航、解锁、模式切换或任何 setpoint 发布器。
+本流程启动：雷达、项目内 FR-LIO、全局关键帧后端、MAVROS 和 EV 外部视觉（vision_pose）链路。
+本流程不会启动：离板模式（Offboard）、导航、解锁、模式切换或任何飞行设定值发布器。
 
 开始前确认：
   1. 当前没有其他雷达、FR-LIO、MAVROS 或 EV 实例；
@@ -105,7 +133,7 @@ cat <<EOF
   4. 建图完成后先手动降落、上锁，再在脚本中保存并退出。
 
 注意：脚本只提供定位数据，不会替飞手控制飞机。若链路异常，立即切回
-Stabilized/手动模式；不要在飞机已解锁时按 Ctrl+C 结束脚本。
+稳定（Stabilized）或手动模式；不要在飞机已解锁时按 Ctrl+C 结束脚本。
 
 每次保存都会创建新的时间戳目录，不会沿用或覆盖旧地图；保存后同时生成去顶端点云副本。
 ============================================================
@@ -172,7 +200,7 @@ start_component() {
   echo "[启动] ${name}"
   setsid "$@" >"${logfile}" 2>&1 &
   names+=("${name}"); pids+=("$!"); pgids+=("$!")
-  echo "[启动] ${name} PID=$!，日志=${logfile}"
+  echo "[启动] ${name}，进程号=$!，日志=${logfile}"
 }
 running() {
   local i name="$1"
@@ -209,13 +237,30 @@ stop_all() {
   wait_until_disarmed_for_shutdown
   stopping=true; trap - EXIT INT TERM HUP; set +e
   echo "[停止] 按逆序停止全局建图组件。"
-  local i pgid
+  local i pgid rosbag_flush_deadline
   for ((i=${#pgids[@]}-1; i>=0; i--)); do kill -INT -- "-${pgids[i]}" 2>/dev/null || true; done
   sleep 5
+  if [[ "${record_rosbag}" == true ]] && running "EV 诊断 rosbag"; then
+    echo "[等待] rosbag 正在刷新 SQLite 数据和 metadata.yaml。"
+    rosbag_flush_deadline=$((SECONDS + 15))
+    while running "EV 诊断 rosbag" && ((SECONDS < rosbag_flush_deadline)); do
+      sleep 1
+    done
+    running "EV 诊断 rosbag" &&
+      echo "[警告] rosbag 在 20 秒内未正常退出，将继续终止流程。" >&2
+  fi
   for pgid in "${pgids[@]}"; do kill -TERM -- "-${pgid}" 2>/dev/null || true; done
   sleep 2
   for pgid in "${pgids[@]}"; do kill -KILL -- "-${pgid}" 2>/dev/null || true; done
   for i in "${pids[@]}"; do wait "${i}" 2>/dev/null || true; done
+  if [[ "${record_rosbag}" == true ]]; then
+    if [[ -s "${rosbag_dir}/metadata.yaml" ]] &&
+       compgen -G "${rosbag_dir}/*.db3" >/dev/null; then
+      echo "[完成] EV 诊断 rosbag 已正常收尾：${rosbag_dir}"
+    else
+      echo "[警告] rosbag 缺少 metadata.yaml 或 db3，请检查 ${log_dir}/rosbag.log。" >&2
+    fi
+  fi
 }
 trap stop_all EXIT
 trap 'exit 130' INT TERM HUP
@@ -279,7 +324,7 @@ wait_mavros_stable() {
     # A launch process remains alive when a child node crashes.  Detect the
     # required health gate explicitly so an import error cannot masquerade as
     # a permanently-not-ready flight controller.
-    if ((SECONDS - start >= 10)) &&
+    if ((SECONDS - start >= 3)) &&
        ! ros2 node list 2>/dev/null | grep -Fxq /fastlio_ev_health_monitor; then
       echo "[错误] EV 健康监控节点没有运行，请查看 ${log_dir}/MAVROS+EV.log。" >&2
       tail -80 "${log_dir}/MAVROS+EV.log" >&2 || true
@@ -304,14 +349,14 @@ wait_mavros_stable() {
         echo "[就绪] MAVROS 已连接，flight_ready=true，PX4 水平/垂直位置有效，连续稳定 ${mavros_stable_sec} 秒。"
         return 0
       fi
-      echo "[等待] 定位链路稳定中：$((SECONDS-stable_since))/${mavros_stable_sec}s。"
+      echo "[等待] 定位链路稳定中：$((SECONDS-stable_since))/${mavros_stable_sec} 秒。"
     else
       stable_since=0
       echo "[等待] MAVROS/EV 尚未满足稳定门（connected、flight_ready、水平位置、视觉位姿）。"
     fi
     sleep 1
   done
-  echo "[错误] MAVROS/EV 定位链路在 ${wait_timeout}s 内未连续稳定。" >&2
+  echo "[错误] MAVROS/EV 定位链路在 ${wait_timeout} 秒内未连续稳定。" >&2
   return 1
 }
 
@@ -349,6 +394,67 @@ start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   "body_to_fastlio_yaw_rad:=${MID360_BODY_TO_FASTLIO_YAW_RAD}"
 wait_mavros_stable
 
+if [[ "${record_rosbag}" == true ]]; then
+  [[ ! -e "${rosbag_dir}" ]] || {
+    echo "[错误] rosbag 输出目录已存在，拒绝覆盖：${rosbag_dir}" >&2
+    exit 3
+  }
+  # Keep the raw LiDAR input and every EV gate stage so a later ULog can be
+  # aligned to driver input, FR-LIO correction freshness, health gating, and
+  # the final MAVROS/PX4 estimator state.  Registered clouds are intentionally
+  # excluded because duplicating them adds substantial serialization load.
+  diagnostic_bag_topics=(
+    /rosout
+    /diagnostics
+    /livox/lidar
+    /livox/imu
+    /Odometry
+    /Odometry/guarded
+    /Odometry/healthy
+    /planning/odom
+    /frlio_position/event
+    /frlio/high_rate_odom/status
+    /frlio/high_rate_odom/anchor_age
+    /frlio/high_rate_odom/predictor_vz
+    /frlio/high_rate_odom/posterior_delta_z
+    /fastlio_global/backend_status
+    /ev_health/status
+    /ev_health/fault
+    /ev_health/flight_ready
+    /ev_health/diagnostics
+    /ev_health/velocity_ned
+    /mavros/state
+    /mavros/estimator_status
+    /mavros/extended_state
+    /mavros/sys_status
+    /mavros/radio_status
+    /mavros/mavlink/from
+    /mavros/local_position/pose
+    /mavros/local_position/odom
+    /mavros/local_position/velocity_local
+    /mavros/local_position/velocity_body
+    /mavros/vision_pose/pose_cov
+    /mavros/vision_speed/speed_twist_cov
+    /mavros/imu/data
+    /fmu/out/estimator_status_flags
+    /fmu/out/vehicle_local_position
+    /fmu/out/vehicle_local_position_v1
+    /tf
+    /tf_static
+  )
+  printf '%s\n' "${diagnostic_bag_topics[@]}" >"${log_dir}/rosbag_topics.txt"
+  start_component "EV 诊断 rosbag" "${log_dir}/rosbag.log" \
+    ionice -c 2 -n 7 nice -n 10 \
+    ros2 bag record --storage sqlite3 --output "${rosbag_dir}" \
+    "${diagnostic_bag_topics[@]}"
+  sleep 3
+  running "EV 诊断 rosbag" || {
+    echo "[错误] rosbag 录制器启动失败，请查看 ${log_dir}/rosbag.log。" >&2
+    exit 3
+  }
+  echo "[就绪] EV 诊断 rosbag 正在录制：${rosbag_dir}"
+fi
+
 start_component "全局建图 RViz" "${log_dir}/RViz.log" rviz2 -d "${rviz_config}"
 sleep 3
 running "全局建图 RViz" || { echo "[错误] RViz 启动失败，请查看 ${log_dir}/RViz.log。" >&2; exit 3; }
@@ -357,6 +463,7 @@ cat <<EOF
 
 ============================================================
 FR-LIO 全局建图和 MAVROS/EV 定位链路已经开始，后端正在接收 /Odometry + /cloud_registered，RViz 正在实时显示。
+${rosbag_running_line}
 
 定位稳定门已通过。现在可以由飞手手动解锁、起飞并切换到 Position 进行手飞建图。
 脚本不会发送任何解锁、模式切换或飞行控制命令。若 Position 无法定点，立即切回 Stabilized。

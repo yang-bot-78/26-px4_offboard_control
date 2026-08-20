@@ -1,3 +1,7 @@
+import os
+from pathlib import Path
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
@@ -13,6 +17,11 @@ def generate_launch_description():
     backend_config = LaunchConfiguration("backend_config")
     rviz = LaunchConfiguration("rviz")
     rviz_config = LaunchConfiguration("rviz_config")
+    map_directory = LaunchConfiguration("map_directory")
+    package_share = get_package_share_directory("fastlio_global_slam")
+    workspace_root = os.environ.get(
+        "WS_OFFBOARD_CONTROL_ROOT", str(Path(package_share).resolve().parents[3])
+    )
 
     fastlio_node = Node(
         package="fast_lio",
@@ -29,7 +38,10 @@ def generate_launch_description():
         executable="fastlio_global_backend",
         name="fastlio_global_backend",
         output="screen",
-        parameters=[backend_config],
+        parameters=[backend_config, {
+            "map_save_directory": map_directory,
+            "map_load_directory": map_directory,
+        }],
     )
 
     rviz_node = Node(
@@ -55,6 +67,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "backend_config",
             default_value=PathJoinSubstitution([FindPackageShare("fastlio_global_slam"), "config", "backend.yaml"]),
+        ),
+        DeclareLaunchArgument(
+            "map_directory",
+            default_value=PathJoinSubstitution([
+                workspace_root,
+                "maps",
+                "fastlio_global_3d",
+            ]),
         ),
         DeclareLaunchArgument("rviz", default_value="true"),
         DeclareLaunchArgument(

@@ -13,6 +13,7 @@ find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FlightAltitudeReference.msg"
+  "msg/EgoHandoverDiagnostic.msg"
   "msg/GlobalPlannerStatus.msg"
   "msg/LocalPathReference.msg"
   "msg/NavigationSetpoint.msg"

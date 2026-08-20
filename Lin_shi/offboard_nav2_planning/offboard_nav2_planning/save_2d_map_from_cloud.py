@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import math
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -19,7 +20,10 @@ class Save2DMapFromCloud(Node):
         super().__init__("save_2d_map_from_cloud")
 
         self.declare_parameter("cloud_topic", "/fastlio_global/map")
-        self.declare_parameter("output_yaml", "/home/robot/ws_offboard_control/maps/fastlio_nav2_map.yaml")
+        workspace_root = Path(os.environ.get("WS_OFFBOARD_CONTROL_ROOT", Path.cwd()))
+        self.declare_parameter(
+            "output_yaml", str(workspace_root / "maps" / "fastlio_nav2_map.yaml")
+        )
         self.declare_parameter("resolution", 0.10)
         self.declare_parameter("min_z", -0.20)
         self.declare_parameter("max_z", 2.00)

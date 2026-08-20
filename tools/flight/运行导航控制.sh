@@ -29,6 +29,12 @@ planner_backend="${requested_planner_backend}"
 tuning_file="${TUNING_FILE:-${project_root}/src/race_bringup/config/astar_ego_tuning.yaml}"
 # 任务序列器执行固定的 A->B->C->D 比赛航点序列。
 mission_enabled="${MISSION_ENABLED:-true}"
+mission_file="${MISSION_FILE:-${project_root}/src/race_offboard/config/waypoints/main/mission.yaml}"
+global_waypoint_task_enabled="${GLOBAL_WAYPOINT_TASK_ENABLED:-false}"
+publish_global_path="${PUBLISH_GLOBAL_PATH:-false}"
+control_nodes_enabled="${CONTROL_NODES_ENABLED:-true}"
+waypoint_visualizer_enabled="${WAYPOINT_VISUALIZER_ENABLED:-false}"
+waypoints_file="${WAYPOINTS_FILE:-${project_root}/src/race_offboard/config/waypoints/main/waypoints.yaml}"
 # 赛场扫描图。race_mapping.launch.py 里的默认值是一张遗留地图，**不是**比赛场地 ——
 # 请在这里传入真实的赛场扫描图。
 map_file="${MAP_FILE:-}"
@@ -47,20 +53,27 @@ body_to_fastlio_yaw_rad="${BODY_TO_FASTLIO_YAW_RAD:-0.0}"
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 publish_fastlio_bridge="${PUBLISH_FASTLIO_BRIDGE:-true}"
 publish_camera_init_tf="${PUBLISH_CAMERA_INIT_TF:-true}"
-# The relocalization bridge owns map -> camera_init.  Its raw /Odometry frame
-# remains local, so do not also advertise that raw odom as an identity child of map.
+# In relocalization mode the dedicated bridge owns map -> odom.  Do not also
+# advertise the raw local odom frame as an identity child of map.
 broadcast_map_to_odom="${PUBLISH_MAP_TO_ODOM_TF:-${publish_camera_init_tf}}"
 map_frame_id="${MAP_FRAME_ID:-map}"
-fast_lio_odom_topic="${FASTLIO_ODOM_TOPIC:-/Odometry}"
+# The health monitor is the only producer allowed to feed flight navigation.
+# Pass FASTLIO_ODOM_TOPIC explicitly for non-flight/offline test pipelines.
+fast_lio_odom_topic="${FASTLIO_ODOM_TOPIC:-/Odometry/healthy}"
 require_map_local_alignment="${REQUIRE_MAP_LOCAL_ALIGNMENT:-false}"
 
-for boolean_name in mission_enabled rviz recognition_enabled enable_output map_auto_load manual_handover ev_fault_auto_land broadcast_map_to_odom; do
+for boolean_name in mission_enabled global_waypoint_task_enabled publish_global_path control_nodes_enabled waypoint_visualizer_enabled rviz recognition_enabled enable_output map_auto_load manual_handover ev_fault_auto_land broadcast_map_to_odom; do
   boolean_value="${!boolean_name}"
   if [[ "${boolean_value}" != true && "${boolean_value}" != false ]]; then
     echo "${boolean_name^^} must be true or false; got: ${boolean_value}" >&2
     exit 1
   fi
 done
+
+if [[ "${control_nodes_enabled}" == true && "${fast_lio_odom_topic}" != "/Odometry/healthy" ]]; then
+  echo "控制节点启用时，导航必须使用 /Odometry/healthy；拒绝未门控里程计：${fast_lio_odom_topic}" >&2
+  exit 1
+fi
 
 case "${requested_planner_backend}" in
   astar_ego|super|ego|ego-shadow) ;;
@@ -71,6 +84,14 @@ case "${requested_planner_backend}" in
 esac
 
 [[ -f "${tuning_file}" ]] || { echo "TUNING_FILE 不存在：${tuning_file}" >&2; exit 1; }
+if [[ "${mission_enabled}" == true && ! -f "${mission_file}" ]]; then
+  echo "MISSION_FILE 不存在：${mission_file}" >&2
+  exit 1
+fi
+if [[ "${waypoint_visualizer_enabled}" == true && ! -f "${waypoints_file}" ]]; then
+  echo "WAYPOINTS_FILE 不存在：${waypoints_file}" >&2
+  exit 1
+fi
 if ! ego_enabled="$(python3 - "${project_root}" "${tuning_file}" <<'PY'
 import sys
 
@@ -94,6 +115,12 @@ launch_args=(
   "planner_backend:=${planner_backend}"
   "tuning_file:=${tuning_file}"
   "mission_enabled:=${mission_enabled}"
+  "mission_file:=${mission_file}"
+  "global_waypoint_task_enabled:=${global_waypoint_task_enabled}"
+  "publish_global_path:=${publish_global_path}"
+  "control_nodes_enabled:=${control_nodes_enabled}"
+  "waypoint_visualizer_enabled:=${waypoint_visualizer_enabled}"
+  "waypoints_file:=${waypoints_file}"
   "rviz:=${rviz}"
   # 真机：使用墙上时钟，且 MAVROS 由整栈脚本里的
   # fastlio_mavros_autofix.launch.py 单独启动。
@@ -125,12 +152,17 @@ launch_args+=("map_auto_load:=${map_auto_load}")
 
 echo "导航后端：    请求=${requested_planner_backend}，实际=${planner_backend}，EGO开关=${ego_enabled}"
 echo "任务序列器：  ${mission_enabled}"
+echo "全局航点任务：${global_waypoint_task_enabled}"
+echo "Offboard 控制节点：${control_nodes_enabled}"
+echo "保存航点显示：${waypoint_visualizer_enabled}"
+echo "任务航点文件：${mission_file}"
 if [[ -z "${map_file}" && "${map_auto_load}" == false ]]; then
   echo "地图文件：    <链路验证模式已关闭地图>"
 else
   echo "地图文件：    ${map_file:-<race_mapping 默认图，不是赛场扫描图>}"
 fi
 echo "地图自动加载：${map_auto_load}"
+echo "导航里程计：  ${fast_lio_odom_topic}（仅使用健康门控输出）"
 echo "Recognition:        ${recognition_enabled}"
 echo "导航输出：    ${enable_output}"
 echo "人工接管：    ${manual_handover}"

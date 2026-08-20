@@ -123,6 +123,17 @@ namespace ego_planner
     // either disables the fallback and restores the forward-only behaviour.
     double recovery_max_lateral_offset_m_{0.0};
     double recovery_lateral_offset_step_m_{0.0};
+    // 动态放宽只作用于恢复搜索偏好；硬防撞距离仍由 GridMap 和 Bridge 固定复检。
+    bool dynamic_relaxation_enabled_{false};
+    double normal_recovery_extra_clearance_m_{0.0};
+    double normal_rejoin_search_distance_m_{0.0};
+    double normal_minimum_forward_progress_m_{0.0};
+    double normal_max_lateral_offset_m_{0.0};
+    double dynamic_soft_recovery_extra_clearance_m_{0.0};
+    double dynamic_expanded_rejoin_search_distance_m_{0.0};
+    double dynamic_expanded_minimum_forward_progress_m_{0.0};
+    double dynamic_expanded_max_lateral_offset_m_{0.0};
+    std::string dynamic_relaxation_profile_{"正常"};
     // Upper bound on rejoin candidates tried within one recovery attempt.  Each
     // one costs a local A* search plus a full B-spline optimization, so this
     // trades escape breadth against attempt latency.
@@ -131,6 +142,7 @@ namespace ego_planner
     double handover_velocity_tolerance_mps_;
     double handover_acceleration_tolerance_mps2_;
     double active_preplan_lookahead_m_{0.65};
+    double handover_prediction_sec_{0.55};
 
     /* planning data */
     bool have_trigger_, have_target_, have_odom_, have_new_target_, have_recv_pre_agent_;
@@ -202,6 +214,7 @@ namespace ego_planner
     rclcpp::Subscription<traj_utils::msg::MultiBsplines>::SharedPtr swarm_trajs_sub_;
     rclcpp::Subscription<traj_utils::msg::Bspline>::SharedPtr broadcast_bspline_sub_;
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr trigger_sub_;
+    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr dynamic_relaxation_profile_sub_;
 
     // rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr replan_pub_;
     // rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr new_pub_;
@@ -219,6 +232,8 @@ namespace ego_planner
     bool validateTrajectoryForPublish(LocalTrajData & candidate);
     bool validateTrajectoryGeofenceForPublish(LocalTrajData & candidate);
     void publishSafetyStatus(const std::string &status);
+    void dynamicRelaxationProfileCallback(
+      const std::shared_ptr<const std_msgs::msg::String> & msg);
     void publishPendingValidationFailure(bool immediate);
     bool callEmergencyStop(Eigen::Vector3d stop_pos);                          // front-end and back-end method
     bool planFromGlobalTraj(const int trial_times = 1);

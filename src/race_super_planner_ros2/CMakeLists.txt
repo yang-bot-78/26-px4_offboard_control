@@ -110,6 +110,13 @@ if(BUILD_TESTING)
     target_include_directories(test_local_goal_lifecycle_policy PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/include)
   endif()
+  ament_add_gtest(
+    test_pending_path_gate_policy
+    test/test_pending_path_gate_policy.cpp)
+  if(TARGET test_pending_path_gate_policy)
+    target_include_directories(test_pending_path_gate_policy PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  endif()
 endif()
 
 ament_package()

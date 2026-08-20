@@ -61,6 +61,10 @@ super_planner_ros2_node:
     local_goal_update_min_interval_sec: 0.10
     local_goal_update_distance_m: 0.20
     goal_update_position_tolerance_m: 0.05
+    # Only gates the first commit of a newly completed global path. It is not
+    # active after commit and therefore does not constrain EGO obstacle detours.
+    pending_path_max_cross_track_error_m: 0.15
+    pending_path_max_replans: 1
     ego_status_topic: /race/ego/status
     local_planner_failure_replan_sec: 1.0
     trajectory_prefetch_sec: 1.5

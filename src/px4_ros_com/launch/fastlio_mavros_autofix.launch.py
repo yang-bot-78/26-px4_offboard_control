@@ -135,6 +135,8 @@ def generate_launch_description():
                 "input_topic": fastlio_odom_topic,
                 "output_topic": healthy_odom_topic,
                 "px4_velocity_topic": "/mavros/local_position/velocity_local",
+                "px4_local_odom_topic": "/mavros/local_position/odom",
+                "use_local_odom_velocity_fallback": True,
                 "world_yaw_alignment_rad": world_yaw_alignment_rad,
                 "max_input_age_s": ev_max_input_age_s,
                 "max_position_jump_m": ev_max_position_jump_m,
@@ -381,7 +383,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "frlio_anchor_status_timeout_s", default_value="0.5"
             ),
-            DeclareLaunchArgument("frlio_max_anchor_age_s", default_value="0.40"),
+            DeclareLaunchArgument("frlio_max_anchor_age_s", default_value="0.60"),
             DeclareLaunchArgument(
                 "flight_ready_output_timeout_s", default_value="0.10"
             ),
