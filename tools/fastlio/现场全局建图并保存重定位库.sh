@@ -9,11 +9,13 @@ show_help() {
   cat <<'EOF'
 用法：
   ./现场全局建图并保存重定位库.sh --rosbag
+  ./现场全局建图并保存重定位库.sh --strosbag
   ./tools/fastlio/现场全局建图并保存重定位库.sh
   ./tools/fastlio/现场全局建图并保存重定位库.sh --rosbag
 
 选项：
   --rosbag  同步录制 EV 断链诊断 rosbag
+  --strosbag 同步录制重定位专项 rosbag（含已配准点云和全局后端输出）
   -h, --help, --帮助
             显示本帮助
 
@@ -23,28 +25,44 @@ show_help() {
 启用 --rosbag 后的默认录包目录：
   runtime/全局建图_<启动时间戳>/rosbag
 
+启用 --strosbag 后的默认录包目录：
+  runtime/全局建图_<启动时间戳>/strosbag
+
 可选环境变量：
   FRLIO_GLOBAL_MAP_DIR=/绝对路径/地图父目录
   FRLIO_ROSBAG_DIR=/绝对路径/rosbag目录
+  FRLIO_STROSBAG_DIR=/绝对路径/strosbag目录
   FRLIO_CONFIG=/绝对路径/indoors.yaml
   MID360_FRLIO_DELAY_SEC=4
   GLOBAL_MAP_WAIT_TIMEOUT=90
   FRLIO_GLOBAL_MAP_RESOLUTION=0.15
   FRLIO_GLOBAL_MAP_MAX_Z=2.5
+  FRLIO_GLOBAL_MAP_MIN_KEYFRAMES=30
   FCU_URL=serial:///dev/ttyUSB0:921600?ids=255,190
   MAVROS_STABLE_SEC=3
+
+首次使用或源码更新后，先在项目根目录构建后端：
+  source /opt/ros/humble/setup.bash
+  colcon build --base-paths src Lin_shi --packages-select fastlio_global_slam --symlink-install
+  source install/setup.bash
 EOF
 }
 
 record_rosbag=false
+record_strosbag=false
 while (($# > 0)); do
   case "$1" in
     --rosbag) record_rosbag=true ;;
+    --strosbag) record_strosbag=true ;;
     -h|--help|--帮助) show_help; exit 0 ;;
     *) echo "[错误] 不支持的参数：$1" >&2; show_help >&2; exit 2 ;;
   esac
   shift
 done
+if [[ "${record_rosbag}" == true && "${record_strosbag}" == true ]]; then
+  echo "[错误] --rosbag 与 --strosbag 不能同时使用，避免录包负载影响建图。" >&2
+  exit 2
+fi
 if [[ ! -t 0 ]]; then
   echo "[错误] 必须在交互终端运行，以便确认安全状态和保存操作。" >&2
   exit 2
@@ -66,17 +84,32 @@ timestamp="$(date +%Y%m%d_%H%M%S)"
 map_parent="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps}}"
 map_dir="${map_parent%/}/frlio_global_3d_${timestamp}"
 max_z="${FRLIO_GLOBAL_MAP_MAX_Z:-${FASTLIO_GLOBAL_MAP_MAX_Z:-2.5}}"
+min_keyframes="${FRLIO_GLOBAL_MAP_MIN_KEYFRAMES:-30}"
 log_dir="${project_root}/runtime/全局建图_${timestamp}"
 rosbag_dir="${FRLIO_ROSBAG_DIR:-${log_dir}/rosbag}"
+if [[ "${record_strosbag}" == true ]]; then
+  rosbag_dir="${FRLIO_STROSBAG_DIR:-${log_dir}/strosbag}"
+fi
 rosbag_summary="未启用"
 rosbag_running_line=""
+bag_component_name=""
+bag_file_prefix="rosbag"
+record_bag=false
 if [[ "${record_rosbag}" == true ]]; then
+  record_bag=true
   rosbag_summary="启用（${rosbag_dir}）"
   rosbag_running_line="EV 诊断 rosbag 正在录制：${rosbag_dir}"
+  bag_component_name="EV 诊断 rosbag"
+elif [[ "${record_strosbag}" == true ]]; then
+  record_bag=true
+  bag_file_prefix="strosbag"
+  rosbag_summary="重定位专项启用（${rosbag_dir}）"
+  rosbag_running_line="重定位专项 strosbag 正在录制：${rosbag_dir}"
+  bag_component_name="重定位专项 strosbag"
 fi
 
 [[ "${map_parent}" == /* ]] || { echo "[错误] FRLIO_GLOBAL_MAP_DIR 必须是绝对路径。" >&2; exit 2; }
-if [[ "${record_rosbag}" == true && "${rosbag_dir}" != /* ]]; then
+if [[ ( "${record_rosbag}" == true || "${record_strosbag}" == true ) && "${rosbag_dir}" != /* ]]; then
   echo "[错误] FRLIO_ROSBAG_DIR 必须是绝对路径。" >&2
   exit 2
 fi
@@ -90,6 +123,9 @@ fi
 [[ "${max_z}" =~ ^-?[0-9]+([.][0-9]+)?$ ]] || {
   echo "[错误] FRLIO_GLOBAL_MAP_MAX_Z 必须是数字，例如 3.0。" >&2; exit 2;
 }
+if [[ ! "${min_keyframes}" =~ ^[0-9]+$ ]] || ((min_keyframes < 30)); then
+  echo "[错误] FRLIO_GLOBAL_MAP_MIN_KEYFRAMES 必须是不小于 30 的整数。" >&2; exit 2;
+fi
 [[ "${mavros_stable_sec}" =~ ^[0-9]+$ ]] || {
   echo "[错误] MAVROS_STABLE_SEC 必须是正整数。" >&2; exit 2;
 }
@@ -109,6 +145,15 @@ for required in \
   "$(command -v pcl_passthrough_filter 2>/dev/null || printf '%s' /missing/pcl_passthrough_filter)"; do
   [[ -f "${required}" ]] || { echo "[错误] 缺少文件：${required}" >&2; exit 2; }
 done
+backend_package_marker="${project_root}/install/fastlio_global_slam/share/ament_index/resource_index/packages/fastlio_global_slam"
+if [[ ! -f "${backend_package_marker}" ]]; then
+  echo "[错误] 当前 install/ 未安装 fastlio_global_slam；后端位于 Lin_shi/，不会被默认 src 构建包含。" >&2
+  echo "[错误] 请在项目根目录执行：" >&2
+  echo "        source /opt/ros/humble/setup.bash" >&2
+  echo "        colcon build --base-paths src Lin_shi --packages-select fastlio_global_slam --symlink-install" >&2
+  echo "        source install/setup.bash" >&2
+  exit 2
+fi
 if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
   echo "[错误] 当前没有图形桌面环境，无法启动 RViz。" >&2
   exit 2
@@ -240,23 +285,23 @@ stop_all() {
   local i pgid rosbag_flush_deadline
   for ((i=${#pgids[@]}-1; i>=0; i--)); do kill -INT -- "-${pgids[i]}" 2>/dev/null || true; done
   sleep 5
-  if [[ "${record_rosbag}" == true ]] && running "EV 诊断 rosbag"; then
+  if [[ "${record_bag}" == true ]] && running "${bag_component_name}"; then
     echo "[等待] rosbag 正在刷新 SQLite 数据和 metadata.yaml。"
     rosbag_flush_deadline=$((SECONDS + 15))
-    while running "EV 诊断 rosbag" && ((SECONDS < rosbag_flush_deadline)); do
+    while running "${bag_component_name}" && ((SECONDS < rosbag_flush_deadline)); do
       sleep 1
     done
-    running "EV 诊断 rosbag" &&
+    running "${bag_component_name}" &&
       echo "[警告] rosbag 在 20 秒内未正常退出，将继续终止流程。" >&2
   fi
   for pgid in "${pgids[@]}"; do kill -TERM -- "-${pgid}" 2>/dev/null || true; done
   sleep 2
   for pgid in "${pgids[@]}"; do kill -KILL -- "-${pgid}" 2>/dev/null || true; done
   for i in "${pids[@]}"; do wait "${i}" 2>/dev/null || true; done
-  if [[ "${record_rosbag}" == true ]]; then
+  if [[ "${record_bag}" == true ]]; then
     if [[ -s "${rosbag_dir}/metadata.yaml" ]] &&
        compgen -G "${rosbag_dir}/*.db3" >/dev/null; then
-      echo "[完成] EV 诊断 rosbag 已正常收尾：${rosbag_dir}"
+      echo "[完成] ${bag_component_name} 已正常收尾：${rosbag_dir}"
     else
       echo "[警告] rosbag 缺少 metadata.yaml 或 db3，请检查 ${log_dir}/rosbag.log。" >&2
     fi
@@ -394,7 +439,7 @@ start_component "MAVROS + EV 定位链" "${log_dir}/MAVROS+EV.log" \
   "body_to_fastlio_yaw_rad:=${MID360_BODY_TO_FASTLIO_YAW_RAD}"
 wait_mavros_stable
 
-if [[ "${record_rosbag}" == true ]]; then
+if [[ "${record_bag}" == true ]]; then
   [[ ! -e "${rosbag_dir}" ]] || {
     echo "[错误] rosbag 输出目录已存在，拒绝覆盖：${rosbag_dir}" >&2
     exit 3
@@ -442,17 +487,32 @@ if [[ "${record_rosbag}" == true ]]; then
     /tf
     /tf_static
   )
-  printf '%s\n' "${diagnostic_bag_topics[@]}" >"${log_dir}/rosbag_topics.txt"
-  start_component "EV 诊断 rosbag" "${log_dir}/rosbag.log" \
+  if [[ "${record_strosbag}" == true ]]; then
+    # These high-bandwidth products are intentionally exclusive to --strosbag:
+    # they make map drift and relocalization alignment inspectable offline.
+    diagnostic_bag_topics+=(
+      /cloud_registered
+      /cloud_registered_body
+      /Odometry/map
+      /fastlio_global/map
+      /fastlio_global/path
+      /fastlio_global/loop_markers
+      /fastlio_global/relocalized_pose
+    )
+    cp --preserve=mode,timestamps "${frlio_config}" "${log_dir}/indoors.yaml.used"
+    cp --preserve=mode,timestamps "${backend_config}" "${log_dir}/global_backend.yaml.used"
+  fi
+  printf '%s\n' "${diagnostic_bag_topics[@]}" >"${log_dir}/${bag_file_prefix}_topics.txt"
+  start_component "${bag_component_name}" "${log_dir}/${bag_file_prefix}.log" \
     ionice -c 2 -n 7 nice -n 10 \
     ros2 bag record --storage sqlite3 --output "${rosbag_dir}" \
     "${diagnostic_bag_topics[@]}"
   sleep 3
-  running "EV 诊断 rosbag" || {
-    echo "[错误] rosbag 录制器启动失败，请查看 ${log_dir}/rosbag.log。" >&2
+  running "${bag_component_name}" || {
+    echo "[错误] ${bag_component_name} 录制器启动失败，请查看 ${log_dir}。" >&2
     exit 3
   }
-  echo "[就绪] EV 诊断 rosbag 正在录制：${rosbag_dir}"
+  echo "[就绪] ${bag_component_name} 正在录制：${rosbag_dir}"
 fi
 
 start_component "全局建图 RViz" "${log_dir}/RViz.log" rviz2 -d "${rviz_config}"
@@ -469,8 +529,8 @@ ${rosbag_running_line}
 脚本不会发送任何解锁、模式切换或飞行控制命令。若 Position 无法定点，立即切回 Stabilized。
 
 请从规划地图起点开始，按与现场地图相同的路线缓慢走一遍，最后回到起点静止。
-本次测试最低只要求 3 个关键帧，生成阈值为平移 0.15m 或旋转 5 度。
-建议从起点缓慢移动 0.3-0.5m并改变朝向，然后回到起点静止。
+建议重定位库达到 ${min_keyframes} 个关键帧，生成阈值为平移 0.15m 或旋转 5 度。
+建议覆盖完整任务区域，并在每个起降点、转角和纹理较弱区域以多个朝向采样。
   手飞建图完成后，必须先手动降落并上锁，再在此终端输入 1 尝试保存；输入 0 放弃。
 若不足 3 个，脚本不会退出，可继续移动后再次输入 1。
 ============================================================
@@ -487,6 +547,18 @@ while true; do
   if [[ -z "${state_before_save}" ]] || ! grep -Eq '^armed:[[:space:]]+false$' <<<"${state_before_save}"; then
     echo "[拒绝保存] 未确认飞机已上锁（armed=false）。请先手动降落并上锁，再输入 1。" >&2
     continue
+  fi
+
+  backend_status_before_save="$(timeout 5 ros2 topic echo --once /fastlio_global/backend_status --field data 2>/dev/null || true)"
+  keyframe_count_before_save="$(sed -nE 's/.*keyframes=([0-9]+).*/\1/p' <<<"${backend_status_before_save}")"
+  if [[ ! "${keyframe_count_before_save}" =~ ^[0-9]+$ ]]; then
+    echo "[拒绝保存] 未取得全局后端关键帧计数，请确认 /fastlio_global/backend_status 正常。" >&2
+    continue
+  fi
+  if ((keyframe_count_before_save < min_keyframes)); then
+    echo "[警告] 当前只有 ${keyframe_count_before_save} 个关键帧，低于建议的 ${min_keyframes} 个。"
+    echo "[警告] 该地图可保存，但重定位覆盖度和抗误匹配能力会较低。"
+    read -r -p "确认仍要保存此低覆盖地图，请按回车；Ctrl+C 取消：" _low_keyframe_confirmation
   fi
 
   [[ ! -e "${map_dir}" ]] || { echo "[错误] 保存目录已存在，拒绝覆盖：${map_dir}" >&2; exit 4; }
@@ -508,10 +580,8 @@ while true; do
     echo "[错误] metadata.csv 或 GlobalMap.pcd 不存在或为空。" >&2
     exit 5
   fi
-  if ((keyframe_count < 3)); then
-    echo "[不足] 当前只有 ${keyframe_count} 个关键帧，至少需要 3 个。"
-    echo "[继续] 请再移动至少 0.15m 或转动至少 5 度，然后再次输入 1。"
-    continue
+  if ((keyframe_count < min_keyframes)); then
+    echo "[警告] 已按操作员确认保存低覆盖地图：${keyframe_count}/${min_keyframes} 个关键帧。"
   fi
 
   clipped_map="${map_dir}/GlobalMap_去顶端_z${max_z}m.pcd"
@@ -530,7 +600,4 @@ while true; do
 done
 
 echo "[成功] 重定位库已保存：${map_dir}（${keyframe_count} 个关键帧）"
-if ((keyframe_count < 10)); then
-  echo "[警告] 当前只有 ${keyframe_count} 个关键帧，仅用于开局单次重定位和规划线测试，不能作为实飞重定位库。"
-fi
 echo "[提示] 现在可以停止本脚本，再运行 一键重定位并规划验证.sh。"

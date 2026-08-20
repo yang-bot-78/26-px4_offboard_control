@@ -351,6 +351,11 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             if action.event:
                 self.event_pub.publish(String(data=action.event))
                 self.get_logger().info(f'[WAYPOINT_FSM] {action.event}')
+            if action.arrived is not None:
+                self.get_logger().info(
+                    f'[WAYPOINT_FSM_ARRIVED] {action.arrived.name} '
+                    f'x={action.arrived.x:.3f} y={action.arrived.y:.3f} '
+                    f'z={action.arrived.z:.3f}')
             if action.goal is not None:
                 goal = PoseStamped()
                 goal.header.stamp = self.get_clock().now().to_msg()
@@ -384,7 +389,8 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
     finally:
         if node is not None:
             node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
     return 0
 
 

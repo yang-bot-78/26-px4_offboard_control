@@ -323,7 +323,9 @@ RViz 渲染：${rviz_software_rendering}
 EOF
 read -r
 
-env \
+# Keep the background flight stack in its own session so terminal Ctrl+C does
+# not bypass this entry point's cleanup and terminate MAVROS immediately.
+setsid --wait env \
   FLIGHT_TIMESTAMP="${flight_timestamp}" \
   FLIGHT_RUN_DIR="${flight_run_dir}" \
   MID360_LEVER_ARM_CONFIG="${lever_arm_config}" \

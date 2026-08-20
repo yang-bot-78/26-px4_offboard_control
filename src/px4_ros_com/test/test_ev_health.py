@@ -526,6 +526,43 @@ def test_unaligned_velocity_retains_nearest_timestamp_error_for_diagnostics():
     assert result.metrics.velocity_alignment_s == pytest.approx(0.2)
 
 
+def test_default_velocity_alignment_tolerates_one_mavros_period_plus_jitter():
+    core = EvHealthMonitorCore(config())
+    core.update_px4_velocity(
+        (0.0, 0.0, 0.0),
+        receive_time_s=1.01,
+        sample_stamp_s=1.0,
+        input_is_enu=True,
+    )
+    result = core.process_ev(
+        stamp_s=1.149,
+        receive_time_s=1.151,
+        raw_position_enu=(0.0, 0.0, 0.0),
+    )
+
+    assert result.state == HealthState.HEALTHY
+    assert result.metrics.velocity_alignment_s == pytest.approx(0.149)
+
+
+def test_default_velocity_alignment_still_rejects_larger_timestamp_gap():
+    core = EvHealthMonitorCore(config())
+    core.update_px4_velocity(
+        (0.0, 0.0, 0.0),
+        receive_time_s=1.01,
+        sample_stamp_s=1.0,
+        input_is_enu=True,
+    )
+    result = core.process_ev(
+        stamp_s=1.151,
+        receive_time_s=1.153,
+        raw_position_enu=(0.0, 0.0, 0.0),
+    )
+
+    assert result.state == HealthState.SUSPECT
+    assert result.reason == "px4_velocity_unaligned"
+    assert result.metrics.velocity_alignment_s == pytest.approx(0.151)
+
+
 def test_default_lowpass_does_not_create_false_fault_during_acceleration_and_reversal():
     core = EvHealthMonitorCore(
         config(velocity_lowpass_cutoff_hz=3.0)

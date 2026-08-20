@@ -73,7 +73,11 @@ TEST(HighRateOdomPropagator, ReplaysImuAfterDelayedLidarCorrection)
 
   auto corrected = stationary_anchor(0.05);
   corrected.position.x() = 2.0;
-  ASSERT_TRUE(propagator.reset_from_lidar(corrected));
+  fr_lio::HighRateOdomResetMetrics metrics;
+  ASSERT_TRUE(propagator.reset_from_lidar(corrected, &metrics));
+  EXPECT_EQ(metrics.replay_sample_count, 10U);
+  EXPECT_GE(metrics.mutex_wait_s, 0.0);
+  EXPECT_GE(metrics.replay_duration_s, 0.0);
   const auto current = propagator.current();
   ASSERT_TRUE(current.has_value());
   EXPECT_NEAR(current->state.timestamp, 0.1, 1e-12);

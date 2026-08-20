@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # 无桨、上锁状态下的一键 Shadow 验证：
-# MID-360 -> FAST-LIO -> 全局重定位 -> map 对齐里程计 -> 静态地图 -> 规划器 -> RViz
+# MID-360 -> FR-LIO -> 全局重定位 -> map 对齐里程计 -> 静态地图 -> 规划器 -> RViz
 # 本脚本绝不启动 MAVROS、EV、Offboard、任务执行器或飞行控制输出。
 
 show_help() {
@@ -21,6 +21,7 @@ show_help() {
   MAP_LOAD_FRESH_SCAN_DELAY_SEC=3
   CHAIN_WAIT_TIMEOUT=90
   RELOCALIZE_CALL_TIMEOUT_S=120
+  RELOCALIZATION_MIN_KEYFRAMES=30
 
 注意：本次测试要求重定位库包含 metadata.csv、GlobalMap.pcd 和至少 3 个 keyframes/*.pcd，
 并且必须与规划点云来自同一场地和同一坐标系。旧的 fastlio_global_3d 已知与
@@ -45,7 +46,7 @@ fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
 livox_env="${LIVOX_MID360_ENV:-${HOME}/livox_mid360_env}"
-fastlio_config="${livox_env}/ws_fastlio/src/fast_lio/config/mid360.yaml"
+frlio_config="${FRLIO_CONFIG:-${project_root}/src/fr_lio/config/indoors.yaml}"
 planning_map_file="${PLANNING_MAP_FILE:-${project_root}/maps/fastlio_global_3d_20260810/GlobalMap_去顶端_z3m.pcd}"
 global_map_dir="${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps/fastlio_global_3d_20260810}"
 rviz_config="${project_root}/src/race_bringup/rviz/race_click_planner.rviz"
@@ -57,6 +58,7 @@ wait_timeout="${CHAIN_WAIT_TIMEOUT:-90}"
 driver_delay="${MID360_FASTLIO_DELAY_SEC:-4}"
 fresh_scan_delay="${MAP_LOAD_FRESH_SCAN_DELAY_SEC:-3}"
 relocalize_timeout="${RELOCALIZE_CALL_TIMEOUT_S:-120}"
+min_keyframes="${RELOCALIZATION_MIN_KEYFRAMES:-30}"
 timestamp="$(date +%Y%m%d_%H%M%S)"
 log_dir="${project_root}/runtime/重定位规划验证_${timestamp}"
 
@@ -71,6 +73,10 @@ if [[ ! "${relocalize_timeout}" =~ ^[0-9]+$ ]] || ((relocalize_timeout < 10)); t
   echo "[错误] RELOCALIZE_CALL_TIMEOUT_S 必须是大于或等于 10 的整数。" >&2
   exit 2
 fi
+if [[ ! "${min_keyframes}" =~ ^[0-9]+$ ]] || ((min_keyframes < 30)); then
+  echo "[错误] RELOCALIZATION_MIN_KEYFRAMES 必须是不小于 30 的整数。" >&2
+  exit 2
+fi
 for value in "${driver_delay}" "${fresh_scan_delay}"; do
   if ! is_nonnegative_number "${value}"; then
     echo "[错误] 启动间隔必须是非负数：${value}" >&2
@@ -80,8 +86,8 @@ done
 
 required_files=(
   "${livox_env}/run_mid360_driver.sh"
-  "${livox_env}/setup_fastlio.bash"
-  "${fastlio_config}"
+  "${livox_env}/setup_mid360.bash"
+  "${frlio_config}"
   "${project_root}/install/setup.bash"
   "${planning_map_file}"
   "${global_map_dir}/metadata.csv"
@@ -111,8 +117,8 @@ if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
   exit 2
 fi
 keyframe_count="$(find "${global_map_dir}/keyframes" -maxdepth 1 -type f -name 'keyframe_*.pcd' 2>/dev/null | wc -l)"
-if ((keyframe_count < 3)); then
-  echo "[错误] 重定位库只有 ${keyframe_count} 个关键帧，本次测试要求至少 3 个。" >&2
+if ((keyframe_count < min_keyframes)); then
+  echo "[错误] 重定位库只有 ${keyframe_count} 个关键帧，本次测试要求至少 ${min_keyframes} 个。" >&2
   exit 2
 fi
 
@@ -120,12 +126,11 @@ cat <<EOF
 ============================================================
              一键重定位 + 只规划 Shadow 验证
 ============================================================
-将启动：MID-360、FAST-LIO、重定位后端、坐标桥、静态地图、规划器、RViz。
+将启动：MID-360、FR-LIO、重定位后端、坐标桥、静态地图、规划器、RViz。
 不会启动：MAVROS、EV、Offboard、任务执行器、解锁、起飞或控制输出。
 
 规划点云：${planning_map_file}
-重定位库：${global_map_dir}（${keyframe_count} 个关键帧）
-用途限制：少于 10 个关键帧时仅用于开局单次重定位和单目标规划检查，不得用于实飞。
+重定位库：${global_map_dir}（${keyframe_count} 个关键帧，最低 ${min_keyframes}）
 启动间隔：雷达就绪后 ${driver_delay}s 启 FAST-LIO；地图加载后 ${fresh_scan_delay}s 重定位。
 日志目录：${log_dir}
 
@@ -139,7 +144,7 @@ set +u
 # shellcheck disable=SC1091
 source /opt/ros/humble/setup.bash
 # shellcheck disable=SC1091
-source "${livox_env}/setup_fastlio.bash"
+source "${livox_env}/setup_mid360.bash"
 set +u
 export AMENT_TRACE_SETUP_FILES="${AMENT_TRACE_SETUP_FILES:-}"
 export COLCON_TRACE="${COLCON_TRACE:-}"
@@ -272,15 +277,11 @@ wait_for_topic /livox/lidar "MID-360 雷达驱动"
 echo "[等待] 雷达已就绪，${driver_delay} 秒后启动 FAST-LIO。"
 sleep "${driver_delay}"
 
-start_component "重定位专用 FAST-LIO" "${log_dir}/FAST-LIO.log" \
-  ros2 run fast_lio fastlio_mapping --ros-args \
-  --params-file "${fastlio_config}" \
-  -p use_sim_time:=false \
-  -p publish.scan_publish_en:=true \
-  -p publish.dense_publish_en:=false \
-  -p publish.scan_bodyframe_pub_en:=false
-wait_for_topic /Odometry "重定位专用 FAST-LIO"
-wait_for_topic /cloud_registered "重定位专用 FAST-LIO"
+start_component "重定位专用 FR-LIO" "${log_dir}/FR-LIO.log" \
+  ros2 launch fr_lio lio.launch.py "config_file:=${frlio_config}" \
+  rviz:=false lidar_accumulator:=false
+wait_for_topic /Odometry "重定位专用 FR-LIO"
+wait_for_topic /cloud_registered "重定位专用 FR-LIO"
 
 start_component "重定位坐标桥" "${log_dir}/坐标桥.log" \
   python3 "${frame_bridge}"
@@ -316,25 +317,33 @@ fi
 
 echo "[等待] 地图加载会清空旧扫描；等待 ${fresh_scan_delay} 秒取得新的同步扫描。"
 sleep "${fresh_scan_delay}"
-wait_for_topic /cloud_registered "重定位专用 FAST-LIO"
+wait_for_topic /cloud_registered "重定位专用 FR-LIO"
 
-echo "[重定位] 调用一次重定位服务，最长等待 ${relocalize_timeout} 秒。"
-relocalize_output="$(timeout "${relocalize_timeout}s" ros2 service call \
-  /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
-  '{use_latest_scan: true}' 2>&1)" || {
-  echo "${relocalize_output}" >&2
-  echo "[错误] 重定位调用失败或超时，规划器不会启动。" >&2
-  exit 5
-}
-printf '%s\n' "${relocalize_output}"
-if ! grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${relocalize_output}"; then
-  echo "[错误] 重定位没有成功，规划器不会启动。" >&2
-  echo "[提示] 若出现 Scan Context 无候选，请重新采集与规划点云匹配的关键帧库。" >&2
+echo "[重定位] 每次使用新扫描，连续确认 3 次；最长等待 ${relocalize_timeout} 秒。"
+relocalize_deadline=$((SECONDS + relocalize_timeout))
+relocalized=false
+while ((SECONDS < relocalize_deadline)); do
+  relocalize_output="$(timeout 20 ros2 service call \
+    /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
+    '{use_latest_scan: true}' 2>&1 || true)"
+  printf '%s\n' "${relocalize_output}"
+  if grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${relocalize_output}"; then
+    relocalized=true
+    break
+  fi
+  if ! grep -q 'awaiting confirmation' <<<"${relocalize_output}"; then
+    echo "[错误] 重定位候选未通过严格门限，规划器不会启动。" >&2
+    exit 5
+  fi
+  sleep 1
+done
+if [[ "${relocalized}" != true ]]; then
+  echo "[错误] 重定位连续确认超时，规划器不会启动。" >&2
   exit 5
 fi
 
 wait_for_topic /planning/odom "重定位坐标桥"
-for transform in 'map camera_init' 'camera_init body' 'map body'; do
+for transform in 'map odom' 'odom body' 'map body'; do
   read -r parent child <<<"${transform}"
   echo "[检查] TF ${parent} -> ${child}"
   tf_output="$(timeout 5 ros2 run tf2_ros tf2_echo "${parent}" "${child}" 2>&1 || true)"

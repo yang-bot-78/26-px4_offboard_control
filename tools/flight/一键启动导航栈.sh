@@ -18,6 +18,7 @@ set -euo pipefail
 # MID360_FASTLIO_DELAY_SEC, LIO_BACKEND, FRLIO_CONFIG,
 # COMPONENT_WINDOWS, COMPONENT_WINDOW_GEOMETRY,
 # RELOCALIZATION_RETRY_COUNT, RELOCALIZATION_RETRY_DELAY_SEC,
+# RELOCALIZATION_INTERACTIVE, RELOCALIZATION_TRIGGER_TTY,
 # SKIP_PREFLIGHT_CHECK, CPU_AFFINITY_ENABLED, CPUSET_MID360,
 # CPUSET_FRLIO, CPUSET_MAVROS_EV, CPUSET_NAVIGATION,
 # CPUSET_RELOCALIZATION_BRIDGE, CPUSET_RELOCALIZATION_BACKEND, CPUSET_ROSBAG.
@@ -80,6 +81,8 @@ relocalization_fresh_scan_delay_sec="${RELOCALIZATION_FRESH_SCAN_DELAY_SEC:-3}"
 relocalization_call_timeout_sec="${RELOCALIZATION_CALL_TIMEOUT_SEC:-120}"
 relocalization_retry_count="${RELOCALIZATION_RETRY_COUNT:-8}"
 relocalization_retry_delay_sec="${RELOCALIZATION_RETRY_DELAY_SEC:-2}"
+relocalization_interactive="${RELOCALIZATION_INTERACTIVE:-false}"
+relocalization_trigger_tty="${RELOCALIZATION_TRIGGER_TTY:-/dev/tty}"
 # The field computer is an i5-1340P: 0-1, 2-3, 4-5, and 6-7 are its four
 # P-cores with SMT; 8-15 are E-cores.  Give each critical component whole
 # P-cores so separate components never share an SMT pair, and move
@@ -257,9 +260,9 @@ require_boolean() {
 
 require_rosbag_profile() {
   case "$1" in
-    full|low|trace) ;;
+    full|low|trace|strosbag) ;;
     *)
-      log_error "ROSBAG_PROFILE 必须为 full、low 或 trace；当前值：$1"
+      log_error "ROSBAG_PROFILE 必须为 full、low、trace 或 strosbag；当前值：$1"
       exit 1
       ;;
   esac
@@ -599,23 +602,47 @@ run_relocalization() {
   sleep "${relocalization_fresh_scan_delay_sec}"
   wait_component_ready "fastlio" message /cloud_registered
   local attempt relocalization_ok=false
-  for ((attempt=1; attempt<=relocalization_retry_count; attempt++)); do
-    log_info "正在尝试重定位（${attempt}/${relocalization_retry_count}）；请保持飞行器静止并处于已建图区域内"
-    output="$(timeout "${relocalization_call_timeout_sec}s" ros2 service call \
-      /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
-      '{use_latest_scan: true}' 2>&1)" || true
-    if grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${output}"; then
-      log_info "重定位成功。"
-      relocalization_ok=true
-      break
-    fi
-    if ((attempt < relocalization_retry_count)); then
-      log_warn "重定位未找到可信候选位姿；等待 ${relocalization_retry_delay_sec} 秒后使用新的同步扫描重试"
-      sleep "${relocalization_retry_delay_sec}"
-    fi
-  done
+  if [[ "${relocalization_interactive}" == true ]]; then
+    [[ -r "${relocalization_trigger_tty}" ]] || {
+      log_error "交互重定位需要可读终端：${relocalization_trigger_tty}"
+      return 1
+    }
+    log_info "交互重定位已启用；每次按回车只尝试一次，成功前不设次数上限。"
+    while true; do
+      if ! IFS= read -r -p "请保持设备在已建图区域，按回车进行一次重定位（Ctrl-C 退出）: " _ <"${relocalization_trigger_tty}"; then
+        log_error "无法从终端读取重定位触发按键。"
+        return 1
+      fi
+      log_info "正在尝试重定位（本次按键）；请保持飞行器静止并处于已建图区域内"
+      output="$(timeout "${relocalization_call_timeout_sec}s" ros2 service call \
+        /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
+        '{use_latest_scan: true}' 2>&1)" || true
+      if grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${output}"; then
+        log_info "重定位成功。"
+        relocalization_ok=true
+        break
+      fi
+      log_warn "本次重定位未找到可信候选位姿；准备新的扫描后再次按回车重试"
+    done
+  else
+    for ((attempt=1; attempt<=relocalization_retry_count; attempt++)); do
+      log_info "正在尝试重定位（${attempt}/${relocalization_retry_count}）；请保持飞行器静止并处于已建图区域内"
+      output="$(timeout "${relocalization_call_timeout_sec}s" ros2 service call \
+        /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
+        '{use_latest_scan: true}' 2>&1)" || true
+      if grep -Eq 'success[=:][[:space:]]*(true|True)' <<<"${output}"; then
+        log_info "重定位成功。"
+        relocalization_ok=true
+        break
+      fi
+      if ((attempt < relocalization_retry_count)); then
+        log_warn "重定位未找到可信候选位姿；等待 ${relocalization_retry_delay_sec} 秒后使用新的同步扫描重试"
+        sleep "${relocalization_retry_delay_sec}"
+      fi
+    done
+  fi
   if [[ "${relocalization_ok}" != true ]]; then
-    log_error "重定位在 ${relocalization_retry_count} 次尝试后仍失败；不会启动 MAVROS 和控制节点。"
+    log_error "重定位未成功；不会启动 MAVROS 和控制节点。"
     return 1
   fi
   wait_component_ready "relocalization_bridge" message /planning/odom
@@ -668,6 +695,7 @@ validate_configuration() {
   require_boolean MAP_AUTO_LOAD "${map_auto_load}"
   require_boolean COMPONENT_WINDOWS "${component_windows}"
   require_boolean RELOCALIZATION_ENABLED "${relocalization_enabled}"
+  require_boolean RELOCALIZATION_INTERACTIVE "${relocalization_interactive}"
   if [[ "${require_flight_ready_for_startup}" == false && "${enable_output}" != false ]]; then
     log_error "REQUIRE_FLIGHT_READY_FOR_STARTUP=false 仅支持 ENABLE_OUTPUT=false"
     exit 1
@@ -702,8 +730,8 @@ validate_configuration() {
       log_error "重定位已定义地图对齐关系；WORLD_YAW_ALIGNMENT_RAD 必须为 0.0"
       exit 1
     fi
-    if [[ ! "${relocalization_retry_count}" =~ ^[1-9][0-9]*$ ]]; then
-      log_error "RELOCALIZATION_RETRY_COUNT 必须为正整数"
+    if [[ "${relocalization_interactive}" != true && ! "${relocalization_retry_count}" =~ ^[1-9][0-9]*$ ]]; then
+      log_error "RELOCALIZATION_RETRY_COUNT 必须为正整数（非交互模式）"
       exit 1
     fi
     if ! awk -v value="${relocalization_retry_delay_sec}" 'BEGIN {exit !(value ~ /^[0-9]+([.][0-9]*)?$/)}'; then

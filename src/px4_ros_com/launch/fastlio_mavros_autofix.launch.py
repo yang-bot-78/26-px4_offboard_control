@@ -46,6 +46,21 @@ def generate_launch_description():
     fastlio_odom_topic = LaunchConfiguration("fastlio_odom_topic")
     guarded_odom_topic = LaunchConfiguration("guarded_odom_topic")
     healthy_odom_topic = LaunchConfiguration("healthy_odom_topic")
+    guard_dynamic_speed_initial_mps = LaunchConfiguration(
+        "guard_dynamic_speed_initial_mps"
+    )
+    guard_dynamic_speed_middle_mps = LaunchConfiguration(
+        "guard_dynamic_speed_middle_mps"
+    )
+    guard_dynamic_speed_final_mps = LaunchConfiguration(
+        "guard_dynamic_speed_final_mps"
+    )
+    guard_dynamic_speed_initial_duration_s = LaunchConfiguration(
+        "guard_dynamic_speed_initial_duration_s"
+    )
+    guard_dynamic_speed_middle_duration_s = LaunchConfiguration(
+        "guard_dynamic_speed_middle_duration_s"
+    )
     ev_max_input_age_s = LaunchConfiguration("ev_max_input_age_s")
     ev_max_position_jump_m = LaunchConfiguration("ev_max_position_jump_m")
     ev_max_velocity_difference_mps = LaunchConfiguration(
@@ -114,7 +129,12 @@ def generate_launch_description():
                 "max_position_jump_m": 0.30,
                 "max_xy_jump_m": 0.20,
                 "max_z_jump_m": 0.10,
-                "max_computed_speed_mps": 1.2,
+                "max_computed_speed_mps": guard_dynamic_speed_initial_mps,
+                "dynamic_speed_initial_mps": guard_dynamic_speed_initial_mps,
+                "dynamic_speed_middle_mps": guard_dynamic_speed_middle_mps,
+                "dynamic_speed_final_mps": guard_dynamic_speed_final_mps,
+                "dynamic_speed_initial_duration_s": guard_dynamic_speed_initial_duration_s,
+                "dynamic_speed_middle_duration_s": guard_dynamic_speed_middle_duration_s,
                 "max_computed_z_speed_mps": 1.2,
             }
         ],
@@ -349,6 +369,25 @@ def generate_launch_description():
             DeclareLaunchArgument("fastlio_odom_topic", default_value="/Odometry"),
             DeclareLaunchArgument("guarded_odom_topic", default_value="/Odometry/guarded"),
             DeclareLaunchArgument("healthy_odom_topic", default_value="/Odometry/healthy"),
+            # The computed-speed guard starts only after its first accepted odometry
+            # sample: 1.5 m/s for 3 s, 2.0 m/s for the next 3 s, then 4.0 m/s.
+            # Position, vertical jump, timestamp, and reported-speed gates remain
+            # unchanged.
+            DeclareLaunchArgument(
+                "guard_dynamic_speed_initial_mps", default_value="1.5"
+            ),
+            DeclareLaunchArgument(
+                "guard_dynamic_speed_middle_mps", default_value="2.0"
+            ),
+            DeclareLaunchArgument(
+                "guard_dynamic_speed_final_mps", default_value="4.0"
+            ),
+            DeclareLaunchArgument(
+                "guard_dynamic_speed_initial_duration_s", default_value="3.0"
+            ),
+            DeclareLaunchArgument(
+                "guard_dynamic_speed_middle_duration_s", default_value="3.0"
+            ),
             DeclareLaunchArgument("ev_max_input_age_s", default_value="0.25"),
             DeclareLaunchArgument("ev_max_position_jump_m", default_value="0.15"),
             DeclareLaunchArgument("ev_max_velocity_difference_mps", default_value="0.45"),
@@ -362,7 +401,12 @@ def generate_launch_description():
             DeclareLaunchArgument("ev_recovery_healthy_s", default_value="2.0"),
             DeclareLaunchArgument("ev_message_timeout_s", default_value="0.5"),
             DeclareLaunchArgument("ev_velocity_lowpass_cutoff_hz", default_value="3.0"),
-            DeclareLaunchArgument("ev_max_velocity_alignment_s", default_value="0.1"),
+            # MAVROS local velocity is nominally 10 Hz.  A 150 ms matching
+            # window accepts ordinary OS/serial jitter; the 0.5 s velocity
+            # stream timeout remains the hard liveness boundary.
+            DeclareLaunchArgument(
+                "ev_max_velocity_alignment_s", default_value="0.15"
+            ),
             DeclareLaunchArgument(
                 "ev_max_internal_velocity_alignment_s", default_value="0.1"
             ),
@@ -384,8 +428,10 @@ def generate_launch_description():
                 "frlio_anchor_status_timeout_s", default_value="0.5"
             ),
             DeclareLaunchArgument("frlio_max_anchor_age_s", default_value="0.60"),
+            # Do not reset an otherwise healthy flight on one scheduling gap.
+            # This is still stricter than the 0.5 s EV/PX4 input timeouts.
             DeclareLaunchArgument(
-                "flight_ready_output_timeout_s", default_value="0.10"
+                "flight_ready_output_timeout_s", default_value="0.25"
             ),
             DeclareLaunchArgument(
                 "velocity_variance_floor_x_m2ps2", default_value="0.0016"

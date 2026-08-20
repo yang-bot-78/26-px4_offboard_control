@@ -4,6 +4,7 @@
 #pragma once
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <deque>
@@ -151,8 +152,16 @@ struct HighRateOdomResult
   HighRateOdomState state;
   Eigen::Vector3d body_angular_velocity{Eigen::Vector3d::Zero()};
   double lidar_anchor_age_s{0.0};
+  double imu_mutex_wait_s{0.0};
   HighRateOdomHealth health{HighRateOdomHealth::Healthy};
   bool publish{false};
+};
+
+struct HighRateOdomResetMetrics
+{
+  size_t replay_sample_count{0};
+  double mutex_wait_s{0.0};
+  double replay_duration_s{0.0};
 };
 
 class HighRateOdomPropagator
@@ -170,13 +179,23 @@ public:
   {
   }
 
-  bool reset_from_lidar(const HighRateOdomState & corrected_state)
+  bool reset_from_lidar(
+    const HighRateOdomState & corrected_state,
+    HighRateOdomResetMetrics * metrics = nullptr)
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const auto wait_start = std::chrono::steady_clock::now();
+    std::unique_lock<std::mutex> lock(mutex_);
+    const auto lock_acquired = std::chrono::steady_clock::now();
+    HighRateOdomResetMetrics local_metrics;
+    local_metrics.mutex_wait_s =
+      std::chrono::duration<double>(lock_acquired - wait_start).count();
     if (!state_is_valid(corrected_state) ||
       (initialized_ && corrected_state.timestamp <= lidar_anchor_timestamp_) ||
       (!history_.empty() && corrected_state.timestamp > history_.back().timestamp))
     {
+      if (metrics) {
+        *metrics = local_metrics;
+      }
       return false;
     }
 
@@ -188,21 +207,34 @@ public:
 
     previous_input_ = input_at_locked(corrected_state.timestamp);
     if (!previous_input_) {
+      if (metrics) {
+        *metrics = local_metrics;
+      }
       return true;
     }
 
+    const auto replay_start = std::chrono::steady_clock::now();
     for (const auto & sample : history_) {
       if (sample.timestamp <= corrected_state.timestamp) {
         continue;
       }
       propagate_locked(sample);
+      ++local_metrics.replay_sample_count;
+    }
+    local_metrics.replay_duration_s = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - replay_start).count();
+    if (metrics) {
+      *metrics = local_metrics;
     }
     return true;
   }
 
   std::optional<HighRateOdomResult> add_imu(const HighRateImuSample & sample)
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const auto wait_start = std::chrono::steady_clock::now();
+    std::unique_lock<std::mutex> lock(mutex_);
+    last_imu_mutex_wait_s_ = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - wait_start).count();
     if (!sample_is_valid(sample)) {
       return std::nullopt;
     }
@@ -439,6 +471,7 @@ private:
     result.state = state_;
     result.body_angular_velocity = last_body_angular_velocity_;
     result.lidar_anchor_age_s = state_.timestamp - lidar_anchor_timestamp_;
+    result.imu_mutex_wait_s = last_imu_mutex_wait_s_;
     if (result.lidar_anchor_age_s > max_anchor_age_s_) {
       result.health = HighRateOdomHealth::StaleLidar;
       result.publish = false;
@@ -470,6 +503,7 @@ private:
   std::optional<HighRateImuSample> previous_input_;
   Eigen::Vector3d last_body_angular_velocity_{Eigen::Vector3d::Zero()};
   double lidar_anchor_timestamp_{0.0};
+  double last_imu_mutex_wait_s_{0.0};
   bool initialized_{false};
 };
 

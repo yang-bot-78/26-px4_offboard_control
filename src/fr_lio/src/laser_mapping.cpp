@@ -39,6 +39,7 @@
 // Copyright (c) HKU MARS Lab.
 
 #include <omp.h>
+#include <atomic>
 #include <mutex>
 #include <cmath>
 #include <thread>
@@ -54,6 +55,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
@@ -130,6 +132,10 @@ double point_range_noise_var = 0.0004;
 
 mutex mtx_buffer;
 condition_variable sig_buffer;
+deque<double> lidar_callback_lag_buffer;
+deque<double> lidar_preprocess_time_buffer;
+size_t lidar_dropped_total = 0;
+std::atomic<double> latest_imu_mutex_wait_s{0.0};
 /* Working ikd-Tree mutex. Only acquired from the LC thread when
    correct_working_tree is enabled — the IESKF hot path (h_share_model,
    incremental insert) does NOT lock it, matching upstream FAST-LIO2's
@@ -606,6 +612,9 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
     {
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         lidar_buffer.clear();
+        time_buffer.clear();
+        lidar_callback_lag_buffer.clear();
+        lidar_preprocess_time_buffer.clear();
     }
     if (is_first_lidar)
     {
@@ -613,6 +622,9 @@ void standard_pcl_cbk(const sensor_msgs::msg::PointCloud2::UniquePtr msg)
     }
     lidar_buffer.push_back(ptr);
     time_buffer.push_back(cur_time);
+    lidar_callback_lag_buffer.push_back(
+        last_timestamp_imu >= 0.0 ? std::max(0.0, last_timestamp_imu - cur_time) : 0.0);
+    lidar_preprocess_time_buffer.push_back(preprocess_elapsed);
     last_timestamp_lidar = cur_time;
     s_plot11[scan_count] = preprocess_elapsed;
     mtx_buffer.unlock();
@@ -637,6 +649,9 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
     {
         std::cerr << "lidar loop back, clear buffer" << std::endl;
         lidar_buffer.clear();
+        time_buffer.clear();
+        lidar_callback_lag_buffer.clear();
+        lidar_preprocess_time_buffer.clear();
     }
     if (is_first_lidar)
     {
@@ -658,6 +673,10 @@ void livox_pcl_cbk(const livox_ros_driver2::msg::CustomMsg::UniquePtr msg)
 
     lidar_buffer.push_back(ptr);
     time_buffer.push_back(last_timestamp_lidar);
+    lidar_callback_lag_buffer.push_back(
+        last_timestamp_imu >= 0.0 ?
+        std::max(0.0, last_timestamp_imu - last_timestamp_lidar) : 0.0);
+    lidar_preprocess_time_buffer.push_back(preprocess_elapsed);
     s_plot11[scan_count] = preprocess_elapsed;
     mtx_buffer.unlock();
     sig_buffer.notify_all();
@@ -673,6 +692,7 @@ bool sync_packages(MeasureGroup &meas)
     }
 
     /*** drop stale scans — keep only the latest to stay near real-time ***/
+    meas.lidar_pending_depth = lidar_buffer.size();
     if (lidar_buffer.size() > 1)
     {
         lidar_pushed = false;
@@ -680,6 +700,9 @@ bool sync_packages(MeasureGroup &meas)
         {
             lidar_buffer.pop_front();
             time_buffer.pop_front();
+            lidar_callback_lag_buffer.pop_front();
+            lidar_preprocess_time_buffer.pop_front();
+            ++lidar_dropped_total;
         }
     }
 
@@ -688,6 +711,9 @@ bool sync_packages(MeasureGroup &meas)
     {
         meas.lidar = lidar_buffer.front();
         meas.lidar_beg_time = time_buffer.front();
+        meas.lidar_callback_lag_s = lidar_callback_lag_buffer.front();
+        meas.lidar_preprocess_s = lidar_preprocess_time_buffer.front();
+        meas.lidar_dropped_total = lidar_dropped_total;
         if (meas.lidar->points.size() <= 1) // time too little
         {
             lidar_end_time = meas.lidar_beg_time + lidar_mean_scantime;
@@ -724,9 +750,12 @@ bool sync_packages(MeasureGroup &meas)
         meas.imu.push_back(imu_buffer.front());
         imu_buffer.pop_front();
     }
+    meas.latest_imu_time = last_timestamp_imu;
 
     lidar_buffer.pop_front();
     time_buffer.pop_front();
+    lidar_callback_lag_buffer.pop_front();
+    lidar_preprocess_time_buffer.pop_front();
     lidar_pushed = false;
     return true;
 }
@@ -1530,6 +1559,8 @@ public:
             "/frlio/high_rate_odom/predictor_vz", odom_qos);
         pubPosteriorDeltaZ_ = this->create_publisher<std_msgs::msg::Float64>(
             "/frlio/high_rate_odom/posterior_delta_z", odom_qos);
+        pubPerformance_ = this->create_publisher<std_msgs::msg::Float64MultiArray>(
+            "/frlio/performance", odom_qos);
         publish_high_rate_status(
             !high_rate_odom_enabled_ ? "DISABLED" :
             (high_rate_publish_enabled_ ? "WAITING_FOR_LIDAR" : "UNIT_UNCONFIRMED"));
@@ -1726,6 +1757,7 @@ private:
     {
         if(sync_packages(Measures))
         {
+            const double frame_start = omp_get_wtime();
             if (flg_first_scan)
             {
                 first_lidar_time = Measures.lidar_beg_time;
@@ -1743,7 +1775,9 @@ private:
             svd_time   = 0;
             t0 = omp_get_wtime();
 
+            const double imu_process_start = omp_get_wtime();
             p_imu->Process(Measures, kf, feats_undistort);
+            const double imu_process_s = omp_get_wtime() - imu_process_start;
             state_point = kf.get_x();
             pos_lid = state_point.pos + state_point.rot * state_point.offset_T_L_I;
 
@@ -1762,6 +1796,7 @@ private:
             downSizeFilterSurf.setInputCloud(feats_undistort);
             downSizeFilterSurf.filter(*feats_down_body);
             t1 = omp_get_wtime();
+            const double fov_downsample_s = t1 - (imu_process_start + imu_process_s);
             feats_down_size = feats_down_body->points.size();
             /*** initialize the map kdtree ***/
             if (ikdtree.size() == 0)
@@ -1948,9 +1983,11 @@ private:
                     rotation_world_body.transpose() * P_drift.block<3,3>(3,3) *
                     rotation_world_body;
             }
+            fr_lio::HighRateOdomResetMetrics reset_metrics;
             if (high_rate_publish_enabled_) {
                 const auto prior_prediction = high_rate_propagator_->current();
-                const bool accepted = high_rate_propagator_->reset_from_lidar(corrected_state);
+                const bool accepted = high_rate_propagator_->reset_from_lidar(
+                    corrected_state, &reset_metrics);
                 if (!accepted) {
                     RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 2000,
                         "Rejected non-monotonic or invalid LiDAR correction at %.6f",
@@ -1974,6 +2011,17 @@ private:
             if (scan_pub_en) publish_frame_world();
             if (scan_pub_en && scan_body_pub_en) publish_frame_body();
             if (effect_pub_en) publish_effect_world();
+            const double cloud_publish_s = omp_get_wtime() - t5;
+
+            publish_performance(
+                Measures,
+                imu_process_s,
+                fov_downsample_s,
+                t_update_end - t_update_start,
+                reset_metrics,
+                t5 - t3,
+                cloud_publish_s,
+                omp_get_wtime() - frame_start);
 
             if (use_scan_to_scan_cov && prev_scan_valid) {
                 RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
@@ -2495,6 +2543,8 @@ private:
 
         if (!high_rate_publish_enabled_) return;
         if (!result) return;
+        latest_imu_mutex_wait_s.store(
+            result->imu_mutex_wait_s, std::memory_order_relaxed);
 
         std_msgs::msg::Float64 anchor_age;
         anchor_age.data = result->lidar_anchor_age_s;
@@ -2649,6 +2699,51 @@ private:
         pubHighRateStatus_->publish(message);
     }
 
+    void publish_performance(
+        const MeasureGroup & measure,
+        double imu_process_s,
+        double fov_downsample_s,
+        double scan_match_s,
+        const fr_lio::HighRateOdomResetMetrics & reset_metrics,
+        double map_incremental_s,
+        double cloud_publish_s,
+        double total_s)
+    {
+        std_msgs::msg::Float64MultiArray message;
+        message.layout.dim.resize(1);
+        message.layout.dim[0].label =
+            "v1:lidar_beg_s,lidar_end_s,latest_imu_s,callback_lag_ms,"
+            "sync_lag_ms,pending_depth,dropped_total,preprocess_ms,imu_process_ms,"
+            "fov_downsample_ms,scan_match_ms,reset_lock_wait_ms,reset_replay_ms,"
+            "reset_replay_samples,imu_lock_wait_ms,map_incremental_ms,"
+            "cloud_publish_ms,total_ms,undistorted_points,downsampled_points";
+        message.data = {
+            measure.lidar_beg_time,
+            measure.lidar_end_time,
+            measure.latest_imu_time,
+            measure.lidar_callback_lag_s * 1000.0,
+            std::max(0.0, measure.latest_imu_time - measure.lidar_end_time) * 1000.0,
+            static_cast<double>(measure.lidar_pending_depth),
+            static_cast<double>(measure.lidar_dropped_total),
+            measure.lidar_preprocess_s * 1000.0,
+            imu_process_s * 1000.0,
+            fov_downsample_s * 1000.0,
+            scan_match_s * 1000.0,
+            reset_metrics.mutex_wait_s * 1000.0,
+            reset_metrics.replay_duration_s * 1000.0,
+            static_cast<double>(reset_metrics.replay_sample_count),
+            latest_imu_mutex_wait_s.load(std::memory_order_relaxed) * 1000.0,
+            map_incremental_s * 1000.0,
+            cloud_publish_s * 1000.0,
+            total_s * 1000.0,
+            static_cast<double>(feats_undistort->size()),
+            static_cast<double>(feats_down_body->size()),
+        };
+        message.layout.dim[0].size = message.data.size();
+        message.layout.dim[0].stride = message.data.size();
+        pubPerformance_->publish(message);
+    }
+
 private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFull_body_;
@@ -2661,6 +2756,7 @@ private:
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubAnchorAge_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubPredictorVz_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr pubPosteriorDeltaZ_;
+    rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr pubPerformance_;
     rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr sub_imu_;
     rclcpp::CallbackGroup::SharedPtr imu_cb_group_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr sub_pcl_pc_;

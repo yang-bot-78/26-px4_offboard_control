@@ -48,7 +48,9 @@ class HealthConfig:
     px4_velocity_timeout_s: float = 0.5
     px4_velocity_max_input_age_s: float = 0.25
     px4_velocity_max_future_stamp_s: float = 0.05
-    max_velocity_alignment_s: float = 0.1
+    # MAVROS local velocity is nominally 10 Hz.  Leave 50 ms for Linux/serial
+    # scheduling jitter while retaining the independent 0.5 s stream timeout.
+    max_velocity_alignment_s: float = 0.15
     max_internal_velocity_alignment_s: float = 0.1
     velocity_history_s: float = 3.0
     internal_velocity_history_s: float = 3.0

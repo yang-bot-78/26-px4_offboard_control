@@ -189,12 +189,21 @@ class AstarEgoTuningTest(unittest.TestCase):
                 '/race/ego/planner_safety_status',
                 '/frlio/high_rate_odom/status',
                 '/frlio/high_rate_odom/anchor_age',
+                '/frlio/performance', '/Odometry', '/Odometry/guarded',
+                '/fastlio_global/relocalized_pose',
+                '/fastlio_global/backend_status',
+                '/planning/odom', '/Odometry/healthy',
                 '/ev_health/status', '/ev_health/fault',
-                '/ev_health/diagnostics'):
+                '/ev_health/flight_ready', '/ev_health/diagnostics',
+                '/mavros/vision_pose/pose_cov',
+                '/mavros/local_position/odom',
+                '/mavros/local_position/velocity_local',
+                '/fmu/out/estimator_status_flags',
+                '/fmu/out/vehicle_local_position'):
             self.assertIn(topic, low_topics)
         for topic in (
                 '/livox/lidar', '/livox/imu', '/cloud_registered',
-                '/saved_map', '/tf_static', '/mavros/local_position/odom'):
+                '/saved_map', '/tf_static'):
             self.assertNotIn(topic, low_topics)
         for topic in (
                 '/race/ego/cloud', '/race/ego/occupancy',
@@ -212,6 +221,7 @@ class AstarEgoTuningTest(unittest.TestCase):
             ROOT / 'tools/flight/切Offboard后自动起飞0.75米单目标验证.sh'
         ).read_text(encoding='utf-8')
         self.assertIn('--lowrosbag', auto_takeoff)
+        self.assertIn('--lowbag', auto_takeoff)
         self.assertIn('ROSBAG_PROFILE="${rosbag_profile}"', auto_takeoff)
         self.assertIn('manual_handover_min_altitude_m="0.50"', auto_takeoff)
         self.assertIn('manual_handover_max_altitude_m="1.20"', auto_takeoff)
@@ -220,6 +230,11 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertIn('capture_planning_start_position', auto_takeoff)
         self.assertIn('wait_handover_accepted || exit 5', auto_takeoff)
         self.assertIn('wait_planning_tracking || exit 6', auto_takeoff)
+        self.assertIn('setsid --wait env \\', auto_takeoff)
+        manual_takeoff = (
+            ROOT / 'tools/flight/人工起飞后Offboard单目标验证.sh'
+        ).read_text(encoding='utf-8')
+        self.assertIn('setsid --wait env \\', manual_takeoff)
         manual_block = auto_takeoff.split(
             'if [[ "${takeoff_mode}" == manual ]]; then\n  cat <<EOF', 1)[1].split(
             'else\n', 1)[0]

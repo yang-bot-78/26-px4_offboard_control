@@ -35,9 +35,9 @@ if [[ "${record_ego_diagnostics}" != true && "${record_ego_diagnostics}" != fals
   exit 1
 fi
 case "${rosbag_profile}" in
-  full|low|trace) ;;
+  full|low|trace|strosbag) ;;
   *)
-    echo "ROSBAG_PROFILE 必须是 full、low 或 trace，当前为：${rosbag_profile}" >&2
+    echo "ROSBAG_PROFILE 必须是 full、low、trace 或 strosbag，当前为：${rosbag_profile}" >&2
     exit 1
     ;;
 esac
@@ -148,6 +148,10 @@ copy_optional "${project_root}/tools/flight/一键启动起飞栈.sh" \
   "${snapshot_dir}/一键启动起飞栈.sh"
 copy_optional "${project_root}/tools/flight/一键启动导航栈.sh" \
   "${snapshot_dir}/一键启动导航栈.sh"
+copy_optional "${project_root}/tools/flight/切Offboard后自动起飞0.75米单目标验证.sh" \
+  "${snapshot_dir}/切Offboard后自动起飞0.75米单目标验证.sh"
+copy_optional "${project_root}/tools/rosbag/开始录包.sh" \
+  "${snapshot_dir}/开始录包.sh"
 copy_optional "${project_root}/src/px4_ros_com/launch/fastlio_mavros_autofix.launch.py" \
   "${snapshot_dir}/fastlio_mavros_autofix.launch.py"
 copy_optional "${project_root}/src/px4_ros_com/src/bridges/fastlio_mavros_vision_bridge.cpp" \
@@ -166,6 +170,16 @@ copy_optional "${project_root}/src/px4_ros_com/px4_ros_com/ev_health.py" \
   "${snapshot_dir}/ev_health.py"
 copy_optional "${project_root}/src/px4_ros_com/scripts/check_fastlio_vision_yaw.py" \
   "${snapshot_dir}/check_fastlio_vision_yaw.py"
+copy_optional "${project_root}/src/fr_lio/src/laser_mapping.cpp" \
+  "${snapshot_dir}/frlio_laser_mapping.cpp"
+copy_optional "${project_root}/src/fr_lio/include/fr_lio/high_rate_odom.hpp" \
+  "${snapshot_dir}/frlio_high_rate_odom.hpp"
+copy_optional "${project_root}/src/fr_lio/include/fr_lio/common_lib.hpp" \
+  "${snapshot_dir}/frlio_common_lib.hpp"
+copy_optional "${project_root}/src/fr_lio/config/indoors.yaml" \
+  "${snapshot_dir}/frlio_indoors.yaml"
+copy_optional "${project_root}/src/fr_lio/launch/lio.launch.py" \
+  "${snapshot_dir}/frlio_lio.launch.py"
 
 for candidate in "${mid360_candidates[@]}"; do
   if copy_if_exists "${candidate}" "${snapshot_dir}/mid360.yaml"; then
@@ -205,7 +219,7 @@ if [[ "${rosbag_profile}" == "full" ]]; then
   echo "是否录制 EGO 障碍诊断：${record_ego_diagnostics}"
 else
   if [[ "${rosbag_profile}" == "low" ]]; then
-    echo "低负载录包：仅保留规划/交接、一条 EGO 实际状态、控制状态和 EV/锚点诊断；不录制原始传感器、点云、TF 或完整 MAVROS/PX4 高频流。"
+    echo "低负载录包：保留规划/交接、FR-LIO性能及原始里程计到PX4融合状态的完整EV证据链；不录制原始LiDAR、点云或TF。"
   else
     echo "高度追踪录包：在低负载规划/交接内容基础上，追加 FR-LIO、PX4 EKF、独立高度传感器和 z/vz/thrust 设定值证据链。"
   fi
@@ -241,13 +255,36 @@ low_bag_topics=(
   # 计算候选轨迹与飞机真实状态的误差。
   /race/ego/odom
   /race/navigation_setpoint
-  # 保留低带宽的 EV/锚点诊断，用来区分规划问题和定位输入过期。
+  # FR-LIO 小消息性能诊断：包含LiDAR回调/同步延迟、内部队列与丢帧、
+  # 各处理阶段耗时、IMU重放数量/耗时和互斥锁等待。原始LiDAR不进入lowbag。
+  /frlio/performance
   /frlio/high_rate_odom/status
   /frlio/high_rate_odom/anchor_age
+  /frlio/high_rate_odom/predictor_vz
+  /frlio/high_rate_odom/posterior_delta_z
+  # EV逐级输出必须完整保留，才能确定具体在哪一级停止。
+  /Odometry
+  /Odometry/guarded
+  /fastlio_global/relocalized_pose
+  /fastlio_global/backend_status
+  /planning/odom
+  /Odometry/healthy
   /ev_health/status
   /ev_health/fault
+  /ev_health/flight_ready
   /ev_health/diagnostics
+  /ev_health/velocity_ned
+  /diagnostics
   /mavros/state
+  /mavros/estimator_status
+  /mavros/local_position/odom
+  /mavros/local_position/velocity_local
+  /mavros/vision_pose/pose_cov
+  /mavros/vision_speed/speed_twist_cov
+  # 同时列出两个PX4消息版本；未发布的话题不会产生数据或额外负载。
+  /fmu/out/estimator_status_flags
+  /fmu/out/vehicle_local_position
+  /fmu/out/vehicle_local_position_v1
 )
 
 full_bag_topics=(
@@ -259,6 +296,7 @@ full_bag_topics=(
   /livox/imu
   /frlio/high_rate_odom/status
   /frlio/high_rate_odom/anchor_age
+  /frlio/performance
   # 高频原始、规划和经 EV 门控后的里程计，三者必须一起保存，才能对齐
   # 输入断档、重定位桥和 MAVROS/PX4 视觉输出。
   /Odometry
@@ -357,6 +395,21 @@ trace_bag_topics=(
   /race/flight_altitude_reference
 )
 
+strosbag_topics=(
+  # Global relocalization evidence. These are high-bandwidth and are enabled
+  # only for explicit waypoint-survey diagnosis.
+  /livox/lidar
+  /livox/imu
+  /cloud_registered
+  /cloud_registered_body
+  /Odometry/map
+  /fastlio_global/backend_status
+  /fastlio_global/map
+  /fastlio_global/path
+  /fastlio_global/loop_markers
+  /fastlio_global/relocalized_pose
+)
+
 # 高度追踪模式以低负载模式为基线，再追加高度证据链。两个集合有意
 # 保留各自的声明，合并时去重，避免同一个话题被重复传给 rosbag。
 merge_unique_topics() {
@@ -377,6 +430,9 @@ if [[ "${rosbag_profile}" == "low" ]]; then
 elif [[ "${rosbag_profile}" == "trace" ]]; then
   mapfile -t bag_topics < <(merge_unique_topics \
     "${low_bag_topics[@]}" "${trace_bag_topics[@]}")
+elif [[ "${rosbag_profile}" == "strosbag" ]]; then
+  mapfile -t bag_topics < <(merge_unique_topics \
+    "${full_bag_topics[@]}" "${strosbag_topics[@]}")
 else
   bag_topics=("${full_bag_topics[@]}")
   if [[ "${record_ego_diagnostics}" == true ]]; then

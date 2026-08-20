@@ -27,6 +27,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
@@ -236,6 +237,15 @@ public:
     icp_max_iterations_ = declare_parameter<int>("icp_max_iterations", 40);
     icp_fitness_threshold_ = declare_parameter<double>("icp_fitness_threshold", 0.35);
     relocalization_fitness_threshold_ = declare_parameter<double>("relocalization_fitness_threshold", 0.45);
+    relocalization_candidate_count_ = declare_parameter<int>("relocalization_candidate_count", 5);
+    relocalization_min_inlier_ratio_ = declare_parameter<double>("relocalization_min_inlier_ratio", 0.55);
+    relocalization_inlier_distance_m_ = declare_parameter<double>("relocalization_inlier_distance_m", 0.5);
+    relocalization_confirmation_count_ = declare_parameter<int>("relocalization_confirmation_count", 3);
+    relocalization_confirmation_translation_m_ = declare_parameter<double>("relocalization_confirmation_translation_m", 0.35);
+    relocalization_confirmation_yaw_deg_ = declare_parameter<double>("relocalization_confirmation_yaw_deg", 8.0);
+    relocalization_ambiguity_translation_m_ = declare_parameter<double>("relocalization_ambiguity_translation_m", 2.0);
+    relocalization_ambiguity_yaw_deg_ = declare_parameter<double>("relocalization_ambiguity_yaw_deg", 25.0);
+    relocalization_ambiguity_fitness_margin_ = declare_parameter<double>("relocalization_ambiguity_fitness_margin", 0.03);
     publish_map_every_n_keyframes_ = declare_parameter<int>("publish_map_every_n_keyframes", 3);
     enable_loop_closure_ = declare_parameter<bool>("enable_loop_closure", true);
     enable_relocalization_mode_ = declare_parameter<bool>("enable_relocalization_mode", false);
@@ -306,6 +316,13 @@ private:
     int candidate_index{-1};
     int sector_shift{0};
     double similarity{-1.0};
+  };
+
+  struct RegistrationResult
+  {
+    Eigen::Isometry3d transform{Eigen::Isometry3d::Identity()};
+    double fitness{std::numeric_limits<double>::infinity()};
+    double inlier_ratio{0.0};
   };
 
   void syncedCallback(const OdomMsg::ConstSharedPtr & odom_msg, const CloudMsg::ConstSharedPtr & cloud_msg)
@@ -503,7 +520,7 @@ private:
     return downsampleCloud(submap, submap_voxel_leaf_m_);
   }
 
-  std::optional<Eigen::Isometry3d> runIcpRegistration(
+  std::optional<RegistrationResult> runIcpRegistration(
     const CloudT::Ptr & source,
     const CloudT::Ptr & target,
     double fitness_threshold,
@@ -540,7 +557,29 @@ private:
       return std::nullopt;
     }
 
-    return Eigen::Isometry3d(icp.getFinalTransformation().cast<double>());
+    RegistrationResult result;
+    result.transform = Eigen::Isometry3d(icp.getFinalTransformation().cast<double>());
+    result.fitness = score;
+    CloudT::Ptr aligned_cloud = transformCloud(source, result.transform);
+    pcl::KdTreeFLANN<PointT> target_tree;
+    target_tree.setInputCloud(target);
+    const float squared_radius = static_cast<float>(
+      relocalization_inlier_distance_m_ * relocalization_inlier_distance_m_);
+    std::vector<int> indices(1);
+    std::vector<float> squared_distances(1);
+    std::size_t inliers = 0;
+    for (const auto & point : aligned_cloud->points) {
+      if (target_tree.nearestKSearch(point, 1, indices, squared_distances) == 1 &&
+          squared_distances[0] <= squared_radius) {
+        ++inliers;
+      }
+    }
+    result.inlier_ratio = static_cast<double>(inliers) /
+      static_cast<double>(std::max<std::size_t>(1, aligned_cloud->size()));
+    if (result.inlier_ratio < relocalization_min_inlier_ratio_) {
+      return std::nullopt;
+    }
+    return result;
   }
 
   void tryAddLoopClosure(int current_index, const LoopCandidate & loop, double fitness_threshold)
@@ -555,7 +594,7 @@ private:
       return;
     }
 
-    addLoopFactor(loop.candidate_index, current_index, relative_transform.value());
+    addLoopFactor(loop.candidate_index, current_index, relative_transform->transform);
     optimizePoseGraph();
     publishLoopMarker(loop.candidate_index, current_index);
     RCLCPP_INFO(
@@ -582,42 +621,96 @@ private:
       loaded_keyframe_count_, latest_local_cloud_->size());
 
     const Eigen::MatrixXf latest_descriptor = buildScanContext(*latest_local_cloud_);
-    const LoopCandidate loop = detectLoopCandidate(latest_descriptor, -1, 0);
-    if (!loop.valid || loop.candidate_index < 0) {
+    std::vector<LoopCandidate> candidates;
+    for (int index = 0; index < loaded_keyframe_count_; ++index) {
+      double best_similarity = -1.0;
+      int best_shift = 0;
+      for (int shift = 0; shift < scan_context_sectors_; ++shift) {
+        const double similarity = shiftedSimilarity(latest_descriptor, keyframes_[index].scan_context, shift);
+        if (similarity > best_similarity) {
+          best_similarity = similarity;
+          best_shift = shift;
+        }
+      }
+      if (best_similarity >= scan_context_similarity_threshold_) {
+        candidates.push_back({true, index, best_shift, best_similarity});
+      }
+    }
+    std::sort(candidates.begin(), candidates.end(), [](const auto & left, const auto & right) {
+      return left.similarity > right.similarity;
+    });
+    if (candidates.empty()) {
       message = "Scan Context did not find a confident relocalization candidate.";
       RCLCPP_WARN(get_logger(), "%s", message.c_str());
       return false;
     }
 
     const auto poses = effectivePoses();
-    CloudT::Ptr target = buildLocalSubmap(loop.candidate_index, poses);
-    RCLCPP_INFO(
-      get_logger(),
-      "Relocalization candidate: index=%d similarity=%.3f sector_shift=%d coarse_yaw=%.3f deg "
-      "source_points=%zu target_points=%zu",
-      loop.candidate_index, loop.similarity, loop.sector_shift,
-      scanContextShiftYawDeg(loop.sector_shift), latest_local_cloud_->size(), target->size());
-    Eigen::Isometry3d coarse_yaw = Eigen::Isometry3d::Identity();
-    coarse_yaw.linear() = Eigen::AngleAxisd(
-      scanContextShiftYaw(loop.sector_shift), Eigen::Vector3d::UnitZ()).toRotationMatrix();
-    double fitness = std::numeric_limits<double>::infinity();
-    const auto target_from_source = runIcpRegistration(
-      latest_local_cloud_, target, relocalization_fitness_threshold_, &fitness, coarse_yaw);
-    if (!target_from_source.has_value()) {
-      std::ostringstream oss;
-      oss << "ICP relocalization failed or exceeded threshold. coarse_yaw_deg="
-          << std::fixed << std::setprecision(3) << scanContextShiftYawDeg(loop.sector_shift)
-          << " fitness=" << std::setprecision(6) << fitness;
-      message = oss.str();
+    struct AcceptedCandidate { LoopCandidate loop; RegistrationResult registration; Eigen::Isometry3d pose; };
+    std::vector<AcceptedCandidate> accepted;
+    const int candidate_limit = std::max(1, relocalization_candidate_count_);
+    for (int candidate_number = 0;
+         candidate_number < static_cast<int>(candidates.size()) && candidate_number < candidate_limit;
+         ++candidate_number) {
+      const auto & candidate = candidates[candidate_number];
+      CloudT::Ptr target = buildLocalSubmap(candidate.candidate_index, poses);
+      Eigen::Isometry3d coarse_yaw = Eigen::Isometry3d::Identity();
+      coarse_yaw.linear() = Eigen::AngleAxisd(
+        scanContextShiftYaw(candidate.sector_shift), Eigen::Vector3d::UnitZ()).toRotationMatrix();
+      const auto registration = runIcpRegistration(
+        latest_local_cloud_, target, relocalization_fitness_threshold_, nullptr, coarse_yaw);
+      if (registration.has_value()) {
+        accepted.push_back({candidate, registration.value(), poses[candidate.candidate_index] * registration->transform});
+      }
+    }
+    if (accepted.empty()) {
+      message = "No Scan Context candidate passed ICP fitness and inlier-ratio gates.";
       RCLCPP_WARN(get_logger(), "%s", message.c_str());
       return false;
     }
-
-    estimated_pose = poses[loop.candidate_index] * target_from_source.value();
+    std::sort(accepted.begin(), accepted.end(), [](const auto & left, const auto & right) {
+      return left.registration.fitness < right.registration.fitness;
+    });
+    const auto & best = accepted.front();
+    for (std::size_t i = 1; i < accepted.size(); ++i) {
+      const Eigen::Isometry3d delta = best.pose.inverse() * accepted[i].pose;
+      const double translation = delta.translation().norm();
+      const double yaw_deg = std::abs(std::atan2(delta.linear()(1, 0), delta.linear()(0, 0))) * kRadToDeg;
+      if (translation >= relocalization_ambiguity_translation_m_ || yaw_deg >= relocalization_ambiguity_yaw_deg_) {
+        if (accepted[i].registration.fitness <= best.registration.fitness + relocalization_ambiguity_fitness_margin_) {
+          message = "Ambiguous relocalization: two spatially distinct ICP solutions have similar fitness.";
+          RCLCPP_WARN(get_logger(), "%s", message.c_str());
+          return false;
+        }
+      }
+    }
+    estimated_pose = best.pose;
+    const Eigen::Isometry3d consistency_delta = pending_relocalization_pose_.inverse() * estimated_pose;
+    const double consistency_translation = consistency_delta.translation().norm();
+    const double consistency_yaw_deg = std::abs(std::atan2(
+      consistency_delta.linear()(1, 0), consistency_delta.linear()(0, 0))) * kRadToDeg;
+    if (relocalization_confirmation_observations_ == 0 ||
+        consistency_translation > relocalization_confirmation_translation_m_ ||
+        consistency_yaw_deg > relocalization_confirmation_yaw_deg_) {
+      pending_relocalization_pose_ = estimated_pose;
+      relocalization_confirmation_observations_ = 1;
+    } else {
+      ++relocalization_confirmation_observations_;
+    }
+    if (relocalization_confirmation_observations_ < std::max(1, relocalization_confirmation_count_)) {
+      std::ostringstream oss;
+      oss << "Relocalization observation accepted but awaiting confirmation "
+          << relocalization_confirmation_observations_ << "/" << relocalization_confirmation_count_;
+      message = oss.str();
+      return false;
+    }
     map_to_odom_ = estimated_pose * latest_odom_pose_.inverse();
     has_relocalized_ = true;
 
-    const Eigen::Isometry3d & refined = target_from_source.value();
+    const Eigen::Isometry3d & refined = best.registration.transform;
+    const double fitness = best.registration.fitness;
+    const LoopCandidate & loop = best.loop;
+
     const double refined_yaw_deg = std::atan2(
       refined.linear()(1, 0), refined.linear()(0, 0)) * kRadToDeg;
     RCLCPP_INFO(
@@ -823,6 +916,8 @@ private:
     has_latest_scan_ = false;
     latest_local_cloud_.reset();
     map_to_odom_.setIdentity();
+    pending_relocalization_pose_.setIdentity();
+    relocalization_confirmation_observations_ = 0;
     resetGtsamState();
   }
 
@@ -1076,6 +1171,15 @@ private:
   int icp_max_iterations_{40};
   double icp_fitness_threshold_{0.35};
   double relocalization_fitness_threshold_{0.45};
+  int relocalization_candidate_count_{5};
+  double relocalization_min_inlier_ratio_{0.55};
+  double relocalization_inlier_distance_m_{0.5};
+  int relocalization_confirmation_count_{3};
+  double relocalization_confirmation_translation_m_{0.35};
+  double relocalization_confirmation_yaw_deg_{8.0};
+  double relocalization_ambiguity_translation_m_{2.0};
+  double relocalization_ambiguity_yaw_deg_{25.0};
+  double relocalization_ambiguity_fitness_margin_{0.03};
   int publish_map_every_n_keyframes_{3};
   bool enable_loop_closure_{true};
   bool enable_relocalization_mode_{false};
@@ -1088,7 +1192,9 @@ private:
   int callback_count_{0};
 
   Eigen::Isometry3d map_to_odom_{Eigen::Isometry3d::Identity()};
+  Eigen::Isometry3d pending_relocalization_pose_{Eigen::Isometry3d::Identity()};
   Eigen::Isometry3d latest_odom_pose_{Eigen::Isometry3d::Identity()};
+  int relocalization_confirmation_observations_{0};
   CloudT::Ptr latest_local_cloud_;
   rclcpp::Time latest_stamp_{0, 0, RCL_ROS_TIME};
 

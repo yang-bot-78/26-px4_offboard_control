@@ -151,7 +151,7 @@ class FastlioEvHealthMonitor(Node):
             "frlio_anchor_age_topic", "/frlio/high_rate_odom/anchor_age"
         ).value
         self.flight_ready_output_timeout_s = float(
-            self.declare_parameter("flight_ready_output_timeout_s", 0.10).value
+            self.declare_parameter("flight_ready_output_timeout_s", 0.25).value
         )
         if self.flight_ready_output_timeout_s <= 0.0:
             raise ValueError("flight_ready_output_timeout_s must be positive")
@@ -210,7 +210,7 @@ class FastlioEvHealthMonitor(Node):
                 ).value
             ),
             max_velocity_alignment_s=float(
-                self.declare_parameter("max_velocity_alignment_s", 0.1).value
+                self.declare_parameter("max_velocity_alignment_s", 0.15).value
             ),
             max_internal_velocity_alignment_s=float(
                 self.declare_parameter("max_internal_velocity_alignment_s", 0.1).value

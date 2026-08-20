@@ -74,6 +74,11 @@ struct MeasureGroup     // Lidar data and imu dates for the curent process
     };
     double lidar_beg_time;
     double lidar_end_time;
+    double latest_imu_time = 0.0;
+    double lidar_callback_lag_s = 0.0;
+    double lidar_preprocess_s = 0.0;
+    size_t lidar_pending_depth = 0;
+    size_t lidar_dropped_total = 0;
     PointCloudXYZI::Ptr lidar;
     std::deque<sensor_msgs::msg::Imu::ConstSharedPtr> imu;
 };

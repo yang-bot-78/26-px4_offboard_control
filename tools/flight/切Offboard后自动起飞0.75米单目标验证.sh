@@ -16,7 +16,7 @@ no_ego=false
 
 usage() {
   cat <<'EOF'
-用法：切Offboard后自动起飞0.75米单目标验证.sh [--manualtakeoff] [--noego] [--norosbag|--lowrosbag|--trosbag]
+用法：切Offboard后自动起飞0.75米单目标验证.sh [--manualtakeoff] [--noego] [--norosbag|--lowbag|--lowrosbag|--trosbag]
 
 选项：
   --manualtakeoff  飞手先在 POSITION/POSCTL 手动起飞到安全高度；通过交接门禁后，脚本自动监听
@@ -24,7 +24,7 @@ usage() {
                    --manual-takeoff。手动目标高度由 MANUAL_TAKEOFF_ALTITUDE_M 设置。
   --noego       仅运行 Super A* 全局规划，不启动 EGO 局部规划器。
   --norosbag  本次不启动 rosbag 录制，其余飞行与安全检查保持不变。
-  --lowrosbag 本次仅录制规划/交接、EGO 实际状态、控制状态和 EV/锚点诊断。
+  --lowbag     低负载录制规划/交接、FR-LIO性能和完整EV失效证据链；也接受 --lowrosbag。
   --trosbag   在 lowrosbag 规划/交接内容基础上，追加高度追踪证据链：FR-LIO、PX4 EKF、独立 rangefinder/baro、z/vz/thrust 设定值。
   -h, --help  显示本帮助。
 EOF
@@ -44,23 +44,23 @@ while (($# > 0)); do
       ;;
     --norosbag)
       [[ -z "${bag_option}" ]] || {
-        echo "[错误] --norosbag、--lowrosbag 与 --trosbag 只能选择一个。" >&2
+        echo "[错误] --norosbag、--lowbag/--lowrosbag 与 --trosbag 只能选择一个。" >&2
         exit 2
       }
       record_bag=false
       bag_option="norosbag"
       ;;
-    --lowrosbag)
+    --lowbag|--lowrosbag)
       [[ -z "${bag_option}" ]] || {
-        echo "[错误] --norosbag、--lowrosbag 与 --trosbag 只能选择一个。" >&2
+        echo "[错误] --norosbag、--lowbag/--lowrosbag 与 --trosbag 只能选择一个。" >&2
         exit 2
       }
       rosbag_profile=low
-      bag_option="lowrosbag"
+      bag_option="lowbag"
       ;;
     --trosbag)
       [[ -z "${bag_option}" ]] || {
-        echo "[错误] --norosbag、--lowrosbag 与 --trosbag 只能选择一个。" >&2
+        echo "[错误] --norosbag、--lowbag/--lowrosbag 与 --trosbag 只能选择一个。" >&2
         exit 2
       }
       rosbag_profile=trace
@@ -146,7 +146,9 @@ state_text() {
     # /mavros/state is a live MAVROS stream (volatile durability).  Requesting
     # transient_local here is incompatible with the publisher and can make a
     # one-shot echo report no sample even while MAVROS is connected.
-    raw="$(timeout 3 ros2 topic echo --once \
+    # ros2 topic echo can keep running after SIGTERM during DDS teardown.
+    # Bound every attempt so an unavailable state stream cannot stall cleanup.
+    raw="$(timeout --kill-after=1s 3s ros2 topic echo --once \
       --qos-reliability best_effort \
       /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
     if ! grep -Eq '^connected:[[:space:]]*(true|false)$' <<<"${raw}" ||
@@ -154,7 +156,7 @@ state_text() {
        ! grep -Eq '^mode:[[:space:]]*[^[:space:]]+' <<<"${raw}"; then
       # Keep a default-QoS fallback for distributions/RMWs that reject an
       # explicit reliability override for this publisher.
-      raw="$(timeout 3 ros2 topic echo --once \
+      raw="$(timeout --kill-after=1s 3s ros2 topic echo --once \
         /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
     fi
     # ros2 topic echo may print "A message was lost!!!" even when the command
@@ -959,7 +961,10 @@ fi)
 EOF
 read -r
 
-env \
+# The stack must not share this terminal's foreground process group: Ctrl+C
+# first enters the fail-closed cleanup above and must not directly stop MAVROS.
+# --wait retains a single child PID for readiness checks and later safe teardown.
+setsid --wait env \
   FLIGHT_TIMESTAMP="${flight_timestamp}" \
   FLIGHT_RUN_DIR="${flight_run_dir}" \
   MID360_LEVER_ARM_CONFIG="${lever_arm_config}" \
@@ -1037,9 +1042,13 @@ cat <<'EOF'
 
 [等待规划]
 飞机已锁定在切换至 OFFBOARD 时的位置悬停。
-现在可在 RViz 使用「2D Goal Pose」点击一个近距离、空旷目标点。
-建议首次距离不超过 1m；收到目标和有效规划路径后，飞机才开始飞行。
 EOF
+if [[ "${WAYPOINT_FSM_ENABLED:-false}" == true ]]; then
+  echo "航点状态机已接管目标序列：无需在 RViz 手动点目标；等待状态机发布第一个航点。"
+else
+  echo "现在可在 RViz 使用「2D Goal Pose」点击一个近距离、空旷目标点。"
+  echo "建议首次距离不超过 1m；收到目标和有效规划路径后，飞机才开始飞行。"
+fi
 
 wait_planning_tracking || exit 6
 

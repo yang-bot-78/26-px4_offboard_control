@@ -43,7 +43,7 @@ def generate_launch_description():
                 "recovery_healthy_s": recovery_healthy_s,
                 "message_timeout_s": 0.5,
                 "velocity_lowpass_cutoff_hz": 3.0,
-                "max_velocity_alignment_s": 0.1,
+                "max_velocity_alignment_s": 0.15,
                 "px4_velocity_max_input_age_s": 0.25,
                 "healthy_position_variance_floor_m2": 0.01,
                 "healthy_orientation_variance_floor_rad2": 0.02,

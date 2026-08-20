@@ -100,7 +100,7 @@ class RelocalizationFrameBridge(Node):
         )
         self.declare_parameter("output_odom_topic", "/planning/odom")
         self.declare_parameter("map_frame", "map")
-        self.declare_parameter("odom_frame", "camera_init")
+        self.declare_parameter("odom_frame", "odom")
         self.declare_parameter("body_frame", "body")
         self.declare_parameter("publish_odom_body_tf", True)
 

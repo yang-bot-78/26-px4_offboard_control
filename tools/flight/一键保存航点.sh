@@ -1,8 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 启动地图定位和输出关闭的导航栈，按回车连续保存当前地图坐标。
+# 启动地图定位和输出关闭的导航栈；按回车执行一次重定位或保存一个航点。
 # Ctrl-C 会停止本次启动的全部组件。
+
+show_help() {
+  cat <<'EOF'
+用法：./tools/flight/一键保存航点.sh [--strosbag]
+
+  --strosbag 录制重定位专项 rosbag，含已配准点云、后端地图与路径。
+EOF
+}
+
+record_strosbag=false
+while (($# > 0)); do
+  case "$1" in
+    --strosbag) record_strosbag=true ;;
+    -h|--help|--帮助) show_help; exit 0 ;;
+    *) echo "错误：不支持的参数：$1" >&2; show_help >&2; exit 2 ;;
+  esac
+  shift
+done
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
@@ -163,6 +181,7 @@ echo "============================================================"
 echo "正在启动导航预热、MID-360 雷达、FR-LIO、MAVROS/EV、主地图和 RViz。"
 echo "雷达：启动 MID-360 后等待 ${mid360_frlio_delay} 秒，再启动 FR-LIO。"
 echo "扫图：已开启全局重定位扫描；加载地图后等待 ${relocalization_scan_delay} 秒获取新扫描。"
+echo "重定位：按回车执行一次；失败后可继续按回车重试，不设次数上限。"
 echo "地图文件：${map_file}"
 echo "重定位库：${map_dir}"
 if [[ "${profile_mode}" == true ]]; then
@@ -172,6 +191,9 @@ else
   echo "自定义航点文件：${waypoints_file}"
 fi
 echo "航点采样：飞行手动控制或地面手持均可，只要求地图坐标有效，不要求飞机悬停稳定。"
+if [[ "${record_strosbag}" == true ]]; then
+  echo "重定位专项 rosbag：已启用（高频点云录制，请确认磁盘空间）。"
+fi
 if [[ "${force}" == true ]]; then
   echo "本次采集内同名航点：允许更新；历史日期目录不会被修改。"
 else
@@ -182,11 +204,13 @@ env \
   FLIGHT_RUN_DIR="${session_dir}" FLIGHT_TIMESTAMP="${session_id}" \
   LIO_BACKEND=fr_lio RELOCALIZATION_ENABLED=true NAVIGATION_ENABLED=true \
   MISSION_ENABLED=false ENABLE_OUTPUT=false MANUAL_HANDOVER=true \
-  REQUIRE_FLIGHT_READY_FOR_STARTUP=false RECORD_BAG=false RVIZ=true \
+  REQUIRE_FLIGHT_READY_FOR_STARTUP=false RECORD_BAG="${record_strosbag}" \
+  ROSBAG_PROFILE="$( [[ "${record_strosbag}" == true ]] && printf strosbag || printf full )" RVIZ=true \
   COMPONENT_WINDOWS=false PLANNER_BACKEND=super SKIP_PREFLIGHT_CHECK=1 \
   READINESS_TIMEOUT_SEC="${readiness_timeout}" \
   MID360_FRLIO_DELAY_SEC="${mid360_frlio_delay}" \
   RELOCALIZATION_FRESH_SCAN_DELAY_SEC="${relocalization_scan_delay}" \
+  RELOCALIZATION_INTERACTIVE=true RELOCALIZATION_TRIGGER_TTY=/dev/tty \
   WAYPOINTS_FILE="${waypoints_file}" MISSION_FILE="${mission_file}" \
   "${stack_script}" > >(tee -a "${stack_log}") 2>&1 &
 stack_pid=$!
@@ -214,8 +238,6 @@ echo "定位和地图已准备完成。现在可连续保存航点，按 Ctrl-C 
 echo "已保存的航点会自动显示在 RViz 中。"
 echo "前四个点为 B1、B2、C、D；之后为 P005、P006……，全部点都会写入状态机路线。"
 echo "保存时不要求飞机稳定；请在需要记录的位置按回车即可。"
-discard_pending_input
-read -r -p "确认开始记录 B1；看到本提示后重新按回车才会保存（Ctrl-C 结束）: " _
 index=1
 while true; do
   case "${index}" in

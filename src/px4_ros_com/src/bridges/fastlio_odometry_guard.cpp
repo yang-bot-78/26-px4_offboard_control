@@ -56,6 +56,16 @@ public:
 		max_xy_jump_m_ = declare_parameter<double>("max_xy_jump_m", 0.20);
 		max_z_jump_m_ = declare_parameter<double>("max_z_jump_m", 0.10);
 		max_computed_speed_mps_ = declare_parameter<double>("max_computed_speed_mps", 1.2);
+		dynamic_speed_initial_mps_ = declare_parameter<double>(
+			"dynamic_speed_initial_mps", max_computed_speed_mps_);
+		dynamic_speed_middle_mps_ = declare_parameter<double>(
+			"dynamic_speed_middle_mps", max_computed_speed_mps_);
+		dynamic_speed_final_mps_ = declare_parameter<double>(
+			"dynamic_speed_final_mps", max_computed_speed_mps_);
+		dynamic_speed_initial_duration_s_ = declare_parameter<double>(
+			"dynamic_speed_initial_duration_s", 0.0);
+		dynamic_speed_middle_duration_s_ = declare_parameter<double>(
+			"dynamic_speed_middle_duration_s", 0.0);
 		max_computed_z_speed_mps_ = declare_parameter<double>("max_computed_z_speed_mps", 1.2);
 		max_reported_speed_mps_ = declare_parameter<double>("max_reported_speed_mps", 4.0);
 		max_reported_z_speed_mps_ = declare_parameter<double>("max_reported_z_speed_mps", 2.0);
@@ -65,6 +75,12 @@ public:
 		max_quaternion_norm_ = declare_parameter<double>("max_quaternion_norm", 1.5);
 		reject_log_period_s_ = declare_parameter<double>("reject_log_period_s", 1.0);
 
+		dynamic_speed_initial_mps_ = std::max(0.01, dynamic_speed_initial_mps_);
+		dynamic_speed_middle_mps_ = std::max(dynamic_speed_initial_mps_, dynamic_speed_middle_mps_);
+		dynamic_speed_final_mps_ = std::max(dynamic_speed_middle_mps_, dynamic_speed_final_mps_);
+		dynamic_speed_initial_duration_s_ = std::max(0.0, dynamic_speed_initial_duration_s_);
+		dynamic_speed_middle_duration_s_ = std::max(0.0, dynamic_speed_middle_duration_s_);
+
 		const auto odom_qos = rclcpp::SensorDataQoS().keep_last(5);
 		publisher_ = create_publisher<Odometry>(output_topic_, odom_qos);
 		subscription_ = create_subscription<Odometry>(
@@ -73,13 +89,17 @@ public:
 
 		RCLCPP_INFO(
 			get_logger(),
-			"Guarding odometry %s -> %s (jump=%.2fm, xy=%.2fm, z=%.2fm, speed=%.2fm/s, unknown angular variance>=%.0f)",
+			"Guarding odometry %s -> %s (jump=%.2fm, xy=%.2fm, z=%.2fm, speed=%.2f->%.2f->%.2fm/s over %.1f+%.1fs, unknown angular variance>=%.0f)",
 			input_topic_.c_str(),
 			output_topic_.c_str(),
 			max_position_jump_m_,
 			max_xy_jump_m_,
 			max_z_jump_m_,
-			max_computed_speed_mps_,
+			dynamic_speed_initial_mps_,
+			dynamic_speed_middle_mps_,
+			dynamic_speed_final_mps_,
+			dynamic_speed_initial_duration_s_,
+			dynamic_speed_middle_duration_s_,
 			min_unknown_angular_variance_);
 	}
 
@@ -95,6 +115,11 @@ private:
 	double max_xy_jump_m_{0.20};
 	double max_z_jump_m_{0.10};
 	double max_computed_speed_mps_{1.2};
+	double dynamic_speed_initial_mps_{1.2};
+	double dynamic_speed_middle_mps_{1.2};
+	double dynamic_speed_final_mps_{1.2};
+	double dynamic_speed_initial_duration_s_{0.0};
+	double dynamic_speed_middle_duration_s_{0.0};
 	double max_computed_z_speed_mps_{1.2};
 	double max_reported_speed_mps_{4.0};
 	double max_reported_z_speed_mps_{2.0};
@@ -104,6 +129,7 @@ private:
 	double reject_log_period_s_{1.0};
 
 	std::optional<Odometry> last_accepted_;
+	rclcpp::Time dynamic_speed_started_at_{0, 0, RCL_ROS_TIME};
 	std::size_t accepted_count_{0};
 	std::size_t rejected_count_{0};
 	rclcpp::Time last_reject_log_time_{0, 0, RCL_ROS_TIME};
@@ -178,6 +204,22 @@ private:
 		return true;
 	}
 
+	double current_computed_speed_limit_mps() const
+	{
+		if (dynamic_speed_started_at_.nanoseconds() == 0) {
+			return dynamic_speed_initial_mps_;
+		}
+
+		const double elapsed_s = std::max(0.0, (now() - dynamic_speed_started_at_).seconds());
+		if (elapsed_s < dynamic_speed_initial_duration_s_) {
+			return dynamic_speed_initial_mps_;
+		}
+		if (elapsed_s < dynamic_speed_initial_duration_s_ + dynamic_speed_middle_duration_s_) {
+			return dynamic_speed_middle_mps_;
+		}
+		return dynamic_speed_final_mps_;
+	}
+
 	MotionGateResult check_motion_gate(const Odometry &msg, std::string &reason) const
 	{
 		if (!last_accepted_.has_value()) {
@@ -244,9 +286,11 @@ private:
 			return MotionGateResult::RejectAndRebaseline;
 		}
 
-		if (computed_speed > max_computed_speed_mps_) {
+		const double computed_speed_limit_mps = current_computed_speed_limit_mps();
+		if (computed_speed > computed_speed_limit_mps) {
 			std::ostringstream ss;
-			ss << "computed speed " << computed_speed << " m/s";
+			ss << "computed speed " << computed_speed << " m/s exceeds dynamic limit "
+			   << computed_speed_limit_mps << " m/s";
 			reason = ss.str();
 			return MotionGateResult::Reject;
 		}
@@ -298,6 +342,9 @@ private:
 
 		publisher_->publish(*msg);
 		last_accepted_ = *msg;
+		if (dynamic_speed_started_at_.nanoseconds() == 0) {
+			dynamic_speed_started_at_ = now();
+		}
 		++accepted_count_;
 	}
 };

@@ -5,29 +5,34 @@ fastlio_global_backend:
     relocalized_pose_topic: /fastlio_global/relocalized_pose
     map_frame_id: map
     cloud_is_world_frame: true
+
+    # Relocalization remains operator-triggered and fail-closed.
     scan_context_rings: 20
     scan_context_sectors: 60
     scan_context_max_radius_m: 50.0
-    scan_context_similarity_threshold: 0.5  #0.76
+    scan_context_similarity_threshold: 0.5
     loop_submap_half_width: 5
     submap_voxel_leaf_m: 0.3
-    icp_max_correspondence_distance_m: 0.5  #1.0
+    icp_max_correspondence_distance_m: 0.5
     icp_max_iterations: 40
     relocalization_fitness_threshold: 0.45
-    # Fail closed: validate several hypotheses and require adequate geometric overlap.
-    relocalization_candidate_count: 5 #8
+    relocalization_candidate_count: 5
     relocalization_min_inlier_ratio: 0.55
     relocalization_inlier_distance_m: 0.5
-    # Three independent scans must agree before map -> odom is published.
     relocalization_confirmation_count: 3
     relocalization_confirmation_translation_m: 0.35
     relocalization_confirmation_yaw_deg: 8.0
-    # Do not choose between geographically different, similarly good ICP fits.
     relocalization_ambiguity_translation_m: 2.0
     relocalization_ambiguity_yaw_deg: 25.0
     relocalization_ambiguity_fitness_margin: 0.03
+
+    # Capture nearby viewpoints after the relocalization succeeds.
+    keyframe_translation_thresh_m: 0.15
+    keyframe_rotation_thresh_deg: 5.0
+    keyframe_voxel_leaf_m: 0.2
+    save_keyframe_leaf_m: 0.15
+    publish_map_every_n_keyframes: 1
     enable_relocalization_mode: true
     enable_loop_closure: false
-    # 只允许验证脚本主动调用；禁止后台自动重定位。
-    # 后端内部使用 max(1, stride)，因此不能设为 0。
     auto_relocalize_stride: 2147483647
+    enable_gtsam_backend: true

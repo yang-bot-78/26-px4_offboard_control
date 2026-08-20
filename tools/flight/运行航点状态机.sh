@@ -25,8 +25,8 @@ usage() {
 
 从 WAYPOINTS_FILE 保存的全部航点生成路线后飞行。参数会原样传给已有的
 “切Offboard后自动起飞0.75米单目标验证.sh”，因此人工起飞、规划后端和录包选项保持一致。
-首次切换到 OFFBOARD 后，状态机从路线第一个航点开始；到达每个航点后按
-hold_sec 等配置切换状态并发布下一个目标。
+人工或自动起飞完成、控制节点报告有效高度参考后，状态机才发布路线第一个航点；
+到达每个航点后按 hold_sec 等配置切换状态并发布下一个目标。
 
 默认航点源文件：src/race_offboard/config/waypoints/main/waypoints.yaml
 默认任务路线文件：src/race_offboard/config/waypoints/main/mission.yaml
@@ -122,14 +122,12 @@ for argument in "$@"; do
     --manualtakeoff|--manual-takeoff) wait_for_takeoff=true ;;
   esac
 done
-if [[ "${wait_for_takeoff}" == false ]]; then
-  # The established automatic mode performs its ground gate and vertical
-  # takeoff after OFFBOARD. Do not send a horizontal route goal until that
-  # controller reports the configured takeoff height.
-  fsm_args+=(--wait-for-takeoff)
-fi
+# Both automatic and manual handover modes must wait for the controller's
+# post-takeoff altitude/reference gate.  Publishing the first goal on the
+# OFFBOARD mode edge races that gate and the controller correctly rejects it.
+fsm_args+=(--wait-for-takeoff)
 python3 "${fsm_node}" "${fsm_args[@]}" \
-  >"${fsm_log}" 2>&1 &
+  > >(tee -a "${fsm_log}") 2>&1 &
 fsm_pid=$!
 # Fail before starting the aircraft workflow if the state-machine process
 # cannot initialize.  Without this check a Python/ROS startup exception leaves
@@ -157,6 +155,7 @@ fi
 # --manualtakeoff/--noego/rosbag arguments unchanged.
 set +e
 env MISSION_FILE="${mission_file}" WAYPOINTS_FILE="${waypoints_file}" \
+  WAYPOINT_FSM_ENABLED=true \
   WAYPOINT_VISUALIZER_ENABLED=true \
   "${single_goal_script}" "$@"
 status=$?
