@@ -38,6 +38,9 @@ TEST(GlobalPlannerStatusPolicy, RejectsFailuresForTheActiveGoal)
   EXPECT_TRUE(
     race_offboard::globalPlannerStatusIsFailure(
       true, true, 4, 4, "NO_MAP", "NO_MAP"));
+  EXPECT_TRUE(
+    race_offboard::globalPlannerStatusIsFailure(
+      true, true, 4, 4, "HOLD", "WIND_UNREACHABLE"));
 }
 
 TEST(GlobalPlannerStatusPolicy, HealthyFollowingStatusIsAllowed)

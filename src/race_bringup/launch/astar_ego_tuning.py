@@ -100,6 +100,18 @@ def load_tuning(path):
             'trajectory_prefetch_sec', 'trajectory_stall_timeout_sec',
             'trajectory_recovery_confirmation_sec'):
         _non_negative(global_planner, key, 'global_planner')
+    wind_recovery = _require(global_planner, 'wind_recovery', dict, 'global_planner')
+    _require(wind_recovery, 'enable', bool, 'global_planner.wind_recovery')
+    for key in ('stall_sec', 'stage_sec', 'min_final_distance_m',
+                'stalled_progress_mps', 'recovered_progress_mps'):
+        _non_negative(wind_recovery, key, 'global_planner.wind_recovery')
+    if not 3.0 <= wind_recovery['stall_sec'] <= 5.0:
+        raise TuningError('global_planner.wind_recovery.stall_sec must be in [3.0, 5.0]')
+    if not 3.0 <= wind_recovery['stage_sec'] <= 5.0:
+        raise TuningError('global_planner.wind_recovery.stage_sec must be in [3.0, 5.0]')
+    if wind_recovery['recovered_progress_mps'] <= wind_recovery['stalled_progress_mps']:
+        raise TuningError(
+            'global_planner.wind_recovery.recovered_progress_mps must exceed stalled_progress_mps')
     for key in ('allow_direct_path', 'enable_path_shortcut'):
         _require(global_planner, key, bool, 'global_planner')
     stale_start_max_replans = _require(
@@ -502,6 +514,15 @@ def node_parameter_overlays(tuning):
             'soft_obstacle_cost_radius': global_planner['soft_obstacle_cost_radius'],
             'clearance_cost_weight': global_planner['clearance_cost_weight'],
             'tracking_lookahead_distance': global_planner['tracking_lookahead_distance'],
+            'wind_recovery/enable': global_planner['wind_recovery']['enable'],
+            'wind_recovery/stall_sec': global_planner['wind_recovery']['stall_sec'],
+            'wind_recovery/stage_sec': global_planner['wind_recovery']['stage_sec'],
+            'wind_recovery/min_final_distance_m':
+                global_planner['wind_recovery']['min_final_distance_m'],
+            'wind_recovery/stalled_progress_mps':
+                global_planner['wind_recovery']['stalled_progress_mps'],
+            'wind_recovery/recovered_progress_mps':
+                global_planner['wind_recovery']['recovered_progress_mps'],
             'pending_path_max_cross_track_error_m':
                 global_planner['first_commit_max_path_error_m'],
             'pending_path_max_replans': global_planner['stale_start_max_replans'],

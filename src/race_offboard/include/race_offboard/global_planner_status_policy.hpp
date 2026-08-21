@@ -36,6 +36,7 @@ inline bool globalPlannerStatusIsFailure(
          reason.find("PATH_TRACKING_ERROR") != std::string::npos ||
          reason.find("FAULT_") != std::string::npos ||
          reason.find("START_OUTSIDE_PLANNING_GRID") != std::string::npos ||
+         reason.find("WIND_UNREACHABLE") != std::string::npos ||
          reason.find("NO_ODOM") != std::string::npos ||
          reason.find("NO_MAP") != std::string::npos ||
          reason.find("MAVROS_LINK_DOWN") != std::string::npos;

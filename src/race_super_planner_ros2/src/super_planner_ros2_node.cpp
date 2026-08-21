@@ -45,6 +45,7 @@
 #include "race_super_planner_ros2/continuous_segment_policy.hpp"
 #include "race_super_planner_ros2/local_goal_lifecycle_policy.hpp"
 #include "race_super_planner_ros2/pending_path_gate_policy.hpp"
+#include "race_super_planner_ros2/wind_recovery_policy.hpp"
 
 using namespace std::chrono_literals;
 
@@ -185,6 +186,15 @@ public:
     replan_rate_ = declare_parameter<double>("replan_rate", 2.0);
     replan_while_tracking_ = declare_parameter<bool>("replan_while_tracking", true);
     tracking_lookahead_distance_ = declare_parameter<double>("tracking_lookahead_distance", 0.50);
+    wind_recovery_enabled_ = declare_parameter<bool>("wind_recovery/enable", false);
+    wind_recovery_stall_sec_ = declare_parameter<double>("wind_recovery/stall_sec", 5.0);
+    wind_recovery_stage_sec_ = declare_parameter<double>("wind_recovery/stage_sec", 4.0);
+    wind_recovery_min_final_distance_m_ = declare_parameter<double>(
+      "wind_recovery/min_final_distance_m", 0.50);
+    wind_recovery_stalled_progress_mps_ = declare_parameter<double>(
+      "wind_recovery/stalled_progress_mps", 0.05);
+    wind_recovery_recovered_progress_mps_ = declare_parameter<double>(
+      "wind_recovery/recovered_progress_mps", 0.15);
     vehicle_collision_radius_ = declare_parameter<double>("vehicle_collision_radius", 0.384);
     narrow_corridor_tracking_margin_ =
       declare_parameter<double>("narrow_corridor_tracking_margin", 0.05);
@@ -300,6 +310,12 @@ public:
     }
 
     tracking_lookahead_distance_ = std::max(0.10, tracking_lookahead_distance_);
+    wind_recovery_stall_sec_ = std::clamp(wind_recovery_stall_sec_, 3.0, 5.0);
+    wind_recovery_stage_sec_ = std::clamp(wind_recovery_stage_sec_, 3.0, 5.0);
+    wind_recovery_min_final_distance_m_ = std::max(0.20, wind_recovery_min_final_distance_m_);
+    wind_recovery_stalled_progress_mps_ = std::max(0.0, wind_recovery_stalled_progress_mps_);
+    wind_recovery_recovered_progress_mps_ = std::max(
+      wind_recovery_stalled_progress_mps_ + 0.01, wind_recovery_recovered_progress_mps_);
     resolution_ = std::max(0.01, resolution_);
     planning_resolution_ = std::clamp(planning_resolution_, 0.01, resolution_);
     vehicle_collision_radius_ = std::max(0.10, vehicle_collision_radius_);
@@ -438,6 +454,13 @@ public:
     RCLCPP_INFO(
       get_logger(), "[SUPER_TRACKING_POLICY] replan_while_tracking=%s",
       replan_while_tracking_ ? "true" : "false");
+    RCLCPP_INFO(
+      get_logger(),
+      "[WIND_RECOVERY] enabled=%s limits=[(0.8,1.0),(1.2,1.5),(1.5,2.0)] "
+      "stall=%.1fs stage=%.1fs progress=(stall<%.2f,recover>%.2f)m/s",
+      wind_recovery_enabled_ ? "true" : "false", wind_recovery_stall_sec_,
+      wind_recovery_stage_sec_, wind_recovery_stalled_progress_mps_,
+      wind_recovery_recovered_progress_mps_);
     RCLCPP_INFO(
       get_logger(),
       "[SUPER_PENDING_PATH_GATE] first_commit_only=true max_path_error=%.3fm "
@@ -614,6 +637,7 @@ private:
       return;
     }
     latest_goal_ = goal;
+    resetWindRecovery("new final goal");
     ++global_goal_id_;
     have_goal_ = true;
     clearFinalGoalReached("new_global_goal");
@@ -832,6 +856,8 @@ private:
     const double vy = msg->twist.twist.linear.y;
     if (std::isfinite(vx) && std::isfinite(vy)) {
       latest_horizontal_speed_ = std::hypot(vx, vy);
+      current_velocity_enu_ = odom_input_frame_ == "px4_ned" ?
+        nedToEnu(Vec3{vx, vy, msg->twist.twist.linear.z}) : Vec3{vx, vy, msg->twist.twist.linear.z};
     }
     const double odom_yaw = tf2::getYaw(msg->pose.pose.orientation);
     if (std::isfinite(odom_yaw)) {
@@ -917,6 +943,133 @@ private:
     }
     final_goal_reached_latched_ = false;
     final_goal_confirmation_count_ = 0;
+  }
+
+  void resetWindRecovery(const char * reason)
+  {
+    if (wind_recovery_stage_ != 0 || wind_recovery_recovered_ || wind_unreachable_) {
+      RCLCPP_INFO(
+        get_logger(), "[WIND_RECOVERY_RESET] reason=%s stage=%d recovered=%d unreachable=%d",
+        reason, wind_recovery_stage_, wind_recovery_recovered_, wind_unreachable_);
+    }
+    wind_recovery_stage_ = 0;
+    wind_recovery_recovered_ = false;
+    wind_unreachable_ = false;
+    wind_recovery_low_progress_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    wind_recovery_stage_started_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    wind_velocity_command_ = Vec3{};
+    last_wind_velocity_command_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  }
+
+  bool updateWindRecovery(const Vec3 & tracking_target, bool narrow_or_centering)
+  {
+    if (!wind_recovery_enabled_ || narrow_or_centering ||
+      distance_to_final_ <= wind_recovery_min_final_distance_m_)
+    {
+      if (narrow_or_centering) {
+        resetWindRecovery("narrow corridor or centering");
+      }
+      return false;
+    }
+
+    const double dx = tracking_target.x - latest_odom_.x;
+    const double dy = tracking_target.y - latest_odom_.y;
+    const double target_distance = std::hypot(dx, dy);
+    if (target_distance < 1.0e-3 || !std::isfinite(current_velocity_enu_.x) ||
+      !std::isfinite(current_velocity_enu_.y))
+    {
+      return false;
+    }
+    wind_progress_mps_ = (current_velocity_enu_.x * dx + current_velocity_enu_.y * dy) /
+      target_distance;
+    const auto time = now();
+    if (race_super_planner_ros2::wind_recovery::hasRecovered(
+        wind_progress_mps_, wind_recovery_recovered_progress_mps_))
+    {
+      if (!wind_recovery_recovered_) {
+        RCLCPP_WARN(
+          get_logger(), "[WIND_RECOVERY_RECOVERED] stage=%d progress=%.3fm/s",
+          wind_recovery_stage_, wind_progress_mps_);
+      }
+      wind_recovery_recovered_ = true;
+      wind_recovery_low_progress_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      return false;
+    }
+    if (wind_recovery_recovered_) {
+      return false;
+    }
+
+    if (wind_recovery_stage_ == 0) {
+      if (wind_progress_mps_ >= wind_recovery_stalled_progress_mps_) {
+        wind_recovery_low_progress_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+        return false;
+      }
+      if (wind_recovery_low_progress_since_.nanoseconds() == 0) {
+        wind_recovery_low_progress_since_ = time;
+        return false;
+      }
+      if ((time - wind_recovery_low_progress_since_).seconds() < wind_recovery_stall_sec_) {
+        return false;
+      }
+    } else if (wind_recovery_stage_started_.nanoseconds() != 0 &&
+      (time - wind_recovery_stage_started_).seconds() < wind_recovery_stage_sec_)
+    {
+      return false;
+    }
+
+    if (wind_recovery_stage_ < 2) {
+      ++wind_recovery_stage_;
+      wind_recovery_stage_started_ = time;
+      wind_recovery_low_progress_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      const auto limit = race_super_planner_ros2::wind_recovery::limitForStage(
+        wind_recovery_stage_);
+      RCLCPP_WARN(
+        get_logger(), "[WIND_RECOVERY_ESCALATE] stage=%d max_vel=%.2fm/s max_acc=%.2fm/s2 "
+        "progress=%.3fm/s",
+        wind_recovery_stage_, limit.max_velocity_mps, limit.max_acceleration_mps2,
+        wind_progress_mps_);
+      return false;
+    }
+
+    wind_unreachable_ = true;
+    RCLCPP_ERROR(
+      get_logger(), "[WIND_UNREACHABLE] max stage exhausted progress=%.3fm/s distance=%.3fm; hold",
+      wind_progress_mps_, distance_to_final_);
+    return true;
+  }
+
+  std::optional<Vec3> windRecoveryVelocity(
+    const Vec3 & tracking_target, bool narrow_or_centering)
+  {
+    if (!wind_recovery_enabled_ || narrow_or_centering) {
+      return std::nullopt;
+    }
+    const double dx = tracking_target.x - latest_odom_.x;
+    const double dy = tracking_target.y - latest_odom_.y;
+    const double distance = std::hypot(dx, dy);
+    if (distance < 1.0e-3) {
+      return std::nullopt;
+    }
+    const auto limit = race_super_planner_ros2::wind_recovery::limitForStage(
+      wind_recovery_stage_);
+    const Vec3 desired{limit.max_velocity_mps * dx / distance,
+      limit.max_velocity_mps * dy / distance, 0.0};
+    const auto time = now();
+    const double elapsed = last_wind_velocity_command_time_.nanoseconds() == 0 ?
+      1.0 / control_rate_ :
+      std::clamp((time - last_wind_velocity_command_time_).seconds(), 0.0, 0.25);
+    const double max_delta = limit.max_acceleration_mps2 * elapsed;
+    const double delta_x = desired.x - wind_velocity_command_.x;
+    const double delta_y = desired.y - wind_velocity_command_.y;
+    const double delta = std::hypot(delta_x, delta_y);
+    if (delta > max_delta && delta > 1.0e-6) {
+      wind_velocity_command_.x += delta_x * max_delta / delta;
+      wind_velocity_command_.y += delta_y * max_delta / delta;
+    } else {
+      wind_velocity_command_ = desired;
+    }
+    last_wind_velocity_command_time_ = time;
+    return wind_velocity_command_;
   }
 
   bool updateFinalGoalReached()
@@ -1236,6 +1389,16 @@ private:
       return;
     }
 
+    if (wind_unreachable_) {
+      selected_setpoint_ = latest_odom_;
+      selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+      setMode(Mode::HOLD);
+      publish_reason_ = "WIND_UNREACHABLE";
+      publishHoldIfEnabled("HOLD: headwind exhausted the approved tracking limits");
+      logStatus();
+      return;
+    }
+
     const bool cloud_ok = have_cloud_ && ageSeconds(last_cloud_time_) <= cloud_timeout_sec_;
     if (!cloud_ok) {
       active_path_.clear();
@@ -1440,11 +1603,21 @@ private:
     }
     selected_setpoint_ = safe_tracking_target->point;
     selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+    if (updateWindRecovery(selected_setpoint_, narrow_corridor || centering_only)) {
+      selected_setpoint_ = latest_odom_;
+      selected_setpoint_.z = clampHeight(selected_setpoint_.z);
+      setMode(Mode::HOLD);
+      publish_reason_ = "WIND_UNREACHABLE";
+      publishHoldIfEnabled("HOLD: headwind exhausted the approved tracking limits");
+      logStatus();
+      return;
+    }
     updateYawCommand(active_path_, projection.value());
     setMode(Mode::FOLLOWING);
     publish_reason_ = controlOutputEnabled() ?
       "NAVIGATION_SETPOINT_PENDING" : "ENABLE_OUTPUT_FALSE";
-    publishNavigationSetpointIfEnabled(selected_setpoint_);
+    publishNavigationSetpointIfEnabled(
+      selected_setpoint_, windRecoveryVelocity(selected_setpoint_, narrow_corridor || centering_only));
     logPathProgress(
       projection.value(), previous_progress_index, safe_tracking_target.value());
     logStatus();
@@ -3177,7 +3350,8 @@ private:
     publish_reason_ = hold_reason;
   }
 
-  void publishNavigationSetpointIfEnabled(const Vec3 & setpoint_enu)
+  void publishNavigationSetpointIfEnabled(
+    const Vec3 & setpoint_enu, const std::optional<Vec3> & velocity_enu = std::nullopt)
   {
     if (!controlOutputEnabled() || !navigation_setpoint_pub_) {
       publish_reason_ = "ENABLE_OUTPUT_FALSE";
@@ -3238,7 +3412,13 @@ private:
     msg.position.x = ned.x;
     msg.position.y = ned.y;
     msg.position.z = ned.z;
-    msg.velocity_valid = false;
+    msg.velocity_valid = velocity_enu.has_value();
+    if (velocity_enu.has_value()) {
+      const Vec3 velocity_ned = enuToNed(velocity_enu.value());
+      msg.velocity.x = velocity_ned.x;
+      msg.velocity.y = velocity_ned.y;
+      msg.velocity.z = velocity_ned.z;
+    }
     msg.yaw = commanded_yaw_ned_;
     msg.yaw_rate_valid = publish_yaw_rate_feedforward_;
     msg.yaw_rate = publish_yaw_rate_feedforward_ ? commanded_yaw_rate_ : 0.0;
@@ -3628,6 +3808,9 @@ private:
       " global_goal_id=" + std::to_string(global_goal_id_) +
       " global_path_id=" + std::to_string(global_path_id_) +
       " local_goal_seq=" + std::to_string(local_goal_seq_) +
+      " wind_stage=" + std::to_string(wind_recovery_stage_) +
+      " wind_progress_mps=" + std::to_string(wind_progress_mps_) +
+      " wind_recovered=" + (wind_recovery_recovered_ ? "true" : "false") +
       " final_goal_reached=" + (final_goal_reached_latched_ ? "true" : "false");
     status_pub_->publish(status);
 
@@ -3711,6 +3894,12 @@ private:
   double replan_rate_{2.0};
   bool replan_while_tracking_{true};
   double tracking_lookahead_distance_{0.50};
+  bool wind_recovery_enabled_{false};
+  double wind_recovery_stall_sec_{5.0};
+  double wind_recovery_stage_sec_{4.0};
+  double wind_recovery_min_final_distance_m_{0.50};
+  double wind_recovery_stalled_progress_mps_{0.05};
+  double wind_recovery_recovered_progress_mps_{0.15};
   double vehicle_collision_radius_{0.384};
   double narrow_corridor_tracking_margin_{0.05};
   double required_center_clearance_{0.466};
@@ -3828,6 +4017,8 @@ private:
   Vec3 latest_goal_;
   Vec3 selected_setpoint_;
   Vec3 last_output_setpoint_ned_;
+  Vec3 current_velocity_enu_;
+  Vec3 wind_velocity_command_;
   sensor_msgs::msg::PointCloud2::SharedPtr latest_cloud_;
   bool have_odom_{false};
   bool have_goal_{false};
@@ -3865,7 +4056,14 @@ private:
   double latest_horizontal_speed_{std::numeric_limits<double>::infinity()};
   double distance_to_final_{std::numeric_limits<double>::infinity()};
   rclcpp::Time last_yaw_update_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time wind_recovery_low_progress_since_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time wind_recovery_stage_started_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_wind_velocity_command_time_{0, 0, RCL_ROS_TIME};
   std::string publish_reason_{"INIT"};
+  int wind_recovery_stage_{0};
+  double wind_progress_mps_{0.0};
+  bool wind_recovery_recovered_{false};
+  bool wind_unreachable_{false};
 
   double grid_origin_x_{0.0};
   double grid_origin_y_{0.0};

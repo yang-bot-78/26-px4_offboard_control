@@ -117,6 +117,11 @@ if(BUILD_TESTING)
     target_include_directories(test_pending_path_gate_policy PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/include)
   endif()
+  ament_add_gtest(test_wind_recovery_policy test/test_wind_recovery_policy.cpp)
+  if(TARGET test_wind_recovery_policy)
+    target_include_directories(test_wind_recovery_policy PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  endif()
 endif()
 
 ament_package()

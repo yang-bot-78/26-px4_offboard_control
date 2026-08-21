@@ -24,6 +24,16 @@ super_planner_ros2_node:
     # validated path. EGO mode uses global_only_mode and its own handoff logic.
     replan_while_tracking: false
     tracking_lookahead_distance: 0.30
+    # Direct Super tracking publishes position plus a bounded velocity
+    # feed-forward. If a headwind prevents forward ground progress, it raises
+    # only this approved profile and finally holds for pilot recovery.
+    wind_recovery:
+      enable: true
+      stall_sec: 5.0
+      stage_sec: 4.0
+      min_final_distance_m: 0.50
+      stalled_progress_mps: 0.05
+      recovered_progress_mps: 0.15
     # iris_mid360_custom_physical collision envelope: the outermost geometry is the
     # 24-block prop guard ring custom_guard_*, at 0.189666 + 0.031331/2 = 0.207132m
     # (a 41.4cm square outline). The former 0.384 came from upstream bare iris.sdf

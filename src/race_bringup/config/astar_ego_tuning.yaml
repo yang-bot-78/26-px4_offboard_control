@@ -214,6 +214,16 @@ global_planner:
   # Super 跟踪前视距离，单位：m。
   # [调大] 更平滑但转角切弦风险增加。[调小] 更保守但可能抖动。完整重启。
   tracking_lookahead_distance: 0.30
+  # 仅 Super 直控路径使用：根据目标方向实际对地推进速度逐级提高速度前馈。
+  # 三档动力学限值固定为 (0.8,1.0)、(1.2,1.5)、(1.5,2.0)。达到末档后
+  # 仍未恢复 >0.15m/s 的推进速度，会进入 WIND_UNREACHABLE 悬停，等待飞手接管。
+  wind_recovery:
+    enable: true
+    stall_sec: 5.0
+    stage_sec: 4.0
+    min_final_distance_m: 0.50
+    stalled_progress_mps: 0.05
+    recovered_progress_mps: 0.15
   # 仅用于“新全局路径第一次交给 EGO”前的旧起点保护。判断的是飞机到整条
   # pending 路径的横向距离，不是到旧 path.front() 的距离。提交后不再使用。
   first_commit_max_path_error_m: 0.15
