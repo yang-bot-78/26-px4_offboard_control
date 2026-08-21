@@ -23,7 +23,7 @@ usage() {
   cat <<'EOF'
 用法：运行航点状态机.sh [--manualtakeoff] [--noego] [--norosbag|--lowrosbag|--trosbag]
 
-从 WAYPOINTS_FILE 保存的全部航点生成路线后飞行。参数会原样传给已有的
+从 WAYPOINTS_FILE 保存的全部航点生成路线后飞行（至少需要两个点）。参数会原样传给已有的
 “切Offboard后自动起飞0.75米单目标验证.sh”，因此人工起飞、规划后端和录包选项保持一致。
 人工或自动起飞完成、控制节点报告有效高度参考后，状态机才发布路线第一个航点；
 到达每个航点后按 hold_sec 等配置切换状态并发布下一个目标。
@@ -41,6 +41,13 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
+for argument in "$@"; do
+  if [[ "${argument}" == "--noego" ]]; then
+    echo "错误：航点状态机需要 EGO 局部规划器生成可跟踪轨迹，不能与 --noego 同时使用。" >&2
+    exit 2
+  fi
+done
+
 [[ -x "${single_goal_script}" ]] || {
   echo "错误：找不到单目标安全流程：${single_goal_script}" >&2
   exit 2
@@ -51,11 +58,6 @@ fi
 }
 [[ -f "${exporter}" ]] || {
   echo "错误：找不到航点导出器：${exporter}" >&2
-  exit 2
-}
-[[ -f "${mission_file}" ]] || {
-  echo "错误：MISSION_FILE 不存在：${mission_file}" >&2
-  echo "请先运行 一键保存航点.sh 并保存至少一个完整路线。" >&2
   exit 2
 }
 [[ -f "${waypoints_file}" ]] || {
@@ -74,7 +76,7 @@ set -u
 if ! python3 "${exporter}" \
   --waypoints-file "${waypoints_file}" \
   --mission-file "${mission_file}" \
-  --names B1 B2 C D --all-waypoints; then
+  --all-waypoints; then
   echo "错误：无法从最新航点生成任务路线，请检查 ${waypoints_file}。" >&2
   exit 2
 fi

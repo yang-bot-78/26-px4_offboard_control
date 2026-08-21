@@ -607,11 +607,11 @@ private:
   {
     const auto start_time = now();
     if (!has_loaded_map_) {
-      message = "No loaded map is available.";
+      message = "未加载地图，无法重定位。";
       return false;
     }
     if (!has_latest_scan_ || latest_local_cloud_ == nullptr || latest_local_cloud_->empty()) {
-      message = "No latest scan available for relocalization.";
+      message = "没有可用的新同步点云，无法重定位。";
       return false;
     }
 
@@ -622,6 +622,7 @@ private:
 
     const Eigen::MatrixXf latest_descriptor = buildScanContext(*latest_local_cloud_);
     std::vector<LoopCandidate> candidates;
+    double highest_similarity = -1.0;
     for (int index = 0; index < loaded_keyframe_count_; ++index) {
       double best_similarity = -1.0;
       int best_shift = 0;
@@ -632,6 +633,7 @@ private:
           best_shift = shift;
         }
       }
+      highest_similarity = std::max(highest_similarity, best_similarity);
       if (best_similarity >= scan_context_similarity_threshold_) {
         candidates.push_back({true, index, best_shift, best_similarity});
       }
@@ -640,7 +642,11 @@ private:
       return left.similarity > right.similarity;
     });
     if (candidates.empty()) {
-      message = "Scan Context did not find a confident relocalization candidate.";
+      std::ostringstream oss;
+      oss << "Scan Context 未找到置信度足够的重定位候选：最高匹配度="
+          << std::fixed << std::setprecision(3) << highest_similarity
+          << "，当前门限=" << scan_context_similarity_threshold_ << "。";
+      message = oss.str();
       RCLCPP_WARN(get_logger(), "%s", message.c_str());
       return false;
     }
@@ -664,7 +670,15 @@ private:
       }
     }
     if (accepted.empty()) {
-      message = "No Scan Context candidate passed ICP fitness and inlier-ratio gates.";
+      std::ostringstream oss;
+      oss << "所有 Scan Context 候选均未通过 ICP 适配度或内点比例门限：候选数="
+          << candidates.size() << "，实际验证=" << std::min(
+            static_cast<int>(candidates.size()), candidate_limit)
+          << "，最佳匹配度=" << std::fixed << std::setprecision(3)
+          << candidates.front().similarity << "，ICP 适配度门限="
+          << relocalization_fitness_threshold_ << "，内点比例门限="
+          << relocalization_min_inlier_ratio_ << "。";
+      message = oss.str();
       RCLCPP_WARN(get_logger(), "%s", message.c_str());
       return false;
     }
@@ -678,7 +692,14 @@ private:
       const double yaw_deg = std::abs(std::atan2(delta.linear()(1, 0), delta.linear()(0, 0))) * kRadToDeg;
       if (translation >= relocalization_ambiguity_translation_m_ || yaw_deg >= relocalization_ambiguity_yaw_deg_) {
         if (accepted[i].registration.fitness <= best.registration.fitness + relocalization_ambiguity_fitness_margin_) {
-          message = "Ambiguous relocalization: two spatially distinct ICP solutions have similar fitness.";
+          std::ostringstream oss;
+          oss << "重定位结果存在歧义：最佳候选 Scan Context 匹配度="
+              << std::fixed << std::setprecision(3) << best.loop.similarity
+              << "、ICP 适配度=" << std::setprecision(4) << best.registration.fitness
+              << "；另一候选匹配度=" << std::setprecision(3) << accepted[i].loop.similarity
+              << "、ICP 适配度=" << std::setprecision(4) << accepted[i].registration.fitness
+              << "，当前歧义适配度差值门限=" << relocalization_ambiguity_fitness_margin_ << "。";
+          message = oss.str();
           RCLCPP_WARN(get_logger(), "%s", message.c_str());
           return false;
         }
@@ -699,8 +720,11 @@ private:
     }
     if (relocalization_confirmation_observations_ < std::max(1, relocalization_confirmation_count_)) {
       std::ostringstream oss;
-      oss << "Relocalization observation accepted but awaiting confirmation "
-          << relocalization_confirmation_observations_ << "/" << relocalization_confirmation_count_;
+      oss << "本次观测已通过，等待连续确认 "
+          << relocalization_confirmation_observations_ << "/" << relocalization_confirmation_count_
+          << "：Scan Context 匹配度=" << std::fixed << std::setprecision(3)
+          << best.loop.similarity << "，ICP 适配度=" << std::setprecision(4)
+          << best.registration.fitness << "。";
       message = oss.str();
       return false;
     }
@@ -729,13 +753,13 @@ private:
     publishLoopMarker(loop.candidate_index, loop.candidate_index);
 
     std::ostringstream oss;
-    oss << "Relocalization succeeded. candidate=" << loop.candidate_index
-        << " similarity=" << std::fixed << std::setprecision(3) << loop.similarity
-        << " sector_shift=" << loop.sector_shift
-        << " coarse_yaw_deg=" << std::setprecision(3)
+    oss << "重定位成功：候选=" << loop.candidate_index
+        << "，Scan Context 匹配度=" << std::fixed << std::setprecision(3) << loop.similarity
+        << "，扇区偏移=" << loop.sector_shift
+        << "，粗航向角=" << std::setprecision(3)
         << scanContextShiftYawDeg(loop.sector_shift)
-        << " refined_yaw_deg=" << refined_yaw_deg
-        << " fitness=" << std::setprecision(4) << fitness;
+        << " 度，精配准航向角=" << refined_yaw_deg
+        << " 度，ICP 适配度=" << std::setprecision(4) << fitness;
     message = oss.str();
     const double elapsed_s = (now() - start_time).seconds();
     RCLCPP_INFO(get_logger(), "%s elapsed=%.2f s", message.c_str(), elapsed_s);
@@ -790,6 +814,10 @@ private:
     std::string message;
     response->success = attemptRelocalization(message, estimated_pose);
     response->message = message;
+    last_relocalization_status_ = response->success ?
+      "重定位=成功；详情=" + message :
+      "重定位=失败；原因=" + message;
+    publishBackendStatus();
     if (response->success) {
       response->estimated_pose = poseMsgFromEigen(estimated_pose);
     }
@@ -918,6 +946,7 @@ private:
     map_to_odom_.setIdentity();
     pending_relocalization_pose_.setIdentity();
     relocalization_confirmation_observations_ = 0;
+    last_relocalization_status_ = "重定位=未执行";
     resetGtsamState();
   }
 
@@ -1083,7 +1112,8 @@ private:
   {
     std_msgs::msg::String message;
     message.data = "synced_callbacks=" + std::to_string(callback_count_) +
-      " keyframes=" + std::to_string(keyframes_.size());
+      " keyframes=" + std::to_string(keyframes_.size()) +
+      " " + last_relocalization_status_;
     backend_status_pub_->publish(message);
   }
 
@@ -1195,6 +1225,7 @@ private:
   Eigen::Isometry3d pending_relocalization_pose_{Eigen::Isometry3d::Identity()};
   Eigen::Isometry3d latest_odom_pose_{Eigen::Isometry3d::Identity()};
   int relocalization_confirmation_observations_{0};
+  std::string last_relocalization_status_{"重定位=未执行"};
   CloudT::Ptr latest_local_cloud_;
   rclcpp::Time latest_stamp_{0, 0, RCL_ROS_TIME};
 

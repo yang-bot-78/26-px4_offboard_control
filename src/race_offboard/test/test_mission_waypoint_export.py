@@ -69,6 +69,33 @@ class MissionWaypointExportTest(unittest.TestCase):
             [point['name'] for point in result['route_points']],
             ['B1', 'B2', 'C', 'D', 'P002', 'P005', 'P010', 'inspection'])
 
+    def test_export_accepts_two_points_and_keeps_later_points(self):
+        document = {
+            'frame_id': 'map',
+            'waypoints': {
+                'B1': {'mode': 'xy', 'x': 1.0, 'y': 2.0},
+                'B2': {'mode': 'xy', 'x': 3.0, 'y': 4.0},
+                'P005': {'mode': 'xy', 'x': 5.0, 'y': 6.0},
+                'inspection': {'mode': 'xy', 'x': 7.0, 'y': 8.0},
+            },
+        }
+        names = EXPORT._select_names(document)
+        result = EXPORT.build_mission_document(
+            document, names, 0.4, 3.0, 3.0, Path('/tmp/waypoints.yaml'))
+        self.assertEqual(names, ('B1', 'B2'))
+        self.assertEqual(
+            [point['name'] for point in result['route_points']],
+            ['B1', 'B2', 'P005', 'inspection'])
+
+    def test_export_rejects_fewer_than_two_points(self):
+        document = {
+            'frame_id': 'map',
+            'waypoints': {'B1': {'mode': 'xy', 'x': 1.0, 'y': 2.0}},
+        }
+        with self.assertRaises(ValueError):
+            EXPORT.build_mission_document(
+                document, ('B1',), 0.4, 3.0, 3.0, Path('/tmp/waypoints.yaml'))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -304,6 +304,7 @@ full_bag_topics=(
   /Odometry/healthy
   /planning/odom
   /fastlio_global/relocalized_pose
+  /fastlio_global/backend_status
   /ev_health/status
   /ev_health/fault
   /ev_health/diagnostics

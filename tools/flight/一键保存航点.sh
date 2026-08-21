@@ -141,7 +141,9 @@ discard_pending_input() {
   local ignored
   # A return key pressed while the stack is starting must not be reused as a
   # waypoint confirmation after readiness.  Require a fresh key press below.
-  while IFS= read -r -t 0 ignored; do :; done
+  # A zero-second read is reported as ready forever by some TTY drivers, so
+  # use a short real timeout to drain buffered lines without spinning.
+  while IFS= read -r -t 0.01 ignored; do :; done
 }
 
 activate_profile() {
@@ -186,7 +188,7 @@ echo "地图文件：${map_file}"
 echo "重定位库：${map_dir}"
 if [[ "${profile_mode}" == true ]]; then
   echo "本次采集目录：${profile_dir}"
-  echo "完成 B1/B2/C/D 后将更新当前应用：${active_waypoint_dir}"
+  echo "保存至少两个航点后将更新当前应用：${active_waypoint_dir}"
 else
   echo "自定义航点文件：${waypoints_file}"
 fi
@@ -236,7 +238,7 @@ visualizer_pid=$!
 
 echo "定位和地图已准备完成。现在可连续保存航点，按 Ctrl-C 结束并清理全部组件。"
 echo "已保存的航点会自动显示在 RViz 中。"
-echo "前四个点为 B1、B2、C、D；之后为 P005、P006……，全部点都会写入状态机路线。"
+echo "前四个点依次为 B1、B2、C、D；至少保存两个点，之后为 P005、P006……，全部点都会写入状态机路线。"
 echo "保存时不要求飞机稳定；请在需要记录的位置按回车即可。"
 index=1
 while true; do
@@ -256,10 +258,10 @@ while true; do
     echo "航点保存成功：${name}"
     echo "${output}" | sed -n 's/.*x=\([-+0-9.eE]*\) y=\([-+0-9.eE]*\).*/坐标：x=\1，y=\2/p'
     index=$((index + 1))
-    if [[ "${index}" -ge 5 ]]; then
+    if [[ "${index}" -ge 3 ]]; then
       if ros2 run race_offboard export_mission_waypoints.py \
         --waypoints-file "${waypoints_file}" --mission-file "${mission_file}" \
-        --names B1 B2 C D --all-waypoints >/dev/null 2>&1; then
+        --all-waypoints >/dev/null 2>&1; then
         echo "状态机航点文件已更新（全部已保存航点）：${mission_file}"
         if [[ "${profile_mode}" == true ]]; then
           if [[ "${profile_activated}" == false ]]; then
@@ -269,7 +271,7 @@ while true; do
           fi
         fi
       else
-        echo "状态机航点文件生成失败，请检查 B1、B2、C、D。" >&2
+        echo "状态机航点文件生成失败，请至少保存两个有效航点。" >&2
       fi
     fi
   else

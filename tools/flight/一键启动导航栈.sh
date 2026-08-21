@@ -18,6 +18,7 @@ set -euo pipefail
 # MID360_FASTLIO_DELAY_SEC, LIO_BACKEND, FRLIO_CONFIG,
 # COMPONENT_WINDOWS, COMPONENT_WINDOW_GEOMETRY,
 # RELOCALIZATION_RETRY_COUNT, RELOCALIZATION_RETRY_DELAY_SEC,
+# REQUIRE_MAP_LOCAL_ALIGNMENT,
 # RELOCALIZATION_INTERACTIVE, RELOCALIZATION_TRIGGER_TTY,
 # SKIP_PREFLIGHT_CHECK, CPU_AFFINITY_ENABLED, CPUSET_MID360,
 # CPUSET_FRLIO, CPUSET_MAVROS_EV, CPUSET_NAVIGATION,
@@ -74,6 +75,7 @@ world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 allow_unvalidated_world_yaw="${ALLOW_UNVALIDATED_WORLD_YAW:-false}"
 skip_preflight_check="${SKIP_PREFLIGHT_CHECK:-0}"
 relocalization_enabled="${RELOCALIZATION_ENABLED:-false}"
+require_map_local_alignment="${REQUIRE_MAP_LOCAL_ALIGNMENT:-false}"
 global_map_dir="${FRLIO_GLOBAL_MAP_DIR:-${FASTLIO_GLOBAL_MAP_DIR:-${project_root}/maps/main}}"
 relocalization_backend_config="${RELOCALIZATION_BACKEND_CONFIG:-${project_root}/tools/fastlio/只重定位一次后端参数.yaml}"
 relocalization_bridge="${project_root}/tools/fastlio/重定位坐标桥.py"
@@ -695,6 +697,7 @@ validate_configuration() {
   require_boolean MAP_AUTO_LOAD "${map_auto_load}"
   require_boolean COMPONENT_WINDOWS "${component_windows}"
   require_boolean RELOCALIZATION_ENABLED "${relocalization_enabled}"
+  require_boolean REQUIRE_MAP_LOCAL_ALIGNMENT "${require_map_local_alignment}"
   require_boolean RELOCALIZATION_INTERACTIVE "${relocalization_interactive}"
   if [[ "${require_flight_ready_for_startup}" == false && "${enable_output}" != false ]]; then
     log_error "REQUIRE_FLIGHT_READY_FOR_STARTUP=false 仅支持 ENABLE_OUTPUT=false"
@@ -894,7 +897,7 @@ print_configuration() {
   fi
   log_info "组件独立窗口=${component_windows}（每个组件一个 GNOME Terminal 窗口）"
   log_info "地图：${map_file:-<验证模式下禁用>}（自动加载=${map_auto_load}）"
-  log_info "全局重定位=${relocalization_enabled}，关键帧目录=${global_map_dir}"
+  log_info "全局重定位=${relocalization_enabled}，地图本地对齐门禁=${require_map_local_alignment}，关键帧目录=${global_map_dir}"
   if [[ "${map_file}" == "${default_map_file}" ]]; then
     log_warn "随附默认地图尚未确认是场地扫描结果。现场运行前请将 MAP_FILE 设为实测场地 PCD。"
   fi
@@ -934,7 +937,7 @@ start_stack() {
       PUBLISH_CAMERA_INIT_TF="$([[ "${relocalization_enabled}" == true ]] && echo false || echo true)" \
       MAP_FRAME_ID="map" \
       FASTLIO_ODOM_TOPIC=/Odometry/healthy \
-      REQUIRE_MAP_LOCAL_ALIGNMENT="${relocalization_enabled}" \
+      REQUIRE_MAP_LOCAL_ALIGNMENT="${require_map_local_alignment}" \
       MAP_AUTO_LOAD="${map_auto_load}" \
       "${navigation_script}"
     if [[ "${px4_components_enabled}" == true ]]; then
@@ -1034,7 +1037,7 @@ start_stack() {
     fi
   done
 
-  if [[ "${relocalization_enabled}" == true && "${enable_output}" == true ]]; then
+  if [[ "${relocalization_enabled}" == true && "${require_map_local_alignment}" == true && "${enable_output}" == true ]]; then
     log_info "等待 Offboard 锁定地图到 PX4 本地坐标系的变换"
     local alignment_deadline=$((SECONDS + 30))
     local alignment_status=""
