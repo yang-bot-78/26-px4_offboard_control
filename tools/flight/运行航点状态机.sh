@@ -13,6 +13,7 @@ project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
 single_goal_script="${script_dir}/切Offboard后自动起飞0.75米单目标验证.sh"
 fsm_node="${project_root}/src/race_offboard/mission/waypoint_state_machine_node.py"
 exporter="${project_root}/src/race_offboard/mission/export_mission_waypoints.py"
+map_binding_validator="${project_root}/src/race_offboard/mission/waypoint_map_binding.py"
 recognition_launcher="${RECOGNITION_LAUNCHER:-${project_root}/bs/run_0812.sh}"
 mission_file="${MISSION_FILE:-${project_root}/src/race_offboard/config/waypoints/main/mission.yaml}"
 waypoints_file="${WAYPOINTS_FILE:-${project_root}/src/race_offboard/config/waypoints/main/waypoints.yaml}"
@@ -34,6 +35,7 @@ usage() {
 默认航点源文件：src/race_offboard/config/waypoints/main/waypoints.yaml
 默认任务路线文件：src/race_offboard/config/waypoints/main/mission.yaml
 每次启动都会先用最新航点源文件重建任务路线。
+启动前会校验航点记录的地图 SHA-256 必须与本次规划地图一致；不一致时拒绝启动。
 
 可通过环境变量覆盖：MISSION_FILE、WAYPOINTS_FILE、FSM_LOG_FILE、RECOGNITION_LAUNCHER。
 EOF
@@ -56,15 +58,41 @@ fi
   echo "错误：找不到航点导出器：${exporter}" >&2
   exit 2
 }
+[[ -f "${map_binding_validator}" ]] || {
+  echo "错误：找不到航点地图绑定校验器：${map_binding_validator}" >&2
+  exit 2
+}
 [[ -f "${waypoints_file}" ]] || {
   echo "错误：WAYPOINTS_FILE 不存在：${waypoints_file}" >&2
   exit 2
 }
 
+planning_map_file="${MAP_FILE:-}"
+if [[ -z "${planning_map_file}" ]]; then
+  mapfile -d '' -t planning_map_matches < <(
+    find "${project_root}/maps/main" -maxdepth 1 -type f -iname '*.pcd' -print0 | sort -z
+  )
+  if ((${#planning_map_matches[@]} != 1)); then
+    echo "错误：${project_root}/maps/main 必须有且只有一个规划 .pcd，当前找到 ${#planning_map_matches[@]} 个。" >&2
+    exit 2
+  fi
+  planning_map_file="${planning_map_matches[0]}"
+fi
+if ! planning_map_file="$(realpath -e -- "${planning_map_file}")"; then
+  echo "错误：MAP_FILE 不存在：${planning_map_file}" >&2
+  exit 2
+fi
+
 set +u
 source /opt/ros/humble/setup.bash
 source "${project_root}/install/setup.bash"
 set -u
+
+if ! python3 "${map_binding_validator}" \
+  --waypoints-file "${waypoints_file}" --map-file "${planning_map_file}"; then
+  echo "错误：航点与本次规划地图不匹配；请使用同一地图重新采集航点，或显式设置匹配的 WAYPOINTS_FILE 和 MAP_FILE。" >&2
+  exit 2
+fi
 
 # Rebuild the tracking route from the latest saved waypoint source on every
 # launch.  This keeps the flight entrypoint from following a stale mission.yaml
@@ -162,7 +190,7 @@ fi
 # for a valid map pose rather than aborting after the general launcher's
 # finite retry default; callers can still override this environment variable.
 set +e
-env MISSION_FILE="${mission_file}" WAYPOINTS_FILE="${waypoints_file}" \
+env MAP_FILE="${planning_map_file}" MISSION_FILE="${mission_file}" WAYPOINTS_FILE="${waypoints_file}" \
   WAYPOINT_FSM_ENABLED=true \
   WAYPOINT_VISUALIZER_ENABLED=true \
   RELOCALIZATION_RETRY_COUNT="${RELOCALIZATION_RETRY_COUNT:-infinite}" \
