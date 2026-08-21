@@ -1,0 +1,91 @@
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    expected_planner_frequency: 1.0
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      tolerance: 0.35
+      use_astar: true
+      allow_unknown: true
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: camera_init
+      robot_base_frame: body
+      transform_tolerance: 0.3
+      update_frequency: 2.0
+      publish_frequency: 1.0
+      rolling_window: true
+      width: 30
+      height: 30
+      resolution: 0.10
+      robot_radius: 0.35
+      footprint_padding: 0.05
+      track_unknown_space: true
+      always_send_full_costmap: true
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: true
+        observation_sources: fastlio_cloud
+        fastlio_cloud:
+          topic: /cloud_registered
+          data_type: "PointCloud2"
+          marking: true
+          clearing: false
+          obstacle_min_range: 0.0
+          obstacle_max_range: 20.0
+          raytrace_min_range: 0.0
+          raytrace_max_range: 20.0
+          min_obstacle_height: -0.30
+          max_obstacle_height: 2.00
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: true
+        inflation_radius: 0.60
+        cost_scaling_factor: 3.0
+
+map_server:
+  ros__parameters:
+    use_sim_time: false
+    yaml_filename: ""
+
+nav2_stage1_goal_to_path:
+  ros__parameters:
+    goal_topic: /goal_pose
+    legacy_goal_topic: /move_base_simple/goal
+    odom_topic: /Odometry
+    path_topic: /nav2_stage1/path
+    planner_action: /compute_path_to_pose
+    planner_id: GridBased
+    global_frame: camera_init
+    use_odom_start: true
+
+nav2_stage1_odometry_tf_publisher:
+  ros__parameters:
+    odom_topic: /Odometry
+    frame_id: camera_init
+    child_frame_id: body
+    force_frame_ids: false
+
+nav2_stage2_path_2_5d_lifter:
+  ros__parameters:
+    input_path_topic: /nav2_stage1/path
+    cloud_topic: /cloud_registered
+    output_path_topic: /nav2_stage2/path_2_5d
+    global_frame: camera_init
+    default_z_m: 1.0
+    min_z_m: 0.5
+    max_z_m: 2.0
+    sample_radius_m: 0.6
+    grid_cell_m: 0.4
+    floor_percentile: 0.15
+    flight_height_above_floor_m: 1.0
+    obstacle_clearance_m: 0.4
+    min_obstacle_height_above_floor_m: 0.15
+    max_z_step_m: 0.20
+    max_cloud_points: 60000
+    cloud_stride: 4

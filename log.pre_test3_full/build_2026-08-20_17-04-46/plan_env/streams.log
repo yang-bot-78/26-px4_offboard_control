@@ -1,0 +1,64 @@
+[0.185s] Invoking command in '/home/robot/egohx_ws/26-px4_offboard_control-main/build/plan_env': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/robot/egohx_ws/26-px4_offboard_control-main/build/plan_env -- -j16 -l16
+[1.176s] Consolidate compiler generated dependencies of target gtest_main
+[1.177s] [ 14%] Built target gtest_main
+[1.177s] Consolidate compiler generated dependencies of target obj_generator
+[1.177s] [ 28%] Built target obj_generator
+[1.178s] Consolidate compiler generated dependencies of target plan_env
+[1.178s] [ 35%] Building CXX object CMakeFiles/plan_env.dir/src/grid_map.cpp.o
+[26.333s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:806:86: warning: ‘sensor_msgs::msg::Image_<std::allocator<void> >::ConstPtr’ is deprecated [-Wdeprecated-declarations]
+[26.333s]   806 |                                 const geometry_msgs::msg::PoseStamped::ConstPtr &pose)
+[26.333s]       |                                                                                      ^
+[26.333s] In file included from /opt/ros/humble/include/sensor_msgs/sensor_msgs/msg/image.hpp:7,
+[26.334s]                  from /opt/ros/humble/include/cv_bridge/cv_bridge/cv_bridge.h:40,
+[26.334s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include/plan_env/grid_map.h:6,
+[26.334s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1:
+[26.334s] /opt/ros/humble/include/sensor_msgs/sensor_msgs/msg/detail/image__struct.hpp:174:5: note: declared here
+[26.334s]   174 |     ConstPtr;
+[26.334s]       |     ^~~~~~~~
+[26.334s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:806:86: warning: ‘geometry_msgs::msg::PoseStamped_<std::allocator<void> >::ConstPtr’ is deprecated [-Wdeprecated-declarations]
+[26.334s]   806 |                                 const geometry_msgs::msg::PoseStamped::ConstPtr &pose)
+[26.334s]       |                                                                                      ^
+[26.334s] In file included from /opt/ros/humble/include/geometry_msgs/geometry_msgs/msg/pose_stamped.hpp:7,
+[26.334s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include/plan_env/grid_map.h:7,
+[26.334s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1:
+[26.334s] /opt/ros/humble/include/geometry_msgs/geometry_msgs/msg/detail/pose_stamped__struct.hpp:116:5: note: declared here
+[26.334s]   116 |     ConstPtr;
+[26.334s]       |     ^~~~~~~~
+[26.377s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:853:79: warning: ‘sensor_msgs::msg::PointCloud2_<std::allocator<void> >::ConstPtr’ is deprecated [-Wdeprecated-declarations]
+[26.377s]   853 | void GridMap::cloudCallback(const sensor_msgs::msg::PointCloud2::ConstPtr &img)
+[26.377s]       |                                                                               ^
+[26.378s] In file included from /opt/ros/humble/include/sensor_msgs/sensor_msgs/msg/point_cloud2.hpp:7,
+[26.378s]                  from /opt/ros/humble/include/pcl_conversions/pcl_conversions/pcl_conversions.h:59,
+[26.378s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include/plan_env/grid_map.h:20,
+[26.378s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1:
+[26.378s] /opt/ros/humble/include/sensor_msgs/sensor_msgs/msg/detail/point_cloud2__struct.hpp:195:5: note: declared here
+[26.378s]   195 |     ConstPtr;
+[26.378s]       |     ^~~~~~~~
+[26.566s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1182:78: warning: ‘nav_msgs::msg::Odometry_<std::allocator<void> >::ConstPtr’ is deprecated [-Wdeprecated-declarations]
+[26.566s]  1182 | void GridMap::extrinsicCallback(const nav_msgs::msg::Odometry::ConstPtr &odom)
+[26.566s]       |                                                                              ^
+[26.566s] In file included from /opt/ros/humble/include/nav_msgs/nav_msgs/msg/odometry.hpp:7,
+[26.567s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include/plan_env/grid_map.h:11,
+[26.567s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1:
+[26.567s] /opt/ros/humble/include/nav_msgs/nav_msgs/msg/detail/odometry__struct.hpp:147:5: note: declared here
+[26.567s]   147 |     ConstPtr;
+[26.567s]       |     ^~~~~~~~
+[26.623s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1197:78: warning: ‘sensor_msgs::msg::Image_<std::allocator<void> >::ConstPtr’ is deprecated [-Wdeprecated-declarations]
+[26.623s]  1197 |                                 const nav_msgs::msg::Odometry::ConstPtr &odom)
+[26.623s]       |                                                                              ^
+[26.623s] In file included from /opt/ros/humble/include/sensor_msgs/sensor_msgs/msg/image.hpp:7,
+[26.623s]                  from /opt/ros/humble/include/cv_bridge/cv_bridge/cv_bridge.h:40,
+[26.623s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include/plan_env/grid_map.h:6,
+[26.623s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1:
+[26.624s] /opt/ros/humble/include/sensor_msgs/sensor_msgs/msg/detail/image__struct.hpp:174:5: note: declared here
+[26.624s]   174 |     ConstPtr;
+[26.624s]       |     ^~~~~~~~
+[26.624s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1197:78: warning: ‘nav_msgs::msg::Odometry_<std::allocator<void> >::ConstPtr’ is deprecated [-Wdeprecated-declarations]
+[26.624s]  1197 |                                 const nav_msgs::msg::Odometry::ConstPtr &odom)
+[26.624s]       |                                                                              ^
+[26.624s] In file included from /opt/ros/humble/include/nav_msgs/nav_msgs/msg/odometry.hpp:7,
+[26.624s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include/plan_env/grid_map.h:11,
+[26.624s]                  from /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/src/grid_map.cpp:1:
+[26.624s] /opt/ros/humble/include/nav_msgs/nav_msgs/msg/detail/odometry__struct.hpp:147:5: note: declared here
+[26.624s]   147 |     ConstPtr;
+[26.624s]       |     ^~~~~~~~

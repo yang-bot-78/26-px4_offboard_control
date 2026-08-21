@@ -1,0 +1,44 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/PPROutputData.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module quadrotor_msgs {
+  module msg {
+    typedef uint16 uint16__4[4];
+    struct PPROutputData {
+      std_msgs::msg::Header header;
+
+      uint16 quad_time;
+
+      double des_thrust;
+
+      double des_roll;
+
+      double des_pitch;
+
+      double des_yaw;
+
+      double est_roll;
+
+      double est_pitch;
+
+      double est_yaw;
+
+      double est_angvel_x;
+
+      double est_angvel_y;
+
+      double est_angvel_z;
+
+      double est_acc_x;
+
+      double est_acc_y;
+
+      double est_acc_z;
+
+      uint16__4 pwm;
+    };
+  };
+};

@@ -1,0 +1,8 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp: In member function ‘void ego_planner::PlanningVisualization::displayMarkerList(rclcpp::Publisher<visualization_msgs::msg::Marker_<std::allocator<void> > >::SharedPtr&, const std::vector<Eigen::Matrix<double, 3, 1> >&, double, Eigen::Vector4d, int, bool)’:
+/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp:11:85: warning: unused parameter ‘show_sphere’ [-Wunused-parameter]
+   11 |                                                 Eigen::Vector4d color, int id, bool show_sphere /* = true */)
+      |                                                                                ~~~~~^~~~~~~~~~~
+/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp: In member function ‘void ego_planner::PlanningVisualization::displayMultiInitPathList(std::vector<std::vector<Eigen::Matrix<double, 3, 1> > >, double)’:
+/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp:177:25: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<std::vector<Eigen::Matrix<double, 3, 1> > >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  177 |     for (int id = 0; id < init_trajs.size(); id++)
+      |                      ~~~^~~~~~~~~~~~~~~~~~~

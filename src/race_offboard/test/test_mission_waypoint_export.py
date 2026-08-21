@@ -5,6 +5,7 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 MISSION_DIR = Path(__file__).resolve().parents[1] / 'mission'
@@ -41,6 +42,19 @@ class MissionWaypointExportTest(unittest.TestCase):
             self.saved(), ('B1', 'B2', 'C', 'D'), 0.4, 3.0, 3.0, Path('/tmp/waypoints.yaml'))
         self.assertEqual(result['preset_points'], [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
         self.assertEqual(result['source_waypoint_names'], ['B1', 'B2', 'C', 'D'])
+
+    def test_export_default_holds_are_half_a_second(self):
+        with mock.patch.object(sys, 'argv', ['export_mission_waypoints.py', '--mission-file', '/tmp/mission.yaml']):
+            args = EXPORT.parse_args()
+        self.assertEqual(args.b2_hold_sec, 0.5)
+        self.assertEqual(args.d_hold_sec, 0.5)
+        self.assertEqual(args.default_hold_sec, 0.5)
+
+    def test_export_writes_half_second_hold_for_every_point_by_default(self):
+        result = EXPORT.build_mission_document(
+            self.saved(), ('B1', 'B2', 'C', 'D'), 0.4, 0.5, 0.5,
+            Path('/tmp/waypoints.yaml'))
+        self.assertTrue(all(point['hold_sec'] == 0.5 for point in result['route_points']))
 
     def test_export_rejects_missing_point_wrong_frame_and_non_finite_values(self):
         for mutate in (

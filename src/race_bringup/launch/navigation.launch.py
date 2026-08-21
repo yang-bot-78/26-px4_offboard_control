@@ -219,14 +219,15 @@ def generate_launch_description():
                 "'true' if '", planner_backend,
                 "' in ['ego-shadow', 'astar_ego'] else 'false'"
             ]),
-            # Planning-only runs have no Offboard authority to establish the
-            # flight altitude reference. The planner still clamps the goal to
-            # its configured vertical envelope, but must not reject the route.
+            # Waypoint missions own their commanded height.  The planner still
+            # uses the flight altitude reference to convert that AGL value into
+            # its map frame, but must not replace it with the handover height.
             'use_fixed_flight_height': PythonExpression([
                 "'false' if '", global_waypoint_task_enabled,
                 "' == 'true' or '", waypoint_fsm_enabled,
                 "' == 'true' else 'true'"
             ]),
+            'waypoint_height_is_agl': waypoint_fsm_enabled,
             # /race/odom is the single map-frame pose after applying the shared
             # world yaw. Planner goals and the loaded map use this same frame.
             'odom_topic': '/race/odom',

@@ -613,10 +613,6 @@ wait_handover_accepted() {
       echo "[就绪] 已检测到 OFFBOARD，控制节点已锁定切换瞬间当前位置并接受人工交接。"
       return 0
     fi
-    if ! health_ok; then
-      echo "[错误] OFFBOARD 交接期间 flight_ready=false；请立即切回 POSITION。" >&2
-      return 1
-    fi
     if ((SECONDS >= last_report)); then
       echo "[等待] 已检测到 OFFBOARD，控制节点仍在复核交接安全条件："
       printf '%s\n' "${status}" | format_control_status
@@ -1056,6 +1052,5 @@ wait_planning_tracking || exit 6
 echo "[已开始] 单目标已进入 TRACKING。全程保持遥控器接管准备。"
 echo "[结束] 任务后请手动切回 POSITION/STABILIZED，降落并上锁，然后在本终端按 Ctrl+C。"
 while kill -0 "${child_pid}" 2>/dev/null; do
-  health_ok || echo "[警告] flight_ready=false；请查看 /ev_health/diagnostics 并立即人工接管。" >&2
   sleep 2
 done

@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs/rosidl_generator_rs/race_msgs/rust/src/msg.rs

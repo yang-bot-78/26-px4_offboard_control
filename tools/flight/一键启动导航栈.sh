@@ -82,6 +82,8 @@ relocalization_backend_config="${RELOCALIZATION_BACKEND_CONFIG:-${project_root}/
 relocalization_bridge="${project_root}/tools/fastlio/重定位坐标桥.py"
 relocalization_fresh_scan_delay_sec="${RELOCALIZATION_FRESH_SCAN_DELAY_SEC:-3}"
 relocalization_call_timeout_sec="${RELOCALIZATION_CALL_TIMEOUT_SEC:-120}"
+# A positive integer bounds automatic retries. "infinite" keeps retrying
+# until relocalization succeeds or the operator interrupts the launch.
 relocalization_retry_count="${RELOCALIZATION_RETRY_COUNT:-8}"
 relocalization_retry_delay_sec="${RELOCALIZATION_RETRY_DELAY_SEC:-2}"
 relocalization_interactive="${RELOCALIZATION_INTERACTIVE:-false}"
@@ -628,8 +630,14 @@ run_relocalization() {
       log_warn "本次重定位未找到可信候选位姿；准备新的扫描后再次按回车重试"
     done
   else
-    for ((attempt=1; attempt<=relocalization_retry_count; attempt++)); do
-      log_info "正在尝试重定位（${attempt}/${relocalization_retry_count}）；请保持飞行器静止并处于已建图区域内"
+    attempt=0
+    while [[ "${relocalization_retry_count}" == "infinite" || ${attempt} -lt ${relocalization_retry_count} ]]; do
+      ((attempt += 1))
+      if [[ "${relocalization_retry_count}" == "infinite" ]]; then
+        log_info "正在尝试重定位（第 ${attempt} 次，无限重试）；请保持飞行器静止并处于已建图区域内"
+      else
+        log_info "正在尝试重定位（${attempt}/${relocalization_retry_count}）；请保持飞行器静止并处于已建图区域内"
+      fi
       output="$(timeout "${relocalization_call_timeout_sec}s" ros2 service call \
         /fastlio_global_backend/relocalize fastlio_global_slam/srv/Relocalize \
         '{use_latest_scan: true}' 2>&1)" || true
@@ -638,7 +646,7 @@ run_relocalization() {
         relocalization_ok=true
         break
       fi
-      if ((attempt < relocalization_retry_count)); then
+      if [[ "${relocalization_retry_count}" == "infinite" || ${attempt} -lt ${relocalization_retry_count} ]]; then
         log_warn "重定位未找到可信候选位姿；等待 ${relocalization_retry_delay_sec} 秒后使用新的同步扫描重试"
         sleep "${relocalization_retry_delay_sec}"
       fi
@@ -735,8 +743,8 @@ validate_configuration() {
       log_error "重定位已定义地图对齐关系；WORLD_YAW_ALIGNMENT_RAD 必须为 0.0"
       exit 1
     fi
-    if [[ "${relocalization_interactive}" != true && ! "${relocalization_retry_count}" =~ ^[1-9][0-9]*$ ]]; then
-      log_error "RELOCALIZATION_RETRY_COUNT 必须为正整数（非交互模式）"
+    if [[ "${relocalization_interactive}" != true && "${relocalization_retry_count}" != "infinite" && ! "${relocalization_retry_count}" =~ ^[1-9][0-9]*$ ]]; then
+      log_error "RELOCALIZATION_RETRY_COUNT 必须为正整数或 infinite（非交互模式）"
       exit 1
     fi
     if ! awk -v value="${relocalization_retry_delay_sec}" 'BEGIN {exit !(value ~ /^[0-9]+([.][0-9]*)?$/)}'; then

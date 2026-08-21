@@ -118,9 +118,9 @@ def load_settings(path: str | Path) -> MissionSettings:
             document.get('arrive_radius', 0.40), 'arrive_radius', minimum=0.0,
             strict_minimum=True),
         b2_hold_sec=_finite_number(
-            document.get('b2_hold_sec', 3.0), 'b2_hold_sec', minimum=0.0),
+            document.get('b2_hold_sec', 0.0), 'b2_hold_sec', minimum=0.0),
         d_hold_sec=_finite_number(
-            document.get('d_hold_sec', 3.0), 'd_hold_sec', minimum=0.0),
+            document.get('d_hold_sec', 0.0), 'd_hold_sec', minimum=0.0),
         preset_points=_load_preset_points(document.get('preset_points')),
     )
 

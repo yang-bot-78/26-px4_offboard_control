@@ -1,0 +1,33 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from race_msgs/msg/NavigationSetpoint.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Point.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "std_msgs/msg/Header.idl"
+
+module race_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Planner-to-controller contract. All values use header.frame_id.")
+    struct NavigationSetpoint {
+      std_msgs::msg::Header header;
+
+      geometry_msgs::msg::Point position;
+
+      @verbatim (language="comment", text=
+        "Optional path-tangent velocity feed-forward.")
+      boolean velocity_valid;
+
+      geometry_msgs::msg::Vector3 velocity;
+
+      @verbatim (language="comment", text=
+        "Heading and optional heading-rate feed-forward in radians and radians/second.")
+      double yaw;
+
+      boolean yaw_rate_valid;
+
+      double yaw_rate;
+    };
+  };
+};

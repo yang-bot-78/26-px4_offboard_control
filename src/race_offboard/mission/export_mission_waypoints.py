@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from waypoint_common import atomic_write_yaml, default_waypoints_file, load_waypoints
 
 
@@ -79,7 +81,7 @@ def _finite(value: Any, label: str) -> float:
 def build_mission_document(
         saved: dict[str, Any], names: tuple[str, ...],
         arrive_radius: float, b2_hold_sec: float, d_hold_sec: float,
-        source_file: Path) -> dict[str, Any]:
+        source_file: Path, default_hold_sec: float = 0.50) -> dict[str, Any]:
     """Validate the saved store and return exactly the mission schema consumed by the FSM."""
     if saved.get('frame_id') != 'map':
         raise ValueError(f'waypoint frame_id={saved.get("frame_id")!r}, expected map')
@@ -118,8 +120,8 @@ def build_mission_document(
             if not isinstance(entry['behavior_params'], dict):
                 raise ValueError(f'{name}.behavior_params must be a mapping')
             route_entry['behavior_params'] = dict(entry['behavior_params'])
-        if 'hold_sec' in entry:
-            route_entry['hold_sec'] = _finite(entry['hold_sec'], f'{name}.hold_sec')
+        route_entry['hold_sec'] = _finite(
+            entry.get('hold_sec', default_hold_sec), f'{name}.hold_sec')
         route_points.append(route_entry)
     return {
         'arrive_radius': _finite(arrive_radius, 'arrive_radius'),
@@ -144,8 +146,9 @@ def parse_args() -> argparse.Namespace:
         '--names', nargs='+', metavar='NAME', default=None,
         help='route lead-in names; omit to use all saved B1/B2/C/D points (at least two)')
     parser.add_argument('--arrive-radius', type=float, default=0.40)
-    parser.add_argument('--b2-hold-sec', type=float, default=3.0)
-    parser.add_argument('--d-hold-sec', type=float, default=3.0)
+    parser.add_argument('--b2-hold-sec', type=float, default=0.50)
+    parser.add_argument('--d-hold-sec', type=float, default=0.50)
+    parser.add_argument('--default-hold-sec', type=float, default=0.50)
     parser.add_argument(
         '--all-waypoints', action='store_true',
         help='retain every saved waypoint in route_points (default output also includes it)')
@@ -159,13 +162,20 @@ def main() -> int:
     destination = Path(args.mission_file).expanduser().resolve()
     try:
         saved = load_waypoints(source)
+        existing = {}
+        if destination.is_file():
+            with destination.open(encoding='utf-8') as stream:
+                existing = yaml.safe_load(stream) or {}
+            if not isinstance(existing, dict):
+                raise ValueError('existing mission file must be a mapping')
         names = tuple(args.names) if args.names is not None else _select_names(saved)
         document = build_mission_document(
             saved, names, args.arrive_radius, args.b2_hold_sec,
-            args.d_hold_sec, source)
+            args.d_hold_sec, source, args.default_hold_sec)
         if document['arrive_radius'] <= 0 or min(
-                document['b2_hold_sec'], document['d_hold_sec']) < 0:
-            raise ValueError('arrival radius must be positive and holds must be non-negative')
+                document['b2_hold_sec'], document['d_hold_sec'],
+                *(point['hold_sec'] for point in document['route_points'])) < 0:
+            raise ValueError('arrival radius must be positive; holds must be non-negative')
         atomic_write_yaml(destination, document)
     except (OSError, ValueError) as error:
         print(f'[MISSION_EXPORT_REJECTED] {error}', file=sys.stderr)

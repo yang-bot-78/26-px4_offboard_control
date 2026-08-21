@@ -31,6 +31,7 @@
 #include "race_offboard/ego_command_guard.hpp"
 #include "race_offboard/ev_health_tracker.hpp"
 #include "race_offboard/local_origin_rebase_guard.hpp"
+#include "race_offboard/navigation_z_guard.hpp"
 #include "race_offboard/mavros_frame_utils.hpp"
 
 using namespace std::chrono_literals;
@@ -156,6 +157,12 @@ public:
       declare_parameter<double>("manual_handover_max_position_error_m", 0.15);
     manual_handover_max_speed_mps_ =
       declare_parameter<double>("manual_handover_max_speed_mps", 0.20);
+    manual_handover_reference_stabilization_sec_ = declare_parameter<double>(
+      "manual_handover_reference_stabilization_sec", 3.0);
+    manual_handover_reference_max_spread_m_ = declare_parameter<double>(
+      "manual_handover_reference_max_spread_m", 0.08);
+    manual_handover_reference_max_speed_mps_ = declare_parameter<double>(
+      "manual_handover_reference_max_speed_mps", 0.10);
     preflight_stabilization_sec_ = declare_parameter<double>("preflight_stabilization_sec", 5.0);
     command_retry_period_sec_ = declare_parameter<double>("command_retry_period_sec", 1.0);
     cruise_altitude_m_ = declare_parameter<double>("cruise_altitude_m", 0.78);
@@ -163,6 +170,10 @@ public:
     takeoff_complete_height_m_ = declare_parameter<double>("takeoff_complete_height_m", 0.55);
     min_command_height_m_ = declare_parameter<double>("min_command_height_m", 0.30);
     max_command_height_m_ = declare_parameter<double>("max_command_height_m", 2.00);
+    navigation_z_max_step_m_ =
+      declare_parameter<double>("navigation_z_max_step_m", 0.08);
+    navigation_z_max_rate_mps_ =
+      declare_parameter<double>("navigation_z_max_rate_mps", 0.35);
     variable_waypoint_height_ = declare_parameter<bool>("variable_waypoint_height", false);
     overheight_guard_margin_m_ = declare_parameter<double>("overheight_guard_margin_m", 0.20);
     emergency_overheight_margin_m_ =
@@ -223,8 +234,20 @@ public:
     initial_position_stabilization_sec_ = std::max(0.10, initial_position_stabilization_sec_);
     initial_position_max_spread_m_ = std::max(0.01, initial_position_max_spread_m_);
     initial_position_max_speed_mps_ = std::max(0.01, initial_position_max_speed_mps_);
+    manual_handover_max_position_error_m_ = std::max(
+      0.01, manual_handover_max_position_error_m_);
+    manual_handover_max_speed_mps_ = std::max(0.01, manual_handover_max_speed_mps_);
+    manual_handover_reference_stabilization_sec_ = std::max(
+      0.10, manual_handover_reference_stabilization_sec_);
+    manual_handover_reference_max_spread_m_ = std::max(
+      0.01, manual_handover_reference_max_spread_m_);
+    manual_handover_reference_max_speed_mps_ = std::clamp(
+      manual_handover_reference_max_speed_mps_, 0.01, manual_handover_max_speed_mps_);
     takeoff_complete_height_m_ = std::clamp(
       takeoff_complete_height_m_, min_command_height_m_, cruise_altitude_m_);
+    navigation_z_max_step_m_ = std::max(0.001, navigation_z_max_step_m_);
+    navigation_z_max_rate_mps_ = std::max(0.001, navigation_z_max_rate_mps_);
+    navigation_z_guard_.configure(navigation_z_max_step_m_, navigation_z_max_rate_mps_);
 
     // MAVROS keeps the OFFBOARD heartbeat itself; there is no equivalent of
     // /fmu/in/offboard_control_mode.  What PX4 requires is an uninterrupted
@@ -666,6 +689,7 @@ private:
       manual_takeoff_y_ = current_y_;
       manual_takeoff_yaw_ = holdYaw();
       manual_takeoff_position_valid_ = true;
+      resetManualHandoverReferenceRefinement();
       RCLCPP_INFO(
         get_logger(),
         "[MANUAL_POSITION_REFERENCE_LOCKED] takeoff_xy_ned=(%.3f,%.3f) yaw=%.3f",
@@ -683,6 +707,7 @@ private:
     if (was_armed && !armed_) {
       resetFlightAltitudeReference("vehicle disarmed");
       manual_takeoff_position_valid_ = false;
+      resetManualHandoverReferenceRefinement();
     }
   }
 
@@ -761,25 +786,28 @@ private:
       return;
     }
     // Standard goals keep the locked flight level. In waypoint-height mode,
-    // the incoming z is the mission's commanded flight height in metres.
-    const double goal_z = variable_waypoint_height_ ? msg->pose.position.z : target_z_map_;
-    const double shared_min_z_map = ground_z_map_ + shared_bounds_z_min_;
-    const double shared_max_z_map = ground_z_map_ + shared_bounds_z_max_;
+    // RoutePoint.z is an AGL command, not an absolute map z coordinate.
+    const double goal_height_m = variable_waypoint_height_ ?
+      msg->pose.position.z : flight_target_agl_m_;
+    const double goal_z_map = variable_waypoint_height_ ?
+      ground_z_map_ + goal_height_m : target_z_map_;
     if (!std::isfinite(msg->pose.position.x) || !std::isfinite(msg->pose.position.y) ||
       msg->pose.position.x < shared_bounds_x_min_ || msg->pose.position.x > shared_bounds_x_max_ ||
       msg->pose.position.y < shared_bounds_y_min_ || msg->pose.position.y > shared_bounds_y_max_ ||
-      goal_z < shared_min_z_map || goal_z > shared_max_z_map)
+      !std::isfinite(goal_height_m) || goal_height_m < shared_bounds_z_min_ ||
+      goal_height_m > shared_bounds_z_max_)
     {
       RCLCPP_ERROR(
-        get_logger(), "FINAL_GOAL_OUT_OF_SHARED_BOUNDS map=(%.3f,%.3f,%.3f)",
-        msg->pose.position.x, msg->pose.position.y, goal_z);
+        get_logger(), "FINAL_GOAL_OUT_OF_SHARED_BOUNDS map=(%.3f,%.3f,%.3f) agl=%.3f",
+        msg->pose.position.x, msg->pose.position.y, goal_z_map, goal_height_m);
       return;
     }
     // RViz goal is in the unified map ENU. Keep the internal command in NED
     // only at this Offboard boundary: (x_ned,y_ned,z_ned)=(y_map,x_map,-z_map).
     const float goal_x_ned = static_cast<float>(msg->pose.position.y);
     const float goal_y_ned = static_cast<float>(msg->pose.position.x);
-    const float goal_z_ned = static_cast<float>(-goal_z);
+    const float goal_z_ned = static_cast<float>(
+      variable_waypoint_height_ ? -goal_height_m : -goal_z_map);
     const bool duplicate_goal = have_goal_identity_ &&
       std::hypot(goal_x_ned - goal_x_ned_, goal_y_ned - goal_y_ned_) <=
       goal_update_position_tolerance_m_ &&
@@ -921,6 +949,20 @@ private:
         latest_setpoint_.velocity.y = local_velocity_ned[1];
         latest_setpoint_.velocity.z = msg->velocity.z;
       }
+    }
+    const double requested_z_ned = latest_setpoint_.position.z;
+    const auto z_limit = navigation_z_guard_.limit(requested_z_ned, now().seconds());
+    latest_setpoint_.position.z = z_limit.value;
+    if (latest_setpoint_.velocity_valid) {
+      latest_setpoint_.velocity.z = std::clamp(
+        latest_setpoint_.velocity.z, -navigation_z_max_rate_mps_, navigation_z_max_rate_mps_);
+    }
+    if (z_limit.limited) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[NAV_Z_GUARD] limited local-NED z %.3f -> %.3f; max_step=%.3fm max_rate=%.3fm/s",
+        requested_z_ned, latest_setpoint_.position.z, navigation_z_max_step_m_,
+        navigation_z_max_rate_mps_);
     }
     latest_setpoint_.yaw = wrapAngle(latest_setpoint_.yaw);
     have_setpoint_ = true;
@@ -1193,15 +1235,71 @@ private:
     manual_takeoff_y_ = current_y_;
     manual_takeoff_yaw_ = holdYaw();
     manual_takeoff_position_valid_ = true;
+    resetManualHandoverReferenceRefinement();
     RCLCPP_INFO(
       get_logger(),
       "[MANUAL_POSITION_REFERENCE_LOCKED] takeoff_xy_ned=(%.3f,%.3f) yaw=%.3f",
       manual_takeoff_x_, manual_takeoff_y_, manual_takeoff_yaw_);
   }
 
+  void resetManualHandoverReferenceRefinement()
+  {
+    manual_handover_reference_refined_ = false;
+    manual_handover_reference_candidate_valid_ = false;
+    manual_handover_reference_stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  }
+
+  void refineManualHandoverReferenceIfStable()
+  {
+    if (manual_handover_reference_refined_) {
+      return;
+    }
+    const bool ev_ready = !require_ev_health_ || ev_flight_ready_.ready(now().nanoseconds());
+    const bool sample_safe = race_offboard::canRefineManualHandoverReference(
+      manual_handover_, state_ == State::IDLE, armed_, offboard_mode_,
+      positionMode(last_vehicle_mode_), localPositionSafe(), ev_ready,
+      manualHandoverHeightSafe(), horizontalSpeed(),
+      manual_handover_reference_max_speed_mps_);
+    if (!sample_safe) {
+      manual_handover_reference_candidate_valid_ = false;
+      manual_handover_reference_stable_since_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+      return;
+    }
+    if (!manual_handover_reference_candidate_valid_ ||
+      std::hypot(
+        static_cast<double>(current_x_ - manual_handover_reference_candidate_x_),
+        static_cast<double>(current_y_ - manual_handover_reference_candidate_y_)) >
+      manual_handover_reference_max_spread_m_)
+    {
+      manual_handover_reference_candidate_x_ = current_x_;
+      manual_handover_reference_candidate_y_ = current_y_;
+      manual_handover_reference_candidate_valid_ = true;
+      manual_handover_reference_stable_since_ = now();
+      return;
+    }
+    if ((now() - manual_handover_reference_stable_since_).seconds() <
+      manual_handover_reference_stabilization_sec_)
+    {
+      return;
+    }
+    manual_takeoff_x_ = current_x_;
+    manual_takeoff_y_ = current_y_;
+    manual_takeoff_yaw_ = holdYaw();
+    manual_takeoff_position_valid_ = true;
+    manual_handover_reference_refined_ = true;
+    RCLCPP_INFO(
+      get_logger(),
+      "[MANUAL_POSITION_REFERENCE_REFINED] stable_for=%.2fs xy_ned=(%.3f,%.3f) "
+      "yaw=%.3f spread_limit=%.3f speed_limit=%.3f",
+      manual_handover_reference_stabilization_sec_, manual_takeoff_x_, manual_takeoff_y_,
+      manual_takeoff_yaw_, manual_handover_reference_max_spread_m_,
+      manual_handover_reference_max_speed_mps_);
+  }
+
   void updateManualHandoverHoldPosition(float z_command)
   {
     captureManualTakeoffPositionIfNeeded();
+    refineManualHandoverReferenceIfStable();
     if (!manual_takeoff_position_valid_) {
       updateHoldPosition(z_command);
       return;
@@ -2454,6 +2552,9 @@ private:
   bool manual_handover_{false};
   double manual_handover_max_position_error_m_{0.15};
   double manual_handover_max_speed_mps_{0.20};
+  double manual_handover_reference_stabilization_sec_{3.0};
+  double manual_handover_reference_max_spread_m_{0.08};
+  double manual_handover_reference_max_speed_mps_{0.10};
   double preflight_stabilization_sec_{5.0};
   double command_retry_period_sec_{1.0};
   double cruise_altitude_m_{0.78};
@@ -2461,6 +2562,9 @@ private:
   double takeoff_complete_height_m_{0.55};
   double min_command_height_m_{0.30};
   double max_command_height_m_{2.00};
+  double navigation_z_max_step_m_{0.08};
+  double navigation_z_max_rate_mps_{0.35};
+  race_offboard::NavigationZGuard navigation_z_guard_;
   double overheight_guard_margin_m_{0.20};
   double emergency_overheight_margin_m_{0.35};
   double trajectory_timeout_sec_{0.50};
@@ -2576,6 +2680,11 @@ private:
   float manual_takeoff_y_{0.0F};
   double manual_takeoff_yaw_{0.0};
   bool manual_takeoff_position_valid_{false};
+  bool manual_handover_reference_refined_{false};
+  bool manual_handover_reference_candidate_valid_{false};
+  float manual_handover_reference_candidate_x_{0.0F};
+  float manual_handover_reference_candidate_y_{0.0F};
+  rclcpp::Time manual_handover_reference_stable_since_{0, 0, RCL_ROS_TIME};
   float hold_x_{0.0F};
   float hold_y_{0.0F};
   float hold_z_{0.0F};

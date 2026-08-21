@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs/rosidl_generator_py/race_msgs/_race_msgs_s.ep.rosidl_typesupport_introspection_c.c

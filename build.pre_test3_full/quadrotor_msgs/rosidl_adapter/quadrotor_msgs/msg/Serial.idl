@@ -1,0 +1,44 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/Serial.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module quadrotor_msgs {
+  module msg {
+    module Serial_Constants {
+      @verbatim (language="comment", text=
+        "'s' in base 10")
+      const uint8 SO3_CMD = 115;
+      @verbatim (language="comment", text=
+        "'p' in base 10")
+      const uint8 TRPY_CMD = 112;
+      @verbatim (language="comment", text=
+        "'c' in base 10")
+      const uint8 STATUS_DATA = 99;
+      @verbatim (language="comment", text=
+        "'d' in base 10")
+      const uint8 OUTPUT_DATA = 100;
+      @verbatim (language="comment", text=
+        "'t' in base 10")
+      const uint8 PPR_OUTPUT_DATA = 116;
+      @verbatim (language="comment", text=
+        "'g'")
+      const uint8 PPR_GAINS = 103;
+    };
+    @verbatim (language="comment", text=
+      "Note: These constants need to be kept in sync with the types" "\n"
+      "defined in include/quadrotor_msgs/comm_types.h")
+    struct Serial {
+      std_msgs::msg::Header header;
+
+      uint8 channel;
+
+      @verbatim (language="comment", text=
+        "One of the types listed above")
+      uint8 type;
+
+      sequence<uint8> data;
+    };
+  };
+};

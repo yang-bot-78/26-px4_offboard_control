@@ -1,0 +1,39 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/OutputData.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Quaternion.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "std_msgs/msg/Header.idl"
+
+module quadrotor_msgs {
+  module msg {
+    typedef uint8 uint8__8[8];
+    struct OutputData {
+      std_msgs::msg::Header header;
+
+      uint16 loop_rate;
+
+      double voltage;
+
+      geometry_msgs::msg::Quaternion orientation;
+
+      geometry_msgs::msg::Vector3 angular_velocity;
+
+      geometry_msgs::msg::Vector3 linear_acceleration;
+
+      double pressure_dheight;
+
+      double pressure_height;
+
+      geometry_msgs::msg::Vector3 magnetic_field;
+
+      uint8__8 radio_channel;
+
+      @verbatim (language="comment", text=
+        "uint8 motor_rpm")
+      @unit (value="4")
+      uint8 seq;
+    };
+  };
+};

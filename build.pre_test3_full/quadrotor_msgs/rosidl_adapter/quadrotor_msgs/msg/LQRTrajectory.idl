@@ -1,0 +1,54 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/LQRTrajectory.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module quadrotor_msgs {
+  module msg {
+    typedef double double__6[6];
+    typedef double double__3[3];
+    module LQRTrajectory_Constants {
+      @verbatim (language="comment", text=
+        "the action command for trajectory server.")
+      const uint32 ACTION_ADD = 1;
+      const uint32 ACTION_ABORT = 2;
+      const uint32 ACTION_WARN_START = 3;
+      const uint32 ACTION_WARN_FINAL = 4;
+      const uint32 ACTION_WARN_IMPOSSIBLE = 5;
+    };
+    struct LQRTrajectory {
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "the trajectory id, starts from \"1\".")
+      uint32 trajectory_id;
+
+      uint32 action;
+
+      @verbatim (language="comment", text=
+        "the weight coefficient of the control effort")
+      double r;
+
+      @verbatim (language="comment", text=
+        "the yaw command")
+      double start_yaw;
+
+      double final_yaw;
+
+      @verbatim (language="comment", text=
+        "the initial and final state")
+      double__6 s0;
+
+      double__3 ut;
+
+      double__6 sf;
+
+      @verbatim (language="comment", text=
+        "the optimal arrival time")
+      double t_f;
+
+      string debug_info;
+    };
+  };
+};

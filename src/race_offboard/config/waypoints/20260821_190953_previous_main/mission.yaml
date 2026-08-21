@@ -1,0 +1,36 @@
+arrive_radius: 0.4
+arrival_max_horizontal_speed_mps: 0.15
+arrival_max_vertical_speed_mps: 0.10
+arrival_stable_sec: 0.50
+arrival_velocity_timeout_sec: 0.50
+b2_hold_sec: 0.0
+d_hold_sec: 0.0
+preset_points:
+- - 0.940645458002276
+  - -0.08355574566048622
+- - 2.7501069480256772
+  - 1.6218177835071055
+- - 5.047745521133937
+  - 1.6434512194512814
+route_points:
+- name: B1
+  x: 0.940645458002276
+  y: -0.08355574566048622
+  z: 1.0
+- name: B2
+  x: 2.7501069480256772
+  y: 1.6218177835071055
+  z: 0.5
+- name: C
+  x: 5.047745521133937
+  y: 1.6434512194512814
+  z: 0.75
+source_waypoints_file: /home/robot/egohx_ws/26-px4_offboard_control-main/src/race_offboard/config/waypoints/main/waypoints.yaml
+source_waypoint_names:
+- B1
+- B2
+- C
+source_frame_id: map
+source_map_pcd_file: "/home/robot/egohx_ws/26-px4_offboard_control-main/maps/main/GlobalMap_\u53BB\
+  \u9876\u7AEF_z2.5m.pcd"
+source_map_pcd_sha256: 3ae501e43f3c01a2feeacea7c9a1b0f5193f076a1d393aca7d1d987a7dec63f2

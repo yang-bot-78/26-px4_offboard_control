@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs/rosidl_typesupport_introspection_c/quadrotor_msgs/msg/detail/so3_command__rosidl_typesupport_introspection_c.h

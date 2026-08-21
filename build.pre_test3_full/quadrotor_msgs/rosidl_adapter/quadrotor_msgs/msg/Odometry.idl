@@ -1,0 +1,24 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/Odometry.msg
+// generated code does not contain a copyright notice
+
+#include "nav_msgs/msg/Odometry.idl"
+
+module quadrotor_msgs {
+  module msg {
+    module Odometry_Constants {
+      const uint8 STATUS_ODOM_VALID = 0;
+      const uint8 STATUS_ODOM_INVALID = 1;
+      const uint8 STATUS_ODOM_LOOPCLOSURE = 2;
+    };
+    struct Odometry {
+      nav_msgs::msg::Odometry curodom;
+
+      nav_msgs::msg::Odometry kfodom;
+
+      uint32 kfid;
+
+      uint8 status;
+    };
+  };
+};

@@ -1,0 +1,23 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/AuxCommand.msg
+// generated code does not contain a copyright notice
+
+
+module quadrotor_msgs {
+  module msg {
+    typedef double double__2[2];
+    struct AuxCommand {
+      double current_yaw;
+
+      double kf_correction;
+
+      @verbatim (language="comment", text=
+        "Trims for roll, pitch")
+      double__2 angle_corrections;
+
+      boolean enable_motors;
+
+      boolean use_external_yaw;
+    };
+  };
+};

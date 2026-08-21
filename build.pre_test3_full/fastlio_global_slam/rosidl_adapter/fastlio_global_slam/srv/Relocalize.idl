@@ -1,0 +1,20 @@
+// generated from rosidl_adapter/resource/srv.idl.em
+// with input from fastlio_global_slam/srv/Relocalize.srv
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Pose.idl"
+
+module fastlio_global_slam {
+  module srv {
+    struct Relocalize_Request {
+      boolean use_latest_scan;
+    };
+    struct Relocalize_Response {
+      boolean success;
+
+      string message;
+
+      geometry_msgs::msg::Pose estimated_pose;
+    };
+  };
+};

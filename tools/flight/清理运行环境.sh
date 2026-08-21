@@ -26,6 +26,8 @@ set -uo pipefail
 # 安全约束：飞机 armed=true 时本脚本拒绝结束任何进程。断开 MAVROS 或 Offboard
 # 节点会让一架已解锁的飞机失去控制来源，这种情况必须由操作员先落地上锁再清理。
 # 读不到 /mavros/state 时同样拒绝（失效即拒绝）—— 那时无法证明飞机没有解锁。
+# MAVROS 的 State 流通常是 Best Effort；清理前必须以兼容的 QoS 读取完整状态，
+# 否则已上锁的上一轮残留会被误判为“状态不可读”，导致无法重新启动。
 
 if [[ "${SKIP_ENV_CLEANUP:-0}" == 1 ]]; then
   echo "[清理] SKIP_ENV_CLEANUP=1：已跳过启动前环境清理。" >&2
@@ -123,6 +125,32 @@ collect_pids() {
   printf '%s\n' "${found[@]:-}" | awk 'NF' | sort -un
 }
 
+# 读取完整的 MAVROS State。MAVROS 通常以 Best Effort 发布这个易失话题；默认
+# Reliable 订阅在部分 RMW 组合上无法匹配。保留默认 QoS 回退，以兼容不接受
+# 显式 reliability 覆盖的 ROS 2 发行版。
+read_mavros_state() {
+  local raw="" attempt
+  for ((attempt=0; attempt<3; attempt++)); do
+    raw="$(timeout --kill-after=1s 3s ros2 topic echo --once \
+      --qos-reliability best_effort \
+      /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
+    if ! grep -Eq '^connected:[[:space:]]*(true|false)$' <<<"${raw}" ||
+       ! grep -Eq '^armed:[[:space:]]*(true|false)$' <<<"${raw}" ||
+       ! grep -Eq '^mode:[[:space:]]*[^[:space:]]+' <<<"${raw}"; then
+      raw="$(timeout --kill-after=1s 3s ros2 topic echo --once \
+        /mavros/state mavros_msgs/msg/State 2>/dev/null || true)"
+    fi
+    if grep -Eq '^connected:[[:space:]]*(true|false)$' <<<"${raw}" &&
+       grep -Eq '^armed:[[:space:]]*(true|false)$' <<<"${raw}" &&
+       grep -Eq '^mode:[[:space:]]*[^[:space:]]+' <<<"${raw}"; then
+      printf '%s\n' "${raw}"
+      return 0
+    fi
+    sleep 0.2
+  done
+  return 1
+}
+
 # armed=true 时拒绝清理。读不到状态也拒绝：无法证明飞机未解锁就不能动进程。
 assert_not_armed() {
   local state
@@ -133,10 +161,10 @@ assert_not_armed() {
     # MAVROS 没在跑，飞机不可能通过本机 Offboard 被控制。
     return 0
   fi
-  state="$(timeout 8 ros2 topic echo --once /mavros/state mavros_msgs/msg/State 2>/dev/null)"
+  state="$(read_mavros_state || true)"
   if [[ -z "${state}" ]]; then
     echo "[清理] 拒绝清理：MAVROS 在运行，但读不到 /mavros/state。" >&2
-    echo "[清理] 无法证明飞机未解锁，不能断开任何进程。请人工确认飞机已上锁后重试。" >&2
+    echo "[清理] 无法证明飞机未解锁，不能断开任何进程。请先落地上锁，并等待上一轮脚本完成退出后重试。" >&2
     return 1
   fi
   if ! printf '%s\n' "${state}" | grep -Eq '^armed:[[:space:]]+false$'; then

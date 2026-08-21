@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs/rosidl_generator_c/quadrotor_msgs/msg/status_data.h

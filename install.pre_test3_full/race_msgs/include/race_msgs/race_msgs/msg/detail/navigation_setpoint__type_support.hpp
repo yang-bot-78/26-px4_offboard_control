@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs/rosidl_generator_cpp/race_msgs/msg/detail/navigation_setpoint__type_support.hpp

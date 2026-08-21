@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs/rosidl_typesupport_fastrtps_c/race_msgs/msg/detail/global_planner_status__rosidl_typesupport_fastrtps_c.h

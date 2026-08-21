@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs/rosidl_generator_py/race_msgs/msg/_global_planner_status.py

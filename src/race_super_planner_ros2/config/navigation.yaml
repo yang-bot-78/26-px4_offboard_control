@@ -54,6 +54,9 @@ super_planner_ros2_node:
     max_safe_height: 2.00
     fixed_flight_height: 0.78
     use_fixed_flight_height: true
+    # Set true only for the waypoint state machine: its RoutePoint.z is an
+    # AGL command, while this planner's internal geometry remains map ENU.
+    waypoint_height_is_agl: false
     final_goal_position_tolerance_m: 0.10
     final_goal_velocity_tolerance_mps: 0.08
     final_goal_confirmation_cycles: 10

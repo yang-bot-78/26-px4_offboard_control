@@ -215,6 +215,7 @@ public:
     max_safe_height_ = declare_parameter<double>("max_safe_height", 0.90);
     fixed_flight_height_ = declare_parameter<double>("fixed_flight_height", 0.78);
     use_fixed_flight_height_ = declare_parameter<bool>("use_fixed_flight_height", true);
+    waypoint_height_is_agl_ = declare_parameter<bool>("waypoint_height_is_agl", false);
     final_goal_position_tolerance_m_ =
       declare_parameter<double>("final_goal_position_tolerance_m", 0.10);
     final_goal_velocity_tolerance_mps_ =
@@ -591,7 +592,7 @@ private:
 
   void goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
   {
-    if (use_fixed_flight_height_ && !altitude_reference_valid_) {
+    if ((use_fixed_flight_height_ || waypoint_height_is_agl_) && !altitude_reference_valid_) {
       RCLCPP_ERROR(
         get_logger(),
         "[SUPER_GOAL_REJECT] no valid /race/flight_altitude_reference for this flight");
@@ -602,6 +603,19 @@ private:
       latchFault("FAULT_GOAL_NON_FINITE");
       RCLCPP_ERROR(get_logger(), "[FAULT_GOAL_NON_FINITE] source=%s", goal_topic_.c_str());
       return;
+    }
+    if (waypoint_height_is_agl_) {
+      if (goal.z < min_safe_height_ || goal.z > max_safe_height_) {
+        RCLCPP_ERROR(
+          get_logger(),
+          "[SUPER_GOAL_REJECT] waypoint AGL height %.3f outside safe range [%.3f,%.3f]",
+          goal.z, min_safe_height_, max_safe_height_);
+        return;
+      }
+      // RoutePoint.z is a height above the ground locked for this flight.
+      // Convert it exactly once at the planner boundary; all geometry below
+      // continues to use absolute map ENU z.
+      goal.z = ground_z_map_ + goal.z;
     }
     goal.z = clampHeight(goal.z);
     if (!insideSharedBounds(goal)) {
@@ -1348,7 +1362,7 @@ private:
       return;
     }
 
-    if (use_fixed_flight_height_ && !altitude_reference_valid_) {
+    if ((use_fixed_flight_height_ || waypoint_height_is_agl_) && !altitude_reference_valid_) {
       active_path_.clear();
       clearPendingGlobalPath();
       selected_setpoint_ = latest_odom_;
@@ -3413,8 +3427,12 @@ private:
     }
 
     Vec3 ned = enuToNed(safe);
-    if (altitude_reference_valid_ && use_fixed_flight_height_) {
-      ned.z = target_z_local_ned_;
+    if (altitude_reference_valid_ &&
+      (use_fixed_flight_height_ || waypoint_height_is_agl_))
+    {
+      // NavigationSetpoint z is local-NED.  The Offboard node treats it as
+      // ground-relative height, so retain only the AGL component of map z.
+      ned.z = ground_z_local_ned_ - heightAboveGround(safe.z);
     }
     if (!isSafeNedGoal(ned)) {
       setMode(Mode::BLOCKED_UNSAFE);
@@ -4010,6 +4028,7 @@ private:
   bool require_mavros_connected_{false};
   bool smoothing_collision_check_{true};
   bool use_fixed_flight_height_{true};
+  bool waypoint_height_is_agl_{false};
   bool altitude_reference_valid_{false};
   bool allow_direct_path_{false};
   bool enable_path_shortcut_{false};

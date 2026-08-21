@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs/rosidl_typesupport_fastrtps_cpp/quadrotor_msgs/msg/detail/trpy_command__rosidl_typesupport_fastrtps_cpp.hpp

@@ -1,0 +1,13 @@
+[0.152s] Invoking command in '/home/robot/egohx_ws/26-px4_offboard_control-main/build/traj_utils': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/robot/egohx_ws/26-px4_offboard_control-main/build/traj_utils -- -j16 -l16
+[1.126s] [  1%] Generating Rust code for ROS interfaces
+[1.614s] [  1%] Built target traj_utils__rs
+[1.695s] [  3%] Building CXX object CMakeFiles/traj_utils_lib.dir/src/planning_visualization.cpp.o
+[14.753s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp: In member function ‘void ego_planner::PlanningVisualization::displayMarkerList(rclcpp::Publisher<visualization_msgs::msg::Marker_<std::allocator<void> > >::SharedPtr&, const std::vector<Eigen::Matrix<double, 3, 1> >&, double, Eigen::Vector4d, int, bool)’:
+[14.754s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp:11:85: warning: unused parameter ‘show_sphere’ [-Wunused-parameter]
+[14.754s]    11 |                                                 Eigen::Vector4d color, int id, bool show_sphere /* = true */)
+[14.754s]       |                                                                                ~~~~~^~~~~~~~~~~
+[14.790s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp: In member function ‘void ego_planner::PlanningVisualization::displayMultiInitPathList(std::vector<std::vector<Eigen::Matrix<double, 3, 1> > >, double)’:
+[14.791s] /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/src/planning_visualization.cpp:177:25: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<std::vector<Eigen::Matrix<double, 3, 1> > >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+[14.791s]   177 |     for (int id = 0; id < init_trajs.size(); id++)
+[14.791s]       |                      ~~~^~~~~~~~~~~~~~~~~~~
+[26.684s] [  5%] Building CXX object CMakeFiles/traj_utils_lib.dir/src/polynomial_traj.cpp.o

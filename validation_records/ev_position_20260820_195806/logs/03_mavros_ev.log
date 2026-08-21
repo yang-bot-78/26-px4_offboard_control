@@ -1,0 +1,250 @@
+[INFO] [launch]: All log files can be found below /home/robot/.ros/log/2026-08-20-19-58-38-189308-robot-11570
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [mavros_node-1]: process started with pid [11597]
+[INFO] [fastlio_odometry_guard-2]: process started with pid [11599]
+[INFO] [fastlio_ev_health_monitor.py-3]: process started with pid [11601]
+[INFO] [fix_mavros_odometry_frames.py-4]: process started with pid [11603]
+[INFO] [fastlio_mavros_vision_bridge-5]: process started with pid [11605]
+[INFO] [static_transform_publisher-6]: process started with pid [11607]
+[INFO] [static_transform_publisher-7]: process started with pid [11609]
+[INFO] [static_transform_publisher-8]: process started with pid [11611]
+[static_transform_publisher-8] [INFO] [1787227118.633752400] [body_to_body_frd]: Spinning until stopped - publishing transform
+[static_transform_publisher-8] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] rotation: ('1.000000', '0.000000', '0.000000', '0.000000')
+[static_transform_publisher-8] from 'body' to 'body_frd'
+[fastlio_odometry_guard-2] [INFO] [1787227118.638892677] [fastlio_odometry_guard]: Guarding odometry /Odometry -> /Odometry/guarded (jump=0.30m, xy=0.20m, z=0.10m, speed=1.20m/s, unknown angular variance>=100000)
+[static_transform_publisher-7] [INFO] [1787227118.640156623] [camera_init_to_camera_init_ned]: Spinning until stopped - publishing transform
+[static_transform_publisher-7] translation: ('0.000000', '0.000000', '0.000000')
+[static_transform_publisher-7] rotation: ('0.707107', '0.707107', '0.000000', '0.000000')
+[static_transform_publisher-7] from 'camera_init' to 'camera_init_ned'
+[mavros_node-1] [INFO] [1787227118.640202929] [mavros.mavros_node]: Starting mavros_node container
+[mavros_node-1] [INFO] [1787227118.640322148] [mavros.mavros_node]: FCU URL: serial:///dev/serial/by-id/usb-Matek_HKUST_UAV_NxtPX4_0-if00:921600?ids=255,190
+[mavros_node-1] [INFO] [1787227118.640335445] [mavros.mavros_node]: GCS URL: 
+[mavros_node-1] [INFO] [1787227118.640344270] [mavros.mavros_node]: UAS Prefix: /uas1
+[mavros_node-1] [INFO] [1787227118.640354053] [mavros.mavros_node]: Starting mavros router node
+[fastlio_mavros_vision_bridge-5] [INFO] [1787227118.640977086] [fastlio_mavros_vision_bridge]: Bridging /Odometry/healthy -> /mavros/vision_pose/pose_cov + vision_speed at 50.0 Hz (0=unlimited); body->FAST-LIO origin in body FLU=(0.0000, 0.0000, 0.0800) m, R_FASTLIO_body yaw=0.000000 rad, world yaw alignment=0.000000 rad
+[static_transform_publisher-6] [INFO] [1787227118.653606450] [base_link_to_body]: Spinning until stopped - publishing transform
+[static_transform_publisher-6] translation: ('0.000000', '0.000000', '0.080000')
+[static_transform_publisher-6] rotation: ('0.000000', '0.000000', '-0.000000', '1.000000')
+[static_transform_publisher-6] from 'base_link' to 'body'
+[mavros_node-1] [INFO] [1787227118.655246790] [mavros.mavros_router]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1787227118.655297314] [mavros.mavros_router]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1787227118.655316412] [mavros.mavros_router]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1787227118.655326723] [mavros.mavros_router]: MAVROS Router started
+[mavros_node-1] [INFO] [1787227118.655449001] [mavros.mavros_node]: Starting mavros uas node
+[fix_mavros_odometry_frames.py-4] [INFO] [1787227118.674052260] [fix_mavros_odometry_frames]: Waiting for /mavros/odometry parameter service...
+[mavros_node-1] [INFO] [1787227118.685644844] [mavros.mavros_router]: Requested to add endpoint: type: 0, url: serial:///dev/serial/by-id/usb-Matek_HKUST_UAV_NxtPX4_0-if00:921600?ids=255,190
+[mavros_node-1] [INFO] [1787227118.685706158] [mavros.mavros_router]: Endpoint link[1000] created
+[mavros_node-1] [INFO] [1787227118.686759411] [mavros.mavros_router]: link[1000] opened successfully
+[mavros_node-1] [INFO] [1787227118.686797556] [mavros.mavros_router]: Requested to add endpoint: type: 2, url: /uas1
+[mavros_node-1] [INFO] [1787227118.686814123] [mavros.mavros_router]: link[1000] detected remote address 1.1
+[mavros_node-1] [INFO] [1787227118.686825771] [mavros.mavros_router]: Endpoint link[1001] created
+[mavros_node-1] [INFO] [1787227118.688852695] [mavros.mavros_router]: link[1001] opened successfully
+[fastlio_ev_health_monitor.py-3] [INFO] [1787227118.695271806] [fastlio_ev_health_monitor]: EV health gate /Odometry -> /Odometry/healthy; compare /mavros/local_position/velocity_local in PX4 local NED; status=/ev_health/status, diagnostics=/ev_health/diagnostics
+[mavros_node-1] [INFO] [1787227118.695708320] [mavros.mavros]: Plugin actuator_control ignored
+[mavros_node-1] [INFO] [1787227118.695732985] [mavros.mavros]: UAS Executor started, threads: 16
+[mavros_node-1] [INFO] [1787227118.695740560] [mavros.mavros]: Plugin adsb ignored
+[mavros_node-1] [INFO] [1787227118.695774824] [mavros.mavros]: Plugin altitude ignored
+[mavros_node-1] [INFO] [1787227118.695777725] [mavros.mavros]: Plugin cam_imu_sync ignored
+[mavros_node-1] [INFO] [1787227118.695780475] [mavros.mavros]: Plugin camera ignored
+[mavros_node-1] [INFO] [1787227118.695783268] [mavros.mavros]: Plugin cellular_status ignored
+[fastlio_ev_health_monitor.py-3] [WARN] [1787227118.696721979] [fastlio_ev_health_monitor]: EV health state=SUSPECT: frlio_status_missing
+[fastlio_ev_health_monitor.py-3] [WARN] [1787227118.696882390] [fastlio_ev_health_monitor]: EV flight_ready=false: frlio_status_missing
+[fastlio_ev_health_monitor.py-3] [WARN] [1787227118.698552176] [fastlio_ev_health_monitor]: EV health state=SUSPECT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [INFO] [1787227118.698717632] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [INFO] [1787227118.714263087] [mavros.mavros]: Plugin command created
+[mavros_node-1] [INFO] [1787227118.714348010] [mavros.mavros]: Plugin command initialized
+[mavros_node-1] [INFO] [1787227118.714356019] [mavros.mavros]: Plugin companion_process_status ignored
+[mavros_node-1] [INFO] [1787227118.714359312] [mavros.mavros]: Plugin debug_value ignored
+[mavros_node-1] [INFO] [1787227118.714362471] [mavros.mavros]: Plugin distance_sensor ignored
+[mavros_node-1] [INFO] [1787227118.714365127] [mavros.mavros]: Plugin esc_status ignored
+[mavros_node-1] [INFO] [1787227118.714367871] [mavros.mavros]: Plugin esc_telemetry ignored
+[mavros_node-1] [INFO] [1787227118.714372590] [mavros.mavros]: Plugin fake_gps ignored
+[mavros_node-1] [INFO] [1787227118.714375347] [mavros.mavros]: Plugin ftp ignored
+[mavros_node-1] [INFO] [1787227118.714377996] [mavros.mavros]: Plugin geofence ignored
+[mavros_node-1] [INFO] [1787227118.714380567] [mavros.mavros]: Plugin gimbal_control ignored
+[mavros_node-1] [INFO] [1787227118.714383263] [mavros.mavros]: Plugin global_position ignored
+[mavros_node-1] [INFO] [1787227118.714385768] [mavros.mavros]: Plugin gps_input ignored
+[mavros_node-1] [INFO] [1787227118.714388325] [mavros.mavros]: Plugin gps_rtk ignored
+[mavros_node-1] [INFO] [1787227118.714390846] [mavros.mavros]: Plugin gps_status ignored
+[mavros_node-1] [INFO] [1787227118.714393352] [mavros.mavros]: Plugin guided_target ignored
+[mavros_node-1] [INFO] [1787227118.714396008] [mavros.mavros]: Plugin hil ignored
+[mavros_node-1] [INFO] [1787227118.714398536] [mavros.mavros]: Plugin home_position ignored
+[fastlio_odometry_guard-2] [WARN] [1787227118.720400341] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.41079 m/s (accepted=15 rejected=1)
+[mavros_node-1] [INFO] [1787227118.728869756] [mavros.mavros]: Plugin imu created
+[mavros_node-1] [INFO] [1787227118.728928123] [mavros.mavros]: Plugin imu initialized
+[mavros_node-1] [INFO] [1787227118.728943470] [mavros.mavros]: Plugin landing_target ignored
+[mavros_node-1] [INFO] [1787227118.737508686] [mavros.mavros]: Plugin local_position created
+[mavros_node-1] [INFO] [1787227118.737571378] [mavros.mavros]: Plugin local_position initialized
+[mavros_node-1] [INFO] [1787227118.737588110] [mavros.mavros]: Plugin log_transfer ignored
+[mavros_node-1] [INFO] [1787227118.737599534] [mavros.mavros]: Plugin mag_calibration_status ignored
+[mavros_node-1] [INFO] [1787227118.737668384] [mavros.mavros]: Plugin manual_control ignored
+[mavros_node-1] [INFO] [1787227118.737681844] [mavros.mavros]: Plugin mocap_pose_estimate ignored
+[mavros_node-1] [INFO] [1787227118.737692598] [mavros.mavros]: Plugin mount_control ignored
+[mavros_node-1] [INFO] [1787227118.737702811] [mavros.mavros]: Plugin nav_controller_output ignored
+[mavros_node-1] [INFO] [1787227118.737713839] [mavros.mavros]: Plugin obstacle_distance ignored
+[mavros_node-1] [INFO] [1787227118.737723715] [mavros.mavros]: Plugin obstacle_distance_3d ignored
+[mavros_node-1] [INFO] [1787227118.754142393] [mavros.mavros]: Plugin odometry created
+[mavros_node-1] [INFO] [1787227118.754314473] [mavros.mavros]: Plugin odometry initialized
+[mavros_node-1] [INFO] [1787227118.754335932] [mavros.mavros]: Plugin onboard_computer_status ignored
+[mavros_node-1] [INFO] [1787227118.754343502] [mavros.mavros]: Plugin open_drone_id ignored
+[mavros_node-1] [INFO] [1787227118.754350476] [mavros.mavros]: Plugin optical_flow ignored
+[mavros_node-1] [INFO] [1787227118.760766065] [mavros.mavros]: Plugin param created
+[mavros_node-1] [INFO] [1787227118.760804129] [mavros.mavros]: Plugin param initialized
+[mavros_node-1] [INFO] [1787227118.760809825] [mavros.mavros]: Plugin play_tune ignored
+[mavros_node-1] [INFO] [1787227118.760812983] [mavros.mavros]: Plugin px4flow ignored
+[mavros_node-1] [INFO] [1787227118.760815611] [mavros.mavros]: Plugin rallypoint ignored
+[mavros_node-1] [INFO] [1787227118.760818543] [mavros.mavros]: Plugin rangefinder ignored
+[mavros_node-1] [INFO] [1787227118.760821268] [mavros.mavros]: Plugin rc_io ignored
+[mavros_node-1] [INFO] [1787227118.760824091] [mavros.mavros]: Plugin setpoint_accel ignored
+[mavros_node-1] [INFO] [1787227118.760826995] [mavros.mavros]: Plugin setpoint_attitude ignored
+[mavros_node-1] [INFO] [1787227118.760830031] [mavros.mavros]: Plugin setpoint_position ignored
+[mavros_node-1] [INFO] [1787227118.765871004] [mavros.mavros]: Plugin setpoint_raw created
+[mavros_node-1] [INFO] [1787227118.765923572] [mavros.mavros]: Plugin setpoint_raw initialized
+[mavros_node-1] [INFO] [1787227118.765929494] [mavros.mavros]: Plugin setpoint_trajectory ignored
+[mavros_node-1] [INFO] [1787227118.765932763] [mavros.mavros]: Plugin setpoint_velocity ignored
+[mavros_node-1] [INFO] [1787227118.765935572] [mavros.mavros]: Plugin sim_state ignored
+[mavros_node-1] [INFO] [1787227118.773360444] [mavros.mavros]: Plugin sys_status created
+[mavros_node-1] [INFO] [1787227118.773417764] [mavros.mavros]: Plugin sys_status initialized
+[mavros_node-1] [INFO] [1787227118.777664087] [mavros.time]: TM: Timesync mode: MAVLINK
+[mavros_node-1] [INFO] [1787227118.778779710] [mavros.mavros]: Plugin sys_time created
+[mavros_node-1] [INFO] [1787227118.778816331] [mavros.mavros]: Plugin sys_time initialized
+[mavros_node-1] [INFO] [1787227118.778822139] [mavros.mavros]: Plugin tdr_radio ignored
+[mavros_node-1] [INFO] [1787227118.778825206] [mavros.mavros]: Plugin terrain ignored
+[mavros_node-1] [INFO] [1787227118.778827939] [mavros.mavros]: Plugin trajectory ignored
+[mavros_node-1] [INFO] [1787227118.778830963] [mavros.mavros]: Plugin tunnel ignored
+[mavros_node-1] [INFO] [1787227118.778833745] [mavros.mavros]: Plugin vfr_hud ignored
+[mavros_node-1] [INFO] [1787227118.778836557] [mavros.mavros]: Plugin vibration ignored
+[mavros_node-1] [INFO] [1787227118.783764360] [mavros.mavros]: Plugin vision_pose created
+[mavros_node-1] [INFO] [1787227118.783809043] [mavros.mavros]: Plugin vision_pose initialized
+[mavros_node-1] [INFO] [1787227118.789890638] [mavros.mavros]: Plugin vision_speed created
+[mavros_node-1] [INFO] [1787227118.789966259] [mavros.mavros]: Plugin vision_speed initialized
+[mavros_node-1] [INFO] [1787227118.789987847] [mavros.mavros]: Plugin waypoint ignored
+[mavros_node-1] [INFO] [1787227118.789999240] [mavros.mavros]: Plugin wheel_odometry ignored
+[mavros_node-1] [INFO] [1787227118.790010041] [mavros.mavros]: Plugin wind_estimation ignored
+[mavros_node-1] [INFO] [1787227118.791347730] [mavros.mavros]: Built-in SIMD instructions: SSE, SSE2
+[mavros_node-1] [INFO] [1787227118.791382884] [mavros.mavros]: Built-in MAVLink package version: 2026.3.3
+[mavros_node-1] [INFO] [1787227118.791387176] [mavros.mavros]: Known MAVLink dialects: common ardupilotmega ASLUAV AVSSUAS all csAirLink cubepilot development icarous loweheiser marsh matrixpilot paparazzi standard stemstudios storm32 uAvionix ualberta
+[mavros_node-1] [INFO] [1787227118.791390252] [mavros.mavros]: MAVROS UAS via /uas1 started. MY ID 255.190, TARGET ID 1.1
+[fastlio_ev_health_monitor.py-3] [WARN] [1787227118.997979935] [fastlio_ev_health_monitor]: EV health state=FAULT: px4_velocity_unaligned
+[fastlio_ev_health_monitor.py-3] [WARN] [1787227118.998167536] [fastlio_ev_health_monitor]: EV flight_ready=false: core_state_fault
+[mavros_node-1] [INFO] [1787227119.093172576] [mavros.mavros_router]: link[1001] detected remote address 255.190
+[mavros_node-1] [INFO] [1787227119.093193964] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1787227119.093843320] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[fix_mavros_odometry_frames.py-4] [INFO] [1787227119.675814498] [fix_mavros_odometry_frames]: Setting MAVROS odometry target frames to odom/base_link.
+[fix_mavros_odometry_frames.py-4] [INFO] [1787227119.677934438] [fix_mavros_odometry_frames]: MAVROS odometry frame targets updated successfully.
+[mavros_node-1] [INFO] [1787227119.690143942] [mavros.mavros]: CON: Got HEARTBEAT, connected. FCU: PX4 Autopilot
+[mavros_node-1] [INFO] [1787227119.710731990] [mavros.imu]: IMU: High resolution IMU detected!
+[mavros_node-1] [INFO] [1787227119.710958421] [mavros.imu]: IMU: Attitude quaternion IMU detected!
+[INFO] [fix_mavros_odometry_frames.py-4]: process has finished cleanly [pid 11603]
+[fastlio_odometry_guard-2] [WARN] [1787227119.816911889] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.48142 m/s (accepted=227 rejected=9)
+[mavros_node-1] [WARN] [1787227120.693444295] [mavros.cmd]: CMD: Unexpected command 520, result 3
+[fastlio_odometry_guard-2] [WARN] [1787227120.817269122] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.71695 m/s (accepted=421 rejected=15)
+[fastlio_ev_health_monitor.py-3] [INFO] [1787227121.689042118] [fastlio_ev_health_monitor]: EV health state=HEALTHY: ok
+[fastlio_ev_health_monitor.py-3] [INFO] [1787227121.689351859] [fastlio_ev_health_monitor]: EV flight_ready=true: ready
+[mavros_node-1] [WARN] [1787227121.694455386] [mavros.sys]: VER: broadcast request timeout, retries left 4
+[fastlio_odometry_guard-2] [WARN] [1787227121.817553352] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 3.18685 m/s (accepted=615 rejected=21)
+[mavros_node-1] [WARN] [1787227121.920168447] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-18-1-0-0-0-0-0-0-0-0-131-191-1-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227121.920261467] [mavros.sys]: FCU: EVENT 16642797 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227121.920330808] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227121.920356312] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227121.920642356] [mavros.sys]: FCU: EVENT 13835193 with args -124-0-126-0-17-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227121.920682468] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1787227121.920707503] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1787227121.920730639] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227121.920752812] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1787227121.920775399] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1787227121.920798639] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1787227122.692450153] [mavros.sys]: VER: broadcast request timeout, retries left 3
+[fastlio_odometry_guard-2] [WARN] [1787227122.917196742] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.92854 m/s (accepted=830 rejected=26)
+[mavros_node-1] [WARN] [1787227123.656749442] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [ERROR] [1787227123.703538186] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1787227123.703616506] [mavros.sys]: VER: unicast request timeout, retries left 2
+[mavros_node-1] [WARN] [1787227124.001590589] [mavros.sys]: FCU: UNK(8): EVENT 11047904 with args -0-128-0-16-1-0-0-0-0-0-0-0-0-199-191-127-128-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227124.001703631] [mavros.sys]: FCU: EVENT 9077977 with args -255-255-255-255-7-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227124.001803616] [mavros.sys]: FCU: EVENT 11464574 with args -0-64-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227124.001923214] [mavros.sys]: FCU: EVENT 10011251 with args -56-0-0-0-24-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1787227124.002040937] [mavros.sys]: FCU: EVENT 377561 with args -8-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1787227124.002147153] [mavros.sys]: FCU: EVENT 79408 with args -32-0-0-0-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [ERROR] [1787227124.002263853] [mavros.sys]: FCU: EVENT 12754954 with args -255-255-255-255-20-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [INFO] [1787227124.002399431] [mavros.sys]: FCU: EVENT 6801787 with args -255-255-255-255-12-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[mavros_node-1] [WARN] [1787227124.002520653] [mavros.sys]: FCU: UNK(8): EVENT 1914663 with args -0-130-0-2-48-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-0-
+[fastlio_odometry_guard-2] [WARN] [1787227124.017306428] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.74024 m/s (accepted=1046 rejected=30)
+[mavros_node-1] [ERROR] [1787227124.696337998] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1787227124.696394387] [mavros.sys]: VER: unicast request timeout, retries left 1
+[fastlio_odometry_guard-2] [WARN] [1787227125.517424545] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.92729 m/s (accepted=1341 rejected=35)
+[mavros_node-1] [ERROR] [1787227125.699761813] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1787227125.699822369] [mavros.sys]: VER: unicast request timeout, retries left 0
+[mavros_node-1] [WARN] [1787227125.865874472] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[mavros_node-1] [ERROR] [1787227126.700656119] [mavros.sys]: VER: command plugin service call failed!
+[mavros_node-1] [WARN] [1787227126.700707529] [mavros.sys]: VER: your FCU don't support AUTOPILOT_VERSION, switched to default capabilities
+[fastlio_odometry_guard-2] [WARN] [1787227126.717696828] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.27892 m/s (accepted=1574 rejected=42)
+[fastlio_odometry_guard-2] [WARN] [1787227127.717716634] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.81416 m/s (accepted=1765 rejected=51)
+[mavros_node-1] [WARN] [1787227128.327853690] [mavros.param]: PR: Failed to get parameter type: EKF2_EV_CTRL
+[fastlio_odometry_guard-2] [WARN] [1787227128.718112889] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.42676 m/s (accepted=1960 rejected=56)
+[fastlio_odometry_guard-2] [WARN] [1787227130.118345061] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.08532 m/s (accepted=2235 rejected=61)
+[fastlio_odometry_guard-2] [WARN] [1787227131.217879287] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.99147 m/s (accepted=2449 rejected=67)
+[fastlio_odometry_guard-2] [WARN] [1787227132.318220671] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.95183 m/s (accepted=2663 rejected=73)
+[fastlio_odometry_guard-2] [WARN] [1787227133.717880398] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.15442 m/s (accepted=2938 rejected=78)
+[fastlio_odometry_guard-2] [WARN] [1787227134.718281369] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.25446 m/s (accepted=3134 rejected=82)
+[fastlio_odometry_guard-2] [WARN] [1787227135.818472813] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.99783 m/s (accepted=3347 rejected=89)
+[fastlio_odometry_guard-2] [WARN] [1787227137.118413573] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.30624 m/s (accepted=3602 rejected=94)
+[fastlio_odometry_guard-2] [WARN] [1787227138.318235603] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.39904 m/s (accepted=3837 rejected=99)
+[fastlio_odometry_guard-2] [WARN] [1787227139.318500108] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.78575 m/s (accepted=4030 rejected=106)
+[fastlio_odometry_guard-2] [WARN] [1787227140.318739892] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.45431 m/s (accepted=4225 rejected=111)
+[fastlio_odometry_guard-2] [WARN] [1787227141.318764354] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.9675 m/s (accepted=4421 rejected=115)
+[fastlio_odometry_guard-2] [WARN] [1787227142.421279570] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.63274 m/s (accepted=4636 rejected=120)
+[fastlio_odometry_guard-2] [WARN] [1787227143.618931474] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.2352 m/s (accepted=4872 rejected=124)
+[fastlio_odometry_guard-2] [WARN] [1787227144.719058824] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.3731 m/s (accepted=5087 rejected=129)
+[fastlio_odometry_guard-2] [WARN] [1787227145.818846454] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.40219 m/s (accepted=5301 rejected=135)
+[fastlio_odometry_guard-2] [WARN] [1787227146.819345814] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.61244 m/s (accepted=5495 rejected=141)
+[fastlio_odometry_guard-2] [WARN] [1787227148.119136030] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.79924 m/s (accepted=5751 rejected=145)
+[fastlio_odometry_guard-2] [WARN] [1787227149.219007020] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.37839 m/s (accepted=5966 rejected=150)
+[fastlio_odometry_guard-2] [WARN] [1787227150.419009983] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.2877 m/s (accepted=6200 rejected=156)
+[fastlio_odometry_guard-2] [WARN] [1787227151.419139650] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.51508 m/s (accepted=6393 rejected=163)
+[fastlio_odometry_guard-2] [WARN] [1787227152.519012626] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.28273 m/s (accepted=6606 rejected=170)
+[fastlio_odometry_guard-2] [WARN] [1787227153.718991634] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.67755 m/s (accepted=6844 rejected=172)
+[fastlio_odometry_guard-2] [WARN] [1787227154.819156432] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.29116 m/s (accepted=7061 rejected=175)
+[fastlio_odometry_guard-2] [WARN] [1787227156.019309067] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.37331 m/s (accepted=7298 rejected=178)
+[fastlio_odometry_guard-2] [WARN] [1787227157.019436333] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.61382 m/s (accepted=7493 rejected=183)
+[fastlio_odometry_guard-2] [WARN] [1787227158.019550904] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.27568 m/s (accepted=7689 rejected=187)
+[fastlio_odometry_guard-2] [WARN] [1787227159.119055196] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.93814 m/s (accepted=7904 rejected=192)
+[fastlio_odometry_guard-2] [WARN] [1787227160.119524049] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.02155 m/s (accepted=8099 rejected=197)
+[fastlio_odometry_guard-2] [WARN] [1787227161.120290523] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.65267 m/s (accepted=8289 rejected=207)
+[fastlio_odometry_guard-2] [WARN] [1787227162.319469547] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.27452 m/s (accepted=8526 rejected=210)
+[fastlio_odometry_guard-2] [WARN] [1787227163.519320040] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.23015 m/s (accepted=8761 rejected=215)
+[fastlio_odometry_guard-2] [WARN] [1787227164.819069079] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.05582 m/s (accepted=9014 rejected=222)
+[fastlio_odometry_guard-2] [WARN] [1787227165.919783489] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.20136 m/s (accepted=9231 rejected=225)
+[fastlio_odometry_guard-2] [WARN] [1787227167.019840929] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.6524 m/s (accepted=9446 rejected=230)
+[fastlio_odometry_guard-2] [WARN] [1787227168.120006211] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.72644 m/s (accepted=9665 rejected=231)
+[fastlio_odometry_guard-2] [WARN] [1787227169.719883385] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.52583 m/s (accepted=9980 rejected=236)
+[fastlio_odometry_guard-2] [WARN] [1787227170.722026502] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.30042 m/s (accepted=10173 rejected=243)
+[fastlio_odometry_guard-2] [WARN] [1787227171.722224218] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.62943 m/s (accepted=10365 rejected=251)
+[fastlio_odometry_guard-2] [WARN] [1787227172.819865498] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.00987 m/s (accepted=10582 rejected=254)
+[fastlio_odometry_guard-2] [WARN] [1787227173.926958006] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.50849 m/s (accepted=10800 rejected=257)
+[fastlio_odometry_guard-2] [WARN] [1787227175.019469519] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.83992 m/s (accepted=11017 rejected=259)
+[fastlio_odometry_guard-2] [WARN] [1787227176.441460364] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: closely spaced dt 0.000265837 s (accepted=11299 rejected=261)
+[fastlio_odometry_guard-2] [WARN] [1787227177.620136314] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.43625 m/s (accepted=11530 rejected=266)
+[fastlio_odometry_guard-2] [WARN] [1787227178.625885113] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.94014 m/s (accepted=11727 rejected=270)
+[fastlio_odometry_guard-2] [WARN] [1787227180.015834175] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.36904 m/s (accepted=11999 rejected=276)
+[fastlio_odometry_guard-2] [WARN] [1787227181.215878502] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.36053 m/s (accepted=12235 rejected=280)
+[fastlio_odometry_guard-2] [WARN] [1787227182.315794068] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.41779 m/s (accepted=12452 rejected=283)
+[fastlio_odometry_guard-2] [WARN] [1787227183.315824562] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.37369 m/s (accepted=12650 rejected=285)
+[fastlio_odometry_guard-2] [WARN] [1787227184.715905982] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.84705 m/s (accepted=12924 rejected=291)
+[fastlio_odometry_guard-2] [WARN] [1787227186.716011496] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 2.59675 m/s (accepted=13320 rejected=295)
+[fastlio_odometry_guard-2] [WARN] [1787227188.016011004] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.33647 m/s (accepted=13576 rejected=299)
+[fastlio_odometry_guard-2] [WARN] [1787227189.616189563] [fastlio_odometry_guard]: Rejected FAST-LIO odometry: computed speed 1.58948 m/s (accepted=13892 rejected=303)
+[fastlio_mavros_vision_bridge-5] [INFO] [1787227190.962203496] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-7] [INFO] [1787227190.962203909] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[mavros_node-1] [INFO] [1787227190.962211304] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[fastlio_odometry_guard-2] [INFO] [1787227190.962210891] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-6] [INFO] [1787227190.962223258] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[static_transform_publisher-8] [INFO] [1787227190.962243718] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[mavros_node-1] [WARN] [1787227190.963255924] [mavros.mavros]: UAS Executor terminated
+[INFO] [static_transform_publisher-7]: process has finished cleanly [pid 11609]
+[INFO] [static_transform_publisher-6]: process has finished cleanly [pid 11607]
+[INFO] [static_transform_publisher-8]: process has finished cleanly [pid 11611]
+[INFO] [fastlio_odometry_guard-2]: process has finished cleanly [pid 11599]
+[INFO] [fastlio_mavros_vision_bridge-5]: process has finished cleanly [pid 11605]
+[INFO] [mavros_node-1]: process has finished cleanly [pid 11597]
+[INFO] [fastlio_ev_health_monitor.py-3]: process has finished cleanly [pid 11601]

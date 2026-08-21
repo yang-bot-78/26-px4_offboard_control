@@ -17,9 +17,14 @@ SPEC.loader.exec_module(BEHAVIORS)
 
 
 class WaypointBehaviorsTest(unittest.TestCase):
-    def test_camera_and_planner_commands_are_canonical(self):
-        self.assertEqual(BEHAVIORS.build_behavior('打开相机').name, 'open_camera')
-        self.assertEqual(BEHAVIORS.build_behavior('关闭相机').name, 'close_camera')
+    def test_recognition_and_planner_commands_are_canonical(self):
+        self.assertEqual(
+            BEHAVIORS.build_behavior('开启识别程序').name, 'start_recognition')
+        self.assertEqual(
+            BEHAVIORS.build_behavior('关闭识别程序').name, 'stop_recognition')
+        # Existing waypoint YAML remains compatible after the semantic rename.
+        self.assertEqual(
+            BEHAVIORS.build_behavior('打开相机').name, 'start_recognition')
         self.assertEqual(
             BEHAVIORS.build_behavior('关闭ego改为A*接管路径').params,
             {
@@ -52,7 +57,6 @@ class WaypointBehaviorsTest(unittest.TestCase):
             'yaw_sweep', {'n': 45, 'm': 2, 'x': 2, 'direction': 'right'}, 0.0)
         self.assertEqual([phase.direction for phase in command.phases], ['right', 'right'])
         self.assertAlmostEqual(command.phases[-1].target_yaw_rad, math.radians(-90.0))
-
 
 if __name__ == '__main__':
     unittest.main()

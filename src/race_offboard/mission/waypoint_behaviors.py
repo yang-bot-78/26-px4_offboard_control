@@ -19,12 +19,22 @@ class BehaviorConfigError(ValueError):
 
 
 BEHAVIOR_ALIASES = {
-    'open_camera': 'open_camera',
-    'camera_open': 'open_camera',
-    '打开相机': 'open_camera',
-    'close_camera': 'close_camera',
-    'camera_close': 'close_camera',
-    '关闭相机': 'close_camera',
+    'start_recognition': 'start_recognition',
+    'recognition_start': 'start_recognition',
+    '开启识别程序': 'start_recognition',
+    '开启识别': 'start_recognition',
+    # Keep saved missions written with the former camera names usable, but
+    # make their effect explicit: they now control the recognition process.
+    'open_camera': 'start_recognition',
+    'camera_open': 'start_recognition',
+    '打开相机': 'start_recognition',
+    'stop_recognition': 'stop_recognition',
+    'recognition_stop': 'stop_recognition',
+    '关闭识别程序': 'stop_recognition',
+    '关闭识别': 'stop_recognition',
+    'close_camera': 'stop_recognition',
+    'camera_close': 'stop_recognition',
+    '关闭相机': 'stop_recognition',
     'switch_to_astar': 'switch_to_astar',
     'astar_takeover': 'switch_to_astar',
     '关闭ego改为a*接管路径': 'switch_to_astar',
@@ -101,7 +111,7 @@ def build_behavior(
     if not name:
         return None
     parameters = dict(params or {})
-    if name in ('open_camera', 'close_camera'):
+    if name in ('start_recognition', 'stop_recognition'):
         if parameters:
             raise BehaviorConfigError(f'{name} does not accept parameters')
         return BehaviorSpec(name, {})

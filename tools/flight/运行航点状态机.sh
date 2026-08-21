@@ -13,6 +13,7 @@ project_root="$(cd -- "${script_dir}/../.." && pwd -P)"
 single_goal_script="${script_dir}/切Offboard后自动起飞0.75米单目标验证.sh"
 fsm_node="${project_root}/src/race_offboard/mission/waypoint_state_machine_node.py"
 exporter="${project_root}/src/race_offboard/mission/export_mission_waypoints.py"
+recognition_launcher="${RECOGNITION_LAUNCHER:-${project_root}/bs/run_0812.sh}"
 mission_file="${MISSION_FILE:-${project_root}/src/race_offboard/config/waypoints/main/mission.yaml}"
 waypoints_file="${WAYPOINTS_FILE:-${project_root}/src/race_offboard/config/waypoints/main/waypoints.yaml}"
 fsm_log="${FSM_LOG_FILE:-${project_root}/runtime/waypoint_fsm_$(date +%Y%m%d_%H%M%S).log}"
@@ -25,16 +26,16 @@ usage() {
 
 从 WAYPOINTS_FILE 保存的全部航点生成路线后飞行（至少需要两个点）。参数会原样传给已有的
 “切Offboard后自动起飞0.75米单目标验证.sh”，因此人工起飞、规划后端和录包选项保持一致。
-在 POSITION 悬停、控制节点报告 handover_ready 且 Super 就绪时，状态机会先把 B1 仅发给
-Super 预生成 XY 路径；人工或自动起飞完成、控制节点报告有效高度参考后，才通过正式目标
-话题发布 B1 并开始跟踪路线；
+人工或自动起飞完成、控制节点报告有效高度参考后，状态机才通过正式目标话题发布 B1
+并开始规划与跟踪路线。飞行入口不使用预规划目标，因为预规划若在飞手接管期间进入
+跟踪/逆风恢复状态，会污染正式 OFFBOARD 目标的状态；
 到达每个航点后按 hold_sec 等配置切换状态并发布下一个目标。
 
 默认航点源文件：src/race_offboard/config/waypoints/main/waypoints.yaml
 默认任务路线文件：src/race_offboard/config/waypoints/main/mission.yaml
 每次启动都会先用最新航点源文件重建任务路线。
 
-可通过环境变量覆盖：MISSION_FILE、WAYPOINTS_FILE、FSM_LOG_FILE。
+可通过环境变量覆盖：MISSION_FILE、WAYPOINTS_FILE、FSM_LOG_FILE、RECOGNITION_LAUNCHER。
 EOF
 }
 
@@ -120,10 +121,17 @@ for argument in "$@"; do
   esac
 done
 # Both automatic and manual handover modes must wait for the controller's
-# post-takeoff altitude/reference gate.  Publishing the first goal on the
+# post-takeoff altitude/reference gate. Publishing the first goal on the
 # OFFBOARD mode edge races that gate and the controller correctly rejects it.
+#
+# Do not preplan B1 here. Super currently consumes its preplan and final-goal
+# topics through the same active-goal lifecycle. A long POSITION hold can then
+# exhaust wind recovery before OFFBOARD, after which the equal final goal is
+# intentionally deduplicated. Starting planning only after the accepted
+# handover makes early and late pilot mode changes equivalent: both stay in
+# the controller's locked hold until a fresh official B1 goal is accepted.
 fsm_args+=(--wait-for-takeoff)
-fsm_args+=(--preplan-first-waypoint)
+fsm_args+=(--recognition-launcher "${recognition_launcher}")
 python3 "${fsm_node}" "${fsm_args[@]}" \
   > >(tee -a "${fsm_log}") 2>&1 &
 fsm_pid=$!
@@ -150,11 +158,14 @@ if [[ "${fsm_ready}" != true ]]; then
 fi
 
 # Keep the established real-flight safety workflow and pass through its
-# --manualtakeoff/--noego/rosbag arguments unchanged.
+# --manualtakeoff/--noego/rosbag arguments unchanged. Waypoint missions wait
+# for a valid map pose rather than aborting after the general launcher's
+# finite retry default; callers can still override this environment variable.
 set +e
 env MISSION_FILE="${mission_file}" WAYPOINTS_FILE="${waypoints_file}" \
   WAYPOINT_FSM_ENABLED=true \
   WAYPOINT_VISUALIZER_ENABLED=true \
+  RELOCALIZATION_RETRY_COUNT="${RELOCALIZATION_RETRY_COUNT:-infinite}" \
   "${single_goal_script}" "$@"
 status=$?
 set -e

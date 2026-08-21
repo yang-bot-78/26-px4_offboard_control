@@ -1,0 +1,33 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from race_msgs/msg/GlobalPlannerStatus.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module race_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Structured final-goal contract from the global planner to Offboard.")
+    struct GlobalPlannerStatus {
+      std_msgs::msg::Header header;
+
+      uint64 global_goal_id;
+
+      uint64 global_path_id;
+
+      uint64 local_goal_seq;
+
+      boolean goal_active;
+
+      boolean final_goal_reached;
+
+      double distance_to_final;
+
+      double horizontal_speed;
+
+      string mode;
+
+      string reason;
+    };
+  };
+};

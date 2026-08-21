@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs/libdecode_msgs.so" "/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs/libencode_msgs.so" "TARGETS" "decode_msgs" "encode_msgs" "DESTINATION" "lib")

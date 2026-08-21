@@ -1,0 +1,39 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from race_msgs/msg/FlightAltitudeReference.msg
+// generated code does not contain a copyright notice
+
+#include "std_msgs/msg/Header.idl"
+
+module race_msgs {
+  module msg {
+    struct FlightAltitudeReference {
+      std_msgs::msg::Header header;
+
+      @verbatim (language="comment", text=
+        "Monotonic identifier assigned by the Offboard authority for each takeoff.")
+      uint64 flight_id;
+
+      boolean valid;
+
+      @verbatim (language="comment", text=
+        "All configured vertical limits are heights above the locked takeoff ground.")
+      double target_agl_m;
+
+      double min_agl_m;
+
+      double max_agl_m;
+
+      @verbatim (language="comment", text=
+        "PX4 local position uses NED (positive down).")
+      double ground_z_local_ned;
+
+      double target_z_local_ned;
+
+      @verbatim (language="comment", text=
+        "Navigation and EGO use map ENU (positive up).")
+      double ground_z_map;
+
+      double target_z_map;
+    };
+  };
+};

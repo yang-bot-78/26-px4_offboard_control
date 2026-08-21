@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/quadrotor_msgs/msg/LQRTrajectory.msg

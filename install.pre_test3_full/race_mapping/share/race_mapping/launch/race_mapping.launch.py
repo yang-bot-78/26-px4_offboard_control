@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/src/race_mapping/launch/race_mapping.launch.py

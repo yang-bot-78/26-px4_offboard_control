@@ -1,0 +1,1 @@
+ament_cmake_symlink_install_targets("TARGET_FILES" "/home/robot/egohx_ws/26-px4_offboard_control-main/build/traj_utils/rosidl_generator_py/traj_utils/traj_utils_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" "TARGETS" "traj_utils__rosidl_typesupport_c__pyext" "DESTINATION" "local/lib/python3.10/dist-packages/traj_utils")

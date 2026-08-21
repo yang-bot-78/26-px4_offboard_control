@@ -1,0 +1,958 @@
+[0.000000] (-) TimerEvent: {}
+[0.000450] (fastlio_global_slam) JobQueued: {'identifier': 'fastlio_global_slam', 'dependencies': OrderedDict()}
+[0.000526] (fr_lio) JobQueued: {'identifier': 'fr_lio', 'dependencies': OrderedDict()}
+[0.000552] (offboard_nav2_planning) JobQueued: {'identifier': 'offboard_nav2_planning', 'dependencies': OrderedDict()}
+[0.000576] (plan_env) JobQueued: {'identifier': 'plan_env', 'dependencies': OrderedDict()}
+[0.000599] (px4_msgs) JobQueued: {'identifier': 'px4_msgs', 'dependencies': OrderedDict()}
+[0.000620] (quadrotor_msgs) JobQueued: {'identifier': 'quadrotor_msgs', 'dependencies': OrderedDict()}
+[0.000641] (race_mapping) JobQueued: {'identifier': 'race_mapping', 'dependencies': OrderedDict()}
+[0.000661] (race_msgs) JobQueued: {'identifier': 'race_msgs', 'dependencies': OrderedDict()}
+[0.000681] (traj_utils) JobQueued: {'identifier': 'traj_utils', 'dependencies': OrderedDict()}
+[0.000699] (path_searching) JobQueued: {'identifier': 'path_searching', 'dependencies': OrderedDict([('plan_env', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/plan_env')])}
+[0.000728] (px4_ros_com) JobQueued: {'identifier': 'px4_ros_com', 'dependencies': OrderedDict([('px4_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/px4_msgs')])}
+[0.000752] (race_offboard) JobQueued: {'identifier': 'race_offboard', 'dependencies': OrderedDict([('race_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_msgs')])}
+[0.000772] (race_super_planner_ros2) JobQueued: {'identifier': 'race_super_planner_ros2', 'dependencies': OrderedDict([('race_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_msgs'), ('traj_utils', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/traj_utils')])}
+[0.000805] (bspline_opt) JobQueued: {'identifier': 'bspline_opt', 'dependencies': OrderedDict([('plan_env', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/plan_env'), ('traj_utils', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/traj_utils'), ('path_searching', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/path_searching')])}
+[0.000833] (ego_planner) JobQueued: {'identifier': 'ego_planner', 'dependencies': OrderedDict([('plan_env', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/plan_env'), ('quadrotor_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/quadrotor_msgs'), ('race_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_msgs'), ('traj_utils', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/traj_utils'), ('path_searching', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/path_searching'), ('bspline_opt', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/bspline_opt')])}
+[0.000871] (race_ego_bridge) JobQueued: {'identifier': 'race_ego_bridge', 'dependencies': OrderedDict([('plan_env', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/plan_env'), ('quadrotor_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/quadrotor_msgs'), ('race_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_msgs'), ('traj_utils', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/traj_utils'), ('path_searching', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/path_searching'), ('bspline_opt', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/bspline_opt')])}
+[0.000902] (race_bringup) JobQueued: {'identifier': 'race_bringup', 'dependencies': OrderedDict([('fr_lio', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/fr_lio'), ('plan_env', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/plan_env'), ('quadrotor_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/quadrotor_msgs'), ('race_mapping', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_mapping'), ('race_msgs', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_msgs'), ('traj_utils', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/traj_utils'), ('path_searching', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/path_searching'), ('race_offboard', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_offboard'), ('race_super_planner_ros2', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_super_planner_ros2'), ('bspline_opt', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/bspline_opt'), ('ego_planner', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/ego_planner'), ('race_ego_bridge', '/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_ego_bridge')])}
+[0.001623] (plan_env) JobStarted: {'identifier': 'plan_env'}
+[0.015311] (race_msgs) JobStarted: {'identifier': 'race_msgs'}
+[0.024967] (traj_utils) JobStarted: {'identifier': 'traj_utils'}
+[0.034892] (quadrotor_msgs) JobStarted: {'identifier': 'quadrotor_msgs'}
+[0.044978] (fr_lio) JobStarted: {'identifier': 'fr_lio'}
+[0.051549] (px4_msgs) JobStarted: {'identifier': 'px4_msgs'}
+[0.063963] (race_mapping) JobStarted: {'identifier': 'race_mapping'}
+[0.073249] (fastlio_global_slam) JobStarted: {'identifier': 'fastlio_global_slam'}
+[0.083095] (offboard_nav2_planning) JobStarted: {'identifier': 'offboard_nav2_planning'}
+[0.098259] (-) TimerEvent: {}
+[0.102483] (plan_env) JobProgress: {'identifier': 'plan_env', 'progress': 'cmake'}
+[0.103819] (plan_env) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/plan_env'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/plan_env', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/plan_env'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.107525] (race_msgs) JobProgress: {'identifier': 'race_msgs', 'progress': 'cmake'}
+[0.108835] (race_msgs) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/race_msgs', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_msgs'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.112880] (traj_utils) JobProgress: {'identifier': 'traj_utils', 'progress': 'cmake'}
+[0.113413] (traj_utils) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/traj_utils'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/traj_utils', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/traj_utils'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.117473] (quadrotor_msgs) JobProgress: {'identifier': 'quadrotor_msgs', 'progress': 'cmake'}
+[0.119991] (quadrotor_msgs) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/quadrotor_msgs', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/quadrotor_msgs'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.129368] (fr_lio) JobProgress: {'identifier': 'fr_lio', 'progress': 'cmake'}
+[0.130936] (fr_lio) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/fr_lio', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/fr_lio'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/fr_lio', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/fr_lio'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.141148] (px4_msgs) JobProgress: {'identifier': 'px4_msgs', 'progress': 'cmake'}
+[0.141301] (px4_msgs) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/px4_msgs', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/px4_msgs'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/px4_msgs', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/px4_msgs'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.154867] (race_mapping) JobProgress: {'identifier': 'race_mapping', 'progress': 'cmake'}
+[0.154979] (race_mapping) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/src/race_mapping', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/race_mapping'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_mapping', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_mapping'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.161360] (fastlio_global_slam) JobProgress: {'identifier': 'fastlio_global_slam', 'progress': 'cmake'}
+[0.161495] (fastlio_global_slam) Command: {'cmd': ['/usr/bin/cmake', '/home/robot/egohx_ws/26-px4_offboard_control-main/Lin_shi/fastlio_global_slam', '-DAMENT_CMAKE_SYMLINK_INSTALL=1', '-DCMAKE_INSTALL_PREFIX=/home/robot/egohx_ws/26-px4_offboard_control-main/install/fastlio_global_slam'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/fastlio_global_slam', 'env': OrderedDict([('GJS_DEBUG_TOPICS', 'JS ERROR;JS LOG'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('VSCODE_CWD', '/home/robot'), ('ANTHROPIC_MODEL', 'grok-4.6'), ('VSCODE_ESM_ENTRYPOINT', 'vs/workbench/api/node/extensionHostProcess'), ('CODEX_CI', '1'), ('LANGUAGE', 'zh_CN:zh'), ('USER', 'robot'), ('CODEX_INTERNAL_ORIGINATOR_OVERRIDE', 'codex_vscode'), ('VSCODE_NLS_CONFIG', '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}'), ('VSCODE_HANDLES_UNCAUGHT_ERRORS', 'true'), ('XDG_SESSION_TYPE', 'x11'), ('DEBUG', 'release'), ('XCURSOR_SIZE', '48'), ('SHLVL', '0'), ('LD_LIBRARY_PATH', '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib'), ('HOME', '/home/robot'), ('CHROME_DESKTOP', 'code.desktop'), ('DESKTOP_SESSION', 'ubuntu-xorg'), ('VSCODE_IPC_HOOK', '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock'), ('GIO_LAUNCHED_DESKTOP_FILE', '/usr/share/applications/code.desktop'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('SDL_IM_MODULE', 'fcitx'), ('PAGER', 'cat'), ('MANAGERPID', '994'), ('LC_CTYPE', 'C.UTF-8'), ('GLFW_IM_MODULE', 'ibus'), ('SYSTEMD_EXEC_PID', '1373'), ('NO_COLOR', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', ''), ('GIO_LAUNCHED_DESKTOP_FILE_PID', '3930'), ('VSCODE_CRASH_REPORTER_PROCESS_TYPE', 'extensionHost'), ('CODEX_PERMISSION_PROFILE', ':danger-full-access'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'fcitx'), ('LOGNAME', 'robot'), ('JOURNAL_STREAM', '8:13586'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('RUST_LOG', 'warn'), ('USERNAME', 'robot'), ('ANTHROPIC_BASE_URL', 'https://yapi.click'), ('TERM', 'dumb'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('FC_FONTATIONS', '1'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64'), ('SESSION_MANAGER', 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329'), ('CODEX_SESSION_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('INVOCATION_ID', '1d00ca09a55e4dc68729f8790b5b7882'), ('XDG_MENU_PREFIX', 'gnome-'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('XCURSOR_THEME', 'MyCursorTheme'), ('GDK_BACKEND', 'x11'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('ANTHROPIC_DEFAULT_HAIKU_MODEL', 'claude-haiku-4-5-20251001'), ('XMODIFIERS', '@im=fcitx'), ('GH_PAGER', 'cat'), ('XDG_SESSION_DESKTOP', 'ubuntu-xorg'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/opt/ros/humble'), ('SHELL', '/bin/bash'), ('ANTHROPIC_AUTH_TOKEN', 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm'), ('QT_ACCESSIBILITY', '1'), ('ELECTRON_RUN_AS_NODE', '1'), ('GDMSESSION', 'ubuntu-xorg'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('XCURSOR_PATH', '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps'), ('CODEX_THREAD_ID', '01a01afd-e01e-7762-83c1-66787ad45b56'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('GJS_DEBUG_OUTPUT', 'stderr'), ('GIT_PAGER', 'cat'), ('QT_IM_MODULE', 'fcitx'), ('YAPI_API_KEY', 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby'), ('PWD', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/fastlio_global_slam'), ('LC_ALL', 'C.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg'), ('VSCODE_CODE_CACHE_PATH', '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43'), ('XDG_DATA_DIRS', '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VSCODE_PID', '3930'), ('CMAKE_PREFIX_PATH', '/opt/ros/humble')]), 'shell': False}
+[0.199287] (-) TimerEvent: {}
+[0.299713] (-) TimerEvent: {}
+[0.403487] (-) TimerEvent: {}
+[0.505346] (-) TimerEvent: {}
+[0.606932] (-) TimerEvent: {}
+[0.707560] (-) TimerEvent: {}
+[0.808490] (-) TimerEvent: {}
+[0.915426] (plan_env) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.918283] (-) TimerEvent: {}
+[0.918446] (plan_env) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.918669] (plan_env) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.918760] (plan_env) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.918844] (plan_env) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.918923] (plan_env) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.919005] (plan_env) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.919089] (plan_env) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.919161] (race_msgs) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.919396] (race_msgs) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.919476] (race_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.919551] (race_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.919620] (race_msgs) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.919696] (race_msgs) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.919768] (race_msgs) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.919843] (race_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.919951] (traj_utils) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.920089] (traj_utils) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.920163] (traj_utils) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.922574] (traj_utils) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.926106] (traj_utils) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.926282] (traj_utils) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.926386] (traj_utils) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.926467] (traj_utils) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.926550] (quadrotor_msgs) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.926728] (quadrotor_msgs) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.926803] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.926875] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.926947] (quadrotor_msgs) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.927019] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.927095] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.927174] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.927271] (fr_lio) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.927408] (fr_lio) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.927481] (fr_lio) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.927551] (fr_lio) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.927622] (fr_lio) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.927690] (fr_lio) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.927759] (fr_lio) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.927828] (fr_lio) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.927901] (px4_msgs) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.936828] (px4_msgs) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.937195] (px4_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.937339] (px4_msgs) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.937414] (px4_msgs) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.937490] (px4_msgs) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.937561] (px4_msgs) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.937637] (px4_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.937714] (race_mapping) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.937853] (race_mapping) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.937931] (race_mapping) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.938007] (race_mapping) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.938083] (race_mapping) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.946299] (race_mapping) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.946743] (race_mapping) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.946831] (race_mapping) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.946916] (fastlio_global_slam) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.947192] (fastlio_global_slam) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.947294] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.947379] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.951454] (fastlio_global_slam) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.951621] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.951700] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.951775] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.967675] (plan_env) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[0.968037] (px4_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[0.980260] (plan_env) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[0.982730] (plan_env) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[0.983028] (plan_env) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[0.983138] (px4_msgs) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[0.983235] (px4_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[0.983336] (px4_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[0.985931] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[0.990337] (px4_msgs) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[0.990668] (plan_env) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[1.000150] (fastlio_global_slam) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[1.000916] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[1.004618] (fastlio_global_slam) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[1.006877] (fastlio_global_slam) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[1.007846] (race_mapping) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[1.017190] (fr_lio) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[1.019650] (-) TimerEvent: {}
+[1.019751] (race_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[1.023315] (race_mapping) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[1.025074] (race_mapping) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[1.025870] (race_mapping) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[1.031326] (race_mapping) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[1.039881] (fr_lio) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[1.040439] (fr_lio) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[1.040569] (fr_lio) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[1.040809] (race_msgs) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[1.040956] (race_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[1.041040] (race_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[1.041477] (fr_lio) StderrLine: {'line': b'Current CPU archtecture: x86_64\n'}
+[1.049059] (race_msgs) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[1.049901] (traj_utils) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[1.055697] (fr_lio) StderrLine: {'line': b'Processer number:  16\n'}
+[1.056256] (fr_lio) StderrLine: {'line': b'core for MP: 3\n'}
+[1.061205] (traj_utils) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[1.062293] (traj_utils) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[1.064434] (traj_utils) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[1.067781] (traj_utils) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[1.080178] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[1.098789] (quadrotor_msgs) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[1.099723] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[1.100094] (quadrotor_msgs) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[1.101434] (quadrotor_msgs) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[1.120265] (-) TimerEvent: {}
+[1.223380] (-) TimerEvent: {}
+[1.324814] (-) TimerEvent: {}
+[1.425354] (-) TimerEvent: {}
+[1.526275] (-) TimerEvent: {}
+[1.627431] (-) TimerEvent: {}
+[1.727920] (-) TimerEvent: {}
+[1.828570] (-) TimerEvent: {}
+[1.929719] (-) TimerEvent: {}
+[2.032836] (-) TimerEvent: {}
+[2.134395] (-) TimerEvent: {}
+[2.200903] (fr_lio) StdoutLine: {'line': b'-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found version "3.10.12") \n'}
+[2.237322] (-) TimerEvent: {}
+[2.268162] (px4_msgs) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.304875] (traj_utils) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.307441] (race_msgs) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.315032] (plan_env) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.328028] (offboard_nav2_planning) Command: {'cmd': ['/usr/bin/python3', '-W', 'ignore:setup.py install is deprecated', '-W', 'ignore:easy_install command is deprecated', 'setup.py', 'develop', '--editable', '--build-directory', '/home/robot/egohx_ws/26-px4_offboard_control-main/build/offboard_nav2_planning/build', '--no-deps', 'symlink_data'], 'cwd': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/offboard_nav2_planning', 'env': {'GJS_DEBUG_TOPICS': 'JS ERROR;JS LOG', 'LESSOPEN': '| /usr/bin/lesspipe %s', 'VSCODE_CWD': '/home/robot', 'ANTHROPIC_MODEL': 'grok-4.6', 'VSCODE_ESM_ENTRYPOINT': 'vs/workbench/api/node/extensionHostProcess', 'CODEX_CI': '1', 'LANGUAGE': 'zh_CN:zh', 'USER': 'robot', 'CODEX_INTERNAL_ORIGINATOR_OVERRIDE': 'codex_vscode', 'VSCODE_NLS_CONFIG': '{"userLocale":"zh-cn","osLocale":"zh-cn","resolvedLanguage":"zh-cn","defaultMessagesFile":"/usr/share/code/resources/app/out/nls.messages.json","languagePack":{"translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","messagesFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43/nls.messages.json","corruptMarkerFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"},"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_languagePackSupport":true,"_translationsConfigFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/tcf.json","_cacheRoot":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn","_resolvedLanguagePackCoreLocation":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/07ff9d6178ede9a1bd12ad3399074d726ebe6e43","_corruptedFile":"/home/robot/.config/Code/clp/5b0b321b159f69c74a0e0361d5dec4ec.zh-cn/corrupted.info"}', 'VSCODE_HANDLES_UNCAUGHT_ERRORS': 'true', 'XDG_SESSION_TYPE': 'x11', 'DEBUG': 'release', 'XCURSOR_SIZE': '48', 'SHLVL': '0', 'LD_LIBRARY_PATH': '/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib', 'HOME': '/home/robot', 'CHROME_DESKTOP': 'code.desktop', 'DESKTOP_SESSION': 'ubuntu-xorg', 'VSCODE_IPC_HOOK': '/run/user/1000/vscode-6e3c4ef9-1.11-main.sock', 'GIO_LAUNCHED_DESKTOP_FILE': '/usr/share/applications/code.desktop', 'ROS_PYTHON_VERSION': '3', 'GNOME_SHELL_SESSION_MODE': 'ubuntu', 'GTK_MODULES': 'gail:atk-bridge', 'SDL_IM_MODULE': 'fcitx', 'PAGER': 'cat', 'MANAGERPID': '994', 'LC_CTYPE': 'C.UTF-8', 'GLFW_IM_MODULE': 'ibus', 'SYSTEMD_EXEC_PID': '1373', 'NO_COLOR': '1', 'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/run/user/1000/bus', 'COLORTERM': '', 'GIO_LAUNCHED_DESKTOP_FILE_PID': '3930', 'VSCODE_CRASH_REPORTER_PROCESS_TYPE': 'extensionHost', 'CODEX_PERMISSION_PROFILE': ':danger-full-access', 'ROS_DISTRO': 'humble', 'GTK_IM_MODULE': 'fcitx', 'LOGNAME': 'robot', 'JOURNAL_STREAM': '8:13586', '_': '/usr/bin/colcon', 'ROS_VERSION': '2', 'XDG_SESSION_CLASS': 'user', 'RUST_LOG': 'warn', 'USERNAME': 'robot', 'ANTHROPIC_BASE_URL': 'https://yapi.click', 'TERM': 'dumb', 'GNOME_DESKTOP_SESSION_ID': 'this-is-deprecated', 'FC_FONTATIONS': '1', 'ROS_LOCALHOST_ONLY': '0', 'WINDOWPATH': '2', 'PATH': '/home/robot/.local/bin:/home/robot/bin:/home/robot/.codex/tmp/arg0/codex-arg0HU6FTQ:/home/robot/.local/bin:/home/robot/bin:/opt/ros/humble/bin:/home/robot/.local/bin:/home/robot/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin:/opt/xtensa-esp-elf/bin/:/opt/xtensa-esp-elf/bin/:/home/robot/.vscode/extensions/openai.chatgpt-26.810.52044-linux-x64/bin/linux-x86_64', 'SESSION_MANAGER': 'local/robot:@/tmp/.ICE-unix/1329,unix/robot:/tmp/.ICE-unix/1329', 'CODEX_SESSION_ID': '01a01afd-e01e-7762-83c1-66787ad45b56', 'INVOCATION_ID': '1d00ca09a55e4dc68729f8790b5b7882', 'XDG_MENU_PREFIX': 'gnome-', 'XDG_RUNTIME_DIR': '/run/user/1000', 'XCURSOR_THEME': 'MyCursorTheme', 'GDK_BACKEND': 'x11', 'DISPLAY': ':0', 'LANG': 'C.UTF-8', 'XDG_CURRENT_DESKTOP': 'ubuntu:GNOME', 'ANTHROPIC_DEFAULT_HAIKU_MODEL': 'claude-haiku-4-5-20251001', 'XMODIFIERS': '@im=fcitx', 'GH_PAGER': 'cat', 'XDG_SESSION_DESKTOP': 'ubuntu-xorg', 'XAUTHORITY': '/run/user/1000/gdm/Xauthority', 'SSH_AGENT_LAUNCHER': 'gnome-keyring', 'SSH_AUTH_SOCK': '/run/user/1000/keyring/ssh', 'AMENT_PREFIX_PATH': '/opt/ros/humble', 'SHELL': '/bin/bash', 'ANTHROPIC_AUTH_TOKEN': 'sk-MaMRL1Vz1MI8uh7hIWMbR5SVkH6HsOSXAEWZtzmvOAVNjVLm', 'QT_ACCESSIBILITY': '1', 'ELECTRON_RUN_AS_NODE': '1', 'GDMSESSION': 'ubuntu-xorg', 'LESSCLOSE': '/usr/bin/lesspipe %s %s', 'XCURSOR_PATH': '/home/robot/.icons:/home/robot/.local/share/icons:/usr/share/icons:/usr/share/pixmaps', 'CODEX_THREAD_ID': '01a01afd-e01e-7762-83c1-66787ad45b56', 'GPG_AGENT_INFO': '/run/user/1000/gnupg/S.gpg-agent:0:1', 'GJS_DEBUG_OUTPUT': 'stderr', 'GIT_PAGER': 'cat', 'QT_IM_MODULE': 'fcitx', 'YAPI_API_KEY': 'sk-liwEKqDO8D1vToBQkWLupg0VdcRK2MjQTzntGTvk1wkIJcby', 'PWD': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/offboard_nav2_planning', 'LC_ALL': 'C.UTF-8', 'XDG_CONFIG_DIRS': '/etc/xdg/xdg-ubuntu-xorg:/etc/xdg', 'VSCODE_CODE_CACHE_PATH': '/home/robot/.config/Code/CachedData/07ff9d6178ede9a1bd12ad3399074d726ebe6e43', 'XDG_DATA_DIRS': '/usr/share/ubuntu-xorg:/usr/share/gnome:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop', 'PYTHONPATH': '/home/robot/egohx_ws/26-px4_offboard_control-main/build/offboard_nav2_planning/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/robot/egohx_ws/26-px4_offboard_control-main/install/offboard_nav2_planning/lib/python3.10/site-packages:/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages', 'COLCON': '1', 'VSCODE_PID': '3930'}, 'shell': False}
+[2.343438] (-) TimerEvent: {}
+[2.443678] (fastlio_global_slam) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.444482] (-) TimerEvent: {}
+[2.505660] (quadrotor_msgs) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.515256] (race_mapping) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[2.532148] (px4_msgs) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.539055] (plan_env) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.546549] (-) TimerEvent: {}
+[2.548256] (traj_utils) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.552463] (race_msgs) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.576186] (px4_msgs) StdoutLine: {'line': b'-- Found builtin_interfaces: 1.2.2 (/opt/ros/humble/share/builtin_interfaces/cmake)\n'}
+[2.587290] (plan_env) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[2.597395] (traj_utils) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[2.607396] (race_msgs) StdoutLine: {'line': b'-- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)\n'}
+[2.632194] (px4_msgs) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.641493] (px4_msgs) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.646760] (-) TimerEvent: {}
+[2.662364] (px4_msgs) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.666288] (plan_env) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.674377] (race_msgs) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.681692] (traj_utils) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.684489] (plan_env) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.684766] (race_msgs) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.685823] (fastlio_global_slam) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.692398] (traj_utils) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.700304] (race_msgs) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.701167] (plan_env) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.704352] (px4_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.712497] (traj_utils) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.725197] (plan_env) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.725591] (race_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.726095] (fr_lio) StdoutLine: {'line': b'-- Found Python3: /usr/include/python3.10 (found version "3.10.12") found components: Development Development.Module Development.Embed \n'}
+[2.738538] (race_mapping) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.741770] (traj_utils) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.744565] (fr_lio) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[2.744800] (px4_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.744928] (race_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.746932] (-) TimerEvent: {}
+[2.748236] (quadrotor_msgs) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[2.756371] (traj_utils) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.756691] (fastlio_global_slam) StdoutLine: {'line': b'-- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)\n'}
+[2.765402] (px4_msgs) StdoutLine: {'line': b'-- Found rosidl_default_generators: 1.2.1 (/opt/ros/humble/share/rosidl_default_generators/cmake)\n'}
+[2.766134] (plan_env) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.774286] (race_mapping) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[2.811012] (fastlio_global_slam) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.818110] (fastlio_global_slam) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.825303] (race_msgs) StdoutLine: {'line': b'-- Found rosidl_default_generators: 1.2.1 (/opt/ros/humble/share/rosidl_default_generators/cmake)\n'}
+[2.834037] (fastlio_global_slam) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.834311] (race_mapping) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.835718] (traj_utils) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[2.836198] (quadrotor_msgs) StdoutLine: {'line': b'-- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)\n'}
+[2.841670] (race_mapping) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.841889] (plan_env) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[2.841961] (traj_utils) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[2.848004] (plan_env) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[2.848531] (-) TimerEvent: {}
+[2.855407] (fastlio_global_slam) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.856316] (race_mapping) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.870940] (offboard_nav2_planning) StderrLine: {'line': b'usage: setup.py [global_opts] cmd1 [cmd1_opts] [cmd2 [cmd2_opts] ...]\n'}
+[2.872188] (offboard_nav2_planning) StderrLine: {'line': b'   or: setup.py --help [cmd1 cmd2 ...]\n'}
+[2.872471] (offboard_nav2_planning) StderrLine: {'line': b'   or: setup.py --help-commands\n'}
+[2.872540] (offboard_nav2_planning) StderrLine: {'line': b'   or: setup.py cmd --help\n'}
+[2.872604] (offboard_nav2_planning) StderrLine: {'line': b'\n'}
+[2.872671] (offboard_nav2_planning) StderrLine: {'line': b'error: option --editable not recognized\n'}
+[2.882336] (race_mapping) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[2.888686] (fastlio_global_slam) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.905403] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[2.906611] (race_mapping) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[2.919148] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[2.933372] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[2.948859] (-) TimerEvent: {}
+[2.960773] (fastlio_global_slam) StdoutLine: {'line': b'-- Found message_filters: 4.3.15 (/opt/ros/humble/share/message_filters/cmake)\n'}
+[2.969792] (quadrotor_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[3.000392] (quadrotor_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[3.001242] (race_mapping) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[3.002897] (race_mapping) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[3.038883] (fastlio_global_slam) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[3.050092] (fastlio_global_slam) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[3.050604] (-) TimerEvent: {}
+[3.062424] (offboard_nav2_planning) CommandEnded: {'returncode': 1}
+[3.065473] (offboard_nav2_planning) JobEnded: {'identifier': 'offboard_nav2_planning', 'rc': 1}
+[3.076446] (quadrotor_msgs) StdoutLine: {'line': b'-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)\n'}
+[3.085585] (traj_utils) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[3.088157] (plan_env) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[3.108846] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[3.150875] (-) TimerEvent: {}
+[3.160950] (plan_env) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[3.167935] (traj_utils) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[3.178948] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[3.182797] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[3.250995] (-) TimerEvent: {}
+[3.256526] (race_mapping) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[3.257304] (plan_env) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[3.273847] (fastlio_global_slam) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[3.282257] (plan_env) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[3.283168] (traj_utils) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[3.296888] (traj_utils) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[3.337361] (race_mapping) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[3.351132] (-) TimerEvent: {}
+[3.366094] (fastlio_global_slam) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[3.439609] (quadrotor_msgs) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[3.443355] (race_mapping) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[3.451340] (-) TimerEvent: {}
+[3.454624] (fastlio_global_slam) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[3.459706] (race_mapping) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[3.472959] (fastlio_global_slam) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[3.524056] (quadrotor_msgs) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[3.531344] (traj_utils) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[3.533055] (traj_utils) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[3.552933] (-) TimerEvent: {}
+[3.565366] (plan_env) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[3.566919] (plan_env) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[3.634402] (quadrotor_msgs) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[3.652328] (quadrotor_msgs) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[3.652986] (-) TimerEvent: {}
+[3.673408] (race_mapping) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[3.674931] (race_mapping) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[3.684505] (fastlio_global_slam) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[3.685093] (fastlio_global_slam) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[3.734527] (traj_utils) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[3.736422] (traj_utils) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[3.753365] (-) TimerEvent: {}
+[3.767352] (plan_env) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[3.768025] (plan_env) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[3.768175] (race_msgs) StdoutLine: {'line': b'-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)\n'}
+[3.843470] (traj_utils) StdoutLine: {'line': b'-- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)\n'}
+[3.843887] (quadrotor_msgs) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[3.844444] (quadrotor_msgs) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[3.856209] (-) TimerEvent: {}
+[3.891582] (traj_utils) StdoutLine: {'line': b'-- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)\n'}
+[3.899176] (race_mapping) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[3.901741] (race_mapping) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[3.909171] (plan_env) StdoutLine: {'line': b'-- Found rclpy: 3.3.21 (/opt/ros/humble/share/rclpy/cmake)\n'}
+[3.911210] (plan_env) StdoutLine: {'line': b'-- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)\n'}
+[3.913317] (fastlio_global_slam) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[3.920927] (fastlio_global_slam) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[3.956492] (-) TimerEvent: {}
+[3.972361] (traj_utils) StdoutLine: {'line': b'-- Found rosidl_default_generators: 1.2.1 (/opt/ros/humble/share/rosidl_default_generators/cmake)\n'}
+[3.995800] (race_mapping) StdoutLine: {'line': b'-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)\n'}
+[3.996488] (plan_env) StdoutLine: {'line': b'-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)\n'}
+[3.999413] (fastlio_global_slam) StdoutLine: {'line': b'-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)\n'}
+[4.034523] (fastlio_global_slam) StdoutLine: {'line': b'-- Found pcl_conversions: 2.4.5 (/opt/ros/humble/share/pcl_conversions/cmake)\n'}
+[4.039033] (plan_env) StdoutLine: {'line': b'-- Found cv_bridge: 3.2.1 (/opt/ros/humble/share/cv_bridge/cmake)\n'}
+[4.049282] (race_mapping) StdoutLine: {'line': b'-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)\n'}
+[4.050551] (traj_utils) StdoutLine: {'line': b"-- Checking for module 'eigen3'\n"}
+[4.056710] (-) TimerEvent: {}
+[4.059470] (quadrotor_msgs) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[4.059734] (plan_env) StdoutLine: {'line': b'-- Found message_filters: 4.3.15 (/opt/ros/humble/share/message_filters/cmake)\n'}
+[4.063111] (quadrotor_msgs) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[4.069305] (plan_env) StdoutLine: {'line': b'-- Found OpenCV: /usr (found version "4.5.4") \n'}
+[4.072484] (fr_lio) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[4.081157] (race_mapping) StdoutLine: {'line': b'-- Found std_srvs: 4.9.1 (/opt/ros/humble/share/std_srvs/cmake)\n'}
+[4.087493] (traj_utils) StdoutLine: {'line': b'--   Found eigen3, version 3.4.0\n'}
+[4.098717] (race_mapping) StdoutLine: {'line': b'-- Found tf2_ros: 0.25.20 (/opt/ros/humble/share/tf2_ros/cmake)\n'}
+[4.131753] (plan_env) StdoutLine: {'line': b"-- Checking for module 'eigen3'\n"}
+[4.141036] (fastlio_global_slam) StdoutLine: {'line': b"-- Checking for module 'eigen3'\n"}
+[4.144641] (quadrotor_msgs) StdoutLine: {'line': b'-- Found rosidl_default_generators: 1.2.1 (/opt/ros/humble/share/rosidl_default_generators/cmake)\n'}
+[4.156906] (-) TimerEvent: {}
+[4.170460] (plan_env) StdoutLine: {'line': b'--   Found eigen3, version 3.4.0\n'}
+[4.175719] (fastlio_global_slam) StdoutLine: {'line': b'--   Found eigen3, version 3.4.0\n'}
+[4.210317] (traj_utils) StdoutLine: {'line': b'-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") \n'}
+[4.213412] (traj_utils) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[4.240879] (traj_utils) StdoutLine: {'line': b'-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.65.0") found components: system filesystem date_time iostreams serialization \n'}
+[4.257637] (-) TimerEvent: {}
+[4.272949] (traj_utils) StdoutLine: {'line': b"-- Checking for module 'flann'\n"}
+[4.281112] (plan_env) StdoutLine: {'line': b'-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") \n'}
+[4.282742] (plan_env) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[4.307357] (race_mapping) StdoutLine: {'line': b'-- Found tf2_geometry_msgs: 0.25.20 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)\n'}
+[4.309549] (fr_lio) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[4.317327] (fastlio_global_slam) StdoutLine: {'line': b'-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") \n'}
+[4.318251] (fastlio_global_slam) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[4.323760] (plan_env) StdoutLine: {'line': b'-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.65.0") found components: system filesystem date_time iostreams serialization \n'}
+[4.327151] (traj_utils) StdoutLine: {'line': b'--   Found flann, version 1.9.1\n'}
+[4.335275] (race_mapping) StdoutLine: {'line': b'-- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)\n'}
+[4.339461] (race_mapping) StdoutLine: {'line': b'-- Found Eigen3: TRUE (found version "3.4.0") \n'}
+[4.340318] (race_mapping) StdoutLine: {'line': b'-- Ensuring Eigen3 include directory is part of orocos-kdl CMake target\n'}
+[4.356646] (fr_lio) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[4.357713] (-) TimerEvent: {}
+[4.359347] (plan_env) StdoutLine: {'line': b"-- Checking for module 'flann'\n"}
+[4.379067] (race_mapping) StdoutLine: {'line': b"-- Checking for module 'eigen3'\n"}
+[4.382512] (fastlio_global_slam) StdoutLine: {'line': b"-- Checking for module 'flann'\n"}
+[4.397580] (plan_env) StdoutLine: {'line': b'--   Found flann, version 1.9.1\n'}
+[4.412334] (fastlio_global_slam) StdoutLine: {'line': b'--   Found flann, version 1.9.1\n'}
+[4.413404] (race_mapping) StdoutLine: {'line': b'--   Found eigen3, version 3.4.0\n'}
+[4.433137] (fr_lio) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[4.441213] (fr_lio) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[4.454979] (fr_lio) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[4.455309] (traj_utils) StdoutLine: {'line': b'-- Found FLANN: /usr/lib/x86_64-linux-gnu/libflann_cpp.so  \n'}
+[4.455608] (traj_utils) StdoutLine: {'line': b'-- FLANN found (include: /usr/include, lib: /usr/lib/x86_64-linux-gnu/libflann_cpp.so)\n'}
+[4.459096] (-) TimerEvent: {}
+[4.498873] (fr_lio) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[4.524361] (traj_utils) StdoutLine: {'line': b'-- Found GLEW: /usr/lib/x86_64-linux-gnu/libGLEW.so  \n'}
+[4.529404] (fr_lio) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[4.539516] (race_mapping) StdoutLine: {'line': b'-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") \n'}
+[4.540461] (race_mapping) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[4.544184] (traj_utils) StdoutLine: {'line': b'-- Found OpenGL: /usr/lib/x86_64-linux-gnu/libOpenGL.so  found components: OpenGL GLX \n'}
+[4.544672] (plan_env) StdoutLine: {'line': b'-- Found FLANN: /usr/lib/x86_64-linux-gnu/libflann_cpp.so  \n'}
+[4.544827] (plan_env) StdoutLine: {'line': b'-- FLANN found (include: /usr/include, lib: /usr/lib/x86_64-linux-gnu/libflann_cpp.so)\n'}
+[4.560512] (-) TimerEvent: {}
+[4.576337] (race_mapping) StdoutLine: {'line': b'-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.65.0") found components: system filesystem date_time iostreams serialization \n'}
+[4.578503] (fastlio_global_slam) StdoutLine: {'line': b'-- Found FLANN: /usr/lib/x86_64-linux-gnu/libflann_cpp.so  \n'}
+[4.578996] (fastlio_global_slam) StdoutLine: {'line': b'-- FLANN found (include: /usr/include, lib: /usr/lib/x86_64-linux-gnu/libflann_cpp.so)\n'}
+[4.619585] (plan_env) StdoutLine: {'line': b'-- Found GLEW: /usr/lib/x86_64-linux-gnu/libGLEW.so  \n'}
+[4.629512] (fr_lio) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[4.631964] (fr_lio) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[4.647472] (plan_env) StdoutLine: {'line': b'-- Found OpenGL: /usr/lib/x86_64-linux-gnu/libOpenGL.so  found components: OpenGL GLX \n'}
+[4.660643] (-) TimerEvent: {}
+[4.757762] (race_mapping) StdoutLine: {'line': b"-- Checking for module 'libusb-1.0'\n"}
+[4.760982] (-) TimerEvent: {}
+[4.811508] (race_mapping) StdoutLine: {'line': b'--   Found libusb-1.0, version 1.0.25\n'}
+[4.862443] (-) TimerEvent: {}
+[4.890238] (fr_lio) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[4.932411] (race_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[4.944217] (race_mapping) StdoutLine: {'line': b'-- Found libusb: /usr/lib/x86_64-linux-gnu/libusb-1.0.so  \n'}
+[4.949437] (race_mapping) StdoutLine: {'line': b'-- Found OpenNI: /usr/lib/libOpenNI.so;libusb::libusb (found version "1.5.4.0") \n'}
+[4.950021] (race_mapping) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[4.962666] (-) TimerEvent: {}
+[4.980282] (fr_lio) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[5.023551] (traj_utils) StdoutLine: {'line': b'-- Found MPI_C: /usr/lib/x86_64-linux-gnu/libmpi.so (found version "3.1") \n'}
+[5.023975] (traj_utils) StdoutLine: {'line': b'-- Found MPI: TRUE (found version "3.1") found components: C \n'}
+[5.038201] (traj_utils) StdoutLine: {'line': b'-- Found JsonCpp: /usr/lib/x86_64-linux-gnu/libjsoncpp.so (found suitable version "1.9.5", minimum required is "0.7.0") \n'}
+[5.064601] (-) TimerEvent: {}
+[5.066623] (traj_utils) StdoutLine: {'line': b'-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11") \n'}
+[5.084917] (fr_lio) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[5.086889] (plan_env) StdoutLine: {'line': b'-- Found MPI_C: /usr/lib/x86_64-linux-gnu/libmpi.so (found version "3.1") \n'}
+[5.087399] (plan_env) StdoutLine: {'line': b'-- Found MPI: TRUE (found version "3.1") found components: C \n'}
+[5.091380] (plan_env) StdoutLine: {'line': b'-- Found JsonCpp: /usr/lib/x86_64-linux-gnu/libjsoncpp.so (found suitable version "1.9.5", minimum required is "0.7.0") \n'}
+[5.093033] (fr_lio) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[5.097820] (traj_utils) StdoutLine: {'line': b'-- Found PNG: /usr/lib/x86_64-linux-gnu/libpng.so (found version "1.6.37") \n'}
+[5.116888] (plan_env) StdoutLine: {'line': b'-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11") \n'}
+[5.149297] (traj_utils) StdoutLine: {'line': b'-- Found Eigen3: /usr/include/eigen3 (found version "3.4.0") \n'}
+[5.151413] (plan_env) StdoutLine: {'line': b'-- Found PNG: /usr/lib/x86_64-linux-gnu/libpng.so (found version "1.6.37") \n'}
+[5.161422] (race_mapping) StdoutLine: {'line': b'-- Found OpenNI2: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb (found version "2.2.0.33") \n'}
+[5.162165] (race_mapping) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[5.162431] (race_mapping) StderrLine: {'line': b'** WARNING ** io features related to pcap will be disabled\n'}
+[5.162669] (race_mapping) StderrLine: {'line': b'** WARNING ** io features related to png will be disabled\n'}
+[5.164878] (-) TimerEvent: {}
+[5.175599] (plan_env) StdoutLine: {'line': b'-- Found Eigen3: /usr/include/eigen3 (found version "3.4.0") \n'}
+[5.219384] (quadrotor_msgs) StdoutLine: {'line': b'-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)\n'}
+[5.226319] (race_mapping) StdoutLine: {'line': b'-- Found GLEW: /usr/lib/x86_64-linux-gnu/libGLEW.so  \n'}
+[5.242100] (race_mapping) StdoutLine: {'line': b'-- Found OpenGL: /usr/lib/x86_64-linux-gnu/libOpenGL.so  found components: OpenGL GLX \n'}
+[5.269860] (-) TimerEvent: {}
+[5.306733] (fr_lio) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[5.307541] (fr_lio) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[5.333015] (race_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[5.370321] (-) TimerEvent: {}
+[5.405885] (race_msgs) StdoutLine: {'line': b'-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") \n'}
+[5.407519] (race_msgs) StdoutLine: {'line': b'-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)\n'}
+[5.474507] (-) TimerEvent: {}
+[5.498722] (race_msgs) StdoutLine: {'line': b'-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") \n'}
+[5.499087] (race_msgs) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[5.499188] (race_msgs) StdoutLine: {'line': b'-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10\n'}
+[5.499270] (race_msgs) StdoutLine: {'line': b'-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so\n'}
+[5.506830] (traj_utils) StdoutLine: {'line': b'-- Found X11: /usr/include   \n'}
+[5.507142] (traj_utils) StdoutLine: {'line': b'-- Looking for XOpenDisplay in /usr/lib/x86_64-linux-gnu/libX11.so;/usr/lib/x86_64-linux-gnu/libXext.so\n'}
+[5.509015] (plan_env) StdoutLine: {'line': b'-- Found X11: /usr/include   \n'}
+[5.509424] (plan_env) StdoutLine: {'line': b'-- Looking for XOpenDisplay in /usr/lib/x86_64-linux-gnu/libX11.so;/usr/lib/x86_64-linux-gnu/libXext.so\n'}
+[5.524301] (fr_lio) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[5.526149] (fr_lio) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[5.570495] (race_msgs) StdoutLine: {'line': b'-- Found PythonExtra: .so  \n'}
+[5.575506] (-) TimerEvent: {}
+[5.651803] (fr_lio) StdoutLine: {'line': b'-- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)\n'}
+[5.675755] (-) TimerEvent: {}
+[5.688431] (race_mapping) StdoutLine: {'line': b'-- Found MPI_C: /usr/lib/x86_64-linux-gnu/libmpi.so (found version "3.1") \n'}
+[5.692657] (race_mapping) StdoutLine: {'line': b'-- Found MPI: TRUE (found version "3.1") found components: C \n'}
+[5.706367] (race_mapping) StdoutLine: {'line': b'-- Found JsonCpp: /usr/lib/x86_64-linux-gnu/libjsoncpp.so (found suitable version "1.9.5", minimum required is "0.7.0") \n'}
+[5.715461] (fr_lio) StdoutLine: {'line': b'-- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)\n'}
+[5.738591] (race_mapping) StdoutLine: {'line': b'-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.2.11") \n'}
+[5.743035] (fr_lio) StdoutLine: {'line': b'-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)\n'}
+[5.743299] (plan_env) StdoutLine: {'line': b'-- Looking for XOpenDisplay in /usr/lib/x86_64-linux-gnu/libX11.so;/usr/lib/x86_64-linux-gnu/libXext.so - found\n'}
+[5.743405] (plan_env) StdoutLine: {'line': b'-- Looking for gethostbyname\n'}
+[5.744456] (traj_utils) StdoutLine: {'line': b'-- Looking for XOpenDisplay in /usr/lib/x86_64-linux-gnu/libX11.so;/usr/lib/x86_64-linux-gnu/libXext.so - found\n'}
+[5.744582] (traj_utils) StdoutLine: {'line': b'-- Looking for gethostbyname\n'}
+[5.772551] (fr_lio) StdoutLine: {'line': b'-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)\n'}
+[5.774745] (race_mapping) StdoutLine: {'line': b'-- Found PNG: /usr/lib/x86_64-linux-gnu/libpng.so (found version "1.6.37") \n'}
+[5.775852] (-) TimerEvent: {}
+[5.802617] (fr_lio) StdoutLine: {'line': b'-- Found std_srvs: 4.9.1 (/opt/ros/humble/share/std_srvs/cmake)\n'}
+[5.804367] (race_mapping) StdoutLine: {'line': b'-- Found Eigen3: /usr/include/eigen3 (found version "3.4.0") \n'}
+[5.817231] (fr_lio) StdoutLine: {'line': b'-- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)\n'}
+[5.854238] (fr_lio) StdoutLine: {'line': b'-- Found pcl_ros: 2.4.5 (/opt/ros/humble/share/pcl_ros/cmake)\n'}
+[5.877281] (-) TimerEvent: {}
+[5.947303] (traj_utils) StdoutLine: {'line': b'-- Looking for gethostbyname - found\n'}
+[5.948010] (traj_utils) StdoutLine: {'line': b'-- Looking for connect\n'}
+[5.963380] (plan_env) StdoutLine: {'line': b'-- Looking for gethostbyname - found\n'}
+[5.963824] (plan_env) StdoutLine: {'line': b'-- Looking for connect\n'}
+[5.964029] (fr_lio) StdoutLine: {'line': b"-- Checking for module 'eigen3'\n"}
+[5.978238] (-) TimerEvent: {}
+[6.008796] (race_msgs) StdoutLine: {'line': b'-- Found ament_lint_auto: 0.12.15 (/opt/ros/humble/share/ament_lint_auto/cmake)\n'}
+[6.011050] (fr_lio) StdoutLine: {'line': b'--   Found eigen3, version 3.4.0\n'}
+[6.044774] (race_msgs) StdoutLine: {'line': b"-- Added test 'lint_cmake' to check CMake code style\n"}
+[6.047350] (race_msgs) StdoutLine: {'line': b"-- Added test 'xmllint' to check XML markup files\n"}
+[6.056411] (race_msgs) StdoutLine: {'line': b'-- Configuring done\n'}
+[6.079493] (-) TimerEvent: {}
+[6.134057] (fr_lio) StdoutLine: {'line': b'-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") \n'}
+[6.135977] (fr_lio) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[6.166408] (traj_utils) StdoutLine: {'line': b'-- Looking for connect - found\n'}
+[6.167235] (traj_utils) StdoutLine: {'line': b'-- Looking for remove\n'}
+[6.179623] (-) TimerEvent: {}
+[6.182712] (plan_env) StdoutLine: {'line': b'-- Looking for connect - found\n'}
+[6.183415] (plan_env) StdoutLine: {'line': b'-- Looking for remove\n'}
+[6.185921] (race_msgs) StdoutLine: {'line': b'-- Generating done\n'}
+[6.198678] (race_mapping) StdoutLine: {'line': b'-- Found X11: /usr/include   \n'}
+[6.202055] (race_mapping) StdoutLine: {'line': b'-- Looking for XOpenDisplay in /usr/lib/x86_64-linux-gnu/libX11.so;/usr/lib/x86_64-linux-gnu/libXext.so\n'}
+[6.219929] (fr_lio) StdoutLine: {'line': b"-- Checking for module 'flann'\n"}
+[6.223552] (race_msgs) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs\n'}
+[6.265770] (fr_lio) StdoutLine: {'line': b'--   Found flann, version 1.9.1\n'}
+[6.282559] (-) TimerEvent: {}
+[6.298906] (race_msgs) JobEnded: {'identifier': 'race_msgs', 'rc': 'SIGINT'}
+[6.365898] (traj_utils) StdoutLine: {'line': b'-- Looking for remove - found\n'}
+[6.366447] (traj_utils) StdoutLine: {'line': b'-- Looking for shmat\n'}
+[6.372922] (plan_env) StdoutLine: {'line': b'-- Looking for remove - found\n'}
+[6.373178] (plan_env) StdoutLine: {'line': b'-- Looking for shmat\n'}
+[6.384036] (-) TimerEvent: {}
+[6.399141] (race_mapping) StdoutLine: {'line': b'-- Looking for XOpenDisplay in /usr/lib/x86_64-linux-gnu/libX11.so;/usr/lib/x86_64-linux-gnu/libXext.so - found\n'}
+[6.399471] (race_mapping) StdoutLine: {'line': b'-- Looking for gethostbyname\n'}
+[6.444975] (fr_lio) StdoutLine: {'line': b'-- Found FLANN: /usr/lib/x86_64-linux-gnu/libflann_cpp.so  \n'}
+[6.445452] (fr_lio) StdoutLine: {'line': b'-- FLANN found (include: /usr/include, lib: /usr/lib/x86_64-linux-gnu/libflann_cpp.so)\n'}
+[6.451861] (quadrotor_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[6.484147] (-) TimerEvent: {}
+[6.584896] (-) TimerEvent: {}
+[6.598039] (race_mapping) StdoutLine: {'line': b'-- Looking for gethostbyname - found\n'}
+[6.601666] (race_mapping) StdoutLine: {'line': b'-- Looking for connect\n'}
+[6.603737] (traj_utils) StdoutLine: {'line': b'-- Looking for shmat - found\n'}
+[6.604370] (traj_utils) StdoutLine: {'line': b'-- Looking for IceConnectionNumber in ICE\n'}
+[6.610576] (plan_env) StdoutLine: {'line': b'-- Looking for shmat - found\n'}
+[6.610877] (plan_env) StdoutLine: {'line': b'-- Looking for IceConnectionNumber in ICE\n'}
+[6.637851] (px4_msgs) StdoutLine: {'line': b'-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)\n'}
+[6.685034] (-) TimerEvent: {}
+[6.786653] (-) TimerEvent: {}
+[6.822110] (plan_env) StdoutLine: {'line': b'-- Looking for IceConnectionNumber in ICE - found\n'}
+[6.822689] (traj_utils) StdoutLine: {'line': b'-- Looking for IceConnectionNumber in ICE - found\n'}
+[6.831476] (race_mapping) StdoutLine: {'line': b'-- Looking for connect - found\n'}
+[6.831893] (race_mapping) StdoutLine: {'line': b'-- Looking for remove\n'}
+[6.886789] (-) TimerEvent: {}
+[6.939925] (quadrotor_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[6.989438] (-) TimerEvent: {}
+[7.025680] (quadrotor_msgs) StdoutLine: {'line': b'-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") \n'}
+[7.026155] (quadrotor_msgs) StdoutLine: {'line': b'-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)\n'}
+[7.026898] (race_mapping) StdoutLine: {'line': b'-- Looking for remove - found\n'}
+[7.027434] (race_mapping) StdoutLine: {'line': b'-- Looking for shmat\n'}
+[7.089652] (-) TimerEvent: {}
+[7.122284] (quadrotor_msgs) StdoutLine: {'line': b'-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") \n'}
+[7.123329] (quadrotor_msgs) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[7.123506] (quadrotor_msgs) StdoutLine: {'line': b'-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10\n'}
+[7.123638] (quadrotor_msgs) StdoutLine: {'line': b'-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so\n'}
+[7.168049] (plan_env) StdoutLine: {'line': b'-- Found EXPAT: /usr/lib/x86_64-linux-gnu/libexpat.so (found version "2.4.7") \n'}
+[7.177795] (plan_env) StdoutLine: {'line': b'-- Found double-conversion: /usr/lib/x86_64-linux-gnu/libdouble-conversion.so  \n'}
+[7.185517] (quadrotor_msgs) StdoutLine: {'line': b'-- Found PythonExtra: .so  \n'}
+[7.186254] (plan_env) StdoutLine: {'line': b'-- Found LZ4: /usr/lib/x86_64-linux-gnu/liblz4.so (found version "1.9.3") \n'}
+[7.190540] (traj_utils) StdoutLine: {'line': b'-- Found EXPAT: /usr/lib/x86_64-linux-gnu/libexpat.so (found version "2.4.7") \n'}
+[7.192744] (-) TimerEvent: {}
+[7.193058] (plan_env) StdoutLine: {'line': b'-- Found LZMA: /usr/lib/x86_64-linux-gnu/liblzma.so (found version "5.2.5") \n'}
+[7.196263] (traj_utils) StdoutLine: {'line': b'-- Found double-conversion: /usr/lib/x86_64-linux-gnu/libdouble-conversion.so  \n'}
+[7.203137] (traj_utils) StdoutLine: {'line': b'-- Found LZ4: /usr/lib/x86_64-linux-gnu/liblz4.so (found version "1.9.3") \n'}
+[7.207321] (traj_utils) StdoutLine: {'line': b'-- Found LZMA: /usr/lib/x86_64-linux-gnu/liblzma.so (found version "5.2.5") \n'}
+[7.213324] (plan_env) StdoutLine: {'line': b'-- Found JPEG: /usr/lib/x86_64-linux-gnu/libjpeg.so (found version "80") \n'}
+[7.242118] (traj_utils) StdoutLine: {'line': b'-- Found JPEG: /usr/lib/x86_64-linux-gnu/libjpeg.so (found version "80") \n'}
+[7.246384] (race_mapping) StdoutLine: {'line': b'-- Looking for shmat - found\n'}
+[7.247720] (race_mapping) StdoutLine: {'line': b'-- Looking for IceConnectionNumber in ICE\n'}
+[7.249252] (plan_env) StdoutLine: {'line': b'-- Found TIFF: /usr/lib/x86_64-linux-gnu/libtiff.so (found version "4.3.0")  \n'}
+[7.255543] (plan_env) StdoutLine: {'line': b'-- Found Freetype: /usr/lib/x86_64-linux-gnu/libfreetype.so (found version "2.11.1") \n'}
+[7.265788] (plan_env) StdoutLine: {'line': b'-- Found utf8cpp: /usr/include/utf8cpp  \n'}
+[7.284104] (traj_utils) StdoutLine: {'line': b'-- Found TIFF: /usr/lib/x86_64-linux-gnu/libtiff.so (found version "4.3.0")  \n'}
+[7.292956] (traj_utils) StdoutLine: {'line': b'-- Found Freetype: /usr/lib/x86_64-linux-gnu/libfreetype.so (found version "2.11.1") \n'}
+[7.293817] (-) TimerEvent: {}
+[7.304318] (traj_utils) StdoutLine: {'line': b'-- Found utf8cpp: /usr/include/utf8cpp  \n'}
+[7.394241] (-) TimerEvent: {}
+[7.450346] (race_mapping) StdoutLine: {'line': b'-- Looking for IceConnectionNumber in ICE - found\n'}
+[7.453545] (fastlio_global_slam) StdoutLine: {'line': b"-- Checking for module 'libusb-1.0'\n"}
+[7.488219] (plan_env) StdoutLine: {'line': b"-- Checking for module 'libusb-1.0'\n"}
+[7.494530] (-) TimerEvent: {}
+[7.495080] (fastlio_global_slam) StdoutLine: {'line': b'--   Found libusb-1.0, version 1.0.25\n'}
+[7.528462] (traj_utils) StdoutLine: {'line': b"-- Checking for module 'libusb-1.0'\n"}
+[7.530625] (plan_env) StdoutLine: {'line': b'--   Found libusb-1.0, version 1.0.25\n'}
+[7.564118] (traj_utils) StdoutLine: {'line': b'--   Found libusb-1.0, version 1.0.25\n'}
+[7.596295] (-) TimerEvent: {}
+[7.619708] (fastlio_global_slam) StdoutLine: {'line': b'-- Found libusb: /usr/lib/x86_64-linux-gnu/libusb-1.0.so  \n'}
+[7.624521] (fastlio_global_slam) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[7.633011] (quadrotor_msgs) StdoutLine: {'line': b'-- Found ament_lint_auto: 0.12.15 (/opt/ros/humble/share/ament_lint_auto/cmake)\n'}
+[7.666098] (plan_env) StdoutLine: {'line': b'-- Found libusb: /usr/lib/x86_64-linux-gnu/libusb-1.0.so  \n'}
+[7.673125] (plan_env) StdoutLine: {'line': b'-- Found OpenNI: /usr/lib/libOpenNI.so;libusb::libusb (found version "1.5.4.0") \n'}
+[7.673880] (plan_env) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[7.684501] (quadrotor_msgs) StdoutLine: {'line': b"-- Added test 'cppcheck' to perform static code analysis on C / C++ code\n"}
+[7.687285] (quadrotor_msgs) StdoutLine: {'line': b'-- Configured cppcheck include dirs: /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/quadrotor_msgs/include\n'}
+[7.688863] (quadrotor_msgs) StdoutLine: {'line': b'-- Configured cppcheck exclude dirs and/or files: \n'}
+[7.689727] (quadrotor_msgs) StdoutLine: {'line': b"-- Added test 'lint_cmake' to check CMake code style\n"}
+[7.690202] (quadrotor_msgs) StdoutLine: {'line': b"-- Added test 'uncrustify' to check C / C++ code style\n"}
+[7.690361] (quadrotor_msgs) StdoutLine: {'line': b'-- Configured uncrustify additional arguments: \n'}
+[7.693574] (quadrotor_msgs) StdoutLine: {'line': b"-- Added test 'xmllint' to check XML markup files\n"}
+[7.697571] (traj_utils) StdoutLine: {'line': b'-- Found libusb: /usr/lib/x86_64-linux-gnu/libusb-1.0.so  \n'}
+[7.697950] (-) TimerEvent: {}
+[7.698418] (traj_utils) StdoutLine: {'line': b'-- Found OpenNI: /usr/lib/libOpenNI.so;libusb::libusb (found version "1.5.4.0") \n'}
+[7.698637] (traj_utils) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[7.699518] (quadrotor_msgs) StdoutLine: {'line': b'-- Configuring done\n'}
+[7.760398] (race_mapping) StdoutLine: {'line': b'-- Found EXPAT: /usr/lib/x86_64-linux-gnu/libexpat.so (found version "2.4.7") \n'}
+[7.767353] (race_mapping) StdoutLine: {'line': b'-- Found double-conversion: /usr/lib/x86_64-linux-gnu/libdouble-conversion.so  \n'}
+[7.770322] (px4_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[7.777413] (race_mapping) StdoutLine: {'line': b'-- Found LZ4: /usr/lib/x86_64-linux-gnu/liblz4.so (found version "1.9.3") \n'}
+[7.782563] (race_mapping) StdoutLine: {'line': b'-- Found LZMA: /usr/lib/x86_64-linux-gnu/liblzma.so (found version "5.2.5") \n'}
+[7.798149] (-) TimerEvent: {}
+[7.813359] (fastlio_global_slam) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[7.824554] (race_mapping) StdoutLine: {'line': b'-- Found JPEG: /usr/lib/x86_64-linux-gnu/libjpeg.so (found version "80") \n'}
+[7.852502] (plan_env) StdoutLine: {'line': b'-- Found OpenNI2: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb (found version "2.2.0.33") \n'}
+[7.852921] (plan_env) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[7.853015] (plan_env) StderrLine: {'line': b'** WARNING ** io features related to pcap will be disabled\n'}
+[7.856882] (race_mapping) StdoutLine: {'line': b'-- Found TIFF: /usr/lib/x86_64-linux-gnu/libtiff.so (found version "4.3.0")  \n'}
+[7.863657] (race_mapping) StdoutLine: {'line': b'-- Found Freetype: /usr/lib/x86_64-linux-gnu/libfreetype.so (found version "2.11.1") \n'}
+[7.873438] (traj_utils) StdoutLine: {'line': b'-- Found OpenNI2: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb (found version "2.2.0.33") \n'}
+[7.874388] (traj_utils) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[7.874552] (traj_utils) StderrLine: {'line': b'** WARNING ** io features related to pcap will be disabled\n'}
+[7.879653] (race_mapping) StdoutLine: {'line': b'-- Found utf8cpp: /usr/include/utf8cpp  \n'}
+[7.885528] (quadrotor_msgs) StdoutLine: {'line': b'-- Generating done\n'}
+[7.898517] (-) TimerEvent: {}
+[7.943385] (quadrotor_msgs) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs\n'}
+[7.954661] (race_mapping) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[7.990575] (race_mapping) StdoutLine: {'line': b"-- Checking for module 'flann'\n"}
+[7.998653] (-) TimerEvent: {}
+[8.032368] (quadrotor_msgs) JobEnded: {'identifier': 'quadrotor_msgs', 'rc': 'SIGINT'}
+[8.038596] (race_mapping) StdoutLine: {'line': b'--   Found flann, version 1.9.1\n'}
+[8.099163] (-) TimerEvent: {}
+[8.201498] (-) TimerEvent: {}
+[8.221913] (px4_msgs) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[8.234643] (race_mapping) StdoutLine: {'line': b'-- Found FLANN: /usr/lib/x86_64-linux-gnu/libflann_cpp.so  \n'}
+[8.235303] (race_mapping) StdoutLine: {'line': b'-- FLANN found (include: /usr/include, lib: /usr/lib/x86_64-linux-gnu/libflann_cpp.so)\n'}
+[8.236574] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_COMMON\n'}
+[8.239460] (race_mapping) StdoutLine: {'line': b'-- Found PCL_COMMON: /usr/lib/x86_64-linux-gnu/libpcl_common.so  \n'}
+[8.239895] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_OCTREE\n'}
+[8.242365] (race_mapping) StdoutLine: {'line': b'-- Found PCL_OCTREE: /usr/lib/x86_64-linux-gnu/libpcl_octree.so  \n'}
+[8.243021] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_IO\n'}
+[8.244815] (race_mapping) StdoutLine: {'line': b'-- Found PCL_IO: /usr/lib/x86_64-linux-gnu/libpcl_io.so  \n'}
+[8.245913] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_KDTREE\n'}
+[8.249505] (race_mapping) StdoutLine: {'line': b'-- Found PCL_KDTREE: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so  \n'}
+[8.250255] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_SEARCH\n'}
+[8.257600] (race_mapping) StdoutLine: {'line': b'-- Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so  \n'}
+[8.258817] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_SAMPLE_CONSENSUS\n'}
+[8.273124] (race_mapping) StdoutLine: {'line': b'-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so  \n'}
+[8.275082] (race_mapping) StdoutLine: {'line': b'-- looking for PCL_FILTERS\n'}
+[8.282102] (race_mapping) StdoutLine: {'line': b'-- Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so  \n'}
+[8.284915] (race_mapping) StdoutLine: {'line': b'-- Found PCL: pcl_common;pcl_octree;pcl_io;pcl_kdtree;pcl_search;pcl_sample_consensus;pcl_filters;Boost::system;Boost::filesystem;Boost::date_time;Boost::iostreams;Boost::serialization;/usr/lib/libOpenNI.so;libusb::libusb;/usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb;VTK::ChartsCore;VTK::CommonColor;VTK::CommonComputationalGeometry;VTK::CommonCore;VTK::CommonDataModel;VTK::CommonExecutionModel;VTK::CommonMath;VTK::CommonMisc;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersExtraction;VTK::FiltersGeneral;VTK::FiltersGeometry;VTK::FiltersModeling;VTK::FiltersSources;VTK::ImagingCore;VTK::ImagingSources;VTK::InteractionImage;VTK::InteractionStyle;VTK::InteractionWidgets;VTK::IOCore;VTK::IOGeometry;VTK::IOImage;VTK::IOLegacy;VTK::IOPLY;VTK::RenderingAnnotation;VTK::RenderingCore;VTK::RenderingContext2D;VTK::RenderingLOD;VTK::RenderingFreeType;VTK::ViewsCore;VTK::ViewsContext2D;VTK::RenderingOpenGL2;VTK::GUISupportQt;FLANN::FLANN  \n'}
+[8.288652] (race_mapping) StdoutLine: {'line': b'-- Found pcl_conversions: 2.4.5 (/opt/ros/humble/share/pcl_conversions/cmake)\n'}
+[8.293578] (fastlio_global_slam) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[8.298283] (plan_env) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[8.301862] (-) TimerEvent: {}
+[8.307531] (px4_msgs) StdoutLine: {'line': b'-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") \n'}
+[8.308492] (fastlio_global_slam) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[8.308798] (px4_msgs) StdoutLine: {'line': b'-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)\n'}
+[8.309662] (plan_env) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[8.324155] (plan_env) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[8.326430] (fastlio_global_slam) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[8.358763] (traj_utils) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[8.375286] (traj_utils) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[8.386283] (traj_utils) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[8.389071] (px4_msgs) StdoutLine: {'line': b'-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") \n'}
+[8.389598] (px4_msgs) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[8.389687] (px4_msgs) StdoutLine: {'line': b'-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10\n'}
+[8.389751] (px4_msgs) StdoutLine: {'line': b'-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so\n'}
+[8.402108] (-) TimerEvent: {}
+[8.444862] (px4_msgs) StdoutLine: {'line': b'-- Found PythonExtra: .so  \n'}
+[8.502375] (-) TimerEvent: {}
+[8.569897] (race_mapping) StdoutLine: {'line': b'-- Configuring done\n'}
+[8.602902] (-) TimerEvent: {}
+[8.674556] (race_mapping) StdoutLine: {'line': b'-- Generating done\n'}
+[8.703135] (-) TimerEvent: {}
+[8.708232] (race_mapping) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/race_mapping\n'}
+[8.746951] (plan_env) StdoutLine: {'line': b'-- Found Qhull version 8.0.2\n'}
+[8.777141] (fastlio_global_slam) StdoutLine: {'line': b'-- Found Qhull version 8.0.2\n'}
+[8.803212] (-) TimerEvent: {}
+[8.803982] (race_mapping) JobEnded: {'identifier': 'race_mapping', 'rc': 'SIGINT'}
+[8.813195] (traj_utils) StdoutLine: {'line': b'-- Found Qhull version 8.0.2\n'}
+[8.904366] (-) TimerEvent: {}
+[8.927579] (px4_msgs) StdoutLine: {'line': b'-- Configuring done\n'}
+[9.004535] (-) TimerEvent: {}
+[9.107345] (-) TimerEvent: {}
+[9.111875] (fastlio_global_slam) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[9.196521] (plan_env) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[9.203527] (fr_lio) StdoutLine: {'line': b"-- Checking for module 'libusb-1.0'\n"}
+[9.208507] (-) TimerEvent: {}
+[9.244354] (fr_lio) StdoutLine: {'line': b'--   Found libusb-1.0, version 1.0.25\n'}
+[9.268265] (traj_utils) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[9.308756] (-) TimerEvent: {}
+[9.387392] (fr_lio) StdoutLine: {'line': b'-- Found libusb: /usr/lib/x86_64-linux-gnu/libusb-1.0.so  \n'}
+[9.389469] (fr_lio) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[9.409394] (-) TimerEvent: {}
+[9.509911] (-) TimerEvent: {}
+[9.558494] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_COMMON: /usr/lib/x86_64-linux-gnu/libpcl_common.so  \n'}
+[9.561729] (fr_lio) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[9.564800] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_KDTREE: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so  \n'}
+[9.574894] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_OCTREE: /usr/lib/x86_64-linux-gnu/libpcl_octree.so  \n'}
+[9.583085] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so  \n'}
+[9.588473] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so  \n'}
+[9.594796] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so  \n'}
+[9.603495] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_2D: /usr/include/pcl-1.12  \n'}
+[9.604770] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  \n'}
+[9.604849] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_IO: /usr/lib/x86_64-linux-gnu/libpcl_io.so  \n'}
+[9.606006] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so  \n'}
+[9.610561] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_ML: /usr/lib/x86_64-linux-gnu/libpcl_ml.so  \n'}
+[9.611098] (-) TimerEvent: {}
+[9.613963] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_SEGMENTATION: /usr/lib/x86_64-linux-gnu/libpcl_segmentation.so  \n'}
+[9.623294] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_VISUALIZATION: /usr/lib/x86_64-linux-gnu/libpcl_visualization.so  \n'}
+[9.623965] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_SURFACE: /usr/lib/x86_64-linux-gnu/libpcl_surface.so  \n'}
+[9.624716] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so  \n'}
+[9.627627] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_KEYPOINTS: /usr/lib/x86_64-linux-gnu/libpcl_keypoints.so  \n'}
+[9.635410] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_TRACKING: /usr/lib/x86_64-linux-gnu/libpcl_tracking.so  \n'}
+[9.637535] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_RECOGNITION: /usr/lib/x86_64-linux-gnu/libpcl_recognition.so  \n'}
+[9.645394] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_STEREO: /usr/lib/x86_64-linux-gnu/libpcl_stereo.so  \n'}
+[9.654684] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_APPS: /usr/lib/x86_64-linux-gnu/libpcl_apps.so  \n'}
+[9.656102] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  \n'}
+[9.656866] (plan_env) StdoutLine: {'line': b'-- looking for PCL_COMMON\n'}
+[9.658542] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_MODELER: /usr/include/pcl-1.12  \n'}
+[9.664401] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  \n'}
+[9.665740] (plan_env) StdoutLine: {'line': b'-- Found PCL_COMMON: /usr/lib/x86_64-linux-gnu/libpcl_common.so  \n'}
+[9.666009] (plan_env) StdoutLine: {'line': b'-- looking for PCL_KDTREE\n'}
+[9.666625] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_OUTOFCORE: /usr/lib/x86_64-linux-gnu/libpcl_outofcore.so  \n'}
+[9.669768] (plan_env) StdoutLine: {'line': b'-- Found PCL_KDTREE: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so  \n'}
+[9.670231] (plan_env) StdoutLine: {'line': b'-- looking for PCL_OCTREE\n'}
+[9.671082] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PCL_PEOPLE: /usr/lib/x86_64-linux-gnu/libpcl_people.so  \n'}
+[9.671519] (plan_env) StdoutLine: {'line': b'-- Found PCL_OCTREE: /usr/lib/x86_64-linux-gnu/libpcl_octree.so  \n'}
+[9.671936] (plan_env) StdoutLine: {'line': b'-- looking for PCL_SEARCH\n'}
+[9.675294] (plan_env) StdoutLine: {'line': b'-- Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so  \n'}
+[9.675842] (fastlio_global_slam) StderrLine: {'line': b'CMake Warning (dev) at CMakeLists.txt:18 (find_package):\n'}
+[9.676164] (fastlio_global_slam) StderrLine: {'line': b'  Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.\n'}
+[9.676477] (fastlio_global_slam) StderrLine: {'line': b'  Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy\n'}
+[9.676765] (fastlio_global_slam) StderrLine: {'line': b'  command to set the policy and suppress this warning.\n'}
+[9.677015] (fastlio_global_slam) StderrLine: {'line': b'\n'}
+[9.677168] (fastlio_global_slam) StderrLine: {'line': b'  CMake variable PCL_ROOT is set to:\n'}
+[9.677322] (fastlio_global_slam) StderrLine: {'line': b'\n'}
+[9.677441] (fastlio_global_slam) StderrLine: {'line': b'    /usr\n'}
+[9.677525] (fastlio_global_slam) StderrLine: {'line': b'\n'}
+[9.677609] (fastlio_global_slam) StderrLine: {'line': b'  For compatibility, CMake is ignoring the variable.\n'}
+[9.677690] (fastlio_global_slam) StderrLine: {'line': b'This warning is for project developers.  Use -Wno-dev to suppress it.\n'}
+[9.677776] (fastlio_global_slam) StderrLine: {'line': b'\n'}
+[9.677862] (plan_env) StdoutLine: {'line': b'-- looking for PCL_SAMPLE_CONSENSUS\n'}
+[9.681069] (plan_env) StdoutLine: {'line': b'-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so  \n'}
+[9.682217] (plan_env) StdoutLine: {'line': b'-- looking for PCL_FILTERS\n'}
+[9.682726] (plan_env) StdoutLine: {'line': b'-- Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so  \n'}
+[9.683031] (plan_env) StdoutLine: {'line': b'-- looking for PCL_2D\n'}
+[9.683306] (plan_env) StdoutLine: {'line': b'-- Found PCL_2D: /usr/include/pcl-1.12  \n'}
+[9.683908] (plan_env) StdoutLine: {'line': b'-- looking for PCL_GEOMETRY\n'}
+[9.684043] (plan_env) StdoutLine: {'line': b'-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  \n'}
+[9.684105] (plan_env) StdoutLine: {'line': b'-- looking for PCL_IO\n'}
+[9.690415] (plan_env) StdoutLine: {'line': b'-- Found PCL_IO: /usr/lib/x86_64-linux-gnu/libpcl_io.so  \n'}
+[9.692574] (plan_env) StdoutLine: {'line': b'-- looking for PCL_FEATURES\n'}
+[9.695206] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_COMMON\n'}
+[9.695651] (fastlio_global_slam) StdoutLine: {'line': b'-- Found rosidl_default_generators: 1.2.1 (/opt/ros/humble/share/rosidl_default_generators/cmake)\n'}
+[9.695862] (plan_env) StdoutLine: {'line': b'-- Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so  \n'}
+[9.696078] (plan_env) StdoutLine: {'line': b'-- looking for PCL_ML\n'}
+[9.700958] (traj_utils) StdoutLine: {'line': b'-- Found PCL_COMMON: /usr/lib/x86_64-linux-gnu/libpcl_common.so  \n'}
+[9.701427] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_KDTREE\n'}
+[9.701518] (plan_env) StdoutLine: {'line': b'-- Found PCL_ML: /usr/lib/x86_64-linux-gnu/libpcl_ml.so  \n'}
+[9.701625] (plan_env) StdoutLine: {'line': b'-- looking for PCL_SEGMENTATION\n'}
+[9.703258] (traj_utils) StdoutLine: {'line': b'-- Found PCL_KDTREE: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so  \n'}
+[9.703433] (plan_env) StdoutLine: {'line': b'-- Found PCL_SEGMENTATION: /usr/lib/x86_64-linux-gnu/libpcl_segmentation.so  \n'}
+[9.704471] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_OCTREE\n'}
+[9.704712] (plan_env) StdoutLine: {'line': b'-- looking for PCL_VISUALIZATION\n'}
+[9.706147] (traj_utils) StdoutLine: {'line': b'-- Found PCL_OCTREE: /usr/lib/x86_64-linux-gnu/libpcl_octree.so  \n'}
+[9.706797] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_SEARCH\n'}
+[9.707809] (plan_env) StdoutLine: {'line': b'-- Found PCL_VISUALIZATION: /usr/lib/x86_64-linux-gnu/libpcl_visualization.so  \n'}
+[9.711778] (plan_env) StdoutLine: {'line': b'-- looking for PCL_SURFACE\n'}
+[9.712530] (-) TimerEvent: {}
+[9.713273] (traj_utils) StdoutLine: {'line': b'-- Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so  \n'}
+[9.713915] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_SAMPLE_CONSENSUS\n'}
+[9.715646] (plan_env) StdoutLine: {'line': b'-- Found PCL_SURFACE: /usr/lib/x86_64-linux-gnu/libpcl_surface.so  \n'}
+[9.716628] (plan_env) StdoutLine: {'line': b'-- looking for PCL_REGISTRATION\n'}
+[9.717170] (traj_utils) StdoutLine: {'line': b'-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so  \n'}
+[9.717420] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_FILTERS\n'}
+[9.717967] (plan_env) StdoutLine: {'line': b'-- Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so  \n'}
+[9.718492] (plan_env) StdoutLine: {'line': b'-- looking for PCL_KEYPOINTS\n'}
+[9.720013] (plan_env) StdoutLine: {'line': b'-- Found PCL_KEYPOINTS: /usr/lib/x86_64-linux-gnu/libpcl_keypoints.so  \n'}
+[9.720729] (traj_utils) StdoutLine: {'line': b'-- Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so  \n'}
+[9.720859] (plan_env) StdoutLine: {'line': b'-- looking for PCL_TRACKING\n'}
+[9.720908] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_2D\n'}
+[9.721154] (traj_utils) StdoutLine: {'line': b'-- Found PCL_2D: /usr/include/pcl-1.12  \n'}
+[9.721358] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_GEOMETRY\n'}
+[9.721640] (traj_utils) StdoutLine: {'line': b'-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  \n'}
+[9.721750] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_IO\n'}
+[9.722106] (fastlio_global_slam) StdoutLine: {'line': b'-- Found tf2: 0.25.20 (/opt/ros/humble/share/tf2/cmake)\n'}
+[9.722439] (plan_env) StdoutLine: {'line': b'-- Found PCL_TRACKING: /usr/lib/x86_64-linux-gnu/libpcl_tracking.so  \n'}
+[9.723211] (plan_env) StdoutLine: {'line': b'-- looking for PCL_RECOGNITION\n'}
+[9.725146] (traj_utils) StdoutLine: {'line': b'-- Found PCL_IO: /usr/lib/x86_64-linux-gnu/libpcl_io.so  \n'}
+[9.725407] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_FEATURES\n'}
+[9.727238] (plan_env) StdoutLine: {'line': b'-- Found PCL_RECOGNITION: /usr/lib/x86_64-linux-gnu/libpcl_recognition.so  \n'}
+[9.727449] (traj_utils) StdoutLine: {'line': b'-- Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so  \n'}
+[9.727669] (plan_env) StdoutLine: {'line': b'-- looking for PCL_STEREO\n'}
+[9.727746] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_ML\n'}
+[9.734670] (traj_utils) StdoutLine: {'line': b'-- Found PCL_ML: /usr/lib/x86_64-linux-gnu/libpcl_ml.so  \n'}
+[9.735114] (plan_env) StdoutLine: {'line': b'-- Found PCL_STEREO: /usr/lib/x86_64-linux-gnu/libpcl_stereo.so  \n'}
+[9.735234] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_SEGMENTATION\n'}
+[9.735323] (plan_env) StdoutLine: {'line': b'-- looking for PCL_APPS\n'}
+[9.738709] (plan_env) StdoutLine: {'line': b'-- Found PCL_APPS: /usr/lib/x86_64-linux-gnu/libpcl_apps.so  \n'}
+[9.739276] (traj_utils) StdoutLine: {'line': b'-- Found PCL_SEGMENTATION: /usr/lib/x86_64-linux-gnu/libpcl_segmentation.so  \n'}
+[9.739767] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_VISUALIZATION\n'}
+[9.739888] (plan_env) StdoutLine: {'line': b'-- looking for PCL_IN_HAND_SCANNER\n'}
+[9.739981] (plan_env) StdoutLine: {'line': b'-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  \n'}
+[9.740051] (plan_env) StdoutLine: {'line': b'-- looking for PCL_MODELER\n'}
+[9.740407] (plan_env) StdoutLine: {'line': b'-- Found PCL_MODELER: /usr/include/pcl-1.12  \n'}
+[9.740731] (fastlio_global_slam) StdoutLine: {'line': b'-- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)\n'}
+[9.741114] (plan_env) StdoutLine: {'line': b'-- looking for PCL_POINT_CLOUD_EDITOR\n'}
+[9.741242] (plan_env) StdoutLine: {'line': b'-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  \n'}
+[9.741367] (plan_env) StdoutLine: {'line': b'-- looking for PCL_OUTOFCORE\n'}
+[9.742949] (traj_utils) StdoutLine: {'line': b'-- Found PCL_VISUALIZATION: /usr/lib/x86_64-linux-gnu/libpcl_visualization.so  \n'}
+[9.743876] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_SURFACE\n'}
+[9.750846] (plan_env) StdoutLine: {'line': b'-- Found PCL_OUTOFCORE: /usr/lib/x86_64-linux-gnu/libpcl_outofcore.so  \n'}
+[9.751276] (plan_env) StdoutLine: {'line': b'-- looking for PCL_PEOPLE\n'}
+[9.751352] (traj_utils) StdoutLine: {'line': b'-- Found PCL_SURFACE: /usr/lib/x86_64-linux-gnu/libpcl_surface.so  \n'}
+[9.751484] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_REGISTRATION\n'}
+[9.755845] (plan_env) StdoutLine: {'line': b'-- Found PCL_PEOPLE: /usr/lib/x86_64-linux-gnu/libpcl_people.so  \n'}
+[9.756431] (traj_utils) StdoutLine: {'line': b'-- Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so  \n'}
+[9.756526] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_KEYPOINTS\n'}
+[9.758112] (plan_env) StdoutLine: {'line': b'-- Found PCL: pcl_common;pcl_kdtree;pcl_octree;pcl_search;pcl_sample_consensus;pcl_filters;pcl_io;pcl_features;pcl_ml;pcl_segmentation;pcl_visualization;pcl_surface;pcl_registration;pcl_keypoints;pcl_tracking;pcl_recognition;pcl_stereo;pcl_apps;pcl_outofcore;pcl_people;Boost::system;Boost::filesystem;Boost::date_time;Boost::iostreams;Boost::serialization;/usr/lib/libOpenNI.so;libusb::libusb;/usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb;VTK::ChartsCore;VTK::CommonColor;VTK::CommonComputationalGeometry;VTK::CommonCore;VTK::CommonDataModel;VTK::CommonExecutionModel;VTK::CommonMath;VTK::CommonMisc;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersExtraction;VTK::FiltersGeneral;VTK::FiltersGeometry;VTK::FiltersModeling;VTK::FiltersSources;VTK::ImagingCore;VTK::ImagingSources;VTK::InteractionImage;VTK::InteractionStyle;VTK::InteractionWidgets;VTK::IOCore;VTK::IOGeometry;VTK::IOImage;VTK::IOLegacy;VTK::IOPLY;VTK::RenderingAnnotation;VTK::RenderingCore;VTK::RenderingContext2D;VTK::RenderingLOD;VTK::RenderingFreeType;VTK::ViewsCore;VTK::ViewsContext2D;VTK::RenderingOpenGL2;VTK::GUISupportQt;FLANN::FLANN;QHULL::QHULL  \n'}
+[9.760724] (plan_env) StdoutLine: {'line': b'-- Found pcl_conversions: 2.4.5 (/opt/ros/humble/share/pcl_conversions/cmake)\n'}
+[9.764460] (traj_utils) StdoutLine: {'line': b'-- Found PCL_KEYPOINTS: /usr/lib/x86_64-linux-gnu/libpcl_keypoints.so  \n'}
+[9.765715] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_TRACKING\n'}
+[9.773601] (traj_utils) StdoutLine: {'line': b'-- Found PCL_TRACKING: /usr/lib/x86_64-linux-gnu/libpcl_tracking.so  \n'}
+[9.778403] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_RECOGNITION\n'}
+[9.786206] (traj_utils) StdoutLine: {'line': b'-- Found PCL_RECOGNITION: /usr/lib/x86_64-linux-gnu/libpcl_recognition.so  \n'}
+[9.786557] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_STEREO\n'}
+[9.792511] (traj_utils) StdoutLine: {'line': b'-- Found PCL_STEREO: /usr/lib/x86_64-linux-gnu/libpcl_stereo.so  \n'}
+[9.793269] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_APPS\n'}
+[9.795122] (traj_utils) StdoutLine: {'line': b'-- Found PCL_APPS: /usr/lib/x86_64-linux-gnu/libpcl_apps.so  \n'}
+[9.795552] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_IN_HAND_SCANNER\n'}
+[9.795640] (traj_utils) StdoutLine: {'line': b'-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  \n'}
+[9.798007] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_MODELER\n'}
+[9.798217] (traj_utils) StdoutLine: {'line': b'-- Found PCL_MODELER: /usr/include/pcl-1.12  \n'}
+[9.798311] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_POINT_CLOUD_EDITOR\n'}
+[9.798387] (traj_utils) StdoutLine: {'line': b'-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  \n'}
+[9.798459] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_OUTOFCORE\n'}
+[9.801878] (traj_utils) StdoutLine: {'line': b'-- Found PCL_OUTOFCORE: /usr/lib/x86_64-linux-gnu/libpcl_outofcore.so  \n'}
+[9.802332] (traj_utils) StdoutLine: {'line': b'-- looking for PCL_PEOPLE\n'}
+[9.803602] (plan_env) StdoutLine: {'line': b'-- Found ament_lint_auto: 0.12.15 (/opt/ros/humble/share/ament_lint_auto/cmake)\n'}
+[9.810626] (traj_utils) StdoutLine: {'line': b'-- Found PCL_PEOPLE: /usr/lib/x86_64-linux-gnu/libpcl_people.so  \n'}
+[9.811820] (plan_env) StdoutLine: {'line': b'-- Found ament_cmake_gtest: 1.3.14 (/opt/ros/humble/share/ament_cmake_gtest/cmake)\n'}
+[9.812035] (traj_utils) StdoutLine: {'line': b'-- Found PCL: pcl_common;pcl_kdtree;pcl_octree;pcl_search;pcl_sample_consensus;pcl_filters;pcl_io;pcl_features;pcl_ml;pcl_segmentation;pcl_visualization;pcl_surface;pcl_registration;pcl_keypoints;pcl_tracking;pcl_recognition;pcl_stereo;pcl_apps;pcl_outofcore;pcl_people;Boost::system;Boost::filesystem;Boost::date_time;Boost::iostreams;Boost::serialization;/usr/lib/libOpenNI.so;libusb::libusb;/usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb;VTK::ChartsCore;VTK::CommonColor;VTK::CommonComputationalGeometry;VTK::CommonCore;VTK::CommonDataModel;VTK::CommonExecutionModel;VTK::CommonMath;VTK::CommonMisc;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersExtraction;VTK::FiltersGeneral;VTK::FiltersGeometry;VTK::FiltersModeling;VTK::FiltersSources;VTK::ImagingCore;VTK::ImagingSources;VTK::InteractionImage;VTK::InteractionStyle;VTK::InteractionWidgets;VTK::IOCore;VTK::IOGeometry;VTK::IOImage;VTK::IOLegacy;VTK::IOPLY;VTK::RenderingAnnotation;VTK::RenderingCore;VTK::RenderingContext2D;VTK::RenderingLOD;VTK::RenderingFreeType;VTK::ViewsCore;VTK::ViewsContext2D;VTK::RenderingOpenGL2;VTK::GUISupportQt;FLANN::FLANN;QHULL::QHULL  \n'}
+[9.812698] (-) TimerEvent: {}
+[9.902992] (px4_msgs) StdoutLine: {'line': b'-- Generating done\n'}
+[9.913013] (-) TimerEvent: {}
+[10.016379] (-) TimerEvent: {}
+[10.050153] (px4_msgs) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/px4_msgs\n'}
+[10.052562] (fr_lio) StdoutLine: {'line': b'-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)\n'}
+[10.069070] (fr_lio) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[10.073736] (plan_env) StdoutLine: {'line': b"-- Found gtest sources under '/opt/ros/humble/src/gtest_vendor': C++ tests using 'Google Test' will be built\n"}
+[10.095208] (fr_lio) StdoutLine: {'line': b'-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)\n'}
+[10.118548] (-) TimerEvent: {}
+[10.137635] (plan_env) StdoutLine: {'line': b"-- Added test 'cppcheck' to perform static code analysis on C / C++ code\n"}
+[10.138583] (plan_env) StdoutLine: {'line': b'-- Configured cppcheck include dirs: /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/plan_env/include\n'}
+[10.138781] (plan_env) StdoutLine: {'line': b'-- Configured cppcheck exclude dirs and/or files: \n'}
+[10.139480] (plan_env) StdoutLine: {'line': b"-- Added test 'lint_cmake' to check CMake code style\n"}
+[10.140801] (plan_env) StdoutLine: {'line': b"-- Added test 'uncrustify' to check C / C++ code style\n"}
+[10.140964] (plan_env) StdoutLine: {'line': b'-- Configured uncrustify additional arguments: \n'}
+[10.141387] (plan_env) StdoutLine: {'line': b"-- Added test 'xmllint' to check XML markup files\n"}
+[10.149478] (plan_env) StdoutLine: {'line': b'-- Configuring done\n'}
+[10.186020] (px4_msgs) JobEnded: {'identifier': 'px4_msgs', 'rc': 'SIGINT'}
+[10.220075] (-) TimerEvent: {}
+[10.291895] (plan_env) StdoutLine: {'line': b'-- Generating done\n'}
+[10.321540] (-) TimerEvent: {}
+[10.339525] (plan_env) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/plan_env\n'}
+[10.421687] (-) TimerEvent: {}
+[10.436416] (plan_env) JobEnded: {'identifier': 'plan_env', 'rc': 'SIGINT'}
+[10.522029] (-) TimerEvent: {}
+[10.538323] (fr_lio) StdoutLine: {'line': b'-- Found Qhull version 8.0.2\n'}
+[10.622319] (-) TimerEvent: {}
+[10.639741] (fastlio_global_slam) StdoutLine: {'line': b'-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)\n'}
+[10.646767] (traj_utils) StdoutLine: {'line': b'-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)\n'}
+[10.722457] (-) TimerEvent: {}
+[10.823022] (-) TimerEvent: {}
+[10.895857] (fr_lio) StdoutLine: {'line': b'-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)\n'}
+[10.923380] (-) TimerEvent: {}
+[11.024147] (-) TimerEvent: {}
+[11.124558] (-) TimerEvent: {}
+[11.226884] (-) TimerEvent: {}
+[11.295514] (fr_lio) StdoutLine: {'line': b'-- Found PCL_COMMON: /usr/lib/x86_64-linux-gnu/libpcl_common.so  \n'}
+[11.298908] (fr_lio) StdoutLine: {'line': b'-- Found PCL_KDTREE: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so  \n'}
+[11.303801] (fr_lio) StdoutLine: {'line': b'-- Found PCL_OCTREE: /usr/lib/x86_64-linux-gnu/libpcl_octree.so  \n'}
+[11.311767] (fr_lio) StdoutLine: {'line': b'-- Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so  \n'}
+[11.320216] (fr_lio) StdoutLine: {'line': b'-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so  \n'}
+[11.327096] (-) TimerEvent: {}
+[11.327914] (fr_lio) StdoutLine: {'line': b'-- Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so  \n'}
+[11.328624] (fr_lio) StdoutLine: {'line': b'-- Found PCL_2D: /usr/include/pcl-1.12  \n'}
+[11.329160] (fr_lio) StdoutLine: {'line': b'-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  \n'}
+[11.332810] (fr_lio) StdoutLine: {'line': b'-- Found PCL_IO: /usr/lib/x86_64-linux-gnu/libpcl_io.so  \n'}
+[11.339239] (fr_lio) StdoutLine: {'line': b'-- Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so  \n'}
+[11.343030] (fr_lio) StdoutLine: {'line': b'-- Found PCL_ML: /usr/lib/x86_64-linux-gnu/libpcl_ml.so  \n'}
+[11.351674] (fr_lio) StdoutLine: {'line': b'-- Found PCL_SEGMENTATION: /usr/lib/x86_64-linux-gnu/libpcl_segmentation.so  \n'}
+[11.354674] (fr_lio) StdoutLine: {'line': b'-- Found PCL_VISUALIZATION: /usr/lib/x86_64-linux-gnu/libpcl_visualization.so  \n'}
+[11.359071] (fr_lio) StdoutLine: {'line': b'-- Found PCL_SURFACE: /usr/lib/x86_64-linux-gnu/libpcl_surface.so  \n'}
+[11.360533] (fr_lio) StdoutLine: {'line': b'-- Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so  \n'}
+[11.362154] (fr_lio) StdoutLine: {'line': b'-- Found PCL_KEYPOINTS: /usr/lib/x86_64-linux-gnu/libpcl_keypoints.so  \n'}
+[11.364418] (fr_lio) StdoutLine: {'line': b'-- Found PCL_TRACKING: /usr/lib/x86_64-linux-gnu/libpcl_tracking.so  \n'}
+[11.366842] (fr_lio) StdoutLine: {'line': b'-- Found PCL_RECOGNITION: /usr/lib/x86_64-linux-gnu/libpcl_recognition.so  \n'}
+[11.368091] (fr_lio) StdoutLine: {'line': b'-- Found PCL_STEREO: /usr/lib/x86_64-linux-gnu/libpcl_stereo.so  \n'}
+[11.369670] (fr_lio) StdoutLine: {'line': b'-- Found PCL_APPS: /usr/lib/x86_64-linux-gnu/libpcl_apps.so  \n'}
+[11.371528] (fr_lio) StdoutLine: {'line': b'-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  \n'}
+[11.371967] (fr_lio) StdoutLine: {'line': b'-- Found PCL_MODELER: /usr/include/pcl-1.12  \n'}
+[11.372120] (fr_lio) StdoutLine: {'line': b'-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  \n'}
+[11.378008] (fr_lio) StdoutLine: {'line': b'-- Found PCL_OUTOFCORE: /usr/lib/x86_64-linux-gnu/libpcl_outofcore.so  \n'}
+[11.381207] (fr_lio) StdoutLine: {'line': b'-- Found PCL_PEOPLE: /usr/lib/x86_64-linux-gnu/libpcl_people.so  \n'}
+[11.419788] (fr_lio) StdoutLine: {'line': b'-- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)\n'}
+[11.422380] (fr_lio) StdoutLine: {'line': b'-- Found Eigen3: TRUE (found version "3.4.0") \n'}
+[11.423095] (fr_lio) StdoutLine: {'line': b'-- Ensuring Eigen3 include directory is part of orocos-kdl CMake target\n'}
+[11.427246] (-) TimerEvent: {}
+[11.525450] (fr_lio) StderrLine: {'line': b'CMake Error at CMakeLists.txt:66 (find_package):\n'}
+[11.526274] (fr_lio) StderrLine: {'line': b'  By not providing "Findlivox_ros_driver2.cmake" in CMAKE_MODULE_PATH this\n'}
+[11.526425] (fr_lio) StderrLine: {'line': b'  project has asked CMake to find a package configuration file provided by\n'}
+[11.526538] (fr_lio) StderrLine: {'line': b'  "livox_ros_driver2", but CMake did not find one.\n'}
+[11.526658] (fr_lio) StderrLine: {'line': b'\n'}
+[11.526752] (fr_lio) StderrLine: {'line': b'  Could not find a package configuration file provided by "livox_ros_driver2"\n'}
+[11.526843] (fr_lio) StderrLine: {'line': b'  with any of the following names:\n'}
+[11.526953] (fr_lio) StderrLine: {'line': b'\n'}
+[11.527042] (fr_lio) StderrLine: {'line': b'    livox_ros_driver2Config.cmake\n'}
+[11.527126] (fr_lio) StderrLine: {'line': b'    livox_ros_driver2-config.cmake\n'}
+[11.527204] (-) TimerEvent: {}
+[11.527246] (fr_lio) StderrLine: {'line': b'\n'}
+[11.527361] (fr_lio) StderrLine: {'line': b'  Add the installation prefix of "livox_ros_driver2" to CMAKE_PREFIX_PATH or\n'}
+[11.527496] (fr_lio) StderrLine: {'line': b'  set "livox_ros_driver2_DIR" to a directory containing one of the above\n'}
+[11.527648] (fr_lio) StderrLine: {'line': b'  files.  If "livox_ros_driver2" provides a separate development package or\n'}
+[11.527808] (fr_lio) StderrLine: {'line': b'  SDK, be sure it has been installed.\n'}
+[11.527943] (fr_lio) StderrLine: {'line': b'\n'}
+[11.528054] (fr_lio) StderrLine: {'line': b'\n'}
+[11.528178] (fr_lio) StdoutLine: {'line': b'-- Configuring incomplete, errors occurred!\n'}
+[11.528375] (fr_lio) StdoutLine: {'line': b'See also "/home/robot/egohx_ws/26-px4_offboard_control-main/build/fr_lio/CMakeFiles/CMakeOutput.log".\n'}
+[11.538937] (fastlio_global_slam) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[11.568013] (traj_utils) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[11.613568] (fr_lio) JobEnded: {'identifier': 'fr_lio', 'rc': 'SIGINT'}
+[11.628336] (-) TimerEvent: {}
+[11.729210] (-) TimerEvent: {}
+[11.829962] (-) TimerEvent: {}
+[11.900966] (traj_utils) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[11.903848] (fastlio_global_slam) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[11.930114] (-) TimerEvent: {}
+[11.959370] (traj_utils) StdoutLine: {'line': b'-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") \n'}
+[11.961539] (traj_utils) StdoutLine: {'line': b'-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)\n'}
+[11.961720] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") \n'}
+[11.967986] (fastlio_global_slam) StdoutLine: {'line': b'-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)\n'}
+[12.029382] (traj_utils) StdoutLine: {'line': b'-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") \n'}
+[12.030354] (-) TimerEvent: {}
+[12.030409] (traj_utils) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[12.030506] (traj_utils) StdoutLine: {'line': b'-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10\n'}
+[12.030588] (traj_utils) StdoutLine: {'line': b'-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so\n'}
+[12.044363] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") \n'}
+[12.045666] (fastlio_global_slam) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[12.046134] (fastlio_global_slam) StdoutLine: {'line': b'-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10\n'}
+[12.046458] (fastlio_global_slam) StdoutLine: {'line': b'-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so\n'}
+[12.070076] (traj_utils) StdoutLine: {'line': b'-- Found PythonExtra: .so  \n'}
+[12.090889] (fastlio_global_slam) StdoutLine: {'line': b'-- Found PythonExtra: .so  \n'}
+[12.130499] (-) TimerEvent: {}
+[12.231433] (-) TimerEvent: {}
+[12.332138] (-) TimerEvent: {}
+[12.349504] (traj_utils) StdoutLine: {'line': b'-- Found ament_lint_auto: 0.12.15 (/opt/ros/humble/share/ament_lint_auto/cmake)\n'}
+[12.380553] (traj_utils) StdoutLine: {'line': b"-- Added test 'cppcheck' to perform static code analysis on C / C++ code\n"}
+[12.382897] (traj_utils) StdoutLine: {'line': b'-- Configured cppcheck include dirs: /home/robot/egohx_ws/26-px4_offboard_control-main/src/ego_planner_upstream/traj_utils/include\n'}
+[12.383175] (traj_utils) StdoutLine: {'line': b'-- Configured cppcheck exclude dirs and/or files: \n'}
+[12.383574] (traj_utils) StdoutLine: {'line': b"-- Added test 'lint_cmake' to check CMake code style\n"}
+[12.384686] (traj_utils) StdoutLine: {'line': b"-- Added test 'uncrustify' to check C / C++ code style\n"}
+[12.385595] (traj_utils) StdoutLine: {'line': b'-- Configured uncrustify additional arguments: \n'}
+[12.385790] (traj_utils) StdoutLine: {'line': b"-- Added test 'xmllint' to check XML markup files\n"}
+[12.393018] (traj_utils) StdoutLine: {'line': b'-- Configuring done\n'}
+[12.400946] (fastlio_global_slam) StderrLine: {'line': b'CMake Deprecation Warning at /opt/ros/humble/share/rosidl_cmake/cmake/rosidl_target_interfaces.cmake:32 (message):\n'}
+[12.403237] (fastlio_global_slam) StderrLine: {'line': b'  Use rosidl_get_typesupport_target() and target_link_libraries() instead of\n'}
+[12.403488] (fastlio_global_slam) StderrLine: {'line': b'  rosidl_target_interfaces()\n'}
+[12.403556] (fastlio_global_slam) StderrLine: {'line': b'Call Stack (most recent call first):\n'}
+[12.403886] (fastlio_global_slam) StderrLine: {'line': b'  CMakeLists.txt:48 (rosidl_target_interfaces)\n'}
+[12.404011] (fastlio_global_slam) StderrLine: {'line': b'\n'}
+[12.404089] (fastlio_global_slam) StderrLine: {'line': b'\n'}
+[12.418792] (fastlio_global_slam) StdoutLine: {'line': b'-- Configuring done\n'}
+[12.432267] (-) TimerEvent: {}
+[12.513453] (traj_utils) StdoutLine: {'line': b'-- Generating done\n'}
+[12.532592] (-) TimerEvent: {}
+[12.548312] (fastlio_global_slam) StdoutLine: {'line': b'-- Generating done\n'}
+[12.554330] (traj_utils) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/traj_utils\n'}
+[12.583797] (fastlio_global_slam) StdoutLine: {'line': b'-- Build files have been written to: /home/robot/egohx_ws/26-px4_offboard_control-main/build/fastlio_global_slam\n'}
+[12.633265] (-) TimerEvent: {}
+[12.650902] (traj_utils) JobEnded: {'identifier': 'traj_utils', 'rc': 'SIGINT'}
+[12.677932] (fastlio_global_slam) JobEnded: {'identifier': 'fastlio_global_slam', 'rc': 'SIGINT'}
+[12.689512] (path_searching) JobSkipped: {'identifier': 'path_searching'}
+[12.689644] (px4_ros_com) JobSkipped: {'identifier': 'px4_ros_com'}
+[12.689667] (race_offboard) JobSkipped: {'identifier': 'race_offboard'}
+[12.689696] (race_super_planner_ros2) JobSkipped: {'identifier': 'race_super_planner_ros2'}
+[12.689715] (bspline_opt) JobSkipped: {'identifier': 'bspline_opt'}
+[12.689733] (ego_planner) JobSkipped: {'identifier': 'ego_planner'}
+[12.689750] (race_ego_bridge) JobSkipped: {'identifier': 'race_ego_bridge'}
+[12.689766] (race_bringup) JobSkipped: {'identifier': 'race_bringup'}
+[12.689784] (-) EventReactorShutdown: {}

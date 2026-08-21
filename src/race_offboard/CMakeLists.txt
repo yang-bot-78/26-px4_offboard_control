@@ -60,6 +60,8 @@ if(BUILD_TESTING)
   # vehicle in the wrong direction and no integration test catches it earlier.
   ament_add_gtest(test_mavros_frame_utils test/test_mavros_frame_utils.cpp)
   target_include_directories(test_mavros_frame_utils PRIVATE include)
+  ament_add_gtest(test_navigation_z_guard test/test_navigation_z_guard.cpp)
+  target_include_directories(test_navigation_z_guard PRIVATE include)
   # Pre-arm continuity gate and in-flight FAULT guard for the external-vision
   # chain.  Absent from the simulation node; required on the real aircraft.
   ament_add_gtest(test_ev_health_tracker test/test_ev_health_tracker.cpp)

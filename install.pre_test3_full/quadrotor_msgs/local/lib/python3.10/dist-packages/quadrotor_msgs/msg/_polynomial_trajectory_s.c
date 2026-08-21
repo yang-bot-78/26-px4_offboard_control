@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/quadrotor_msgs/rosidl_generator_py/quadrotor_msgs/msg/_polynomial_trajectory_s.c

@@ -14,7 +14,11 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import signal
+import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -32,10 +36,96 @@ from waypoint_behaviors import (  # noqa: E402
 
 
 MIN_POINT_SEPARATION_M = 0.05
+DEFAULT_HOLD_SEC = 0.50
+
+
+def default_recognition_results_log() -> Path:
+    """Return the persistent result log on the current user's desktop."""
+    home = Path.home()
+    for desktop_name in ('Desktop', '\u684c\u9762'):
+        desktop = home / desktop_name
+        if desktop.is_dir():
+            return desktop / 'recognition_results.log'
+    return home / 'Desktop' / 'recognition_results.log'
 
 
 class MissionConfigError(ValueError):
     """Raised when the saved route is unsafe or malformed."""
+
+
+class RecognitionProcessError(RuntimeError):
+    """Raised when a recognition behavior cannot control its process."""
+
+
+class RecognitionProcessController:
+    """Own the detector process requested by waypoint behavior commands."""
+
+    def __init__(
+            self, launcher: str | None,
+            result_log_path: str | Path | None = None) -> None:
+        self._launcher = Path(launcher).expanduser().resolve() if launcher else None
+        self._result_log_path = (
+            Path(result_log_path).expanduser().resolve()
+            if result_log_path is not None else default_recognition_results_log())
+        self._process: subprocess.Popen[bytes] | None = None
+
+    @property
+    def result_log_path(self) -> Path:
+        return self._result_log_path
+
+    def _prepare_result_log(self) -> None:
+        try:
+            self._result_log_path.parent.mkdir(parents=True, exist_ok=True)
+            self._result_log_path.touch(exist_ok=True)
+        except OSError as error:
+            raise RecognitionProcessError(
+                f'failed to prepare recognition result log {self._result_log_path}: {error}'
+            ) from error
+
+    def start(self) -> bool:
+        if self._process is not None and self._process.poll() is None:
+            return False
+        if self._launcher is None:
+            raise RecognitionProcessError(
+                'recognition launcher is not configured; pass --recognition-launcher')
+        if not self._launcher.is_file() or not os.access(self._launcher, os.X_OK):
+            raise RecognitionProcessError(
+                f'recognition launcher is not executable: {self._launcher}')
+        self._prepare_result_log()
+        environment = os.environ.copy()
+        environment['RECOGNITION_RESULT_LOG_FILE'] = str(self._result_log_path)
+        try:
+            self._process = subprocess.Popen(
+                [str(self._launcher)], cwd=str(self._launcher.parent),
+                env=environment, start_new_session=True)
+        except OSError as error:
+            raise RecognitionProcessError(
+                f'failed to start recognition process: {error}') from error
+        # A missing virtual environment or model is reported by the launcher
+        # immediately. Do not publish a false "started" result in that case.
+        time.sleep(0.1)
+        exit_code = self._process.poll()
+        if exit_code is not None:
+            self._process = None
+            raise RecognitionProcessError(
+                f'recognition process exited during startup (exit={exit_code})')
+        return True
+
+    def stop(self) -> bool:
+        if self._process is None or self._process.poll() is not None:
+            self._process = None
+            return False
+        try:
+            os.killpg(self._process.pid, signal.SIGTERM)
+            self._process.wait(timeout=5.0)
+        except ProcessLookupError:
+            pass
+        except subprocess.TimeoutExpired:
+            os.killpg(self._process.pid, signal.SIGKILL)
+            self._process.wait()
+        finally:
+            self._process = None
+        return True
 
 
 @dataclass(frozen=True)
@@ -77,7 +167,9 @@ def _number(value: Any, label: str, minimum: Optional[float] = None) -> float:
     return result
 
 
-def load_route(path: str | Path, default_hold_sec: float = 0.0) -> tuple[RoutePoint, ...]:
+def load_route(
+        path: str | Path,
+        default_hold_sec: float = DEFAULT_HOLD_SEC) -> tuple[RoutePoint, ...]:
     """Load route_points, accepting legacy four-point preset_points files."""
     route_path = Path(path).expanduser().resolve()
     try:
@@ -281,7 +373,7 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mission-file', required=True)
     parser.add_argument('--arrive-radius', type=float, default=None)
-    parser.add_argument('--default-hold-sec', type=float, default=0.0)
+    parser.add_argument('--default-hold-sec', type=float, default=DEFAULT_HOLD_SEC)
     parser.add_argument(
         '--wait-for-takeoff', action='store_true',
         help='delay the first route goal until the safety controller reports takeoff complete')
@@ -289,6 +381,9 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
         '--preplan-first-waypoint', action='store_true',
         help='send B1 to Super for XY preplanning after a safe POSITION handover check')
     parser.add_argument('--pose-topic', default='/race/pose')
+    parser.add_argument(
+        '--recognition-launcher', default=None,
+        help='executable started and stopped by start_recognition/stop_recognition')
     args, ros_args = parser.parse_known_args(argv)
 
     import rclpy
@@ -331,6 +426,8 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             self.behavior_pub = self.create_publisher(String, '/race/mission/behavior', transient)
             self.behavior_command_pub = self.create_publisher(
                 String, '/race/mission/behavior_command', transient)
+            self.recognition = RecognitionProcessController(args.recognition_launcher)
+            self._executed_behavior_waypoints: set[str] = set()
             self._last_yaw_rad = 0.0
             self.create_subscription(MavrosState, '/mavros/state', self.mode_callback, sensor)
             self.create_subscription(PoseStamped, args.pose_topic, self.pose_callback, sensor)
@@ -376,12 +473,24 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
         def process_action(self, action: Optional[Action]) -> None:
             if action is None:
                 return
-            if action.arrived is not None and action.arrived.behavior:
+            if (action.arrived is not None and action.arrived.behavior and
+                    action.arrived.name not in self._executed_behavior_waypoints):
                 try:
                     behavior = build_behavior(
                         action.arrived.behavior, action.arrived.behavior_params,
                         self._last_yaw_rad)
                     if behavior is not None:
+                        if behavior.name == 'start_recognition':
+                            changed = self.recognition.start()
+                            self.get_logger().info(
+                                '[RECOGNITION_PROCESS] ' +
+                                ('started' if changed else 'already_running') +
+                                f' result_log={self.recognition.result_log_path}')
+                        elif behavior.name == 'stop_recognition':
+                            changed = self.recognition.stop()
+                            self.get_logger().info(
+                                '[RECOGNITION_PROCESS] ' +
+                                ('stopped' if changed else 'already_stopped'))
                         command = command_dict(
                             behavior, action.arrived.name, self._last_yaw_rad)
                         self.behavior_command_pub.publish(String(
@@ -389,7 +498,8 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
                         self.behavior_pub.publish(String(data=(
                             f'point={action.arrived.name} state={action.arrived.state} '
                             f'behavior={behavior.name}')))
-                except BehaviorConfigError as error:
+                        self._executed_behavior_waypoints.add(action.arrived.name)
+                except (BehaviorConfigError, RecognitionProcessError) as error:
                     self.event_pub.publish(String(
                         data=f'behavior_rejected point={action.arrived.name} reason={error}'))
                     self.get_logger().error(
@@ -440,6 +550,7 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
         return 0
     finally:
         if node is not None:
+            node.recognition.stop()
             node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

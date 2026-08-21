@@ -1,0 +1,27 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from quadrotor_msgs/msg/SO3Command.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Quaternion.idl"
+#include "geometry_msgs/msg/Vector3.idl"
+#include "quadrotor_msgs/msg/AuxCommand.idl"
+#include "std_msgs/msg/Header.idl"
+
+module quadrotor_msgs {
+  module msg {
+    typedef double double__3[3];
+    struct SO3Command {
+      std_msgs::msg::Header header;
+
+      geometry_msgs::msg::Vector3 force;
+
+      geometry_msgs::msg::Quaternion orientation;
+
+      double__3 kr;
+
+      double__3 kom;
+
+      quadrotor_msgs::msg::AuxCommand aux;
+    };
+  };
+};

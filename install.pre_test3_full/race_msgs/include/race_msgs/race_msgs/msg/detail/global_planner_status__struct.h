@@ -1,0 +1,1 @@
+/home/robot/egohx_ws/26-px4_offboard_control-main/build/race_msgs/rosidl_generator_c/race_msgs/msg/detail/global_planner_status__struct.h

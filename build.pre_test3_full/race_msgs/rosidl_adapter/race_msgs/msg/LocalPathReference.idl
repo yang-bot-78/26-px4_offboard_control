@@ -1,0 +1,36 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from race_msgs/msg/LocalPathReference.msg
+// generated code does not contain a copyright notice
+
+#include "geometry_msgs/msg/Point.idl"
+#include "std_msgs/msg/Header.idl"
+
+module race_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Super's exact, safety-checked polyline from the current path projection to" "\n"
+      "the rolling local goal.  The two counters bind this reference to one global" "\n"
+      "path transaction and one local-goal update.")
+    struct LocalPathReference {
+      std_msgs::msg::Header header;
+
+      uint64 global_path_id;
+
+      uint64 local_goal_seq;
+
+      geometry_msgs::msg::Point local_goal;
+
+      sequence<geometry_msgs::msg::Point> points;
+
+      @verbatim (language="comment", text=
+        "Safety-checked continuation of the same global polyline after local_goal." "\n"
+        "Normal EGO planning uses only points; recovery uses continuation_points to" "\n"
+        "choose a rejoin target without extrapolating a single yaw through a corner.")
+      sequence<geometry_msgs::msg::Point> continuation_points;
+
+      double arc_length;
+
+      double minimum_clearance;
+    };
+  };
+};

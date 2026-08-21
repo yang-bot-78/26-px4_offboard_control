@@ -13,6 +13,20 @@ inline bool shouldTrackManualHandoverPosition(
   return manual_handover && vehicle_idle && armed && !offboard && have_finite_position;
 }
 
+// The manual POSITION reference may be refined exactly once before OFFBOARD,
+// after a truly stationary hover. This avoids accepting a handover against a
+// stale takeoff XY while never moving the reference after OFFBOARD begins.
+inline bool canRefineManualHandoverReference(
+  bool manual_handover, bool vehicle_idle, bool armed, bool offboard,
+  bool position_mode, bool local_position_safe, bool ev_ready, bool height_safe,
+  double horizontal_speed_mps, double maximum_speed_mps)
+{
+  return manual_handover && vehicle_idle && armed && !offboard && position_mode &&
+         local_position_safe && ev_ready && height_safe &&
+         std::isfinite(horizontal_speed_mps) && std::isfinite(maximum_speed_mps) &&
+         maximum_speed_mps > 0.0 && horizontal_speed_mps <= maximum_speed_mps;
+}
+
 inline bool canAcceptManualHandover(
   bool manual_handover, bool vehicle_idle, bool armed, bool offboard,
   bool have_finite_position, bool ev_ready, bool hold_aligned,

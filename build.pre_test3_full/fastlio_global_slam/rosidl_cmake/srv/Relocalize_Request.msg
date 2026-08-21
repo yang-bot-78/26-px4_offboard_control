@@ -1,0 +1,1 @@
+bool use_latest_scan
