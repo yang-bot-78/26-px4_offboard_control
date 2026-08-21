@@ -34,6 +34,7 @@ global_waypoint_task_enabled="${GLOBAL_WAYPOINT_TASK_ENABLED:-false}"
 publish_global_path="${PUBLISH_GLOBAL_PATH:-false}"
 control_nodes_enabled="${CONTROL_NODES_ENABLED:-true}"
 waypoint_visualizer_enabled="${WAYPOINT_VISUALIZER_ENABLED:-false}"
+waypoint_fsm_enabled="${WAYPOINT_FSM_ENABLED:-false}"
 waypoints_file="${WAYPOINTS_FILE:-${project_root}/src/race_offboard/config/waypoints/main/waypoints.yaml}"
 # 赛场扫描图。race_mapping.launch.py 里的默认值是一张遗留地图，**不是**比赛场地 ——
 # 请在这里传入真实的赛场扫描图。
@@ -62,7 +63,7 @@ map_frame_id="${MAP_FRAME_ID:-map}"
 fast_lio_odom_topic="${FASTLIO_ODOM_TOPIC:-/Odometry/healthy}"
 require_map_local_alignment="${REQUIRE_MAP_LOCAL_ALIGNMENT:-false}"
 
-for boolean_name in mission_enabled global_waypoint_task_enabled publish_global_path control_nodes_enabled waypoint_visualizer_enabled rviz recognition_enabled enable_output map_auto_load manual_handover ev_fault_auto_land broadcast_map_to_odom; do
+for boolean_name in mission_enabled global_waypoint_task_enabled publish_global_path control_nodes_enabled waypoint_visualizer_enabled waypoint_fsm_enabled rviz recognition_enabled enable_output map_auto_load manual_handover ev_fault_auto_land broadcast_map_to_odom; do
   boolean_value="${!boolean_name}"
   if [[ "${boolean_value}" != true && "${boolean_value}" != false ]]; then
     echo "${boolean_name^^} must be true or false; got: ${boolean_value}" >&2
@@ -120,6 +121,7 @@ launch_args=(
   "publish_global_path:=${publish_global_path}"
   "control_nodes_enabled:=${control_nodes_enabled}"
   "waypoint_visualizer_enabled:=${waypoint_visualizer_enabled}"
+  "waypoint_fsm_enabled:=${waypoint_fsm_enabled}"
   "waypoints_file:=${waypoints_file}"
   "rviz:=${rviz}"
   # 真机：使用墙上时钟，且 MAVROS 由整栈脚本里的
@@ -155,6 +157,7 @@ echo "任务序列器：  ${mission_enabled}"
 echo "全局航点任务：${global_waypoint_task_enabled}"
 echo "Offboard 控制节点：${control_nodes_enabled}"
 echo "保存航点显示：${waypoint_visualizer_enabled}"
+echo "航点高度模式：$([[ "${waypoint_fsm_enabled}" == true ]] && echo 二维XY规划+分段Z || echo 固定高度)"
 echo "任务航点文件：${mission_file}"
 if [[ -z "${map_file}" && "${map_auto_load}" == false ]]; then
   echo "地图文件：    <链路验证模式已关闭地图>"

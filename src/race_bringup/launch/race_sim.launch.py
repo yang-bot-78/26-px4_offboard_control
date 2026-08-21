@@ -35,6 +35,7 @@ def launch_setup(context):
                 'manual_handover': LaunchConfiguration('manual_handover'),
                 'require_map_local_alignment': LaunchConfiguration(
                     'require_map_local_alignment'),
+                'variable_waypoint_height': LaunchConfiguration('variable_waypoint_height'),
             },
         ],
     )]
@@ -56,6 +57,7 @@ def generate_launch_description():
         DeclareLaunchArgument('require_global_planner_final_goal', default_value='false'),
         DeclareLaunchArgument('manual_handover', default_value='false'),
         DeclareLaunchArgument('require_map_local_alignment', default_value='false'),
+        DeclareLaunchArgument('variable_waypoint_height', default_value='false'),
         DeclareLaunchArgument(
             'tuning_file',
             default_value=PathJoinSubstitution([

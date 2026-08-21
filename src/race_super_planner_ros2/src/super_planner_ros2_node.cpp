@@ -149,6 +149,8 @@ public:
     tf_listener_(tf_buffer_)
   {
     goal_topic_ = declare_parameter<std::string>("goal_topic", "/goal_pose");
+    preplan_goal_topic_ = declare_parameter<std::string>(
+      "preplan_goal_topic", "/race/super/preplan_goal_pose");
     // Global planning and EGO consume the same already-aligned project map.
     odom_topic_ = declare_parameter<std::string>("odom_topic", "/race/ego/odom");
     fallback_odom_topic_ = declare_parameter<std::string>(
@@ -209,7 +211,7 @@ public:
     yaw_smoothing_time_constant_ = declare_parameter<double>("yaw_smoothing_time_constant", 0.35);
     max_yaw_rate_ = declare_parameter<double>("max_yaw_rate", 1.0);
     publish_yaw_rate_feedforward_ = declare_parameter<bool>("publish_yaw_rate_feedforward", true);
-    min_safe_height_ = declare_parameter<double>("min_safe_height", 0.75);
+    min_safe_height_ = declare_parameter<double>("min_safe_height", 0.30);
     max_safe_height_ = declare_parameter<double>("max_safe_height", 0.90);
     fixed_flight_height_ = declare_parameter<double>("fixed_flight_height", 0.78);
     use_fixed_flight_height_ = declare_parameter<bool>("use_fixed_flight_height", true);
@@ -292,8 +294,8 @@ public:
     shared_bounds_x_max_ = declare_parameter<double>("shared_bounds/x_max", 7.5);
     shared_bounds_y_min_ = declare_parameter<double>("shared_bounds/y_min", -7.0);
     shared_bounds_y_max_ = declare_parameter<double>("shared_bounds/y_max", 7.0);
-    shared_bounds_z_min_ = declare_parameter<double>("shared_bounds/z_min", 0.50);
-    shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 0.90);
+    shared_bounds_z_min_ = declare_parameter<double>("shared_bounds/z_min", 0.30);
+    shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 2.00);
     fault_position_max_speed_mps_ =
       declare_parameter<double>("fault_envelope/max_speed_mps", 4.0);
     fault_position_jump_allowance_m_ =
@@ -369,6 +371,9 @@ public:
 
     goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
       goal_topic_, 10, std::bind(&SuperPlannerRos2Node::goalCallback, this, std::placeholders::_1));
+    preplan_goal_sub_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+      preplan_goal_topic_, 10,
+      std::bind(&SuperPlannerRos2Node::goalCallback, this, std::placeholders::_1));
 
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
       odom_topic_, rclcpp::SensorDataQoS(),
@@ -1536,7 +1541,11 @@ private:
       return;
     }
 
-    const auto projection = projectOntoPath(active_path_, latest_odom_);
+    // Never let a transient odometry excursion select a path section that has
+    // already been traversed.  Backward projection would turn into a reverse
+    // tracking command at the next lookahead sample.
+    const auto projection = projectOntoPath(
+      active_path_, latest_odom_, tracking_progress_index_, tracking_progress_ratio_);
     cross_track_error_ = projection.has_value() ? projection->cross_track_error :
       std::numeric_limits<double>::infinity();
     if (!projection.has_value() || projection->cross_track_error > max_path_tracking_error_) {
@@ -1551,6 +1560,12 @@ private:
     const std::size_t previous_progress_index = tracking_progress_index_;
     tracking_progress_index_ = std::max(
       tracking_progress_index_, projection->segment_index);
+    if (projection->segment_index > previous_progress_index) {
+      tracking_progress_ratio_ = projection->segment_ratio;
+    } else {
+      tracking_progress_ratio_ = std::max(
+        tracking_progress_ratio_, projection->segment_ratio);
+    }
 
     bool rolling_local_goal_ok = true;
     if (publish_ego_local_goal_) {
@@ -1617,7 +1632,9 @@ private:
     publish_reason_ = controlOutputEnabled() ?
       "NAVIGATION_SETPOINT_PENDING" : "ENABLE_OUTPUT_FALSE";
     publishNavigationSetpointIfEnabled(
-      selected_setpoint_, windRecoveryVelocity(selected_setpoint_, narrow_corridor || centering_only));
+      selected_setpoint_, windRecoveryVelocity(
+        selected_setpoint_,
+        narrow_corridor || centering_only));
     logPathProgress(
       projection.value(), previous_progress_index, safe_tracking_target.value());
     logStatus();
@@ -2024,7 +2041,9 @@ private:
   }
 
   std::optional<PathProjection> projectOntoPath(
-    const std::vector<Vec3> & path, const Vec3 & position) const
+    const std::vector<Vec3> & path, const Vec3 & position,
+    std::size_t minimum_segment_index = 0,
+    double minimum_segment_ratio = 0.0) const
   {
     if (path.empty()) {
       return std::nullopt;
@@ -2033,9 +2052,11 @@ private:
       return PathProjection{path.front(), 0, 0.0, distance2d(path.front(), position)};
     }
 
+    const std::size_t last_segment = path.size() - 2;
+    const std::size_t first_segment = std::min(minimum_segment_index, last_segment);
     PathProjection best;
     best.cross_track_error = std::numeric_limits<double>::infinity();
-    for (std::size_t i = 0; i + 1 < path.size(); ++i) {
+    for (std::size_t i = first_segment; i + 1 < path.size(); ++i) {
       const Vec3 & a = path[i];
       const Vec3 & b = path[i + 1];
       const double vx = b.x - a.x;
@@ -2043,10 +2064,13 @@ private:
       const double length_squared = vx * vx + vy * vy;
       const double ratio = length_squared <= 1.0e-9 ? 0.0 : std::clamp(
         ((position.x - a.x) * vx + (position.y - a.y) * vy) / length_squared, 0.0, 1.0);
-      const Vec3 projected = interpolatePoint(a, b, ratio);
+      const double monotonic_ratio = i == first_segment ?
+        std::clamp(minimum_segment_ratio, 0.0, 1.0) : 0.0;
+      const double constrained_ratio = std::max(ratio, monotonic_ratio);
+      const Vec3 projected = interpolatePoint(a, b, constrained_ratio);
       const double error = distance2d(position, projected);
       if (error < best.cross_track_error) {
-        best = PathProjection{projected, i, ratio, error};
+        best = PathProjection{projected, i, constrained_ratio, error};
       }
     }
 
@@ -3099,7 +3123,8 @@ private:
   {
     PointSafetyResult result;
     result.query_point = point;
-    result.query_point.z = clampHeight(effectiveFixedFlightHeight());
+    result.query_point.z = clampHeight(
+      use_fixed_flight_height_ ? effectiveFixedFlightHeight() : point.z);
     if (!finite_vec(point)) {
       result.failure = SegmentSafetyFailure::NON_FINITE;
       return result;
@@ -3207,6 +3232,7 @@ private:
   {
     ++global_path_id_;
     tracking_progress_index_ = 0;
+    tracking_progress_ratio_ = 0.0;
     clearFinalGoalReached("new_global_path");
     resetLocalGoalProgress();
     if (!publish_global_path_ || !global_path_pub_) {
@@ -3616,11 +3642,11 @@ private:
     if (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)) {
       return false;
     }
-    // Grid cells are 2-D and cellToWorld carries min_safe_height_. Continuous
-    // collision clearance must instead be evaluated at the actual fixed flight
-    // height used by the emitted global path.
+    // Grid search is intentionally XY-only. In waypoint-height mode the emitted
+    // path carries an interpolated z, so validate at that actual sample height.
     Vec3 flight_point = point;
-    flight_point.z = clampHeight(effectiveFixedFlightHeight());
+    flight_point.z = clampHeight(
+      use_fixed_flight_height_ ? effectiveFixedFlightHeight() : point.z);
     return distanceToNearestRawObstacle(flight_point) >= requiredContinuousClearance();
   }
 
@@ -3631,7 +3657,9 @@ private:
       return minimum;
     }
     minimum = distanceToNearestRawObstacle(
-      Vec3{path.front().x, path.front().y, clampHeight(effectiveFixedFlightHeight())});
+      Vec3{
+      path.front().x, path.front().y,
+      clampHeight(use_fixed_flight_height_ ? effectiveFixedFlightHeight() : path.front().z)});
     for (std::size_t index = 1; index < path.size(); ++index) {
       const SegmentSafetyResult segment = isSegmentContinuouslySafe(
         path[index - 1], path[index],
@@ -3870,6 +3898,7 @@ private:
   }
 
   std::string goal_topic_;
+  std::string preplan_goal_topic_;
   std::string odom_topic_;
   std::string fallback_odom_topic_;
   std::string odom_input_frame_;
@@ -3909,7 +3938,7 @@ private:
   double max_path_tracking_error_{0.80};
   double yaw_smoothing_time_constant_{0.35};
   double max_yaw_rate_{1.0};
-  double min_safe_height_{0.8};
+  double min_safe_height_{0.30};
   double max_safe_height_{2.0};
   double fixed_flight_height_{0.78};
   double final_goal_position_tolerance_m_{0.10};
@@ -3932,8 +3961,8 @@ private:
   double shared_bounds_x_max_{7.5};
   double shared_bounds_y_min_{-7.0};
   double shared_bounds_y_max_{7.0};
-  double shared_bounds_z_min_{0.50};
-  double shared_bounds_z_max_{0.90};
+  double shared_bounds_z_min_{0.30};
+  double shared_bounds_z_max_{2.00};
   double fault_position_max_speed_mps_{4.0};
   double fault_position_jump_allowance_m_{0.40};
   double fault_planning_grid_padding_m_{3.0};
@@ -3988,6 +4017,7 @@ private:
   double debug_marker_height_{0.20};
 
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr preplan_goal_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr fallback_odom_sub_;
   rclcpp::Subscription<mavros_msgs::msg::State>::SharedPtr mavros_state_sub_;
@@ -4095,6 +4125,7 @@ private:
   int64_t recovery_required_after_trajectory_id_{-1};
   std::size_t local_goal_progress_index_{0};
   std::size_t tracking_progress_index_{0};
+  double tracking_progress_ratio_{0.0};
   std::size_t last_local_goal_index_{0};
   double last_local_goal_path_distance_{0.0};
   bool have_local_goal_{false};

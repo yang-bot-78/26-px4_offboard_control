@@ -164,8 +164,8 @@ shared_safety:
     y_min: -30.0
     y_max: 30.0
     # 高度仍是正常飞行合同，必须包住 fixed_flight_height、takeoff 和 EGO release。
-    z_min: 0.50
-    z_max: 0.90
+    z_min: 0.30
+    z_max: 2.00
     # 位置相邻两帧允许的最大位移 = max_speed * dt + jump_allowance。
     # 超过它是定位瞬跳，立即刹停并锁存，不再继续规划。
     position_max_speed_mps: 4.0
@@ -552,8 +552,8 @@ offboard:
   # 仅提前启动后台规划，不会提前水平接管；Offboard 仍需达到 takeoff_height_m。
   # 不使用起飞垂直速度作为放行条件，但要求本次飞行已经解锁。
   # [约束] > 0 且不得高于 fixed_flight_height_m。完整重启。
-  ego_goal_release_height_m: 0.40
-  # 以下稳定参数保留给人工悬停后的故障重发兼容逻辑，不参与 0.4m 后台规划放行。
+  ego_goal_release_height_m: 0.30
+  # 以下稳定参数保留给人工悬停后的故障重发兼容逻辑，不参与 0.3m 后台规划放行。
   ego_goal_stable_height_tolerance_m: 0.05
   ego_goal_stable_horizontal_speed_mps: 0.08
   ego_goal_stable_vertical_speed_mps: 0.30
@@ -564,7 +564,7 @@ offboard:
   fixed_flight_height_m: 0.78
   # Offboard 最大安全高度，单位：m。硬限幅，超过就拉回。
   # [约束] 不得高于 fault_envelope.z_max（astar_ego_tuning.py:229）。完整重启。
-  max_safe_height_m: 0.90
+  max_safe_height_m: 2.00
   # 最终目标 XY 容差，单位：m。到此范围内且速度够低即判定到达。
   # [调大] 可能过早到达。[调小] 可能在目标附近抖动不判定到达。完整重启。
   goal_tolerance_xy_m: 0.10

@@ -107,8 +107,8 @@ lever_arm_config="${MID360_LEVER_ARM_CONFIG:-${project_root}/src/px4_ros_com/con
 lever_arm_validator="${project_root}/tools/fastlio/校验杆臂配置.sh"
 world_yaw_alignment_rad="${WORLD_YAW_ALIGNMENT_RAD:-0.0}"
 target_altitude_m="0.75"
-manual_handover_min_altitude_m="0.50"
-manual_handover_max_altitude_m="1.20"
+manual_handover_min_altitude_m="0.30"
+manual_handover_max_altitude_m="2.00"
 manual_takeoff_altitude_m="${MANUAL_TAKEOFF_ALTITUDE_M:-${target_altitude_m}}"
 if ! awk -v value="${manual_takeoff_altitude_m}" \
   -v min="${manual_handover_min_altitude_m}" -v max="${manual_handover_max_altitude_m}" \
@@ -286,9 +286,9 @@ from astar_ego_tuning import load_tuning
 tuning = load_tuning(tuning_file)
 assert tuning["ego_planner"]["fixed_flight_height"] == 0.75
 assert tuning["offboard"]["fixed_flight_height_m"] == 0.75
-assert tuning["shared_safety"]["fault_envelope"]["z_min"] == 0.50
-assert tuning["shared_safety"]["fault_envelope"]["z_max"] == 1.20
-assert tuning["offboard"]["max_safe_height_m"] == 1.20
+assert tuning["shared_safety"]["fault_envelope"]["z_min"] == 0.30
+assert tuning["shared_safety"]["fault_envelope"]["z_max"] == 2.00
+assert tuning["offboard"]["max_safe_height_m"] == 2.00
 print(str(tuning["ego_planner"]["enable"]).lower())
 PY
 )"; then
@@ -984,6 +984,7 @@ setsid --wait env \
   RECOGNITION_ENABLED=false \
   RVIZ=true \
   ENABLE_OUTPUT=true \
+  WAYPOINT_FSM_ENABLED="${WAYPOINT_FSM_ENABLED:-false}" \
   MANUAL_HANDOVER="$([[ "${takeoff_mode}" == manual ]] && echo true || echo false)" \
   EV_FAULT_AUTO_LAND=false \
   RECORD_BAG="${record_bag}" \

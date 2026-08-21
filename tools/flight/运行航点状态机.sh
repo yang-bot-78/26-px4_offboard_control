@@ -25,7 +25,9 @@ usage() {
 
 从 WAYPOINTS_FILE 保存的全部航点生成路线后飞行（至少需要两个点）。参数会原样传给已有的
 “切Offboard后自动起飞0.75米单目标验证.sh”，因此人工起飞、规划后端和录包选项保持一致。
-人工或自动起飞完成、控制节点报告有效高度参考后，状态机才发布路线第一个航点；
+在 POSITION 悬停、控制节点报告 handover_ready 且 Super 就绪时，状态机会先把 B1 仅发给
+Super 预生成 XY 路径；人工或自动起飞完成、控制节点报告有效高度参考后，才通过正式目标
+话题发布 B1 并开始跟踪路线；
 到达每个航点后按 hold_sec 等配置切换状态并发布下一个目标。
 
 默认航点源文件：src/race_offboard/config/waypoints/main/waypoints.yaml
@@ -40,13 +42,6 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   usage
   exit 0
 fi
-
-for argument in "$@"; do
-  if [[ "${argument}" == "--noego" ]]; then
-    echo "错误：航点状态机需要 EGO 局部规划器生成可跟踪轨迹，不能与 --noego 同时使用。" >&2
-    exit 2
-  fi
-done
 
 [[ -x "${single_goal_script}" ]] || {
   echo "错误：找不到单目标安全流程：${single_goal_script}" >&2
@@ -128,6 +123,7 @@ done
 # post-takeoff altitude/reference gate.  Publishing the first goal on the
 # OFFBOARD mode edge races that gate and the controller correctly rejects it.
 fsm_args+=(--wait-for-takeoff)
+fsm_args+=(--preplan-first-waypoint)
 python3 "${fsm_node}" "${fsm_args[@]}" \
   > >(tee -a "${fsm_log}") 2>&1 &
 fsm_pid=$!

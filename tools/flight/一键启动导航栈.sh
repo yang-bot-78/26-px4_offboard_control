@@ -56,6 +56,7 @@ global_waypoint_task_enabled="${GLOBAL_WAYPOINT_TASK_ENABLED:-false}"
 publish_global_path="${PUBLISH_GLOBAL_PATH:-false}"
 px4_components_enabled="${PX4_COMPONENTS_ENABLED:-true}"
 waypoint_visualizer_enabled="${WAYPOINT_VISUALIZER_ENABLED:-false}"
+waypoint_fsm_enabled="${WAYPOINT_FSM_ENABLED:-false}"
 waypoints_file="${WAYPOINTS_FILE:-${project_root}/src/race_offboard/config/waypoints/main/waypoints.yaml}"
 recognition_enabled="${RECOGNITION_ENABLED:-false}"
 rviz="${RVIZ:-true}"
@@ -684,6 +685,7 @@ validate_configuration() {
   require_boolean PUBLISH_GLOBAL_PATH "${publish_global_path}"
   require_boolean PX4_COMPONENTS_ENABLED "${px4_components_enabled}"
   require_boolean WAYPOINT_VISUALIZER_ENABLED "${waypoint_visualizer_enabled}"
+  require_boolean WAYPOINT_FSM_ENABLED "${waypoint_fsm_enabled}"
   require_boolean NAVIGATION_ENABLED "${navigation_enabled}"
   require_boolean RECOGNITION_ENABLED "${recognition_enabled}"
   require_boolean RVIZ "${rviz}"
@@ -922,6 +924,7 @@ start_stack() {
       PUBLISH_GLOBAL_PATH="${publish_global_path}" \
       CONTROL_NODES_ENABLED="${px4_components_enabled}" \
       WAYPOINT_VISUALIZER_ENABLED="${waypoint_visualizer_enabled}" \
+      WAYPOINT_FSM_ENABLED="${waypoint_fsm_enabled}" \
       WAYPOINTS_FILE="${waypoints_file}" \
       RECOGNITION_ENABLED="${recognition_enabled}" \
       RVIZ="${rviz}" \

@@ -61,6 +61,7 @@ class State(str, Enum):
 @dataclass(frozen=True)
 class Action:
     goal: Optional[RoutePoint] = None
+    preplan_goal: Optional[RoutePoint] = None
     event: str = ''
     arrived: Optional[RoutePoint] = None
     done: bool = False
@@ -143,7 +144,8 @@ class WaypointStateMachine:
 
     def __init__(
             self, points: tuple[RoutePoint, ...], arrive_radius: float,
-            wait_for_takeoff: bool = False, takeoff_height: float = 0.55):
+            wait_for_takeoff: bool = False, takeoff_height: float = 0.30,
+            preplan_first_waypoint: bool = False):
         if not points:
             raise MissionConfigError('at least one route waypoint is required')
         self.points = points
@@ -155,6 +157,10 @@ class WaypointStateMachine:
         self.offboard = False
         self.wait_for_takeoff = wait_for_takeoff
         self.takeoff_height = _number(takeoff_height, 'takeoff_height', 0.0)
+        self.preplan_first_waypoint = preplan_first_waypoint
+        self.navigation_ready = False
+        self.position_handover_ready = False
+        self.first_waypoint_preplanned = False
         self.hold_started_at: Optional[float] = None
 
     @property
@@ -183,9 +189,16 @@ class WaypointStateMachine:
 
     def on_control_status(self, message: str) -> Optional[Action]:
         """Start a delayed route after the safety controller reports takeoff complete."""
+        tokens = message.split()
+        self.position_handover_ready = (
+            'handover_ready=1' in tokens and 'offboard=0' in tokens)
+        preplan = self._preplan_first_waypoint_if_ready()
+        if preplan is not None:
+            return preplan
         if not self.wait_for_takeoff or not self.offboard or self.state != State.WAIT_OFFBOARD:
             return None
-        if 'offboard=1' not in message or 'armed=1' not in message:
+        if ('offboard=1' not in message or 'armed=1' not in message or
+                'altitude_reference_valid=1' not in message):
             return None
         height = None
         for token in message.split():
@@ -204,11 +217,28 @@ class WaypointStateMachine:
             goal=self.current,
             event=f'takeoff_complete mission_started goto={self.current.name}')
 
-    def on_position(self, x: float, y: float, now_sec: float) -> Optional[Action]:
+    def on_navigation_ready(self, ready: bool = True) -> Optional[Action]:
+        """Record that Super is online and preplan B1 when POSITION is safe."""
+        self.navigation_ready = ready
+        return self._preplan_first_waypoint_if_ready()
+
+    def _preplan_first_waypoint_if_ready(self) -> Optional[Action]:
+        if (not self.preplan_first_waypoint or self.first_waypoint_preplanned or
+                self.state != State.WAIT_OFFBOARD or self.offboard or
+                not self.navigation_ready or not self.position_handover_ready):
+            return None
+        self.first_waypoint_preplanned = True
+        point = self.points[0]
+        return Action(
+            preplan_goal=point,
+            event=f'position_handover_ready preplan_xy goto={point.name}')
+
+    def on_position(self, x: float, y: float, z: float, now_sec: float) -> Optional[Action]:
         point = self.current
         if not self.offboard or self.state != State.GOTO or point is None:
             return None
-        if math.hypot(x - point.x, y - point.y) > self.arrive_radius:
+        if (math.hypot(x - point.x, y - point.y) > self.arrive_radius or
+                abs(z - point.z) > self.arrive_radius):
             return None
         self.hold_started_at = None
         if point.hold_sec > 0:
@@ -255,12 +285,16 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         '--wait-for-takeoff', action='store_true',
         help='delay the first route goal until the safety controller reports takeoff complete')
+    parser.add_argument(
+        '--preplan-first-waypoint', action='store_true',
+        help='send B1 to Super for XY preplanning after a safe POSITION handover check')
     parser.add_argument('--pose-topic', default='/race/pose')
     args, ros_args = parser.parse_known_args(argv)
 
     import rclpy
     from geometry_msgs.msg import PoseStamped
     from mavros_msgs.msg import State as MavrosState
+    from race_msgs.msg import GlobalPlannerStatus
     from rclpy.node import Node
     from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
     from std_msgs.msg import String
@@ -272,7 +306,8 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
         radius = (args.arrive_radius if args.arrive_radius is not None else
                   settings.get('arrive_radius', 0.4))
         machine = WaypointStateMachine(
-            points, radius, wait_for_takeoff=args.wait_for_takeoff)
+            points, radius, wait_for_takeoff=args.wait_for_takeoff,
+            preplan_first_waypoint=args.preplan_first_waypoint)
     except (OSError, MissionConfigError, yaml.YAMLError) as error:
         print(f'waypoint_state_machine_node configuration error: {error}', file=sys.stderr)
         return 2
@@ -289,6 +324,8 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
                 history=HistoryPolicy.KEEP_LAST, depth=10,
                 reliability=ReliabilityPolicy.BEST_EFFORT)
             self.goal_pub = self.create_publisher(PoseStamped, '/goal_pose', 10)
+            self.preplan_goal_pub = self.create_publisher(
+                PoseStamped, '/race/super/preplan_goal_pose', 10)
             self.status_pub = self.create_publisher(String, '/race/waypoint_fsm/status', transient)
             self.event_pub = self.create_publisher(String, '/race/waypoint_fsm/event', 10)
             self.behavior_pub = self.create_publisher(String, '/race/mission/behavior', transient)
@@ -299,6 +336,9 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             self.create_subscription(PoseStamped, args.pose_topic, self.pose_callback, sensor)
             self.create_subscription(
                 String, '/race/control/status', self.control_callback, transient)
+            self.create_subscription(
+                GlobalPlannerStatus, '/race/global_planner/status', self.planner_callback,
+                transient)
             self.create_timer(0.05, self.timer_callback)
             self.publish_status()
             self.get_logger().info(
@@ -316,13 +356,19 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             self._last_yaw_rad = math.atan2(
                 2.0 * (orientation.w * orientation.z + orientation.x * orientation.y),
                 1.0 - 2.0 * (orientation.y * orientation.y + orientation.z * orientation.z))
-            if math.isfinite(point.x) and math.isfinite(point.y):
-                self.process_action(self.machine.on_position(point.x, point.y, self.now()))
+            if (math.isfinite(point.x) and math.isfinite(point.y) and
+                    math.isfinite(point.z)):
+                self.process_action(
+                    self.machine.on_position(point.x, point.y, point.z, self.now()))
 
         def control_callback(self, message: String) -> None:
             self.process_action(self.machine.on_control_status(message.data))
             if 'state=GOAL_REACHED_HOLD' in message.data:
                 self.process_action(self.machine.start_hold(self.now()))
+
+        def planner_callback(self, message: GlobalPlannerStatus) -> None:
+            self.process_action(self.machine.on_navigation_ready(
+                message.mode not in ('NO_MAP', 'NO_ODOM', 'BLOCKED_UNSAFE')))
 
         def timer_callback(self) -> None:
             self.process_action(self.machine.on_timer(self.now()))
@@ -356,19 +402,24 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
                     f'[WAYPOINT_FSM_ARRIVED] {action.arrived.name} '
                     f'x={action.arrived.x:.3f} y={action.arrived.y:.3f} '
                     f'z={action.arrived.z:.3f}')
+            if action.preplan_goal is not None:
+                self.publish_goal(action.preplan_goal, self.preplan_goal_pub, 'PREPLAN_XY')
             if action.goal is not None:
-                goal = PoseStamped()
-                goal.header.stamp = self.get_clock().now().to_msg()
-                goal.header.frame_id = 'map'
-                goal.pose.position.x = action.goal.x
-                goal.pose.position.y = action.goal.y
-                goal.pose.position.z = action.goal.z
-                goal.pose.orientation.w = 1.0
-                self.goal_pub.publish(goal)
-                self.get_logger().info(
-                    f'[WAYPOINT_FSM_GOTO] {action.goal.name} x={action.goal.x:.3f} '
-                    f'y={action.goal.y:.3f} z={action.goal.z:.3f}')
+                self.publish_goal(action.goal, self.goal_pub, 'GOTO')
             self.publish_status()
+
+        def publish_goal(self, point: RoutePoint, publisher: Any, label: str) -> None:
+            goal = PoseStamped()
+            goal.header.stamp = self.get_clock().now().to_msg()
+            goal.header.frame_id = 'map'
+            goal.pose.position.x = point.x
+            goal.pose.position.y = point.y
+            goal.pose.position.z = point.z
+            goal.pose.orientation.w = 1.0
+            publisher.publish(goal)
+            self.get_logger().info(
+                f'[WAYPOINT_FSM_{label}] {point.name} x={point.x:.3f} '
+                f'y={point.y:.3f} z={point.z:.3f}')
 
         def publish_status(self) -> None:
             point = self.machine.current
@@ -377,7 +428,8 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             self.status_pub.publish(String(data=(
                 f'state={self.machine.state.value} index={self.machine.index + 1}/'
                 f'{len(self.machine.points)} current={current} point_state={point_state} '
-                f'offboard={str(self.machine.offboard).lower()}')))
+                f'offboard={str(self.machine.offboard).lower()} '
+                f'preplanned={str(self.machine.first_waypoint_preplanned).lower()}')))
 
     rclpy.init(args=ros_args)
     node: Optional[NodeImpl] = None

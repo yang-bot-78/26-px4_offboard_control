@@ -161,8 +161,9 @@ public:
     cruise_altitude_m_ = declare_parameter<double>("cruise_altitude_m", 0.78);
     flight_target_agl_m_ = cruise_altitude_m_;
     takeoff_complete_height_m_ = declare_parameter<double>("takeoff_complete_height_m", 0.55);
-    min_command_height_m_ = declare_parameter<double>("min_command_height_m", 0.50);
-    max_command_height_m_ = declare_parameter<double>("max_command_height_m", 0.90);
+    min_command_height_m_ = declare_parameter<double>("min_command_height_m", 0.30);
+    max_command_height_m_ = declare_parameter<double>("max_command_height_m", 2.00);
+    variable_waypoint_height_ = declare_parameter<bool>("variable_waypoint_height", false);
     overheight_guard_margin_m_ = declare_parameter<double>("overheight_guard_margin_m", 0.20);
     emergency_overheight_margin_m_ =
       declare_parameter<double>("emergency_overheight_margin_m", 0.35);
@@ -202,8 +203,8 @@ public:
     shared_bounds_x_max_ = declare_parameter<double>("shared_bounds/x_max", 7.5);
     shared_bounds_y_min_ = declare_parameter<double>("shared_bounds/y_min", -7.0);
     shared_bounds_y_max_ = declare_parameter<double>("shared_bounds/y_max", 7.0);
-    shared_bounds_z_min_ = declare_parameter<double>("shared_bounds/z_min", 0.50);
-    shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 0.90);
+    shared_bounds_z_min_ = declare_parameter<double>("shared_bounds/z_min", 0.30);
+    shared_bounds_z_max_ = declare_parameter<double>("shared_bounds/z_max", 2.00);
     if (shared_bounds_x_min_ >= shared_bounds_x_max_ ||
       shared_bounds_y_min_ >= shared_bounds_y_max_ ||
       shared_bounds_z_min_ >= shared_bounds_z_max_ || setpoint_rate_hz_ <= 0.0 ||
@@ -759,9 +760,9 @@ private:
         "[FINAL_GOAL_REJECT] no valid flight altitude reference; finish takeoff first");
       return;
     }
-    // /goal_pose is an XY user intent in flat mode; validate it at the actual
-    // map-frame flight level, not at the AGL parameter value.
-    const double goal_z = target_z_map_;
+    // Standard goals keep the locked flight level. In waypoint-height mode,
+    // the incoming z is the mission's commanded flight height in metres.
+    const double goal_z = variable_waypoint_height_ ? msg->pose.position.z : target_z_map_;
     const double shared_min_z_map = ground_z_map_ + shared_bounds_z_min_;
     const double shared_max_z_map = ground_z_map_ + shared_bounds_z_max_;
     if (!std::isfinite(msg->pose.position.x) || !std::isfinite(msg->pose.position.y) ||
@@ -778,9 +779,11 @@ private:
     // only at this Offboard boundary: (x_ned,y_ned,z_ned)=(y_map,x_map,-z_map).
     const float goal_x_ned = static_cast<float>(msg->pose.position.y);
     const float goal_y_ned = static_cast<float>(msg->pose.position.x);
+    const float goal_z_ned = static_cast<float>(-goal_z);
     const bool duplicate_goal = have_goal_identity_ &&
       std::hypot(goal_x_ned - goal_x_ned_, goal_y_ned - goal_y_ned_) <=
-      goal_update_position_tolerance_m_;
+      goal_update_position_tolerance_m_ &&
+      std::abs(goal_z_ned - goal_z_ned_) <= goal_update_position_tolerance_m_;
     if (duplicate_goal &&
       !(planner_safety_failure_latched_ && same_goal_retry_on_safety_latch_))
     {
@@ -796,6 +799,7 @@ private:
     }
     goal_x_ned_ = goal_x_ned;
     goal_y_ned_ = goal_y_ned;
+    goal_z_ned_ = goal_z_ned;
     have_goal_identity_ = true;
     ++active_goal_id_;
     goal_active_ = true;
@@ -831,8 +835,8 @@ private:
     }
     setControlState(ControlState::PLANNING, "new final goal received");
     RCLCPP_INFO(
-      get_logger(), "Active final goal id=%lu NED=(%.3f,%.3f)",
-      active_goal_id_, goal_x_ned_, goal_y_ned_);
+      get_logger(), "Active final goal id=%lu NED=(%.3f,%.3f,%.3f)",
+      active_goal_id_, goal_x_ned_, goal_y_ned_, goal_z_ned_);
     if (control_source_ == "ego") {
       beginTakeoff("new EGO goal");
     }
@@ -897,7 +901,13 @@ private:
       const auto local_ned = race_offboard::enuToNed(local_enu);
       latest_setpoint_.position.x = local_ned[0];
       latest_setpoint_.position.y = local_ned[1];
-      latest_setpoint_.position.z = local_ned[2];
+      // Mission waypoint z is the shared commanded flight height.  Apply the
+      // relocalization transform to XY/yaw only; adding translation.z here
+      // would make a 0.78 m waypoint become ~1.54 m.
+      // NavigationSetpoint z is -waypoint_height.  Anchor that prescribed AGL
+      // height to this flight's PX4 ground reference, not to map translation.z.
+      latest_setpoint_.position.z = flight_altitude_reference_valid_ ?
+        ground_z_local_ned_ + msg->position.z : msg->position.z;
       const double map_yaw_enu = race_offboard::nedYawToEnu(msg->yaw);
       latest_setpoint_.yaw = race_offboard::enuYawToNed(
         race_offboard::mapToLocalYaw(map_yaw_enu, map_to_local_));
@@ -909,7 +919,7 @@ private:
         const auto local_velocity_ned = race_offboard::enuToNed(local_velocity_enu);
         latest_setpoint_.velocity.x = local_velocity_ned[0];
         latest_setpoint_.velocity.y = local_velocity_ned[1];
-        latest_setpoint_.velocity.z = local_velocity_ned[2];
+        latest_setpoint_.velocity.z = msg->velocity.z;
       }
     }
     latest_setpoint_.yaw = wrapAngle(latest_setpoint_.yaw);
@@ -962,6 +972,10 @@ private:
       const auto local_position_enu = race_offboard::mapToLocalPosition(
         {raw->position.x, raw->position.y, raw->position.z}, map_to_local_);
       command.position = race_offboard::enuToNed(local_position_enu);
+      // EGO publishes waypoint height in ENU.  Anchor it to the same flight
+      // ground reference used by NavigationSetpoint.
+      command.position[2] = flight_altitude_reference_valid_ ?
+        ground_z_local_ned_ - raw->position.z : -raw->position.z;
       const auto local_velocity_enu = race_offboard::mapToLocalVector(
         {raw->velocity.x, raw->velocity.y, raw->velocity.z}, map_to_local_);
       const auto local_acceleration_enu = race_offboard::mapToLocalVector(
@@ -973,6 +987,9 @@ private:
             local_velocity_enu[1]).set__z(local_velocity_enu[2]),
           raw->type_mask & PT::IGNORE_VX, raw->type_mask & PT::IGNORE_VY,
           raw->type_mask & PT::IGNORE_VZ));
+      if (!(raw->type_mask & PT::IGNORE_VZ)) {
+        command.velocity[2] = -raw->velocity.z;
+      }
       command.acceleration = race_offboard::enuToNed(
         egoAxisOrNan(
           geometry_msgs::msg::Vector3().set__x(local_acceleration_enu[0]).set__y(
@@ -1940,8 +1957,11 @@ private:
     const double goal_error = std::hypot(
       static_cast<double>(current_x_ - goal_x_ned_),
       static_cast<double>(current_y_ - goal_y_ned_));
+    const double vertical_goal_error = std::abs(
+      static_cast<double>(current_z_ - goal_z_ned_));
     const bool vehicle_stopped_at_goal = goal_active_ &&
       goal_error <= goal_reached_position_tolerance_ &&
+      (!variable_waypoint_height_ || vertical_goal_error <= goal_reached_position_tolerance_) &&
       horizontalSpeed() <= goal_reached_velocity_tolerance_;
     if (!require_global_planner_final_goal_) {
       return vehicle_stopped_at_goal;
@@ -2439,8 +2459,8 @@ private:
   double cruise_altitude_m_{0.78};
   double flight_target_agl_m_{0.78};
   double takeoff_complete_height_m_{0.55};
-  double min_command_height_m_{0.50};
-  double max_command_height_m_{0.90};
+  double min_command_height_m_{0.30};
+  double max_command_height_m_{2.00};
   double overheight_guard_margin_m_{0.20};
   double emergency_overheight_margin_m_{0.35};
   double trajectory_timeout_sec_{0.50};
@@ -2468,8 +2488,8 @@ private:
   double shared_bounds_x_max_{7.5};
   double shared_bounds_y_min_{-7.0};
   double shared_bounds_y_max_{7.0};
-  double shared_bounds_z_min_{0.50};
-  double shared_bounds_z_max_{0.90};
+  double shared_bounds_z_min_{0.30};
+  double shared_bounds_z_max_{2.00};
   bool allow_dead_reckoning_takeoff_{false};
   bool require_strict_local_position_health_{true};
   bool idle_hold_enabled_{true};
@@ -2544,6 +2564,7 @@ private:
   double ground_z_map_{0.0};
   double target_z_map_{0.0};
   bool flight_altitude_reference_valid_{false};
+  bool variable_waypoint_height_{false};
   rclcpp::Time map_local_alignment_stable_since_{0, 0, RCL_ROS_TIME};
   bool have_map_odom_{false};
   bool map_local_alignment_candidate_valid_{false};
@@ -2561,6 +2582,7 @@ private:
   double hold_yaw_{0.0};
   float goal_x_ned_{0.0F};
   float goal_y_ned_{0.0F};
+  float goal_z_ned_{0.0F};
   float braking_vx_{0.0F};
   float braking_vy_{0.0F};
   float braking_vz_{0.0F};

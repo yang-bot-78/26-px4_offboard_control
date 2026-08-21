@@ -122,6 +122,7 @@ def generate_launch_description():
     recognition_enabled = LaunchConfiguration('recognition_enabled')
     mission_file = LaunchConfiguration('mission_file')
     global_waypoint_task_enabled = LaunchConfiguration('global_waypoint_task_enabled')
+    waypoint_fsm_enabled = LaunchConfiguration('waypoint_fsm_enabled')
     publish_global_path = LaunchConfiguration('publish_global_path')
     control_nodes_enabled = LaunchConfiguration('control_nodes_enabled')
     waypoint_visualizer_enabled = LaunchConfiguration('waypoint_visualizer_enabled')
@@ -164,6 +165,7 @@ def generate_launch_description():
             'manual_handover': LaunchConfiguration('manual_handover'),
             'require_map_local_alignment': LaunchConfiguration(
                 'require_map_local_alignment'),
+            'variable_waypoint_height': waypoint_fsm_enabled,
             'tuning_file': tuning_file,
         }.items(),
         condition=IfCondition(control_nodes_enabled),
@@ -222,6 +224,7 @@ def generate_launch_description():
             # its configured vertical envelope, but must not reject the route.
             'use_fixed_flight_height': PythonExpression([
                 "'false' if '", global_waypoint_task_enabled,
+                "' == 'true' or '", waypoint_fsm_enabled,
                 "' == 'true' else 'true'"
             ]),
             # /race/odom is the single map-frame pose after applying the shared
@@ -371,6 +374,9 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'global_waypoint_task_enabled', default_value='false',
             description='Publish B1->B2->C->D planner goals without PX4 mode handling.'),
+        DeclareLaunchArgument(
+            'waypoint_fsm_enabled', default_value='false',
+            description='Use waypoint z values with Super XY planning and linear altitude transitions.'),
         DeclareLaunchArgument(
             'publish_global_path', default_value='false',
             description='Publish /race/global_path for global-planning verification.'),

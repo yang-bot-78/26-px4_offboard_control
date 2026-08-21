@@ -26,7 +26,8 @@ _NUMBERED_WAYPOINT = re.compile(r'^P([0-9]+)$', re.IGNORECASE)
 
 def _ordered_waypoint_names(
         saved: dict[str, Any], names: tuple[str, ...]) -> list[str]:
-    """Return the tracking order independently of YAML insertion history.
+    """
+    Return the tracking order independently of YAML insertion history.
 
     B1/B2/C/D are the fixed lead-in.  Numbered points are sorted by their
     numeric suffix so rewriting an older point cannot move P010 before P009.

@@ -223,8 +223,8 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertIn('--lowrosbag', auto_takeoff)
         self.assertIn('--lowbag', auto_takeoff)
         self.assertIn('ROSBAG_PROFILE="${rosbag_profile}"', auto_takeoff)
-        self.assertIn('manual_handover_min_altitude_m="0.50"', auto_takeoff)
-        self.assertIn('manual_handover_max_altitude_m="1.20"', auto_takeoff)
+        self.assertIn('manual_handover_min_altitude_m="0.30"', auto_takeoff)
+        self.assertIn('manual_handover_max_altitude_m="2.00"', auto_takeoff)
         self.assertIn('tuning["shared_safety"]["fault_envelope"]["z_max"] = max_height', auto_takeoff)
         self.assertIn('wait_manual_position_handover || exit 4', auto_takeoff)
         self.assertIn('capture_planning_start_position', auto_takeoff)
@@ -355,7 +355,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_fixed_height_outside_bounds_fails(self):
         bad = copy.deepcopy(self.tuning)
-        bad['ego_planner']['fixed_flight_height'] = 0.91
+        bad['ego_planner']['fixed_flight_height'] = 2.01
         with self.assertRaisesRegex(TuningError, 'fixed_flight_height'):
             self._validate(bad)
 
@@ -367,7 +367,7 @@ class AstarEgoTuningTest(unittest.TestCase):
 
     def test_all_node_bounds_are_identical(self):
         overlays = node_parameter_overlays(self.tuning)
-        expected = (-30.0, 30.0, -30.0, 30.0, 0.50, 0.90)
+        expected = (-30.0, 30.0, -30.0, 30.0, 0.30, 2.00)
         for name in ('ego', 'goal_bridge', 'trajectory_bridge'):
             values = overlays[name]
             self.assertEqual(expected, (
@@ -659,7 +659,7 @@ class AstarEgoTuningTest(unittest.TestCase):
     def test_goal_bridge_background_release_and_legacy_stability_are_plumbed(self):
         overlays = node_parameter_overlays(self.tuning)
         offboard = self.tuning['offboard']
-        self.assertEqual(0.40, offboard['ego_goal_release_height_m'])
+        self.assertEqual(0.30, offboard['ego_goal_release_height_m'])
         self.assertEqual(
             offboard['ego_goal_release_height_m'],
             overlays['goal_bridge']['release_height'])
@@ -670,13 +670,12 @@ class AstarEgoTuningTest(unittest.TestCase):
             offboard['ego_goal_stable_height_tolerance_m'],
             overlays['goal_bridge']['stable_height_tolerance_m'])
 
-    def test_background_release_height_is_bounded_but_may_precede_safety_window(self):
-        # 0.40 m intentionally precedes the 0.50 m command safety window: it
-        # starts planning only, while Offboard keeps the horizontal takeover
-        # gated at takeoff_height_m.
+    def test_background_release_height_is_bounded_by_safety_window(self):
+        # EGO background planning may start at the lower command boundary,
+        # while automatic takeoff remains gated at takeoff_height_m.
         bounds = self.tuning['shared_safety']['fault_envelope']
         offboard = self.tuning['offboard']
-        self.assertLess(offboard['ego_goal_release_height_m'], bounds['z_min'])
+        self.assertGreaterEqual(offboard['ego_goal_release_height_m'], bounds['z_min'])
         for value in (0.0, offboard['fixed_flight_height_m'] + 0.001):
             with self.subTest(value=value):
                 bad = copy.deepcopy(self.tuning)

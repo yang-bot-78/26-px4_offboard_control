@@ -28,15 +28,15 @@ class WaypointStateMachineTest(unittest.TestCase):
         action = machine.on_offboard(True)
         self.assertEqual(action.goal.name, 'TAKEOFF')
         self.assertEqual(machine.state, FSM.State.GOTO)
-        action = machine.on_position(0.0, 0.0, 10.0)
+        action = machine.on_position(0.0, 0.0, 0.75, 10.0)
         self.assertEqual(machine.state, FSM.State.HOLD)
         self.assertEqual(action.arrived.name, 'TAKEOFF')
         self.assertIsNone(machine.on_timer(10.4))
         action = machine.on_timer(10.5)
         self.assertEqual(action.goal.name, 'SCAN_A')
-        action = machine.on_position(1.0, 0.0, 11.0)
+        action = machine.on_position(1.0, 0.0, 0.75, 11.0)
         self.assertEqual(action.goal.name, 'LAND')
-        action = machine.on_position(1.0, 1.0, 12.0)
+        action = machine.on_position(1.0, 1.0, 0.75, 12.0)
         self.assertTrue(action.done)
         self.assertEqual(machine.state, FSM.State.DONE)
 
@@ -53,9 +53,37 @@ class WaypointStateMachineTest(unittest.TestCase):
         action = machine.on_offboard(True)
         self.assertEqual(action.event, 'offboard_waiting_for_takeoff')
         self.assertIsNone(machine.on_control_status(
-            'state=IDLE_HOLD armed=1 offboard=1 current_height_m=0.30'))
+            'state=IDLE_HOLD armed=1 offboard=1 current_height_m=0.30 altitude_reference_valid=0'))
+        self.assertIsNone(machine.on_control_status(
+            'state=IDLE_HOLD armed=1 offboard=1 current_height_m=0.56 altitude_reference_valid=0'))
         action = machine.on_control_status(
-            'state=IDLE_HOLD armed=1 offboard=1 current_height_m=0.56')
+            'state=IDLE_HOLD armed=1 offboard=1 current_height_m=0.56 altitude_reference_valid=1')
+        self.assertEqual(action.goal.name, 'TAKEOFF')
+
+    def test_arrival_waits_for_waypoint_height(self):
+        machine = FSM.WaypointStateMachine(self.points(), 0.2)
+        machine.on_offboard(True)
+        self.assertIsNone(machine.on_position(0.0, 0.0, 0.40, 10.0))
+        self.assertEqual(machine.state, FSM.State.GOTO)
+
+    def test_preplan_b1_only_after_navigation_and_position_handover_ready(self):
+        machine = FSM.WaypointStateMachine(
+            self.points(), 0.2, wait_for_takeoff=True, preplan_first_waypoint=True)
+        self.assertIsNone(machine.on_navigation_ready(False))
+        self.assertIsNone(machine.on_control_status(
+            'state=IDLE_HOLD armed=1 offboard=0 handover_ready=1')
+        )
+        action = machine.on_navigation_ready()
+        self.assertEqual(action.preplan_goal.name, 'TAKEOFF')
+        self.assertIsNone(action.goal)
+        self.assertEqual(machine.state, FSM.State.WAIT_OFFBOARD)
+        self.assertEqual(machine.index, -1)
+        self.assertIsNone(machine.on_control_status(
+            'state=IDLE_HOLD armed=1 offboard=0 handover_ready=1'))
+        self.assertEqual(machine.on_offboard(True).event, 'offboard_waiting_for_takeoff')
+        action = machine.on_control_status(
+            'state=IDLE_HOLD armed=1 offboard=1 current_height_m=0.56 '
+            'altitude_reference_valid=1')
         self.assertEqual(action.goal.name, 'TAKEOFF')
 
 
