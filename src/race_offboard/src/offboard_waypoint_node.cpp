@@ -31,6 +31,7 @@
 #include "race_offboard/ego_command_guard.hpp"
 #include "race_offboard/ev_health_tracker.hpp"
 #include "race_offboard/local_origin_rebase_guard.hpp"
+#include "race_offboard/mission_yaw_override_policy.hpp"
 #include "race_offboard/navigation_z_guard.hpp"
 #include "race_offboard/mavros_frame_utils.hpp"
 
@@ -204,6 +205,14 @@ public:
     ego_setpoint_max_lead_m_ = declare_parameter<double>("ego_setpoint_max_lead_m", 2.0);
     ego_yaw_rate_limit_rad_s_ =
       declare_parameter<double>("ego_yaw_rate_limit_rad_s", 0.80);
+    mission_yaw_override_enabled_ =
+      declare_parameter<bool>("mission_yaw_override_enabled", false);
+    mission_yaw_override_topic_ = declare_parameter<std::string>(
+      "mission_yaw_override_topic", "/race/mission/yaw_override");
+    mission_yaw_override_timeout_sec_ =
+      declare_parameter<double>("mission_yaw_override_timeout_sec", 0.30);
+    mission_yaw_rate_limit_rad_s_ =
+      declare_parameter<double>("mission_yaw_rate_limit_rad_s", 0.80);
     initial_position_stabilization_sec_ =
       declare_parameter<double>("initial_position_stabilization_sec", 0.50);
     initial_position_max_spread_m_ =
@@ -231,6 +240,8 @@ public:
     trusted_position_jump_allowance_m_ = std::max(0.05, trusted_position_jump_allowance_m_);
     ego_setpoint_max_lead_m_ = std::max(0.10, ego_setpoint_max_lead_m_);
     ego_yaw_rate_limit_rad_s_ = std::max(0.05, ego_yaw_rate_limit_rad_s_);
+    mission_yaw_override_timeout_sec_ = std::max(0.10, mission_yaw_override_timeout_sec_);
+    mission_yaw_rate_limit_rad_s_ = std::max(0.05, mission_yaw_rate_limit_rad_s_);
     initial_position_stabilization_sec_ = std::max(0.10, initial_position_stabilization_sec_);
     initial_position_max_spread_m_ = std::max(0.01, initial_position_max_spread_m_);
     initial_position_max_speed_mps_ = std::max(0.01, initial_position_max_speed_mps_);
@@ -307,6 +318,10 @@ public:
     goal_activity_subscriber_ = create_subscription<geometry_msgs::msg::PoseStamped>(
       "/goal_pose", 10,
       std::bind(&OffboardWaypointNode::goalActivityCallback, this, std::placeholders::_1));
+    mission_yaw_override_subscriber_ = create_subscription<geometry_msgs::msg::PoseStamped>(
+      mission_yaw_override_topic_, 10,
+      std::bind(
+        &OffboardWaypointNode::missionYawOverrideCallback, this, std::placeholders::_1));
 
     takeoff_service_ = create_service<std_srvs::srv::Trigger>(
       "/race/takeoff",
@@ -705,6 +720,7 @@ private:
       latchPilotOverride(reason);
     }
     if (was_armed && !armed_) {
+      have_mission_yaw_override_ = false;
       resetFlightAltitudeReference("vehicle disarmed");
       manual_takeoff_position_valid_ = false;
       resetManualHandoverReferenceRefinement();
@@ -769,6 +785,44 @@ private:
         get_logger(), "[PLANNER_SAFETY_LATCH] status=%s; cancel navigation before recovery",
         ego_status_.c_str());
     }
+  }
+
+  void missionYawOverrideCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+  {
+    if (!mission_yaw_override_enabled_) {
+      return;
+    }
+    const auto & orientation = msg->pose.orientation;
+    const double norm = std::sqrt(
+      orientation.x * orientation.x + orientation.y * orientation.y +
+      orientation.z * orientation.z + orientation.w * orientation.w);
+    if (msg->header.frame_id != "map" || !std::isfinite(norm) || norm < 0.5 || norm > 1.5) {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[MISSION_YAW_REJECTED] expected a finite map-frame quaternion");
+      return;
+    }
+    if (!map_local_alignment_ready_) {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[MISSION_YAW_REJECTED] map-to-local alignment is not ready");
+      return;
+    }
+    const double map_yaw_enu = tf2::getYaw(orientation);
+    if (!std::isfinite(map_yaw_enu)) {
+      RCLCPP_ERROR_THROTTLE(
+        get_logger(), *get_clock(), 1000,
+        "[MISSION_YAW_REJECTED] quaternion produced a non-finite yaw");
+      return;
+    }
+    const double local_yaw_enu = race_offboard::mapToLocalYaw(map_yaw_enu, map_to_local_);
+    mission_yaw_override_ned_ = race_offboard::enuYawToNed(local_yaw_enu);
+    last_mission_yaw_override_time_ = now();
+    have_mission_yaw_override_ = true;
+    RCLCPP_INFO_THROTTLE(
+      get_logger(), *get_clock(), 1000,
+      "[MISSION_YAW_ACCEPTED] map_enu=%.3f local_ned=%.3f",
+      map_yaw_enu, mission_yaw_override_ned_);
   }
 
   void goalActivityCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
@@ -1151,6 +1205,7 @@ private:
     navigation_cancelled_ = true;
     have_setpoint_ = false;
     have_ego_setpoint_ = false;
+    have_mission_yaw_override_ = false;
     planner_safety_failure_latched_ = false;
     beginBraking(ControlState::IDLE_HOLD, "goal cancelled");
     response->success = true;
@@ -1493,6 +1548,7 @@ private:
     navigation_cancelled_ = true;
     have_setpoint_ = false;
     have_ego_setpoint_ = false;
+    have_mission_yaw_override_ = false;
     awaiting_initial_ego_trajectory_ = false;
     state_ = State::MANUAL_OVERRIDE;
     setControlState(ControlState::MANUAL_OVERRIDE, reason);
@@ -1523,6 +1579,26 @@ private:
     setControlState(ControlState::BRAKING, reason);
   }
 
+  bool missionYawOverrideActive()
+  {
+    return race_offboard::missionYawOverrideAllowed(
+      mission_yaw_override_enabled_, have_mission_yaw_override_, armed_, offboard_mode_,
+      state_ == State::ACTIVE, control_state_ == ControlState::GOAL_REACHED_HOLD,
+      (now() - last_mission_yaw_override_time_).seconds(), mission_yaw_override_timeout_sec_);
+  }
+
+  double safetyHoldYawCommand()
+  {
+    const double requested_yaw = missionYawOverrideActive() ?
+      mission_yaw_override_ned_ : hold_yaw_;
+    if (!last_command_valid_) {
+      return requested_yaw;
+    }
+    return race_offboard::slewEgoYaw(
+      last_command_yaw_, requested_yaw, mission_yaw_rate_limit_rad_s_,
+      1.0 / setpoint_rate_hz_);
+  }
+
   void publishSafetySetpoint(float vx, float vy, float vz, float ax, float ay, float az)
   {
     if (!hold_position_valid_) {
@@ -1546,12 +1622,13 @@ private:
     msg.acceleration_or_force.x = acceleration_enu[0];
     msg.acceleration_or_force.y = acceleration_enu[1];
     msg.acceleration_or_force.z = acceleration_enu[2];
-    msg.yaw = static_cast<float>(race_offboard::nedYawToEnu(hold_yaw_));
+    const double commanded_yaw_ned = safetyHoldYawCommand();
+    msg.yaw = static_cast<float>(race_offboard::nedYawToEnu(commanded_yaw_ned));
     msg.yaw_rate = 0.0F;
     trajectory_setpoint_publisher_->publish(msg);
     last_command_x_ = hold_x_;
     last_command_y_ = hold_y_;
-    last_command_yaw_ = hold_yaw_;
+    last_command_yaw_ = commanded_yaw_ned;
     last_command_valid_ = true;
   }
 
@@ -2582,6 +2659,10 @@ private:
   double trusted_position_jump_allowance_m_{0.40};
   double ego_setpoint_max_lead_m_{2.0};
   double ego_yaw_rate_limit_rad_s_{0.80};
+  bool mission_yaw_override_enabled_{false};
+  std::string mission_yaw_override_topic_;
+  double mission_yaw_override_timeout_sec_{0.30};
+  double mission_yaw_rate_limit_rad_s_{0.80};
   double initial_position_stabilization_sec_{0.50};
   double initial_position_max_spread_m_{0.08};
   double initial_position_max_speed_mps_{0.20};
@@ -2619,6 +2700,8 @@ private:
     global_planner_status_subscriber_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr ego_status_subscriber_;
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_activity_subscriber_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
+    mission_yaw_override_subscriber_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr takeoff_service_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr land_service_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr cancel_service_;
@@ -2647,6 +2730,7 @@ private:
   rclcpp::Time braking_start_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_publisher_check_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_ego_publish_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time last_mission_yaw_override_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time initial_position_stable_since_{0, 0, RCL_ROS_TIME};
 
   float current_x_{0.0F};
@@ -2689,6 +2773,8 @@ private:
   float hold_y_{0.0F};
   float hold_z_{0.0F};
   double hold_yaw_{0.0};
+  double mission_yaw_override_ned_{0.0};
+  bool have_mission_yaw_override_{false};
   float goal_x_ned_{0.0F};
   float goal_y_ned_{0.0F};
   float goal_z_ned_{0.0F};

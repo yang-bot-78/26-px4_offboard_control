@@ -4,7 +4,8 @@
 import os
 from pathlib import Path
 import time
-from datetime import datetime, timezone
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import cv2
 import numpy as np
@@ -19,8 +20,8 @@ MODEL_PATH = Path("/home/robot/egohx_ws/26-px4_offboard_control-main/bs/0819.pt"
 CLASS_NAMES = {0: "plane", 1: "car", 2: "ship", 3: "house"}
 WINDOW_NAME = "D435i - si.pt detection"
 RESULT_WINDOW_NAME = "Recognition Results"
-# Require 10 consecutive inference samples before displaying a class.
-CONFIRM_FRAMES = 10
+# Require 5 consecutive inference samples before confirming a class.
+CONFIRM_FRAMES = 5
 REPORT_INTERVAL_SEC = 10.0
 IMAGE_SIZE = 640
 TARGET_INFERENCE_FPS = 30.0
@@ -41,6 +42,7 @@ CLASS_CONFIDENCES = {
     "ship": 0.83,
     "house": 0.85,
 }
+DISPLAY_TIMEZONE = ZoneInfo("Asia/Shanghai")
 
 
 def append_recognition_result(timestamp: str, detected_name: str) -> None:
@@ -320,7 +322,7 @@ def main():
                     if now - last_reported_at.get(
                             detected_name, float("-inf")) >= REPORT_INTERVAL_SEC:
                         confidence = float(result.boxes.conf.max().item())
-                        timestamp = datetime.now(timezone.utc).isoformat(
+                        timestamp = datetime.now(DISPLAY_TIMEZONE).isoformat(
                             timespec="milliseconds")
                         print(
                             "[RECOGNITION_RESULT] "

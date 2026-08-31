@@ -31,16 +31,21 @@ TEST(ManualHandoverPolicy, AcceptsOnlyAlignedSafeOffboardTransition)
 
 TEST(ManualHandoverPolicy, RefinesReferenceOnlyDuringSafePositionHover)
 {
-  EXPECT_TRUE(race_offboard::canRefineManualHandoverReference(
-    true, true, true, false, true, true, true, true, 0.10, 0.10));
-  EXPECT_FALSE(race_offboard::canRefineManualHandoverReference(
-    true, true, true, true, true, true, true, true, 0.01, 0.10));
-  EXPECT_FALSE(race_offboard::canRefineManualHandoverReference(
-    true, true, true, false, false, true, true, true, 0.01, 0.10));
-  EXPECT_FALSE(race_offboard::canRefineManualHandoverReference(
-    true, true, true, false, true, true, true, true, 0.11, 0.10));
-  EXPECT_FALSE(race_offboard::canRefineManualHandoverReference(
-    true, true, true, false, true, true, false, true, 0.01, 0.10));
+  EXPECT_TRUE(
+    race_offboard::canRefineManualHandoverReference(
+      true, true, true, false, true, true, true, true, 0.10, 0.10));
+  EXPECT_FALSE(
+    race_offboard::canRefineManualHandoverReference(
+      true, true, true, true, true, true, true, true, 0.01, 0.10));
+  EXPECT_FALSE(
+    race_offboard::canRefineManualHandoverReference(
+      true, true, true, false, false, true, true, true, 0.01, 0.10));
+  EXPECT_FALSE(
+    race_offboard::canRefineManualHandoverReference(
+      true, true, true, false, true, true, true, true, 0.11, 0.10));
+  EXPECT_FALSE(
+    race_offboard::canRefineManualHandoverReference(
+      true, true, true, false, true, true, false, true, 0.01, 0.10));
 }
 
 TEST(PilotOverridePolicy, LeavingOffboardRevokesActiveAutomation)

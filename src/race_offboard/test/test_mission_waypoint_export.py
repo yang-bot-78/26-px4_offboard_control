@@ -44,7 +44,9 @@ class MissionWaypointExportTest(unittest.TestCase):
         self.assertEqual(result['source_waypoint_names'], ['B1', 'B2', 'C', 'D'])
 
     def test_export_default_holds_are_half_a_second(self):
-        with mock.patch.object(sys, 'argv', ['export_mission_waypoints.py', '--mission-file', '/tmp/mission.yaml']):
+        with mock.patch.object(
+                sys, 'argv',
+                ['export_mission_waypoints.py', '--mission-file', '/tmp/mission.yaml']):
             args = EXPORT.parse_args()
         self.assertEqual(args.b2_hold_sec, 0.5)
         self.assertEqual(args.d_hold_sec, 0.5)

@@ -36,6 +36,8 @@ def launch_setup(context):
                 'require_map_local_alignment': LaunchConfiguration(
                     'require_map_local_alignment'),
                 'variable_waypoint_height': LaunchConfiguration('variable_waypoint_height'),
+                'mission_yaw_override_enabled': LaunchConfiguration(
+                    'mission_yaw_override_enabled'),
             },
         ],
     )]
@@ -58,6 +60,7 @@ def generate_launch_description():
         DeclareLaunchArgument('manual_handover', default_value='false'),
         DeclareLaunchArgument('require_map_local_alignment', default_value='false'),
         DeclareLaunchArgument('variable_waypoint_height', default_value='false'),
+        DeclareLaunchArgument('mission_yaw_override_enabled', default_value='false'),
         DeclareLaunchArgument(
             'tuning_file',
             default_value=PathJoinSubstitution([

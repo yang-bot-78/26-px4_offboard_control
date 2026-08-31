@@ -214,6 +214,12 @@ global_planner:
   # Super 跟踪前视距离，单位：m。
   # [调大] 更平滑但转角切弦风险增加。[调小] 更保守但可能抖动。完整重启。
   tracking_lookahead_distance: 0.30
+  # 仅 Super 直控路径使用：进入终点前 1.20m 后，同时线性缩短位置前视距离和
+  # 速度前馈；到 0.10m 到达半径时速度前馈降为 0，避免高速穿过终点。
+  terminal_slowdown:
+    enable: true
+    distance_m: 1.20
+    stop_distance_m: 0.10
   # 仅 Super 直控路径使用：根据目标方向实际对地推进速度逐级提高速度前馈。
   # 三档动力学限值固定为 (0.8,1.0)、(1.2,1.5)、(1.5,2.0)。达到末档后
   # 仍未恢复 >0.15m/s 的推进速度，会进入 WIND_UNREACHABLE 悬停，等待飞手接管。

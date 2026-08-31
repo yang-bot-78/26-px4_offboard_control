@@ -112,6 +112,22 @@ def load_tuning(path):
     if wind_recovery['recovered_progress_mps'] <= wind_recovery['stalled_progress_mps']:
         raise TuningError(
             'global_planner.wind_recovery.recovered_progress_mps must exceed stalled_progress_mps')
+    terminal_slowdown = _require(
+        global_planner, 'terminal_slowdown', dict, 'global_planner')
+    _require(terminal_slowdown, 'enable', bool, 'global_planner.terminal_slowdown')
+    slowdown_distance = _non_negative(
+        terminal_slowdown, 'distance_m', 'global_planner.terminal_slowdown')
+    stop_distance = _non_negative(
+        terminal_slowdown, 'stop_distance_m', 'global_planner.terminal_slowdown')
+    if not 0.05 <= stop_distance <= 0.30:
+        raise TuningError(
+            'global_planner.terminal_slowdown.stop_distance_m must be in [0.05, 0.30]')
+    if slowdown_distance <= stop_distance:
+        raise TuningError(
+            'global_planner.terminal_slowdown.distance_m must exceed stop_distance_m')
+    if slowdown_distance < global_planner['tracking_lookahead_distance']:
+        raise TuningError(
+            'global_planner.terminal_slowdown.distance_m must be >= tracking_lookahead_distance')
     for key in ('allow_direct_path', 'enable_path_shortcut'):
         _require(global_planner, key, bool, 'global_planner')
     stale_start_max_replans = _require(
@@ -514,6 +530,10 @@ def node_parameter_overlays(tuning):
             'soft_obstacle_cost_radius': global_planner['soft_obstacle_cost_radius'],
             'clearance_cost_weight': global_planner['clearance_cost_weight'],
             'tracking_lookahead_distance': global_planner['tracking_lookahead_distance'],
+            'terminal_slowdown/enable': global_planner['terminal_slowdown']['enable'],
+            'terminal_slowdown/distance_m': global_planner['terminal_slowdown']['distance_m'],
+            'terminal_slowdown/stop_distance_m':
+                global_planner['terminal_slowdown']['stop_distance_m'],
             'wind_recovery/enable': global_planner['wind_recovery']['enable'],
             'wind_recovery/stall_sec': global_planner['wind_recovery']['stall_sec'],
             'wind_recovery/stage_sec': global_planner['wind_recovery']['stage_sec'],

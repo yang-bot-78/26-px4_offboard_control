@@ -45,6 +45,7 @@
 #include "race_super_planner_ros2/continuous_segment_policy.hpp"
 #include "race_super_planner_ros2/local_goal_lifecycle_policy.hpp"
 #include "race_super_planner_ros2/pending_path_gate_policy.hpp"
+#include "race_super_planner_ros2/terminal_slowdown_policy.hpp"
 #include "race_super_planner_ros2/wind_recovery_policy.hpp"
 
 using namespace std::chrono_literals;
@@ -188,6 +189,11 @@ public:
     replan_rate_ = declare_parameter<double>("replan_rate", 2.0);
     replan_while_tracking_ = declare_parameter<bool>("replan_while_tracking", true);
     tracking_lookahead_distance_ = declare_parameter<double>("tracking_lookahead_distance", 0.50);
+    terminal_slowdown_enabled_ = declare_parameter<bool>("terminal_slowdown/enable", true);
+    terminal_slowdown_distance_m_ = declare_parameter<double>(
+      "terminal_slowdown/distance_m", 1.20);
+    terminal_stop_distance_m_ = declare_parameter<double>(
+      "terminal_slowdown/stop_distance_m", 0.10);
     wind_recovery_enabled_ = declare_parameter<bool>("wind_recovery/enable", false);
     wind_recovery_stall_sec_ = declare_parameter<double>("wind_recovery/stall_sec", 5.0);
     wind_recovery_stage_sec_ = declare_parameter<double>("wind_recovery/stage_sec", 4.0);
@@ -350,6 +356,10 @@ public:
     final_goal_position_tolerance_m_ = std::max(0.02, final_goal_position_tolerance_m_);
     final_goal_velocity_tolerance_mps_ = std::max(0.01, final_goal_velocity_tolerance_mps_);
     final_goal_confirmation_cycles_ = std::max(1, final_goal_confirmation_cycles_);
+    terminal_stop_distance_m_ = std::max(
+      final_goal_position_tolerance_m_, terminal_stop_distance_m_);
+    terminal_slowdown_distance_m_ = std::max(
+      terminal_stop_distance_m_ + 0.10, terminal_slowdown_distance_m_);
     local_goal_update_min_interval_sec_ = std::max(0.02, local_goal_update_min_interval_sec_);
     local_goal_update_distance_m_ = std::clamp(local_goal_update_distance_m_, 0.15, 0.25);
     goal_update_position_tolerance_m_ = std::max(0.01, goal_update_position_tolerance_m_);
@@ -460,6 +470,11 @@ public:
     RCLCPP_INFO(
       get_logger(), "[SUPER_TRACKING_POLICY] replan_while_tracking=%s",
       replan_while_tracking_ ? "true" : "false");
+    RCLCPP_INFO(
+      get_logger(),
+      "[TERMINAL_SLOWDOWN] enabled=%s distance=%.2fm stop_distance=%.2fm",
+      terminal_slowdown_enabled_ ? "true" : "false",
+      terminal_slowdown_distance_m_, terminal_stop_distance_m_);
     RCLCPP_INFO(
       get_logger(),
       "[WIND_RECOVERY] enabled=%s limits=[(0.8,1.0),(1.2,1.5),(1.5,2.0)] "
@@ -1066,13 +1081,20 @@ private:
     const double dx = tracking_target.x - latest_odom_.x;
     const double dy = tracking_target.y - latest_odom_.y;
     const double distance = std::hypot(dx, dy);
-    if (distance < 1.0e-3) {
-      return std::nullopt;
-    }
     const auto limit = race_super_planner_ros2::wind_recovery::limitForStage(
       wind_recovery_stage_);
-    const Vec3 desired{limit.max_velocity_mps * dx / distance,
-      limit.max_velocity_mps * dy / distance, 0.0};
+    const double velocity_limit = race_super_planner_ros2::terminal_slowdown::scaledLimit(
+      limit.max_velocity_mps, distance_to_final_, terminalSlowdownProfile());
+    Vec3 desired{};
+    if (velocity_limit > 1.0e-6) {
+      if (distance < 1.0e-3) {
+        return std::nullopt;
+      }
+      desired = Vec3{
+        velocity_limit * dx / distance,
+        velocity_limit * dy / distance,
+        0.0};
+    }
     const auto time = now();
     const double elapsed = last_wind_velocity_command_time_.nanoseconds() == 0 ?
       1.0 / control_rate_ :
@@ -2426,8 +2448,12 @@ private:
     const std::vector<Vec3> & path, const PathProjection & projection,
     bool & narrow_corridor, bool & centering_only, double & corridor_clearance) const
   {
+    const double terminal_scale = race_super_planner_ros2::terminal_slowdown::scale(
+      distance_to_final_, terminalSlowdownProfile());
+    const double terminal_tracking_lookahead = tracking_lookahead_distance_ * terminal_scale;
+    const double terminal_narrow_lookahead = narrow_corridor_lookahead_distance_ * terminal_scale;
     const PathSample nominal_target =
-      samplePathTarget(path, projection, tracking_lookahead_distance_);
+      samplePathTarget(path, projection, terminal_tracking_lookahead);
     corridor_clearance = distanceToNearestRawObstacle(nominal_target.point);
     const double corridor_threshold =
       vehicle_collision_radius_ + narrow_corridor_tracking_margin_ + resolution_ * 0.5;
@@ -2435,7 +2461,7 @@ private:
     centering_only = narrow_corridor &&
       projection.cross_track_error > narrow_corridor_centering_tolerance_;
     const double preferred_lookahead = centering_only ? 0.0 :
-      (narrow_corridor ? narrow_corridor_lookahead_distance_ : tracking_lookahead_distance_);
+      (narrow_corridor ? terminal_narrow_lookahead : terminal_tracking_lookahead);
     const std::array<double, 5> lookahead_candidates{
       preferred_lookahead,
       preferred_lookahead * 0.75,
@@ -2457,6 +2483,14 @@ private:
       }
     }
     return std::nullopt;
+  }
+
+  race_super_planner_ros2::terminal_slowdown::Profile terminalSlowdownProfile() const
+  {
+    return {
+      terminal_slowdown_enabled_,
+      terminal_slowdown_distance_m_,
+      terminal_stop_distance_m_};
   }
 
   std::optional<double> desiredPathYawNed(
@@ -3941,6 +3975,9 @@ private:
   double replan_rate_{2.0};
   bool replan_while_tracking_{true};
   double tracking_lookahead_distance_{0.50};
+  bool terminal_slowdown_enabled_{true};
+  double terminal_slowdown_distance_m_{1.20};
+  double terminal_stop_distance_m_{0.10};
   bool wind_recovery_enabled_{false};
   double wind_recovery_stall_sec_{5.0};
   double wind_recovery_stage_sec_{4.0};

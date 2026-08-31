@@ -14,6 +14,10 @@ offboard_waypoint_node:
     goal_reached_velocity_tolerance: 0.08
     goal_update_position_tolerance_m: 0.05
     require_global_planner_final_goal: false
+    mission_yaw_override_enabled: false
+    mission_yaw_override_topic: /race/mission/yaw_override
+    mission_yaw_override_timeout_sec: 0.30
+    mission_yaw_rate_limit_rad_s: 0.80
     braking_max_acc: 0.50
     hold_replan_distance: 0.08
 

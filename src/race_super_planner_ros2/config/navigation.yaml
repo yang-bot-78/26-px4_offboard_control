@@ -24,6 +24,12 @@ super_planner_ros2_node:
     # validated path. EGO mode uses global_only_mode and its own handoff logic.
     replan_while_tracking: false
     tracking_lookahead_distance: 0.30
+    # Reduce both tracking lookahead and velocity feed-forward as the final
+    # goal approaches. The velocity command reaches zero at the arrival radius.
+    terminal_slowdown:
+      enable: true
+      distance_m: 1.20
+      stop_distance_m: 0.10
     # Direct Super tracking publishes position plus a bounded velocity
     # feed-forward. If a headwind prevents forward ground progress, it raises
     # only this approved profile and finally holds for pilot recovery.

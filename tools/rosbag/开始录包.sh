@@ -238,6 +238,7 @@ low_bag_topics=(
   /race/global_planner/status
   /race/flight_altitude_reference
   /race/control/status
+  /race/mission/yaw_override
   /race/ego/local_goal
   /race/ego/local_path_reference
   /race/ego/bspline
@@ -339,6 +340,7 @@ full_bag_topics=(
   /race/global_planner/status
   /race/flight_altitude_reference
   /race/control/status
+  /race/mission/yaw_override
   /race/ego/odom
   /race/ego/local_goal
   /race/ego/local_path_reference
@@ -392,6 +394,7 @@ trace_bag_topics=(
   /ev_health/status
   /ev_health/diagnostics
   /race/control/status
+  /race/mission/yaw_override
   /race/navigation_setpoint
   /race/flight_altitude_reference
 )

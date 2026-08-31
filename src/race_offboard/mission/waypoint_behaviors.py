@@ -138,6 +138,11 @@ def build_behavior(
         hold_sec = _finite(
             parameters.get('m_sec', parameters.get('m')), 'm_sec', 0.0)
         cycles = _integer(parameters.get('cycles', parameters.get('x')), 'cycles')
+        return_to_arrival = parameters.get('return_to_arrival', False)
+        if not isinstance(return_to_arrival, bool):
+            raise BehaviorConfigError('return_to_arrival must be boolean')
+        return_hold_sec = _finite(
+            parameters.get('return_m_sec', 0.0), 'return_m_sec', 0.0)
         direction = str(parameters.get('direction', 'left')).strip().lower()
         direction = {'左': 'left', '向左': 'left', '右': 'right', '向右': 'right'}.get(
             direction, direction)
@@ -153,10 +158,18 @@ def build_behavior(
             phases.append(YawPhase(
                 cycle, direction,
                 wrap_angle(arrival_yaw_rad + sign * delta * cycle), hold_sec))
+        if return_to_arrival:
+            phases.append(YawPhase(
+                cycles + 1,
+                'right' if direction == 'left' else 'left',
+                wrap_angle(arrival_yaw_rad),
+                return_hold_sec))
         return BehaviorSpec(
             name,
             {'n_deg': degrees, 'm_sec': hold_sec, 'cycles': cycles,
              'direction': direction,
+             'return_to_arrival': return_to_arrival,
+             'return_m_sec': return_hold_sec,
              'arrival_yaw_rad': wrap_angle(arrival_yaw_rad)},
             tuple(phases))
     raise BehaviorConfigError(f'unimplemented behavior {name!r}')

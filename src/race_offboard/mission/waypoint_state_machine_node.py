@@ -32,11 +32,12 @@ _MISSION_DIR = str(Path(__file__).resolve().parent)
 if _MISSION_DIR not in sys.path:
     sys.path.insert(0, _MISSION_DIR)
 from waypoint_behaviors import (  # noqa: E402
-    BehaviorConfigError, build_behavior, command_dict)
+    BehaviorConfigError, YawPhase, build_behavior, command_dict)
 
 
 MIN_POINT_SEPARATION_M = 0.05
 DEFAULT_HOLD_SEC = 0.50
+YAW_REACHED_TOLERANCE_RAD = math.radians(5.0)
 
 
 def default_recognition_results_log() -> Path:
@@ -155,6 +156,42 @@ class Action:
     event: str = ''
     arrived: Optional[RoutePoint] = None
     done: bool = False
+
+
+@dataclass
+class YawBehaviorExecution:
+    """Advance yaw phases from measured map-frame yaw, not elapsed route time."""
+
+    waypoint_name: str
+    phases: tuple[YawPhase, ...]
+    tolerance_rad: float = YAW_REACHED_TOLERANCE_RAD
+    phase_index: int = 0
+    reached_since: Optional[float] = None
+
+    @property
+    def current_phase(self) -> Optional[YawPhase]:
+        if self.phase_index >= len(self.phases):
+            return None
+        return self.phases[self.phase_index]
+
+    def step(self, current_yaw_rad: float, now_sec: float) -> tuple[Optional[float], bool]:
+        phase = self.current_phase
+        if phase is None:
+            return None, True
+        error = abs(math.atan2(
+            math.sin(current_yaw_rad - phase.target_yaw_rad),
+            math.cos(current_yaw_rad - phase.target_yaw_rad)))
+        if error > self.tolerance_rad:
+            self.reached_since = None
+            return phase.target_yaw_rad, False
+        if self.reached_since is None:
+            self.reached_since = now_sec
+        if now_sec - self.reached_since < phase.hold_sec:
+            return phase.target_yaw_rad, False
+        self.phase_index += 1
+        self.reached_since = None
+        phase = self.current_phase
+        return (phase.target_yaw_rad, False) if phase is not None else (None, True)
 
 
 def _number(value: Any, label: str, minimum: Optional[float] = None) -> float:
@@ -426,9 +463,15 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             self.behavior_pub = self.create_publisher(String, '/race/mission/behavior', transient)
             self.behavior_command_pub = self.create_publisher(
                 String, '/race/mission/behavior_command', transient)
+            self.yaw_override_pub = self.create_publisher(
+                PoseStamped, '/race/mission/yaw_override', 10)
             self.recognition = RecognitionProcessController(args.recognition_launcher)
             self._executed_behavior_waypoints: set[str] = set()
             self._last_yaw_rad = 0.0
+            self._yaw_execution: Optional[YawBehaviorExecution] = None
+            self._pending_yaw_point: Optional[RoutePoint] = None
+            self._controller_goal_reached_hold = False
+            self._reported_yaw_phase = -1
             self.create_subscription(MavrosState, '/mavros/state', self.mode_callback, sensor)
             self.create_subscription(PoseStamped, args.pose_topic, self.pose_callback, sensor)
             self.create_subscription(
@@ -445,7 +488,17 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             return self.get_clock().now().nanoseconds / 1e9
 
         def mode_callback(self, message: MavrosState) -> None:
-            self.process_action(self.machine.on_offboard(message.mode == 'OFFBOARD'))
+            offboard = message.mode == 'OFFBOARD'
+            if not offboard and (
+                    self._yaw_execution is not None or
+                    self._pending_yaw_point is not None):
+                self.get_logger().warning(
+                    '[WAYPOINT_YAW_CANCELLED] pilot left OFFBOARD')
+                self._yaw_execution = None
+                self._pending_yaw_point = None
+                self._controller_goal_reached_hold = False
+                self._reported_yaw_phase = -1
+            self.process_action(self.machine.on_offboard(offboard))
 
         def pose_callback(self, message: PoseStamped) -> None:
             point = message.pose.position
@@ -459,51 +512,68 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
                     self.machine.on_position(point.x, point.y, point.z, self.now()))
 
         def control_callback(self, message: String) -> None:
+            self._controller_goal_reached_hold = (
+                'state=GOAL_REACHED_HOLD' in message.data)
             self.process_action(self.machine.on_control_status(message.data))
-            if 'state=GOAL_REACHED_HOLD' in message.data:
+            if self._controller_goal_reached_hold:
                 self.process_action(self.machine.start_hold(self.now()))
+                if self._pending_yaw_point is not None:
+                    self.execute_waypoint_behavior(self._pending_yaw_point)
 
         def planner_callback(self, message: GlobalPlannerStatus) -> None:
             self.process_action(self.machine.on_navigation_ready(
                 message.mode not in ('NO_MAP', 'NO_ODOM', 'BLOCKED_UNSAFE')))
 
         def timer_callback(self) -> None:
+            if self._pending_yaw_point is not None:
+                return
+            if self._yaw_execution is not None:
+                if not self._controller_goal_reached_hold:
+                    return
+                target_yaw, completed = self._yaw_execution.step(
+                    self._last_yaw_rad, self.now())
+                if completed:
+                    waypoint_name = self._yaw_execution.waypoint_name
+                    self._yaw_execution = None
+                    self._reported_yaw_phase = -1
+                    self.event_pub.publish(String(
+                        data=f'yaw_behavior_complete point={waypoint_name}'))
+                    self.get_logger().info(
+                        f'[WAYPOINT_YAW_COMPLETE] point={waypoint_name}')
+                else:
+                    self.publish_yaw_override(target_yaw)
+                    self.report_yaw_phase_if_changed()
+                    return
             self.process_action(self.machine.on_timer(self.now()))
+
+        def publish_yaw_override(self, target_yaw_rad: float) -> None:
+            target = PoseStamped()
+            target.header.stamp = self.get_clock().now().to_msg()
+            target.header.frame_id = 'map'
+            target.pose.orientation.z = math.sin(target_yaw_rad / 2.0)
+            target.pose.orientation.w = math.cos(target_yaw_rad / 2.0)
+            self.yaw_override_pub.publish(target)
+
+        def report_yaw_phase_if_changed(self) -> None:
+            execution = self._yaw_execution
+            if execution is None or execution.phase_index == self._reported_yaw_phase:
+                return
+            phase = execution.current_phase
+            if phase is None:
+                return
+            self._reported_yaw_phase = execution.phase_index
+            self.get_logger().info(
+                f'[WAYPOINT_YAW_PHASE] point={execution.waypoint_name} '
+                f'phase={execution.phase_index + 1}/{len(execution.phases)} '
+                f'direction={phase.direction} target_yaw_rad={phase.target_yaw_rad:.3f} '
+                f'hold_sec={phase.hold_sec:.3f}')
 
         def process_action(self, action: Optional[Action]) -> None:
             if action is None:
                 return
             if (action.arrived is not None and action.arrived.behavior and
                     action.arrived.name not in self._executed_behavior_waypoints):
-                try:
-                    behavior = build_behavior(
-                        action.arrived.behavior, action.arrived.behavior_params,
-                        self._last_yaw_rad)
-                    if behavior is not None:
-                        if behavior.name == 'start_recognition':
-                            changed = self.recognition.start()
-                            self.get_logger().info(
-                                '[RECOGNITION_PROCESS] ' +
-                                ('started' if changed else 'already_running') +
-                                f' result_log={self.recognition.result_log_path}')
-                        elif behavior.name == 'stop_recognition':
-                            changed = self.recognition.stop()
-                            self.get_logger().info(
-                                '[RECOGNITION_PROCESS] ' +
-                                ('stopped' if changed else 'already_stopped'))
-                        command = command_dict(
-                            behavior, action.arrived.name, self._last_yaw_rad)
-                        self.behavior_command_pub.publish(String(
-                            data=json.dumps(command, ensure_ascii=False, sort_keys=True)))
-                        self.behavior_pub.publish(String(data=(
-                            f'point={action.arrived.name} state={action.arrived.state} '
-                            f'behavior={behavior.name}')))
-                        self._executed_behavior_waypoints.add(action.arrived.name)
-                except (BehaviorConfigError, RecognitionProcessError) as error:
-                    self.event_pub.publish(String(
-                        data=f'behavior_rejected point={action.arrived.name} reason={error}'))
-                    self.get_logger().error(
-                        f'[WAYPOINT_BEHAVIOR_REJECTED] {action.arrived.name}: {error}')
+                self.execute_waypoint_behavior(action.arrived)
             if action.event:
                 self.event_pub.publish(String(data=action.event))
                 self.get_logger().info(f'[WAYPOINT_FSM] {action.event}')
@@ -517,6 +587,48 @@ def _ros_main(argv: Optional[list[str]] = None) -> int:
             if action.goal is not None:
                 self.publish_goal(action.goal, self.goal_pub, 'GOTO')
             self.publish_status()
+
+        def execute_waypoint_behavior(self, point: RoutePoint) -> None:
+            try:
+                behavior = build_behavior(
+                    point.behavior, point.behavior_params, self._last_yaw_rad)
+                if behavior is None:
+                    return
+                if (behavior.name == 'yaw_sweep' and
+                        not self._controller_goal_reached_hold):
+                    self._pending_yaw_point = point
+                    self.get_logger().info(
+                        f'[WAYPOINT_YAW_WAIT_HOLD] point={point.name}')
+                    return
+                if behavior.name == 'start_recognition':
+                    changed = self.recognition.start()
+                    self.get_logger().info(
+                        '[RECOGNITION_PROCESS] ' +
+                        ('started' if changed else 'already_running') +
+                        f' result_log={self.recognition.result_log_path}')
+                elif behavior.name == 'stop_recognition':
+                    changed = self.recognition.stop()
+                    self.get_logger().info(
+                        '[RECOGNITION_PROCESS] ' +
+                        ('stopped' if changed else 'already_stopped'))
+                elif behavior.name == 'yaw_sweep':
+                    self._yaw_execution = YawBehaviorExecution(
+                        point.name, behavior.phases)
+                    self._pending_yaw_point = None
+                    self._reported_yaw_phase = -1
+                command = command_dict(behavior, point.name, self._last_yaw_rad)
+                self.behavior_command_pub.publish(String(
+                    data=json.dumps(command, ensure_ascii=False, sort_keys=True)))
+                self.behavior_pub.publish(String(data=(
+                    f'point={point.name} state={point.state} '
+                    f'behavior={behavior.name}')))
+                self._executed_behavior_waypoints.add(point.name)
+            except (BehaviorConfigError, RecognitionProcessError) as error:
+                self._pending_yaw_point = None
+                self.event_pub.publish(String(
+                    data=f'behavior_rejected point={point.name} reason={error}'))
+                self.get_logger().error(
+                    f'[WAYPOINT_BEHAVIOR_REJECTED] {point.name}: {error}')
 
         def publish_goal(self, point: RoutePoint, publisher: Any, label: str) -> None:
             goal = PoseStamped()

@@ -225,7 +225,9 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertIn('ROSBAG_PROFILE="${rosbag_profile}"', auto_takeoff)
         self.assertIn('manual_handover_min_altitude_m="0.30"', auto_takeoff)
         self.assertIn('manual_handover_max_altitude_m="2.00"', auto_takeoff)
-        self.assertIn('tuning["shared_safety"]["fault_envelope"]["z_max"] = max_height', auto_takeoff)
+        self.assertIn(
+            'tuning["shared_safety"]["fault_envelope"]["z_max"] = max_height',
+            auto_takeoff)
         self.assertIn('wait_manual_position_handover || exit 4', auto_takeoff)
         self.assertIn('capture_planning_start_position', auto_takeoff)
         self.assertIn('wait_handover_accepted || exit 5', auto_takeoff)
@@ -287,6 +289,12 @@ class AstarEgoTuningTest(unittest.TestCase):
         self.assertEqual(
             self.tuning['global_planner']['stale_start_max_replans'],
             overlays['super']['pending_path_max_replans'])
+        terminal = self.tuning['global_planner']['terminal_slowdown']
+        self.assertTrue(terminal['enable'])
+        self.assertEqual(terminal['distance_m'], overlays['super']['terminal_slowdown/distance_m'])
+        self.assertEqual(
+            terminal['stop_distance_m'],
+            overlays['super']['terminal_slowdown/stop_distance_m'])
         self.assertEqual(
             self.tuning['ego_map']['live_obstacle_memory_sec'],
             overlays['cloud_bridge']['live_obstacle_memory_sec'])
@@ -726,6 +734,25 @@ class AstarEgoTuningTest(unittest.TestCase):
                 bad['global_planner']['first_commit_max_path_error_m'] = value
                 with self.assertRaisesRegex(TuningError, 'first_commit_max_path_error_m'):
                     self._validate(bad)
+
+    def test_terminal_slowdown_distances_are_bounded(self):
+        for stop_distance in (0.049, 0.301):
+            with self.subTest(stop_distance=stop_distance):
+                bad = copy.deepcopy(self.tuning)
+                bad['global_planner']['terminal_slowdown']['stop_distance_m'] = stop_distance
+                with self.assertRaisesRegex(TuningError, 'stop_distance_m'):
+                    self._validate(bad)
+
+        bad = copy.deepcopy(self.tuning)
+        terminal = bad['global_planner']['terminal_slowdown']
+        terminal['distance_m'] = terminal['stop_distance_m']
+        with self.assertRaisesRegex(TuningError, 'distance_m'):
+            self._validate(bad)
+
+        bad = copy.deepcopy(self.tuning)
+        bad['global_planner']['terminal_slowdown']['distance_m'] = 0.20
+        with self.assertRaisesRegex(TuningError, 'tracking_lookahead_distance'):
+            self._validate(bad)
 
     def test_expensive_ego_diagnostics_are_explicitly_disabled_by_default(self):
         overlays = node_parameter_overlays(self.tuning)

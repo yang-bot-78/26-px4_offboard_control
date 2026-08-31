@@ -58,5 +58,17 @@ class WaypointBehaviorsTest(unittest.TestCase):
         self.assertEqual([phase.direction for phase in command.phases], ['right', 'right'])
         self.assertAlmostEqual(command.phases[-1].target_yaw_rad, math.radians(-90.0))
 
+    def test_yaw_sweep_can_return_to_arrival_heading(self):
+        command = BEHAVIORS.build_behavior(
+            'yaw_sweep', {
+                'n_deg': 90, 'm_sec': 5, 'cycles': 1,
+                'direction': 'left', 'return_to_arrival': True}, 0.0)
+        self.assertEqual([phase.direction for phase in command.phases], ['left', 'right'])
+        self.assertAlmostEqual(command.phases[0].target_yaw_rad, math.radians(90.0))
+        self.assertEqual(command.phases[0].hold_sec, 5.0)
+        self.assertAlmostEqual(command.phases[1].target_yaw_rad, 0.0)
+        self.assertEqual(command.phases[1].hold_sec, 0.0)
+
+
 if __name__ == '__main__':
     unittest.main()

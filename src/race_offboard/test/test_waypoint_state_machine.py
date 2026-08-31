@@ -2,6 +2,7 @@
 """Pure logic tests for the extensible saved-waypoint state machine."""
 
 import importlib.util
+import math
 import sys
 import tempfile
 import textwrap
@@ -129,7 +130,8 @@ class WaypointStateMachineTest(unittest.TestCase):
             result_log = Path(directory) / 'recognition_results.log'
             launcher.write_text(textwrap.dedent('''\
                 #!/usr/bin/env bash
-                printf 'timestamp=2026-08-21T12:00:00.000Z result=plane\\n' >> "$RECOGNITION_RESULT_LOG_FILE"
+                printf 'timestamp=2026-08-21T12:00:00.000Z result=plane\\n' >> \
+                    "$RECOGNITION_RESULT_LOG_FILE"
                 exec sleep 60
             '''), encoding='utf-8')
             launcher.chmod(0o755)
@@ -146,6 +148,39 @@ class WaypointStateMachineTest(unittest.TestCase):
                     'timestamp=2026-08-21T12:00:00.000Z result=plane',
                     'timestamp=2026-08-21T12:00:00.000Z result=plane',
                 ])
+
+    def test_yaw_behavior_waits_at_target_then_returns_to_arrival_yaw(self):
+        phases = (
+            FSM.YawPhase(1, 'left', math.radians(30.0), 5.0),
+            FSM.YawPhase(2, 'right', 0.0, 0.0),
+        )
+        execution = FSM.YawBehaviorExecution('B2', phases)
+
+        target, completed = execution.step(0.0, 10.0)
+        self.assertAlmostEqual(target, math.radians(30.0))
+        self.assertFalse(completed)
+        target, completed = execution.step(math.radians(30.0), 11.0)
+        self.assertAlmostEqual(target, math.radians(30.0))
+        self.assertFalse(completed)
+        target, completed = execution.step(math.radians(30.0), 15.9)
+        self.assertAlmostEqual(target, math.radians(30.0))
+        self.assertFalse(completed)
+        target, completed = execution.step(math.radians(30.0), 16.0)
+        self.assertAlmostEqual(target, 0.0)
+        self.assertFalse(completed)
+        target, completed = execution.step(0.0, 17.0)
+        self.assertIsNone(target)
+        self.assertTrue(completed)
+
+    def test_yaw_behavior_resets_hold_when_heading_leaves_tolerance(self):
+        phase = FSM.YawPhase(1, 'left', math.radians(30.0), 2.0)
+        execution = FSM.YawBehaviorExecution('B2', (phase,))
+        execution.step(math.radians(30.0), 1.0)
+        execution.step(math.radians(20.0), 2.0)
+        _, completed = execution.step(math.radians(30.0), 3.0)
+        self.assertFalse(completed)
+        _, completed = execution.step(math.radians(30.0), 5.0)
+        self.assertTrue(completed)
 
 
 if __name__ == '__main__':

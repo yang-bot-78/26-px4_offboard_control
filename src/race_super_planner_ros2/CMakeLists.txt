@@ -122,6 +122,13 @@ if(BUILD_TESTING)
     target_include_directories(test_wind_recovery_policy PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/include)
   endif()
+  ament_add_gtest(
+    test_terminal_slowdown_policy
+    test/test_terminal_slowdown_policy.cpp)
+  if(TARGET test_terminal_slowdown_policy)
+    target_include_directories(test_terminal_slowdown_policy PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  endif()
 endif()
 
 ament_package()

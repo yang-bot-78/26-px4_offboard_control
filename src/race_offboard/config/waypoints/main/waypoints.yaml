@@ -2,9 +2,9 @@ frame_id: map
 waypoints:
   B2:
     mode: xy
-    x: 0.9814200055086039
+    x: 0.8514200055086039
     y: -0.41300936701106167
-    z: 0.78
+    z: 1
     recorded_at: '2026-08-21T05:30:25.177460+00:00'
     sample_count: 201
     position_stddev_m: 0.0043242617240487466
@@ -12,7 +12,7 @@ waypoints:
     mode: xy
     x: 0.49514391096889304
     y: -3.6375917215652858
-    z: 0.78
+    z: 1
     recorded_at: '2026-08-21T05:30:36.998819+00:00'
     sample_count: 201
     position_stddev_m: 0.004628168268113935
@@ -20,15 +20,16 @@ waypoints:
     mode: xy
     x: 2.1775800591763095
     y: -6.722333000779921
-    z: 0.78
+    z: 1
     recorded_at: '2026-08-21T05:30:51.556961+00:00'
     sample_count: 201
     position_stddev_m: 0.004705647288568396
   P005:
     mode: xy
-    x: -0.0068644797007035244
+    x: -0.6068644797007035244
     y: -10.874329760050372
-    z: 0.78
+    z: 1
+    hold_sec: 5.0
     recorded_at: '2026-08-21T05:31:08.372422+00:00'
     sample_count: 199
     position_stddev_m: 0.0029503282103709493
@@ -36,15 +37,24 @@ waypoints:
     mode: xy
     x: 3.386978456302902
     y: -11.002185939795284
-    z: 0.78
+    z: 1
+    hold_sec: 0.5
     recorded_at: '2026-08-21T05:31:22.869968+00:00'
     sample_count: 200
     position_stddev_m: 0.004853424466199768
+    behavior: yaw_sweep
+    behavior_params:
+      n_deg: 90
+      m_sec: 5.0
+      cycles: 1
+      direction: left
+      return_to_arrival: true
+      return_m_sec: 0.5
   P007:
     mode: xy
     x: 5.637107934773603
     y: -9.871826415835649
-    z: 0.78
+    z: 1
     recorded_at: '2026-08-21T05:31:36.525000+00:00'
     sample_count: 156
     position_stddev_m: 0.0032615722197298683
@@ -52,23 +62,23 @@ waypoints:
     mode: xy
     x: 7.098756380520943
     y: -12.92401254512377
-    z: 0.78
+    z: 1
     recorded_at: '2026-08-21T05:31:50.737341+00:00'
     sample_count: 200
     position_stddev_m: 0.008542338983423083
   P009:
     mode: xy
     x: 11.52513123836226
-    y: -13.130265991291765
-    z: 0.78
+    y: -12.130265991291765
+    z: 1
     recorded_at: '2026-08-21T05:32:04.797251+00:00'
     sample_count: 200
     position_stddev_m: 0.00361579958383316
   P010:
     mode: xy
-    x: 7.255205934884688
-    y: -5.288355421329163
-    z: 0.78
+    x: 12.255205934884688
+    y: -8.288355421329163
+    z: 1
     recorded_at: '2026-08-21T05:32:21.556281+00:00'
     sample_count: 199
     position_stddev_m: 0.21836406703243139
@@ -104,7 +114,6 @@ waypoints:
     recorded_at: '2026-08-21T05:33:09.279110+00:00'
     sample_count: 149
     position_stddev_m: 0.0035758875567256467
-map_pcd_file: "/home/robot/egohx_ws/26-px4_offboard_control-main/maps/main/GlobalMap_\u53BB\
-  \u9876\u7AEF_z2.5m.pcd"
+map_pcd_file: "/home/robot/egohx_ws/26-px4_offboard_control-main/maps/newBISAI/GlobalMap_去顶端_z2.5m.pcd"
 map_pcd_sha256: 3df29b4154aba1c572f203fd4ecebe3499aa8dbfede4a1d855a70e12711f8f7c
 default_flight_height: 0.78

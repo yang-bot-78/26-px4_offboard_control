@@ -62,6 +62,9 @@ if(BUILD_TESTING)
   target_include_directories(test_mavros_frame_utils PRIVATE include)
   ament_add_gtest(test_navigation_z_guard test/test_navigation_z_guard.cpp)
   target_include_directories(test_navigation_z_guard PRIVATE include)
+  ament_add_gtest(
+    test_mission_yaw_override_policy test/test_mission_yaw_override_policy.cpp)
+  target_include_directories(test_mission_yaw_override_policy PRIVATE include)
   # Pre-arm continuity gate and in-flight FAULT guard for the external-vision
   # chain.  Absent from the simulation node; required on the real aircraft.
   ament_add_gtest(test_ev_health_tracker test/test_ev_health_tracker.cpp)
@@ -86,6 +89,9 @@ if(BUILD_TESTING)
   add_test(
     NAME test_waypoint_behaviors
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_waypoint_behaviors.py)
+  add_test(
+    NAME test_waypoint_map_binding
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_waypoint_map_binding.py)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files

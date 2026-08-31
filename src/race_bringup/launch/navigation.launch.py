@@ -166,6 +166,7 @@ def generate_launch_description():
             'require_map_local_alignment': LaunchConfiguration(
                 'require_map_local_alignment'),
             'variable_waypoint_height': waypoint_fsm_enabled,
+            'mission_yaw_override_enabled': waypoint_fsm_enabled,
             'tuning_file': tuning_file,
         }.items(),
         condition=IfCondition(control_nodes_enabled),
@@ -377,7 +378,9 @@ def generate_launch_description():
             description='Publish B1->B2->C->D planner goals without PX4 mode handling.'),
         DeclareLaunchArgument(
             'waypoint_fsm_enabled', default_value='false',
-            description='Use waypoint z values with Super XY planning and linear altitude transitions.'),
+            description=(
+                'Use waypoint z values with Super XY planning and linear '
+                'altitude transitions.')),
         DeclareLaunchArgument(
             'publish_global_path', default_value='false',
             description='Publish /race/global_path for global-planning verification.'),
